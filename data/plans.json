@@ -1,0 +1,190 @@
+{
+  "activePlanId": "plan_franco_viet",
+  "plans": {
+    "plan_franco_viet": {
+      "id": "plan_franco_viet",
+      "name": "🇫🇷 ➔ 🇻🇳 Kế hoạch Franco-Viet FIRE (Pháp ➔ Việt Nam)",
+      "currency": "EUR",
+      "exchangeRateEurVnd": 27500,
+      "currentAge": 29,
+      "retirementAge": 42,
+      "lifeExpectancy": 85,
+      "currentSavings": 10000,
+      "annualSavings": 7922,
+      "annualExpenses": 15846,
+      "retirementExpenses": 10000,
+      "inflationRate": 2.5,
+      "investmentReturnPre": 8,
+      "investmentReturnPost": 7.5,
+      "withdrawalStrategy": "vpw",
+      "initialWithdrawalRate": 4,
+      "targetLegacy": 100000,
+      "taxRegime": "france_vietnam",
+      "taxRate": 12,
+      "socialSecurityAge": 65,
+      "socialSecurityAnnual": 7200,
+      "frenchAccounts": {
+        "peaBalance": 35000,
+        "assuranceVieBalance": 10000,
+        "livretABalance": 5000,
+        "perBalance": 0
+      },
+      "incomes": [
+        {
+          "name": "Lương tại Pháp (Net après impôt)",
+          "amount": 25000,
+          "startAge": 29,
+          "endAge": 42,
+          "growth": 3.5,
+          "taxable": true
+        },
+        {
+          "name": "Cổ tức / Thu nhập thụ động",
+          "amount": 2400,
+          "startAge": 38,
+          "endAge": 85,
+          "growth": 4,
+          "taxable": false
+        }
+      ],
+      "spendingPhases": {
+        "enabled": true,
+        "gogoAge": 55,
+        "gogoFactor": 1.15,
+        "slowgoAge": 70,
+        "slowgoFactor": 0.9,
+        "nogoFactor": 0.8
+      },
+      "rothConversion": {
+        "enabled": false,
+        "targetBracket": 12,
+        "maxAnnualConversion": 0
+      },
+      "healthcare": {
+        "enabled": true,
+        "annualPreMedicare": 800,
+        "annualPostMedicare": 1500,
+        "acaOptimization": false
+      },
+      "savingsRate": 33.33
+    },
+    "plan_baseline": {
+      "id": "plan_baseline",
+      "name": "Kế hoạch Tiêu chuẩn (Baseline FIRE)",
+      "currency": "VND",
+      "currentAge": 32,
+      "retirementAge": 45,
+      "lifeExpectancy": 85,
+      "currentSavings": 1500000000,
+      "annualSavings": 360000000,
+      "annualExpenses": 240000000,
+      "retirementExpenses": 300000000,
+      "inflationRate": 4,
+      "investmentReturnPre": 10,
+      "investmentReturnPost": 8,
+      "withdrawalStrategy": "guyton_klinger",
+      "initialWithdrawalRate": 4,
+      "targetLegacy": 1000000000,
+      "taxRegime": "international",
+      "taxRate": 10,
+      "socialSecurityAge": 62,
+      "socialSecurityAnnual": 72000000,
+      "incomes": [
+        {
+          "name": "Lương chính & Thưởng",
+          "amount": 600000000,
+          "startAge": 32,
+          "endAge": 45,
+          "growth": 5,
+          "taxable": true
+        },
+        {
+          "name": "BĐS Cho thuê / Cổ tức",
+          "amount": 120000000,
+          "startAge": 42,
+          "endAge": 85,
+          "growth": 4,
+          "taxable": true
+        }
+      ],
+      "spendingPhases": {
+        "enabled": true,
+        "gogoAge": 60,
+        "gogoFactor": 1.15,
+        "slowgoAge": 75,
+        "slowgoFactor": 0.9,
+        "nogoFactor": 0.8
+      },
+      "rothConversion": {
+        "enabled": true,
+        "targetBracket": 15,
+        "maxAnnualConversion": 200000000
+      },
+      "healthcare": {
+        "enabled": true,
+        "annualPreMedicare": 30000000,
+        "annualPostMedicare": 15000000,
+        "acaOptimization": true
+      }
+    },
+    "plan_aggressive": {
+      "id": "plan_aggressive",
+      "name": "Nghỉ hưu Cực sớm (Fat FIRE 40 tuổi)",
+      "currency": "VND",
+      "currentAge": 32,
+      "retirementAge": 40,
+      "lifeExpectancy": 85,
+      "currentSavings": 2500000000,
+      "annualSavings": 500000000,
+      "annualExpenses": 240000000,
+      "retirementExpenses": 360000000,
+      "inflationRate": 4,
+      "investmentReturnPre": 12,
+      "investmentReturnPost": 8.5,
+      "withdrawalStrategy": "vpw",
+      "initialWithdrawalRate": 3.8,
+      "targetLegacy": 2000000000,
+      "taxRegime": "international",
+      "taxRate": 10,
+      "socialSecurityAge": 62,
+      "socialSecurityAnnual": 72000000,
+      "incomes": [
+        {
+          "name": "Kinh doanh & Tư vấn",
+          "amount": 800000000,
+          "startAge": 32,
+          "endAge": 40,
+          "growth": 7,
+          "taxable": true
+        },
+        {
+          "name": "Thu nhập Thụ động BĐS",
+          "amount": 200000000,
+          "startAge": 40,
+          "endAge": 85,
+          "growth": 4.5,
+          "taxable": true
+        }
+      ],
+      "spendingPhases": {
+        "enabled": true,
+        "gogoAge": 55,
+        "gogoFactor": 1.2,
+        "slowgoAge": 70,
+        "slowgoFactor": 0.85,
+        "nogoFactor": 0.75
+      },
+      "rothConversion": {
+        "enabled": false,
+        "targetBracket": 12,
+        "maxAnnualConversion": 0
+      },
+      "healthcare": {
+        "enabled": true,
+        "annualPreMedicare": 40000000,
+        "annualPostMedicare": 20000000,
+        "acaOptimization": false
+      }
+    }
+  }
+}

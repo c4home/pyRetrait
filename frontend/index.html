@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>pyRetrait — Hoạch định Độc lập Tài chính & Nghỉ hưu sớm (FIRE)</title>
+  <meta name="description" content="Công cụ cao cấp mô phỏng dòng tiền, tối ưu hóa thuế, chiến lược rút tiền, phân tích Monte Carlo, kịch bản What-If và lập kế hoạch hưu trí độc lập.">
+  
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js for High Performance Data Visualizations (Local first, CDN fallback) -->
+  <script src="js/chart.umd.min.js"></script>
+  <script>
+    if (!window.Chart) {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"><\/script>');
+    }
+  </script>
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Top Navigation Bar -->
+  <header class="top-nav" id="top-nav">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">pyRetrait <span class="badge-pro">PRO</span></span>
+        <span class="brand-tagline">Advanced FIRE & Wealth Engine</span>
+      </div>
+    </div>
+
+    <!-- Plan Selector & Actions -->
+    <div class="nav-plan-controls">
+      <div class="plan-select-wrapper">
+        <label for="plan-selector" class="sr-only">Chọn Kế hoạch</label>
+        <span class="plan-icon">📁</span>
+        <select id="plan-selector" class="plan-dropdown" title="Chuyển đổi kế hoạch">
+          <!-- Dynamic options loaded via JS -->
+        </select>
+      </div>
+      <button id="btn-new-plan" class="btn btn-secondary btn-sm" title="Tạo kế hoạch mới">+ Kế hoạch mới</button>
+      <button id="btn-duplicate-plan" class="btn btn-ghost btn-sm" title="Nhân bản kế hoạch này">Nhân bản</button>
+      <button id="btn-delete-plan" class="btn btn-ghost btn-sm" title="Xóa kế hoạch hiện tại" style="color: var(--danger);">🗑️ Xóa</button>
+      <button id="btn-toggle-compare" class="btn btn-accent btn-sm" title="Bật/Tắt chế độ so sánh 2 kế hoạch">
+        <span class="compare-icon">⚖️</span> So sánh
+      </button>
+    </div>
+
+    <!-- Right Controls: Currency, Theme, Export -->
+    <div class="nav-actions">
+      <!-- Currency Switcher (Symbols only) -->
+      <div class="currency-toggle">
+        <button class="currency-btn active" data-currency="EUR" id="cur-eur" title="Euro">€</button>
+        <button class="currency-btn" data-currency="VND" id="cur-vnd" title="Việt Nam Đồng">₫</button>
+        <button class="currency-btn" data-currency="USD" id="cur-usd" title="Đô la Mỹ">$</button>
+      </div>
+
+      <!-- Readiness Score Badge -->
+      <div class="fire-badge-container" id="fire-score-badge" title="Chỉ số Sẵn sàng Nghỉ hưu sớm">
+        <span class="fire-badge-label">FIRE Score</span>
+        <span class="fire-badge-val" id="kpi-fire-score">92%</span>
+      </div>
+
+      <!-- Export Menu -->
+      <div class="dropdown-menu-wrapper">
+        <button id="btn-export-menu" class="btn btn-primary btn-sm">
+          <span>Xuất báo cáo ▾</span>
+        </button>
+        <div class="dropdown-content" id="export-dropdown">
+          <a href="#" id="export-pdf-btn">📄 In Báo cáo Tóm tắt (PDF)</a>
+          <a href="#" id="export-csv-btn">📊 Tải Bảng Dòng tiền (CSV)</a>
+          <a href="#" id="export-json-btn">💾 Sao lưu Dữ liệu (JSON)</a>
+          <a href="#" id="import-json-btn">📂 Nhập Dữ liệu (JSON)</a>
+        </div>
+        <input type="file" id="json-file-input" style="display:none" accept=".json">
+      </div>
+
+      <!-- Theme Switch -->
+      <button id="theme-toggle-btn" class="btn-icon" title="Chuyển đổi giao diện Sáng/Tối">
+        <span id="theme-icon">🌙</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- App Body Layout -->
+  <div class="app-layout">
+    <!-- Left Navigation Menu -->
+    <aside class="sidebar">
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="tab-projections">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Dòng tiền & Tài sản</span>
+          <span class="nav-sub">Cash-Flow Projections</span>
+        </button>
+        <button class="nav-item" data-tab="tab-withdrawals">
+          <span class="nav-icon">🛡️</span>
+          <span class="nav-label">Chiến lược Rút tiền</span>
+          <span class="nav-sub">Withdrawal Strategies</span>
+        </button>
+        <button class="nav-item" data-tab="tab-taxes">
+          <span class="nav-icon">⚖️</span>
+          <span class="nav-label">Tối ưu Thuế & Roth</span>
+          <span class="nav-sub">Tax & Roth Optimization</span>
+        </button>
+        <button class="nav-item" data-tab="tab-insights">
+          <span class="nav-icon">📈</span>
+          <span class="nav-label">Monte Carlo & Rủi ro</span>
+          <span class="nav-sub">Deeper Insights & SRR</span>
+        </button>
+        <button class="nav-item" data-tab="tab-scenarios">
+          <span class="nav-icon">🧬</span>
+          <span class="nav-label">Kịch bản What-If</span>
+          <span class="nav-sub">What-If Scenarios</span>
+        </button>
+        <button class="nav-item" data-tab="tab-estate">
+          <span class="nav-icon">🏛️</span>
+          <span class="nav-label">Thừa kế & Chi tiêu Smile</span>
+          <span class="nav-sub">Estate & Spending Smile</span>
+        </button>
+        <button class="nav-item" data-tab="tab-advisor">
+          <span class="nav-icon">🤖</span>
+          <span class="nav-label">Cố vấn AI FIRE</span>
+          <span class="nav-sub">Recommendations & Audit</span>
+        </button>
+      </nav>
+
+      <!-- Sidebar Quick Summary Card -->
+      <div class="sidebar-summary-card">
+        <div class="summary-card-header">
+          <span class="summary-title">Mục tiêu Độc lập</span>
+          <span class="summary-status" id="summary-fire-status">FIRE Tự tin</span>
+        </div>
+        <div class="summary-metric">
+          <span class="metric-label">Tuổi nghỉ hưu:</span>
+          <span class="metric-value text-accent" id="summary-retire-age">45 tuổi</span>
+        </div>
+        <div class="summary-metric">
+          <span class="metric-label">Số năm tích lũy:</span>
+          <span class="metric-value" id="summary-years-to-fire">13 năm nữa</span>
+        </div>
+        <div class="summary-metric">
+          <span class="metric-label">Tài sản mục tiêu (25x):</span>
+          <span class="metric-value font-mono" id="summary-target-nest-egg">7.50 Tỷ</span>
+        </div>
+        <div class="summary-metric">
+          <span class="metric-label">Tỷ lệ thành công:</span>
+          <span class="metric-value text-success" id="summary-success-prob">94.8%</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Key Metrics Dashboard -->
+      <section class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-icon-badge bg-blue">💰</div>
+          <div class="kpi-info">
+            <span class="kpi-title">Tài sản hiện tại (Net Worth)</span>
+            <span class="kpi-value font-mono" id="kpi-current-networth">1.50 Tỷ ₫</span>
+            <span class="kpi-subtitle" id="kpi-savings-rate">Tỷ lệ tiết kiệm: <strong>60%</strong></span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon-badge bg-purple">🎯</div>
+          <div class="kpi-info">
+            <span class="kpi-title">Tài sản lúc Nghỉ hưu (Đỉnh)</span>
+            <span class="kpi-value font-mono" id="kpi-peak-networth">14.82 Tỷ ₫</span>
+            <span class="kpi-subtitle">Tại tuổi <span id="kpi-peak-age">45</span> (đã tính lạm phát)</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon-badge bg-green">🛡️</div>
+          <div class="kpi-info">
+            <span class="kpi-title">Chi tiêu an toàn/năm (SWR)</span>
+            <span class="kpi-value font-mono" id="kpi-safe-annual-spend">300.0 Tr ₫</span>
+            <span class="kpi-subtitle">Tương đương <strong>4.0%</strong> danh mục</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon-badge bg-amber">🏛️</div>
+          <div class="kpi-info">
+            <span class="kpi-title">Tài sản thừa kế dự kiến (85t)</span>
+            <span class="kpi-value font-mono" id="kpi-estate-end">18.45 Tỷ ₫</span>
+            <span class="kpi-subtitle text-success">Đạt 184% mục tiêu thừa kế</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Compare Mode Split Screen Container (Hidden by default) -->
+      <section class="compare-mode-section" id="compare-section" style="display: none;">
+        <div class="compare-header">
+          <h3>⚖️ Chế độ So sánh Đối chiếu (Side-by-Side Compare Mode)</h3>
+          <p>Đối chiếu song song hai kế hoạch hưu trí để đánh giá tác động của tuổi nghỉ hưu, tỷ lệ tiết kiệm và danh mục.</p>
+        </div>
+        <div class="compare-grid">
+          <div class="compare-column" id="compare-col-a">
+            <h4 class="compare-col-title" id="compare-title-a">Kế hoạch A (Hiện tại)</h4>
+            <div class="compare-stats-table" id="compare-stats-a"></div>
+          </div>
+          <div class="compare-column" id="compare-col-b">
+            <h4 class="compare-col-title">
+              <select id="compare-plan-b-selector" class="plan-dropdown">
+                <!-- Populated dynamically -->
+              </select>
+            </h4>
+            <div class="compare-stats-table" id="compare-stats-b"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 1: CASH FLOW & PROJECTIONS -->
+      <section class="tab-pane active" id="tab-projections">
+        <div class="panel-layout">
+          <!-- Left: Controls & Parameters Input Form -->
+          <div class="panel-controls">
+            <div class="card">
+              <h3 class="card-title">⚙️ Thông số Cơ bản & Dòng tiền</h3>
+              
+              <div class="form-row">
+                <div class="form-group col-6">
+                  <label for="inp-current-age">Tuổi hiện tại</label>
+                  <input type="number" id="inp-current-age" min="18" max="80" value="32" class="form-input">
+                </div>
+                <div class="form-group col-6">
+                  <label for="inp-retire-age">Tuổi nghỉ hưu</label>
+                  <input type="number" id="inp-retire-age" min="25" max="80" value="45" class="form-input">
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group col-6">
+                  <label for="inp-life-expectancy">Kỳ vọng tuổi thọ</label>
+                  <input type="number" id="inp-life-expectancy" min="50" max="110" value="85" class="form-input">
+                </div>
+                <div class="form-group col-6">
+                  <label for="inp-inflation">Lạm phát bình quân (%)</label>
+                  <input type="number" id="inp-inflation" step="0.1" min="0" max="20" value="4.0" class="form-input">
+                </div>
+              </div>
+
+              <div class="form-divider"></div>
+              <h4 class="card-subtitle">💵 Tài sản & Tích lũy hàng năm</h4>
+
+              <div class="form-group">
+                <label for="inp-current-savings">Tài sản ròng đầu tư hiện có</label>
+                <div class="input-with-unit">
+                  <input type="number" id="inp-current-savings" value="1500000000" step="10000000" class="form-input">
+                  <span class="unit-badge" id="unit-savings">€</span>
+                </div>
+              </div>
+
+              <!-- Tỷ lệ Phân bổ Thu nhập (Savings Rate) -->
+              <div class="form-group">
+                <div class="field-header">
+                  <label for="inp-savings-rate">Tỷ lệ Tiết kiệm từ Thu nhập</label>
+                  <span class="field-badge" id="lbl-savings-rate">33.3% (1/3 Thu nhập)</span>
+                </div>
+                <input type="range" id="inp-savings-rate" min="5" max="90" step="0.5" value="33.3" class="form-range">
+                <div class="ratio-presets">
+                  <button type="button" class="btn btn-xs btn-outline btn-ratio" data-ratio="25">1/4 (25%)</button>
+                  <button type="button" class="btn btn-xs btn-outline btn-ratio active" data-ratio="33.33">1/3 (33%)</button>
+                  <button type="button" class="btn btn-xs btn-outline btn-ratio" data-ratio="50">1/2 (50%)</button>
+                  <button type="button" class="btn btn-xs btn-outline btn-ratio" data-ratio="66.67">2/3 (67%)</button>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group col-6">
+                  <label for="inp-annual-expenses">Chi tiêu/năm (hiện tại)</label>
+                  <input type="number" id="inp-annual-expenses" value="53333" step="500" class="form-input">
+                  <div class="input-hint" id="hint-annual-expenses">≈ 2/3 thu nhập</div>
+                </div>
+                <div class="form-group col-6">
+                  <label for="inp-annual-savings">Tiết kiệm/năm (hiện tại)</label>
+                  <input type="number" id="inp-annual-savings" value="26667" step="500" class="form-input">
+                  <div class="input-hint" id="hint-annual-savings">≈ 1/3 thu nhập</div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="inp-retire-expenses">Chi tiêu/năm khi về hưu</label>
+                <input type="number" id="inp-retire-expenses" value="10000" step="1000" class="form-input">
+              </div>
+
+              <div class="form-row">
+                <div class="form-group col-6">
+                  <label for="inp-return-pre">Lợi nhuận tích lũy (%/năm)</label>
+                  <input type="number" id="inp-return-pre" step="0.1" value="10.0" class="form-input">
+                </div>
+                <div class="form-group col-6">
+                  <label for="inp-return-post">Lợi nhuận hưu trí (%/năm)</label>
+                  <input type="number" id="inp-return-post" step="0.1" value="8.0" class="form-input">
+                </div>
+              </div>
+
+              <div class="form-divider"></div>
+              <div class="income-streams-header">
+                <h4 class="card-subtitle">🌱 Các Luồng Thu nhập (Multiple Streams)</h4>
+                <button type="button" id="btn-add-income" class="btn btn-xs btn-outline">+ Thêm nguồn thu</button>
+              </div>
+
+              <div class="income-list" id="income-streams-container">
+                <!-- Dynamically rendered income streams -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Interactive Charts & Timeline Breakdown -->
+          <div class="panel-visualization">
+            <!-- Chart Card 1: Net Worth Trajectory -->
+            <div class="card chart-card">
+              <div class="chart-header">
+                <div>
+                  <h3 class="card-title">Biểu đồ Tăng trưởng Tài sản Ròng (Net Worth Trajectory)</h3>
+                  <p class="chart-desc">Đường tăng trưởng danh mục từ tuổi hiện tại đến tuổi thọ tối đa, phân tách giai đoạn tích lũy và rút tiền.</p>
+                </div>
+                <div class="chart-actions">
+                  <button class="btn btn-xs btn-ghost active" id="btn-view-nominal">Giá trị Tương lai (Nominal)</button>
+                  <button class="btn btn-xs btn-ghost" id="btn-view-real">Sức mua Hiện tại (Real)</button>
+                </div>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chart-networth"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart Card 2: Annual Cash Flow (Income vs Expenses vs Withdrawals) -->
+            <div class="card chart-card">
+              <div class="chart-header">
+                <div>
+                  <h3 class="card-title">Dòng tiền Hàng năm (Cash-Flow Projections)</h3>
+                  <p class="chart-desc">Cân đối thu nhập chủ động, thụ động, lương hưu, số tiền rút từ danh mục và chi tiêu sinh hoạt.</p>
+                </div>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chart-cashflow"></canvas>
+              </div>
+            </div>
+
+            <!-- Data Table Accordion -->
+            <div class="card">
+              <div class="table-header-row">
+                <h3 class="card-title">📋 Bảng Thống kê Chi tiết Từng Năm (Schedule)</h3>
+                <button class="btn btn-xs btn-secondary" id="btn-toggle-table">Mở rộng Bảng ▼</button>
+              </div>
+              <div class="table-container" id="schedule-table-container" style="display: none;">
+                <table class="data-table" id="projections-table">
+                  <thead>
+                    <tr>
+                      <th>Tuổi</th>
+                      <th>Thu nhập</th>
+                      <th>Chi tiêu</th>
+                      <th>Rút/Nạp</th>
+                      <th>Lợi nhuận</th>
+                      <th>Thuế dự kiến</th>
+                      <th>Tài sản cuối năm</th>
+                    </tr>
+                  </thead>
+                  <tbody id="projections-table-body">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: WITHDRAWAL STRATEGIES -->
+      <section class="tab-pane" id="tab-withdrawals">
+        <div class="panel-layout">
+          <div class="panel-controls">
+            <div class="card">
+              <h3 class="card-title">🛡️ Lựa chọn Chiến lược Rút tiền</h3>
+              <p class="card-desc">Cách bạn rút tiền khi nghỉ hưu quyết định trực tiếp khả năng sống sót của danh mục trước biến động thị trường.</p>
+
+              <div class="strategy-options">
+                <label class="strategy-card">
+                  <input type="radio" name="withdrawal-strategy" value="bengen_4pct" checked>
+                  <div class="strategy-content">
+                    <div class="strategy-name">Quy tắc 4% Cố định (Bengen Rule)</div>
+                    <div class="strategy-detail">Rút 4% ở năm đầu tiên, sau đó điều chỉnh tăng đều đặn theo lạm phát hàng năm. Dễ hiểu nhưng cứng nhắc.</div>
+                  </div>
+                </label>
+
+                <label class="strategy-card">
+                  <input type="radio" name="withdrawal-strategy" value="guyton_klinger">
+                  <div class="strategy-content">
+                    <div class="strategy-name">Chiến lược Lan can Guyton-Klinger (Khuyên dùng)</div>
+                    <div class="strategy-detail">Tự động tăng chi tiêu khi thị trường thắng lớn và thắt lưng buộc bụng 10% khi thị trường giảm sút mạnh. Tăng tỷ lệ sống sót lên 99%.</div>
+                  </div>
+                </label>
+
+                <label class="strategy-card">
+                  <input type="radio" name="withdrawal-strategy" value="vpw">
+                  <div class="strategy-content">
+                    <div class="strategy-name">Tỷ lệ Thay đổi VPW (Variable Percentage)</div>
+                    <div class="strategy-detail">Điều chỉnh tỷ lệ rút linh hoạt theo độ tuổi và thời gian còn lại của cuộc đời. Không bao giờ cạn kiệt tài sản hoàn toàn.</div>
+                  </div>
+                </label>
+
+                <label class="strategy-card">
+                  <input type="radio" name="withdrawal-strategy" value="fixed_pct">
+                  <div class="strategy-content">
+                    <div class="strategy-name">Tỷ lệ Cố định trên Danh mục (Fixed %)</div>
+                    <div class="strategy-detail">Luôn rút một tỷ lệ cố định (ví dụ 3.5% hay 4%) trên số dư thực tế cuối năm. Chi tiêu biến động theo thị trường.</div>
+                  </div>
+                </label>
+              </div>
+
+              <div class="form-group" style="margin-top: 1.25rem;">
+                <label for="inp-initial-swr">Tỷ lệ Rút tiền Khởi điểm (%)</label>
+                <input type="range" id="inp-initial-swr" min="2.5" max="6.0" step="0.1" value="4.0" class="form-range">
+                <div class="range-value-display"><span id="val-initial-swr">4.0</span>%</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-visualization">
+            <div class="card chart-card">
+              <div class="chart-header">
+                <div>
+                  <h3 class="card-title">So sánh 4 Chiến lược Rút tiền trên Cùng Kịch bản</h3>
+                  <p class="chart-desc">Đánh giá tính ổn định dòng tiền và số dư tài sản còn lại ở tuổi 85 giữa 4 chiến lược.</p>
+                </div>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chart-withdrawal-comparison"></canvas>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 class="card-title">💡 Phân tích Hiệu quả Chiến lược</h3>
+              <div class="strategy-matrix" id="withdrawal-strategy-matrix">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: TAX & ROTH OPTIMIZATION -->
+      <section class="tab-pane" id="tab-taxes">
+        <div class="panel-layout">
+          <div class="panel-controls">
+            <div class="card">
+              <h3 class="card-title">⚖️ Tối ưu hóa Thuế & Bậc Thuế (Tax Optimization)</h3>
+              
+              <div class="form-group">
+                <label for="inp-tax-regime">Khung Thuế & Quy chuẩn</label>
+                <select id="inp-tax-regime" class="form-input">
+                  <option value="france_vietnam" selected>Pháp ➔ Việt Nam (PEA, Assurance-Vie, Hưu trí Pháp & Hiệp định Thuế)</option>
+                  <option value="international">Quốc tế / Việt Nam (Thuế Tùy chỉnh & BĐS/Cổ tức)</option>
+                  <option value="us">Mỹ (US Federal Brackets, 401k, Roth IRA, ACA)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="inp-effective-tax">Thuế suất Ước tính Bình quân (%)</label>
+                <input type="number" id="inp-effective-tax" step="0.5" min="0" max="45" value="10.0" class="form-input">
+              </div>
+
+              <div class="form-divider"></div>
+              <h4 class="card-subtitle">🔄 Thang Chuyển đổi Roth (Roth Conversion Ladder)</h4>
+              <p class="card-desc">Tận dụng những năm có thu nhập thấp (sau khi nghỉ hưu sớm và trước khi nhận lương hưu/RMD) để chuyển đổi từ tài khoản chịu thuế sang miễn thuế ở bậc thuế thấp nhất.</p>
+
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="chk-roth-enabled" checked>
+                  <span>Bật Tối ưu hóa Roth Conversion Ladder</span>
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label for="inp-roth-bracket">Bậc thuế mục tiêu để lấp đầy (%)</label>
+                <input type="number" id="inp-roth-bracket" value="12" min="5" max="35" class="form-input">
+              </div>
+
+              <div class="form-group">
+                <label for="inp-roth-max-annual">Hạn mức chuyển đổi tối đa/năm</label>
+                <input type="number" id="inp-roth-max-annual" value="200000000" step="10000000" class="form-input">
+              </div>
+
+              <div class="form-divider"></div>
+              <h4 class="card-subtitle">🏥 Trợ cấp Y tế & Tối ưu ACA (ACA Subsidies)</h4>
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="chk-aca-enabled" checked>
+                  <span>Tối ưu hóa MAGI để nhận trợ cấp y tế trước 65 tuổi</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-visualization">
+            <div class="card chart-card">
+              <div class="chart-header">
+                <div>
+                  <h3 class="card-title">Kế hoạch Chuyển đổi Roth Hàng Năm & Tiết kiệm Thuế</h3>
+                  <p class="chart-desc">Số tiền chuyển đổi hàng năm để lấp đầy bậc thuế thấp và số tiền thuế tiết kiệm được trọn đời.</p>
+                </div>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chart-tax-optimization"></canvas>
+              </div>
+            </div>
+
+            <div class="kpi-grid">
+              <div class="kpi-card">
+                <div class="kpi-icon-badge bg-green">💵</div>
+                <div class="kpi-info">
+                  <span class="kpi-title">Tổng tiền thuế tiết kiệm trọn đời</span>
+                  <span class="kpi-value font-mono text-success" id="kpi-tax-savings">840.0 Tr ₫</span>
+                  <span class="kpi-subtitle">Nhờ chiến lược lấp đầy bậc thuế thấp</span>
+                </div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-icon-badge bg-blue">🏥</div>
+                <div class="kpi-info">
+                  <span class="kpi-title">Tiết kiệm Trợ cấp Y tế / ACA</span>
+                  <span class="kpi-value font-mono" id="kpi-aca-savings">240.0 Tr ₫</span>
+                  <span class="kpi-subtitle">Giai đoạn từ nghỉ hưu đến 65 tuổi</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: DEEPER INSIGHTS & MONTE CARLO -->
+      <section class="tab-pane" id="tab-insights">
+        <div class="panel-layout">
+          <div class="panel-controls">
+            <div class="card">
+              <h3 class="card-title">📈 Thiết lập Mô phỏng Monte Carlo (1,000 Lần)</h3>
+              <p class="card-desc">Thực tế thị trường không tăng trưởng đều 8%/năm. Monte Carlo kiểm nghiệm 1,000 chu kỳ thị trường ngẫu nhiên để tìm ra rủi ro suy thoái sớm (Sequence of Returns Risk).</p>
+
+              <div class="form-group">
+                <label for="inp-mc-volatility">Độ biến động thị trường (Độ lệch chuẩn σ %)</label>
+                <input type="number" id="inp-mc-volatility" min="5" max="35" step="0.5" value="15.0" class="form-input">
+                <span class="input-hint">Thị trường cổ phiếu thường có σ dao động từ 14% - 18%.</span>
+              </div>
+
+              <div class="form-group">
+                <label for="inp-mc-iterations">Số lần mô phỏng ngẫu nhiên</label>
+                <select id="inp-mc-iterations" class="form-input">
+                  <option value="500">500 Kịch bản</option>
+                  <option value="1000" selected>1,000 Kịch bản (Khuyên dùng)</option>
+                  <option value="2500">2,500 Kịch bản</option>
+                </select>
+              </div>
+
+              <button class="btn btn-primary btn-block" id="btn-run-monte-carlo">
+                ⚡ Chạy lại Mô phỏng Monte Carlo
+              </button>
+
+              <div class="form-divider"></div>
+              <h4 class="card-subtitle">⚠️ Sequence of Returns Risk (SRR)</h4>
+              <p class="card-desc">Nếu thị trường sụt giảm ngay trong 2-3 năm đầu sau khi nghỉ hưu, danh mục sẽ bị tổn thương nặng nề nhất.</p>
+              
+              <div class="srr-status-box" id="srr-status-box">
+                <div class="srr-level">Mức độ an toàn: <strong class="text-success">Rất cao</strong></div>
+                <p>Khuyến nghị duy trì quỹ dự phòng tiền mặt 2 năm chi tiêu để không phải bán tháo tài sản khi thị trường điều chỉnh.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-visualization">
+            <div class="card chart-card">
+              <div class="chart-header">
+                <div>
+                  <h3 class="card-title">Quạt Phân vị Monte Carlo (Fan Chart 10th - 90th Percentiles)</h3>
+                  <p class="chart-desc">Đường trung vị (50th percentile), kịch bản xấu nhất (10th percentile - thị trường gấu) và kịch bản tốt nhất (90th percentile).</p>
+                </div>
+                <div class="mc-success-badge">
+                  <span>Tỷ lệ Thành công:</span>
+                  <strong id="mc-display-success">95.2%</strong>
+                </div>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chart-monte-carlo"></canvas>
+              </div>
+            </div>
+
+            <div class="mc-stats-grid">
+              <div class="stat-box">
+                <div class="stat-label">Kịch bản Xấu nhất (10th Percentile)</div>
+                <div class="stat-value font-mono" id="mc-stat-p10">4.12 Tỷ ₫</div>
+                <div class="stat-desc">Vẫn còn tài sản ở tuổi 85</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">Kịch bản Trung vị (50th Percentile)</div>
+                <div class="stat-value font-mono text-accent" id="mc-stat-p50">18.45 Tỷ ₫</div>
+                <div class="stat-desc">Dư dả vượt mục tiêu</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">Kịch bản Tốt nhất (90th Percentile)</div>
+                <div class="stat-value font-mono text-success" id="mc-stat-p90">48.90 Tỷ ₫</div>
+                <div class="stat-desc">Thị trường bùng nổ</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: WHAT-IF SCENARIOS -->
+      <section class="tab-pane" id="tab-scenarios">
+        <div class="panel-layout">
+          <div class="panel-controls">
+            <div class="card">
+              <h3 class="card-title">🧬 Các Kịch bản Thử thách (Stress Testing)</h3>
+              <p class="card-desc">Thử nghiệm xem kế hoạch hưu trí của bạn có vượt qua được các cú sốc tài chính không ngờ tới.</p>
+
+              <div class="scenario-selector-list">
+                <button class="scenario-btn active" data-scenario="baseline">
+                  <span class="scenario-title">1. Kịch bản Cơ sở (Baseline)</span>
+                  <span class="scenario-brief">Điều kiện kinh tế bình thường, lạm phát ổn định.</span>
+                </button>
+
+                <button class="scenario-btn" data-scenario="market_crash">
+                  <span class="scenario-title">2. Khủng hoảng Sớm (-30% Năm 1 & 2)</span>
+                  <span class="scenario-brief">Thị trường giảm -30% ngay năm đầu nghỉ hưu.</span>
+                </button>
+
+                <button class="scenario-btn" data-scenario="high_inflation">
+                  <span class="scenario-title">3. Lạm phát Phi mã (7%/năm trong 5 năm)</span>
+                  <span class="scenario-brief">Chi phí sinh hoạt tăng vọt do bão giá.</span>
+                </button>
+
+                <button class="scenario-btn" data-scenario="medical_shock">
+                  <span class="scenario-title">4. Cú sốc Chi phí Y tế (Tuổi 65)</span>
+                  <span class="scenario-brief">Chi phí y tế phát sinh đột xuất 500 triệu lúc 65 tuổi.</span>
+                </button>
+
+                <button class="scenario-btn" data-scenario="downsizing">
+                  <span class="scenario-title">5. Bán bớt Nhà / Thu gọn BĐS (Tuổi 60)</span>
+                  <span class="scenario-brief">Bán nhà lớn đổi nhà nhỏ, thu về 2 tỷ VND tái đầu tư.</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-visualization">
+            <div class="card chart-card">
+              <div class="chart-header">
+                <div>
+                  <h3 class="card-title" id="scenario-chart-title">Tác động của Kịch bản lên Tài sản Ròng</h3>
+                  <p class="chart-desc" id="scenario-chart-desc">So sánh đường tài sản cơ sở với đường tài sản khi gặp biến cố.</p>
+                </div>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chart-scenarios"></canvas>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 class="card-title">Kết luận Khả năng Chịu đựng (Resilience Assessment)</h3>
+              <div class="resilience-report" id="scenario-report-content">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 6: ESTATE & SPENDING SMILE -->
+      <section class="tab-pane" id="tab-estate">
+        <div class="panel-layout">
+          <div class="panel-controls">
+            <div class="card">
+              <h3 class="card-title">😊 Chi tiêu Uốn cong (Retirement Spending Smile)</h3>
+              <p class="card-desc">Thực tế người về hưu không tiêu đều tiền qua các năm. Chi tiêu nhiều nhất lúc trẻ khỏe, giảm dần ở tuổi trung niên, và tăng nhẹ về y tế cuối đời.</p>
+
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="chk-smile-enabled" checked>
+                  <span>Áp dụng Mô hình Chi tiêu 3 Giai đoạn</span>
+                </label>
+              </div>
+
+              <div class="spending-phase-card">
+                <div class="phase-title">1. Giai đoạn Go-Go (Khỏe mạnh, Du lịch):</div>
+                <div class="form-row">
+                  <div class="form-group col-6">
+                    <label>Đến tuổi</label>
+                    <input type="number" id="inp-gogo-age" value="60" class="form-input">
+                  </div>
+                  <div class="form-group col-6">
+                    <label>Hệ số chi tiêu</label>
+                    <input type="number" id="inp-gogo-factor" step="0.05" value="1.15" class="form-input">
+                  </div>
+                </div>
+              </div>
+
+              <div class="spending-phase-card">
+                <div class="phase-title">2. Giai đoạn Slow-Go (Thanh bình, Tiết chế):</div>
+                <div class="form-row">
+                  <div class="form-group col-6">
+                    <label>Đến tuổi</label>
+                    <input type="number" id="inp-slowgo-age" value="75" class="form-input">
+                  </div>
+                  <div class="form-group col-6">
+                    <label>Hệ số chi tiêu</label>
+                    <input type="number" id="inp-slowgo-factor" step="0.05" value="0.90" class="form-input">
+                  </div>
+                </div>
+              </div>
+
+              <div class="spending-phase-card">
+                <div class="phase-title">3. Giai đoạn No-Go (Nghỉ dưỡng & Y tế):</div>
+                <div class="form-row">
+                  <div class="form-group col-12">
+                    <label>Hệ số chi tiêu cơ bản</label>
+                    <input type="number" id="inp-nogo-factor" step="0.05" value="0.80" class="form-input">
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-divider"></div>
+              <h4 class="card-subtitle">🏛️ Kế hoạch Thừa kế & Di sản (Estate Planning)</h4>
+              <div class="form-group">
+                <label for="inp-target-legacy">Mục tiêu tài sản để lại cho con cháu/từ thiện</label>
+                <input type="number" id="inp-target-legacy" value="1000000000" step="100000000" class="form-input">
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-visualization">
+            <div class="card chart-card">
+              <div class="chart-header">
+                <div>
+                  <h3 class="card-title">Mô hình Chi tiêu Thực tế theo Độ tuổi (Spending Smile)</h3>
+                  <p class="chart-desc">Đường chi tiêu thực tế qua từng độ tuổi phản ánh đúng nhu cầu cuộc sống.</p>
+                </div>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chart-spending-smile"></canvas>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 class="card-title">🎯 Đánh giá Mục tiêu Thừa kế (Legacy Milestone)</h3>
+              <div class="estate-milestone-box" id="estate-milestone-box">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 7: AI ADVISOR & FIRE AUDIT -->
+      <section class="tab-pane" id="tab-advisor">
+        <div class="advisor-container">
+          <div class="card advisor-header-card">
+            <div class="advisor-intro">
+              <div class="ai-avatar">🤖</div>
+              <div>
+                <h3 class="card-title">pyRetrait AI Advisor — Báo cáo Thẩm định Kế hoạch Hưu trí</h3>
+                <p>Hệ thống tự động phân tích 18 chỉ số tài chính, phát hiện các lỗ hổng rủi ro và đề xuất các hành động tối ưu ngay hôm nay.</p>
+              </div>
+            </div>
+            <div class="fire-overall-score">
+              <div class="score-circle" id="advisor-score-circle">
+                <span class="score-number" id="advisor-score-num">92</span>
+                <span class="score-max">/100</span>
+              </div>
+              <span class="score-verdict" id="advisor-score-verdict">Sẵn sàng Tuyệt vời</span>
+            </div>
+          </div>
+
+          <div class="advisor-grid" id="advisor-recommendations">
+            <!-- Dynamic recommendation cards -->
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal for Creating / Editing Plan -->
+  <div class="modal-overlay" id="plan-modal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="plan-modal-title">Tạo Kế hoạch Mới</h3>
+        <button class="modal-close" id="btn-close-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="inp-new-plan-name">Tên kế hoạch</label>
+          <input type="text" id="inp-new-plan-name" placeholder="Ví dụ: Kế hoạch Bán thời gian (Barista FIRE)" class="form-input">
+        </div>
+        <div class="form-group">
+          <label for="inp-new-plan-template">Sao chép dữ liệu từ mẫu:</label>
+          <select id="inp-new-plan-template" class="form-input">
+            <option value="current">Dùng dữ liệu từ kế hoạch hiện tại</option>
+            <option value="lean">Mẫu Lean FIRE (Tiết kiệm tối giản)</option>
+            <option value="fat">Mẫu Fat FIRE (Nghỉ hưu sung túc)</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="btn-cancel-modal">Hủy bỏ</button>
+        <button class="btn btn-primary" id="btn-save-new-plan">Lưu Kế hoạch</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Adding / Editing Income Stream -->
+  <div class="modal-overlay" id="income-modal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="income-modal-title">Thêm / Chỉnh Sửa Nguồn Thu Nhập</h3>
+        <button class="modal-close" id="btn-close-income-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="inp-income-idx" value="-1">
+        <div class="form-group">
+          <label for="inp-income-name">Tên nguồn thu nhập</label>
+          <input type="text" id="inp-income-name" placeholder="Ví dụ: Lương tại Pháp, BĐS cho thuê, Cổ tức ETF..." class="form-input">
+        </div>
+        <div class="form-group">
+          <label for="inp-income-amount">Số tiền nhận được hàng năm</label>
+          <div class="input-with-unit">
+            <input type="number" id="inp-income-amount" class="form-input" step="100">
+            <span class="unit-badge" id="modal-income-unit">€</span>
+          </div>
+          <span class="input-hint">Thu nhập sau thuế (Net après impôt) hoặc lợi tức thu về.</span>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-6">
+            <label for="inp-income-start">Bắt đầu từ tuổi</label>
+            <input type="number" id="inp-income-start" class="form-input" min="18" max="100" value="29">
+          </div>
+          <div class="form-group col-6">
+            <label for="inp-income-end">Kết thúc ở tuổi</label>
+            <input type="number" id="inp-income-end" class="form-input" min="18" max="100" value="42">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="inp-income-growth">Tốc độ tăng trưởng hàng năm (%/năm)</label>
+          <input type="number" id="inp-income-growth" class="form-input" step="0.5" value="3.5">
+          <span class="input-hint">Mức tăng lương hoặc tăng giá cho thuê hàng năm bù đắp lạm phát.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="btn-cancel-income-modal">Hủy bỏ</button>
+        <button class="btn btn-primary" id="btn-save-income-modal">Lưu Nguồn Thu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Logic Modules -->
+  <script src="js/engine.js"></script>
+  <script src="js/taxOptimizer.js"></script>
+  <script src="js/monteCarlo.js"></script>
+  <script src="js/scenarios.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>
