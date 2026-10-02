@@ -830,9 +830,9 @@
 
     // 1. Asset Allocation Sync
     if (p.assetAllocation) {
-      setVal("inp-alloc-stocks", p.assetAllocation.stocks || 60);
-      setVal("inp-alloc-bonds", p.assetAllocation.bonds || 20);
-      setVal("inp-alloc-re", p.assetAllocation.realEstate || 20);
+      setVal("inp-alloc-stocks", p.assetAllocation.stocks !== undefined ? p.assetAllocation.stocks : 60);
+      setVal("inp-alloc-bonds", p.assetAllocation.bonds !== undefined ? p.assetAllocation.bonds : 20);
+      setVal("inp-alloc-re", p.assetAllocation.realEstate !== undefined ? p.assetAllocation.realEstate : 20);
     }
     updateAssetAllocationUI(p);
 
@@ -864,9 +864,13 @@
 
   function updateAssetAllocationUI(p) {
     if (!p) p = getActivePlan();
-    const stocks = Number(document.getElementById("inp-alloc-stocks")?.value) || 60;
-    const bonds = Number(document.getElementById("inp-alloc-bonds")?.value) || 20;
-    const re = Number(document.getElementById("inp-alloc-re")?.value) || 20;
+    const stocksEl = document.getElementById("inp-alloc-stocks");
+    const bondsEl = document.getElementById("inp-alloc-bonds");
+    const reEl = document.getElementById("inp-alloc-re");
+
+    const stocks = (stocksEl && stocksEl.value !== "") ? Number(stocksEl.value) : (p.assetAllocation?.stocks ?? 60);
+    const bonds = (bondsEl && bondsEl.value !== "") ? Number(bondsEl.value) : (p.assetAllocation?.bonds ?? 20);
+    const re = (reEl && reEl.value !== "") ? Number(reEl.value) : (p.assetAllocation?.realEstate ?? 20);
 
     const lblStocks = document.getElementById("lbl-alloc-stocks");
     const lblBonds = document.getElementById("lbl-alloc-bonds");
@@ -874,17 +878,36 @@
     const badgeWeighted = document.getElementById("badge-weighted-return");
     const lblWeightedCalc = document.getElementById("lbl-weighted-calc");
 
-    if (lblStocks) lblStocks.innerText = `${stocks}% (9.5%/năm)`;
-    if (lblBonds) lblBonds.innerText = `${bonds}% (3.5%/năm)`;
-    if (lblRE) lblRE.innerText = `${re}% (6.5%/năm)`;
+    // Tính toán số tiền thực tế theo phần trăm tài sản hiện tại
+    const totalSavings = Number(p.currentSavings) || 0;
+    const cur = p.currency || state.currency || 'EUR';
+
+    const stocksAmt = Math.round(totalSavings * (stocks / 100));
+    const bondsAmt = Math.round(totalSavings * (bonds / 100));
+    const reAmt = Math.round(totalSavings * (re / 100));
+
+    const stocksAmtFormatted = window.RetirementEngine.formatCurrency(stocksAmt, cur);
+    const bondsAmtFormatted = window.RetirementEngine.formatCurrency(bondsAmt, cur);
+    const reAmtFormatted = window.RetirementEngine.formatCurrency(reAmt, cur);
+
+    if (lblStocks) lblStocks.innerText = `${stocks}% • ${stocksAmtFormatted} (9.5%/năm)`;
+    if (lblBonds) lblBonds.innerText = `${bonds}% • ${bondsAmtFormatted} (3.5%/năm)`;
+    if (lblRE) lblRE.innerText = `${re}% • ${reAmtFormatted} (6.5%/năm)`;
 
     const returns = p.assetReturns || { stocks: 9.5, bonds: 3.5, realEstate: 6.5 };
     const weighted = window.RetirementEngine.calculateWeightedReturn({ stocks, bonds, realEstate: re }, returns, 0.3);
 
+    const totalPct = stocks + bonds + re;
+    let totalWarning = "";
+    if (totalPct !== 100) {
+      totalWarning = ` <span style="color:var(--warning); font-weight:700;">(Tổng: ${totalPct}% - nên cân chỉnh về 100%)</span>`;
+    }
+
     if (badgeWeighted) badgeWeighted.innerText = `${weighted}%/năm`;
-    if (lblWeightedCalc) lblWeightedCalc.innerText = `${weighted}%/năm`;
+    if (lblWeightedCalc) lblWeightedCalc.innerHTML = `Lợi nhuận theo trọng số: <strong>${weighted}%/năm</strong> (đã gồm +0.3% thưởng kỷ luật tái cân bằng).${totalWarning}`;
 
     p.assetAllocation = { stocks, bonds, realEstate: re };
+    p.investmentReturnPre = weighted;
   }
 
   function updateDualInflationUI(p) {

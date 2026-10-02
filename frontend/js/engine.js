@@ -45,10 +45,10 @@ window.RetirementEngine = (function() {
   // Calculate weighted return across asset classes with optional rebalancing bonus
   function calculateWeightedReturn(alloc, returns, rebalanceBonus = 0.3) {
     if (!alloc) return 8.0;
-    const stocks = Number(alloc.stocks) || 60;
-    const bonds = Number(alloc.bonds) || 20;
-    const realEstate = Number(alloc.realEstate) || 20;
-    const total = stocks + bonds + realEstate || 100;
+    const stocks = (alloc.stocks !== undefined && !isNaN(Number(alloc.stocks))) ? Number(alloc.stocks) : 60;
+    const bonds = (alloc.bonds !== undefined && !isNaN(Number(alloc.bonds))) ? Number(alloc.bonds) : 20;
+    const realEstate = (alloc.realEstate !== undefined && !isNaN(Number(alloc.realEstate))) ? Number(alloc.realEstate) : 20;
+    const total = (stocks + bonds + realEstate) || 100;
 
     const rStocks = (returns && returns.stocks !== undefined && !isNaN(Number(returns.stocks))) ? Number(returns.stocks) : 9.5;
     const rBonds = (returns && returns.bonds !== undefined && !isNaN(Number(returns.bonds))) ? Number(returns.bonds) : 3.5;
