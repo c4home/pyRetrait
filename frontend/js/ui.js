@@ -409,6 +409,31 @@
       });
     }
 
+    // Formula Guide Modal Handlers
+    const modalFormula = document.getElementById("modal-formula-guide");
+    const btnShowFormula = document.getElementById("btn-show-formula-guide");
+    const btnCloseFormula = document.getElementById("btn-close-formula-modal");
+    const btnCloseFormulaFooter = document.getElementById("btn-close-formula-modal-footer");
+    const linkOpenFormulaAlloc = document.getElementById("link-open-formula-alloc");
+
+    const openFormulaModal = (e) => {
+      if (e) e.preventDefault();
+      if (modalFormula) modalFormula.style.display = "flex";
+    };
+    const closeFormulaModal = () => {
+      if (modalFormula) modalFormula.style.display = "none";
+    };
+
+    if (btnShowFormula) btnShowFormula.addEventListener("click", openFormulaModal);
+    if (linkOpenFormulaAlloc) linkOpenFormulaAlloc.addEventListener("click", openFormulaModal);
+    if (btnCloseFormula) btnCloseFormula.addEventListener("click", closeFormulaModal);
+    if (btnCloseFormulaFooter) btnCloseFormulaFooter.addEventListener("click", closeFormulaModal);
+    if (modalFormula) {
+      modalFormula.addEventListener("click", (e) => {
+        if (e.target === modalFormula) closeFormulaModal();
+      });
+    }
+
     // Refresh buttons click delegation
     document.addEventListener("click", (e) => {
       const btn = e.target.closest(".btn-gemini-refresh");
@@ -904,7 +929,9 @@
     }
 
     if (badgeWeighted) badgeWeighted.innerText = `${weighted}%/năm`;
-    if (lblWeightedCalc) lblWeightedCalc.innerHTML = `Lợi nhuận theo trọng số: <strong>${weighted}%/năm</strong> (đã gồm +0.3% thưởng kỷ luật tái cân bằng).${totalWarning}`;
+    if (lblWeightedCalc) {
+      lblWeightedCalc.innerHTML = `<strong>${weighted}%/năm</strong> (đã gồm +0.3% thưởng kỷ luật tái cân bằng)${totalWarning}<div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem; font-family: monospace;">📐 Công thức: (${stocks}% × 9.5%) + (${bonds}% × 3.5%) + (${re}% × 6.5%) + 0.3% = ${weighted}%</div>`;
+    }
 
     p.assetAllocation = { stocks, bonds, realEstate: re };
     p.investmentReturnPre = weighted;

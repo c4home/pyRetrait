@@ -60,6 +60,11 @@
         <button class="currency-btn" data-currency="USD" id="cur-usd" title="Đô la Mỹ">$</button>
       </div>
 
+      <!-- Formula Guide Button -->
+      <button id="btn-show-formula-guide" class="btn btn-secondary btn-sm" title="Giải thích chi tiết các công thức toán học & tài chính">
+        <span>📐 Công thức</span>
+      </button>
+
       <!-- Export Menu -->
       <div class="dropdown-menu-wrapper">
         <button id="btn-export-menu" class="btn btn-primary btn-sm">
@@ -358,7 +363,10 @@
                     <input type="range" id="inp-alloc-re" min="0" max="100" step="5" value="20" class="form-range">
                   </div>
                   <div class="input-hint" id="hint-asset-allocation">
-                    Lợi nhuận theo trọng số: <strong id="lbl-weighted-calc">8.3%/năm</strong> (đã gồm +0.3% thưởng kỷ luật tái cân bằng).
+                    Lợi nhuận theo trọng số: <strong id="lbl-weighted-calc">8.0%/năm</strong> (đã gồm +0.3% thưởng kỷ luật tái cân bằng).
+                    <div style="margin-top: 0.35rem;">
+                      <a href="#" id="link-open-formula-alloc" style="color: var(--primary); font-size: 0.76rem; text-decoration: underline;">📐 Xem công thức & cơ chế tính chi tiết</a>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1687,6 +1695,138 @@
             </p>
           </form>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Sổ tay Giải thích Công thức Tính toán (Formula Guide Modal) -->
+  <div class="modal-overlay" id="modal-formula-guide" style="display: none;">
+    <div class="modal-card modal-lg" style="max-width: 820px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem;">
+        <div>
+          <h3 class="modal-title" style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+            <span>📐 Sổ Tay & Giải Thích Mọi Công Thức Toán Học pyRetrait</span>
+          </h3>
+          <p style="margin: 0.25rem 0 0 0; font-size: 0.78rem; color: var(--text-muted);">
+            Minh bạch 100% thuật toán tài chính: Cách tính lợi nhuận danh mục, mục tiêu FIRE, lãi kép, lạm phát và chiến lược rút tiền.
+          </p>
+        </div>
+        <button class="modal-close" id="btn-close-formula-modal">✕</button>
+      </div>
+      <div class="modal-body" style="overflow-y: auto; padding: 1.25rem 0.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+
+        <!-- 1. Phân bổ danh mục & Thưởng tái cân bằng -->
+        <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 1rem;">
+          <h4 style="color: var(--primary); margin: 0 0 0.5rem 0; font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem;">
+            <span>🥧 1. Lợi Nhuận Bình Quân Theo Trọng Số (Weighted Return)</span>
+          </h4>
+          <p style="font-size: 0.82rem; margin: 0 0 0.5rem 0; color: var(--text-main);">
+            Lợi nhuận kỳ vọng của danh mục được tính bằng tổng trọng số của từng lớp tài sản cộng với điểm thưởng kỷ luật tái cân bằng:
+          </p>
+          <div style="background: #0b1120; border-left: 3px solid var(--primary); padding: 0.65rem 0.85rem; border-radius: 4px; font-family: monospace; font-size: 0.84rem; color: #38bdf8; margin-bottom: 0.5rem;">
+            R_danh_mục = (% Cổ phiếu × 9.5%) + (% Trái phiếu × 3.5%) + (% BĐS × 6.5%) + 0.3% (Thưởng tái cân bằng)
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.5;">
+            • <strong>Ví dụ cụ thể (60 / 20 / 20):</strong><br>
+            R = (60% × 9.5%) + (20% × 3.5%) + (20% × 6.5%) + 0.3% = 5.7% + 0.7% + 1.3% + 0.3% = <strong>8.0%/năm</strong>.<br>
+            • <strong>Tại sao có +0.3% Thưởng tái cân bằng?</strong> Theo các nghiên cứu tài chính (Vanguard, David Swensen), việc định kỳ bán bớt tài sản tăng giá (chốt lời) và mua thêm tài sản đang giảm giá (mua rẻ) để giữ nguyên tỷ lệ mục tiêu giúp tăng thêm 0.3% – 0.5%/năm lợi nhuận so với nắm giữ thụ động.<br>
+            • <strong>Cách tính số tiền từng lớp:</strong> Số tiền = Tổng tài sản ròng hiện có × % phân bổ (Ví dụ: €10,000 × 60% = €6,000).
+          </div>
+        </div>
+
+        <!-- 2. Mục tiêu FIRE -->
+        <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 1rem;">
+          <h4 style="color: #10b981; margin: 0 0 0.5rem 0; font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem;">
+            <span>🎯 2. Mục Tiêu Tự Do Tài Chính (FIRE Target - Con Số Tự Do)</span>
+          </h4>
+          <p style="font-size: 0.82rem; margin: 0 0 0.5rem 0; color: var(--text-main);">
+            Số tiền tối thiểu bạn cần tích lũy trong danh mục để dòng tiền rút ra hàng năm đủ trang trải chi phí mà không bao giờ cạn kiệt:
+          </p>
+          <div style="background: #0b1120; border-left: 3px solid #10b981; padding: 0.65rem 0.85rem; border-radius: 4px; font-family: monospace; font-size: 0.84rem; color: #34d399; margin-bottom: 0.5rem;">
+            Mục tiêu FIRE = Chi tiêu hàng năm sau nghỉ hưu / Tỷ lệ rút an toàn (SWR)
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.5;">
+            • Với quy tắc 4% cổ điển (SWR = 4% = 1/25): <strong>Mục tiêu FIRE = Chi tiêu hàng năm × 25</strong>.<br>
+            • <strong>Ví dụ:</strong> Chi tiêu khi nghỉ hưu là 2,000 €/tháng = 24,000 €/năm. Mục tiêu FIRE = 24,000 € / 0.04 = <strong>600,000 €</strong>.<br>
+            • <em>Lưu ý:</em> Nếu bạn có dòng tiền thụ động (Lương hưu, Cho thuê nhà LMNP 1,400 €/tháng), phần thiếu hụt thực tế cần danh mục chi trả chỉ còn 600 €/tháng = 7,200 €/năm, khi đó Mục tiêu FIRE giảm xuống chỉ còn <strong>180,000 €</strong>!
+          </div>
+        </div>
+
+        <!-- 3. Lãi kép & Tích lũy tài sản -->
+        <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 1rem;">
+          <h4 style="color: #f59e0b; margin: 0 0 0.5rem 0; font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem;">
+            <span>📈 3. Tích Lũy Tài Sản & Lãi Kép Trước Hưu Trí (Accumulation Compounding)</span>
+          </h4>
+          <p style="font-size: 0.82rem; margin: 0 0 0.5rem 0; color: var(--text-main);">
+            Mỗi năm, tài sản của bạn tăng lên nhờ tiền tiết kiệm mới nạp vào và tỷ suất sinh lời của toàn bộ danh mục:
+          </p>
+          <div style="background: #0b1120; border-left: 3px solid #f59e0b; padding: 0.65rem 0.85rem; border-radius: 4px; font-family: monospace; font-size: 0.84rem; color: #fbbf24; margin-bottom: 0.5rem;">
+            Tài sản năm (t+1) = [Tài sản năm t + Tiết kiệm ròng năm t] × (1 + Tỷ suất sinh lời r)
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.5;">
+            • <strong>Tiết kiệm ròng:</strong> = (Thu nhập ròng sau thuế) × Tỷ lệ tiết kiệm.<br>
+            • <strong>Sức mạnh lãi kép:</strong> Lợi nhuận sinh ra từ số vốn gốc lẫn số tiền lời của các năm trước đó. Sau 10 – 15 năm, phần lãi sinh lời hàng năm sẽ vượt qua cả số tiền lương bạn nạp vào.
+          </div>
+        </div>
+
+        <!-- 4. Lạm phát kép & Tỷ giá PPP -->
+        <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 1rem;">
+          <h4 style="color: #ec4899; margin: 0 0 0.5rem 0; font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem;">
+            <span>🌍 4. Lạm Phát Kép & Trượt Giá Tỷ Giá EUR/VND (PPP Model)</span>
+          </h4>
+          <p style="font-size: 0.82rem; margin: 0 0 0.5rem 0; color: var(--text-main);">
+            Chi phí sinh hoạt tương lai tăng do lạm phát, nhưng sức mua ngoại tệ (EUR) được bảo toàn nhờ lý thuyết Ngang giá Sức mua (Purchasing Power Parity):
+          </p>
+          <div style="background: #0b1120; border-left: 3px solid #ec4899; padding: 0.65rem 0.85rem; border-radius: 4px; font-family: monospace; font-size: 0.84rem; color: #f472b6; margin-bottom: 0.5rem;">
+            Chi phí năm t = Chi phí ban đầu × (1 + Tỷ lệ lạm phát)^t<br>
+            Tỷ giá năm t = Tỷ giá gốc × (1 + Tốc độ trượt giá EUR/VND)^t
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.5;">
+            • <strong>Ví dụ:</strong> Chi tiêu 2,000 €/tháng sau 20 năm với lạm phát 2.2%/năm sẽ tương đương 2,000 × (1.022)^20 = <strong>3,091 €/tháng</strong>.<br>
+            • <strong>Dành cho Việt Kiều nghỉ hưu tại VN:</strong> Do lạm phát VND cao hơn EUR khoảng 1.2% – 1.8%/năm, đồng EUR có xu hướng tăng giá trị so với VND trong dài hạn, giúp tài sản tính bằng EUR có sức mua ngày càng gia tăng khi dưỡng già tại Việt Nam.
+          </div>
+        </div>
+
+        <!-- 5. Bốn Chiến lược Rút tiền hưu trí -->
+        <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 1rem;">
+          <h4 style="color: #a855f7; margin: 0 0 0.5rem 0; font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem;">
+            <span>🛡️ 5. Bốn Chiến Lược Rút Tiền Khi Nghỉ Hưu (Withdrawal Strategies)</span>
+          </h4>
+          <div style="font-size: 0.8rem; color: var(--text-main); display: flex; flex-direction: column; gap: 0.5rem;">
+            <div>
+              <strong>1. Bengen 4% Rule (Cổ điển):</strong> Rút 4% danh mục năm đầu, các năm sau giữ nguyên sức mua bằng cách điều chỉnh đúng theo mức lạm phát.
+            </div>
+            <div>
+              <strong>2. Guyton-Klinger (Lan can động):</strong> Nếu thị trường giảm mạnh khiến tỷ lệ rút vượt ngưỡng an toàn (> SWR × 1.2), tự động cắt giảm 10% chi tiêu; nếu thị trường bùng nổ (< SWR × 0.8), tăng thêm 10% chi tiêu hưởng thụ.
+            </div>
+            <div>
+              <strong>3. VPW (Variable Percentage Withdrawal):</strong> Tỷ lệ rút tăng dần theo tuổi: Tỷ lệ rút = 1 / (Tuổi thọ kỳ vọng - Tuổi hiện tại + 1) + 2%. Đảm bảo tối đa hóa tận hưởng trọn vẹn tài sản cuối đời.
+            </div>
+            <div>
+              <strong>4. Fixed % (Tỷ lệ cố định):</strong> Luôn rút đúng X% trên tổng tài sản còn lại ở từng năm (Ví dụ: 4% của số dư hiện có).
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Thuế Pháp & Khấu hao LMNP -->
+        <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 1rem;">
+          <h4 style="color: #38bdf8; margin: 0 0 0.5rem 0; font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem;">
+            <span>🏢 6. Cơ Chế Khấu Hao BĐS LMNP & Thuế Lũy Tiến</span>
+          </h4>
+          <p style="font-size: 0.82rem; margin: 0 0 0.5rem 0; color: var(--text-main);">
+            Theo cơ chế thuế LMNP Réel tại Pháp, tiền thuê nhà được đối trừ chi phí thực tế và khấu hao tài sản phi tiền mặt:
+          </p>
+          <div style="background: #0b1120; border-left: 3px solid #38bdf8; padding: 0.65rem 0.85rem; border-radius: 4px; font-family: monospace; font-size: 0.84rem; color: #7dd3fc; margin-bottom: 0.5rem;">
+            Thu nhập chịu thuế LMNP = Doanh thu thuê - Chi phí quản lý - Thuế đất - Lãi vay - Khấu hao công trình & nội thất
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.5;">
+            Nhờ khoản khấu hao công trình (25 – 30 năm) và nội thất (5 – 7 năm), lợi nhuận chịu thuế LMNP thường bằng <strong>0 € trong 12 – 18 năm đầu</strong>, giúp dòng tiền cho thuê nhà hoàn toàn không chịu thuế thu nhập cá nhân (IR) và 17.2% Prélèvements Sociaux.
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer" style="border-top: 1px solid var(--border-subtle); padding-top: 0.75rem; display: flex; justify-content: flex-end;">
+        <button class="btn btn-primary" id="btn-close-formula-modal-footer">Đã hiểu công thức</button>
       </div>
     </div>
   </div>
