@@ -199,8 +199,7 @@ window.TaxOptimizer = (function() {
 
     projection.timeline.forEach(year => {
       if (year.isRetired && year.age < 65) {
-        // Average annual premium subsidy value ~$6,000 / 140tr VND
-        const annualSubsidy = plan.currency === 'USD' ? 7_200 : 80_000_000;
+        const annualSubsidy = plan.currency === 'USD' ? 7_200 : (plan.currency === 'EUR' ? 6_000 : 80_000_000);
         totalSubsidySaved += annualSubsidy;
         acaYears.push({
           age: year.age,
@@ -215,11 +214,84 @@ window.TaxOptimizer = (function() {
     };
   }
 
+  /**
+   * Tax-Efficient French Account Withdrawal Waterfall
+   * Priority:
+   * 1. Livret A / Cash (100% tax free, low yield)
+   * 2. Assurance-Vie (>8 yrs, tax allowance 4,600 € / yr capital gains)
+   * 3. PEA (>5 yrs, 0% IR income tax)
+   * 4. CTO / Taxable accounts (PFU 30%)
+   */
+  function simulateWithdrawalWaterfall(accounts, neededAnnualAmount, isSingle = true) {
+    let remainingNeed = neededAnnualAmount;
+    let fromCash = 0;
+    let fromAV = 0;
+    let fromPEA = 0;
+    let fromCTO = 0;
+    let taxPaid = 0;
+    let taxSavedVsPFU = 0;
+
+    let livretA = Number(accounts?.livretABalance) || 0;
+    let av = Number(accounts?.assuranceVieBalance) || 0;
+    let pea = Number(accounts?.peaBalance) || 0;
+    let cto = Number(accounts?.ctoBalance) || 0;
+
+    // 1. Tier 1: Cash / Livret A
+    if (remainingNeed > 0 && livretA > 0) {
+      fromCash = Math.min(remainingNeed, livretA);
+      remainingNeed -= fromCash;
+      livretA -= fromCash;
+    }
+
+    // 2. Tier 2: Assurance-Vie past 8 years (Abattement 4,600 € single / 9,200 € couple)
+    const avAllowance = isSingle ? 4600 : 9200;
+    if (remainingNeed > 0 && av > 0) {
+      // Assuming rough 40% gain proportion in AV
+      const maxWithdrawalTaxFree = avAllowance / 0.40;
+      fromAV = Math.min(remainingNeed, av, maxWithdrawalTaxFree);
+      remainingNeed -= fromAV;
+      av -= fromAV;
+      // Tax avoided: 12.8% IR portion avoided under allowance
+      taxSavedVsPFU += Math.min(fromAV * 0.40, avAllowance) * 0.128;
+    }
+
+    // 3. Tier 3: PEA past 5 years (0% IR tax, exempt)
+    if (remainingNeed > 0 && pea > 0) {
+      fromPEA = Math.min(remainingNeed, pea);
+      remainingNeed -= fromPEA;
+      pea -= fromPEA;
+      // PEA is exempt from 12.8% IR, and for non-residents in VN under DTA, French social levies CSG 17.2% are not due!
+      taxSavedVsPFU += (fromPEA * 0.45) * 0.30;
+    }
+
+    // 4. Tier 4: CTO / Remainder
+    if (remainingNeed > 0) {
+      fromCTO = remainingNeed;
+      taxPaid += (fromCTO * 0.40) * 0.30; // 30% Flat tax on gains
+    }
+
+    return {
+      fromCash: Math.round(fromCash),
+      fromAV: Math.round(fromAV),
+      fromPEA: Math.round(fromPEA),
+      fromCTO: Math.round(fromCTO),
+      taxPaid: Math.round(taxPaid),
+      taxSavedVsPFU: Math.round(taxSavedVsPFU),
+      remainingBalances: {
+        livretA: Math.round(livretA),
+        av: Math.round(av),
+        pea: Math.round(pea),
+        cto: Math.round(cto)
+      }
+    };
+  }
+
   return {
     calculateProgressiveTax,
     calculateFrenchPension,
     planRothConversions,
     detectCapitalGainsHarvesting,
-    estimateAcaSubsidies
+    estimateAcaSubsidies,
+    simulateWithdrawalWaterfall
   };
 })();

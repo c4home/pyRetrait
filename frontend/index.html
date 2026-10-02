@@ -46,12 +46,9 @@
           <!-- Dynamic options loaded via JS -->
         </select>
       </div>
-      <button id="btn-new-plan" class="btn btn-secondary btn-sm" title="Tạo kế hoạch mới">+ Kế hoạch mới</button>
+      <button id="btn-new-plan" class="btn btn-secondary btn-sm" title="Tạo kế hoạch mới">+ Mới</button>
       <button id="btn-duplicate-plan" class="btn btn-ghost btn-sm" title="Nhân bản kế hoạch này">Nhân bản</button>
       <button id="btn-delete-plan" class="btn btn-ghost btn-sm" title="Xóa kế hoạch hiện tại" style="color: var(--danger);">🗑️ Xóa</button>
-      <button id="btn-toggle-compare" class="btn btn-accent btn-sm" title="Bật/Tắt chế độ so sánh 2 kế hoạch">
-        <span class="compare-icon">⚖️</span> So sánh
-      </button>
     </div>
 
     <!-- Right Controls: Currency, Theme, Export -->
@@ -61,12 +58,6 @@
         <button class="currency-btn active" data-currency="EUR" id="cur-eur" title="Euro">€</button>
         <button class="currency-btn" data-currency="VND" id="cur-vnd" title="Việt Nam Đồng">₫</button>
         <button class="currency-btn" data-currency="USD" id="cur-usd" title="Đô la Mỹ">$</button>
-      </div>
-
-      <!-- Readiness Score Badge -->
-      <div class="fire-badge-container" id="fire-score-badge" title="Chỉ số Sẵn sàng Nghỉ hưu sớm">
-        <span class="fire-badge-label">FIRE Score</span>
-        <span class="fire-badge-val" id="kpi-fire-score">92%</span>
       </div>
 
       <!-- Export Menu -->
@@ -83,6 +74,26 @@
         <input type="file" id="json-file-input" style="display:none" accept=".json">
       </div>
 
+      <!-- User Account Widget -->
+      <div class="dropdown-menu-wrapper user-account-wrapper">
+        <button id="auth-btn-trigger" class="btn btn-sm" style="border: 1px solid rgba(99, 102, 241, 0.45); background: rgba(99, 102, 241, 0.12); color: #c7d2fe; display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.75rem; border-radius: 6px; font-weight: 600; cursor: pointer;">
+          <span id="auth-btn-icon">🔑</span>
+          <span id="auth-btn-label">Đăng Nhập</span>
+        </button>
+        <div class="dropdown-content" id="user-dropdown" style="right: 0; min-width: 200px; padding: 0.25rem 0;">
+          <div style="padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.82rem;">
+            <div id="dropdown-user-name" style="font-weight: 700; color: var(--text-main);">Tài khoản</div>
+            <div id="dropdown-user-email" style="color: var(--text-muted); font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis;">email@example.com</div>
+          </div>
+          <div style="padding: 0.45rem 0.85rem; font-size: 0.75rem; color: var(--primary); display: flex; align-items: center; gap: 0.35rem;">
+            <span>☁️</span> <span>Đã đồng bộ đám mây</span>
+          </div>
+          <a href="#" id="auth-logout-btn" style="color: #ef4444; font-size: 0.82rem; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.85rem;">
+            <span>🚪</span> Đăng xuất
+          </a>
+        </div>
+      </div>
+
       <!-- Theme Switch -->
       <button id="theme-toggle-btn" class="btn-icon" title="Chuyển đổi giao diện Sáng/Tối">
         <span id="theme-icon">🌙</span>
@@ -97,38 +108,52 @@
       <nav class="nav-menu">
         <button class="nav-item active" data-tab="tab-projections">
           <span class="nav-icon">📊</span>
-          <span class="nav-label">Dòng tiền & Tài sản</span>
-          <span class="nav-sub">Cash-Flow Projections</span>
+          <div class="nav-text">
+            <span class="nav-label">Dòng tiền & Tài sản</span>
+            <span class="nav-sub">Cash-Flow Projections</span>
+          </div>
         </button>
         <button class="nav-item" data-tab="tab-withdrawals">
           <span class="nav-icon">🛡️</span>
-          <span class="nav-label">Chiến lược Rút tiền</span>
-          <span class="nav-sub">Withdrawal Strategies</span>
+          <div class="nav-text">
+            <span class="nav-label">Chiến lược Rút tiền</span>
+            <span class="nav-sub">Withdrawal Strategies</span>
+          </div>
         </button>
         <button class="nav-item" data-tab="tab-taxes">
           <span class="nav-icon">⚖️</span>
-          <span class="nav-label">Tối ưu Thuế & Roth</span>
-          <span class="nav-sub">Tax & Roth Optimization</span>
+          <div class="nav-text">
+            <span class="nav-label">Tối ưu Thuế & Roth</span>
+            <span class="nav-sub">Tax & Roth Optimization</span>
+          </div>
         </button>
         <button class="nav-item" data-tab="tab-insights">
           <span class="nav-icon">📈</span>
-          <span class="nav-label">Monte Carlo & Rủi ro</span>
-          <span class="nav-sub">Deeper Insights & SRR</span>
+          <div class="nav-text">
+            <span class="nav-label">Monte Carlo & Rủi ro</span>
+            <span class="nav-sub">Deeper Insights & SRR</span>
+          </div>
         </button>
         <button class="nav-item" data-tab="tab-scenarios">
           <span class="nav-icon">🧬</span>
-          <span class="nav-label">Kịch bản What-If</span>
-          <span class="nav-sub">What-If Scenarios</span>
+          <div class="nav-text">
+            <span class="nav-label">Kịch bản What-If</span>
+            <span class="nav-sub">What-If Scenarios</span>
+          </div>
         </button>
         <button class="nav-item" data-tab="tab-estate">
           <span class="nav-icon">🏛️</span>
-          <span class="nav-label">Thừa kế & Chi tiêu Smile</span>
-          <span class="nav-sub">Estate & Spending Smile</span>
+          <div class="nav-text">
+            <span class="nav-label">Thừa kế & Chi tiêu Smile</span>
+            <span class="nav-sub">Estate & Spending Smile</span>
+          </div>
         </button>
-        <button class="nav-item" data-tab="tab-advisor">
-          <span class="nav-icon">🤖</span>
-          <span class="nav-label">Cố vấn AI FIRE</span>
-          <span class="nav-sub">Recommendations & Audit</span>
+        <button class="nav-item" data-tab="tab-patrimoine">
+          <span class="nav-icon">🏢</span>
+          <div class="nav-text">
+            <span class="nav-label">Gestion de Patrimoine</span>
+            <span class="nav-sub">Patrimoine & Đòn bẩy Pháp</span>
+          </div>
         </button>
       </nav>
 
@@ -140,7 +165,11 @@
         </div>
         <div class="summary-metric">
           <span class="metric-label">Tuổi nghỉ hưu:</span>
-          <span class="metric-value text-accent" id="summary-retire-age">45 tuổi</span>
+          <span class="metric-value text-accent" id="summary-retire-age">42 tuổi</span>
+        </div>
+        <div class="summary-metric">
+          <span class="metric-label">Tuổi tối ưu (Gemini):</span>
+          <span class="metric-value text-success font-semibold" id="summary-optimal-age">42 tuổi</span>
         </div>
         <div class="summary-metric">
           <span class="metric-label">Số năm tích lũy:</span>
@@ -198,28 +227,6 @@
         </div>
       </section>
 
-      <!-- Compare Mode Split Screen Container (Hidden by default) -->
-      <section class="compare-mode-section" id="compare-section" style="display: none;">
-        <div class="compare-header">
-          <h3>⚖️ Chế độ So sánh Đối chiếu (Side-by-Side Compare Mode)</h3>
-          <p>Đối chiếu song song hai kế hoạch hưu trí để đánh giá tác động của tuổi nghỉ hưu, tỷ lệ tiết kiệm và danh mục.</p>
-        </div>
-        <div class="compare-grid">
-          <div class="compare-column" id="compare-col-a">
-            <h4 class="compare-col-title" id="compare-title-a">Kế hoạch A (Hiện tại)</h4>
-            <div class="compare-stats-table" id="compare-stats-a"></div>
-          </div>
-          <div class="compare-column" id="compare-col-b">
-            <h4 class="compare-col-title">
-              <select id="compare-plan-b-selector" class="plan-dropdown">
-                <!-- Populated dynamically -->
-              </select>
-            </h4>
-            <div class="compare-stats-table" id="compare-stats-b"></div>
-          </div>
-        </div>
-      </section>
-
       <!-- TAB 1: CASH FLOW & PROJECTIONS -->
       <section class="tab-pane active" id="tab-projections">
         <div class="panel-layout">
@@ -234,8 +241,13 @@
                   <input type="number" id="inp-current-age" min="18" max="80" value="32" class="form-input">
                 </div>
                 <div class="form-group col-6">
-                  <label for="inp-retire-age">Tuổi nghỉ hưu</label>
-                  <input type="number" id="inp-retire-age" min="25" max="80" value="45" class="form-input">
+                  <div class="field-header">
+                    <label for="inp-retire-age">Tuổi nghỉ hưu</label>
+                  </div>
+                  <input type="number" id="inp-retire-age" min="25" max="80" value="42" class="form-input">
+                  <div class="input-hint text-accent" id="hint-optimal-retire-age" style="margin-top: 4px; font-size: 0.76rem; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Nhấp để áp dụng tuổi tối ưu">
+                    <span>✨ Gemini đề xuất:</span> <strong id="lbl-optimal-age" style="text-decoration: underline;">42 tuổi</strong>
+                  </div>
                 </div>
               </div>
 
@@ -251,12 +263,12 @@
               </div>
 
               <div class="form-divider"></div>
-              <h4 class="card-subtitle">💵 Tài sản & Tích lũy hàng năm</h4>
+              <h4 class="card-subtitle">💵 Tài sản & Dòng tiền hàng tháng</h4>
 
               <div class="form-group">
                 <label for="inp-current-savings">Tài sản ròng đầu tư hiện có</label>
                 <div class="input-with-unit">
-                  <input type="number" id="inp-current-savings" value="1500000000" step="10000000" class="form-input">
+                  <input type="number" id="inp-current-savings" value="10000" step="1000" class="form-input">
                   <span class="unit-badge" id="unit-savings">€</span>
                 </div>
               </div>
@@ -278,20 +290,27 @@
 
               <div class="form-row">
                 <div class="form-group col-6">
-                  <label for="inp-annual-expenses">Chi tiêu/năm (hiện tại)</label>
-                  <input type="number" id="inp-annual-expenses" value="53333" step="500" class="form-input">
-                  <div class="input-hint" id="hint-annual-expenses">≈ 2/3 thu nhập</div>
+                  <label for="inp-monthly-expenses">Chi tiêu/tháng (hiện tại)</label>
+                  <div class="input-with-sub">
+                    <input type="number" id="inp-monthly-expenses" value="4444" step="50" class="form-input">
+                    <div class="input-hint" id="hint-annual-expenses">≈ €53.3k/năm • 2/3 thu nhập</div>
+                  </div>
                 </div>
                 <div class="form-group col-6">
-                  <label for="inp-annual-savings">Tiết kiệm/năm (hiện tại)</label>
-                  <input type="number" id="inp-annual-savings" value="26667" step="500" class="form-input">
-                  <div class="input-hint" id="hint-annual-savings">≈ 1/3 thu nhập</div>
+                  <label for="inp-monthly-savings">Tiết kiệm/tháng (hiện tại)</label>
+                  <div class="input-with-sub">
+                    <input type="number" id="inp-monthly-savings" value="2222" step="50" class="form-input">
+                    <div class="input-hint" id="hint-annual-savings">≈ €26.7k/năm • 1/3 thu nhập</div>
+                  </div>
                 </div>
               </div>
 
               <div class="form-group">
-                <label for="inp-retire-expenses">Chi tiêu/năm khi về hưu</label>
-                <input type="number" id="inp-retire-expenses" value="10000" step="1000" class="form-input">
+                <label for="inp-monthly-retire-expenses">Chi tiêu/tháng khi về hưu</label>
+                <div class="input-with-sub">
+                  <input type="number" id="inp-monthly-retire-expenses" value="833" step="50" class="form-input">
+                  <div class="input-hint" id="hint-retire-expenses">≈ €10.0k/năm • chi tiêu tại Việt Nam</div>
+                </div>
               </div>
 
               <div class="form-row">
@@ -302,6 +321,125 @@
                 <div class="form-group col-6">
                   <label for="inp-return-post">Lợi nhuận hưu trí (%/năm)</label>
                   <input type="number" id="inp-return-post" step="0.1" value="8.0" class="form-input">
+                </div>
+              </div>
+
+              <!-- 1. Phân bổ Danh mục & Tái cân bằng (Asset Allocation) -->
+              <div class="expandable-panel" id="panel-asset-allocation">
+                <div class="expandable-header" id="btn-toggle-asset-allocation">
+                  <span class="expandable-title">🥧 Phân bổ Danh mục & Tái cân bằng</span>
+                  <span class="expandable-badge" id="badge-weighted-return">8.3%/năm</span>
+                  <span class="expandable-icon">▼</span>
+                </div>
+                <div class="expandable-content" id="content-asset-allocation" style="display: none;">
+                  <div class="form-group">
+                    <div class="field-header">
+                      <label for="inp-alloc-stocks">Cổ phiếu / ETF Quốc tế (PEA, CW8, S&P 500)</label>
+                      <span class="field-badge font-mono" id="lbl-alloc-stocks">60% (9.5%/năm)</span>
+                    </div>
+                    <input type="range" id="inp-alloc-stocks" min="0" max="100" step="5" value="60" class="form-range">
+                  </div>
+                  <div class="form-group">
+                    <div class="field-header">
+                      <label for="inp-alloc-bonds">Trái phiếu / Tiền gửi an toàn (Livret A, LDDS, Tiết kiệm)</label>
+                      <span class="field-badge font-mono" id="lbl-alloc-bonds">20% (3.5%/năm)</span>
+                    </div>
+                    <input type="range" id="inp-alloc-bonds" min="0" max="100" step="5" value="20" class="form-range">
+                  </div>
+                  <div class="form-group">
+                    <div class="field-header">
+                      <label for="inp-alloc-re">Bất động sản & Vàng (BĐS Việt Nam / SCPI)</label>
+                      <span class="field-badge font-mono" id="lbl-alloc-re">20% (6.5%/năm)</span>
+                    </div>
+                    <input type="range" id="inp-alloc-re" min="0" max="100" step="5" value="20" class="form-range">
+                  </div>
+                  <div class="input-hint" id="hint-asset-allocation">
+                    Lợi nhuận theo trọng số: <strong id="lbl-weighted-calc">8.3%/năm</strong> (đã gồm +0.3% thưởng kỷ luật tái cân bằng).
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Lạm phát 2 Chặng & Tỷ giá EUR/VND (Dual Inflation & Forex) -->
+              <div class="expandable-panel" id="panel-dual-inflation">
+                <div class="expandable-header" id="btn-toggle-dual-inflation">
+                  <span class="expandable-title">🌍 Lạm phát 2 Chặng & Tỷ giá EUR/VND</span>
+                  <span class="expandable-badge">PPP Model</span>
+                  <span class="expandable-icon">▼</span>
+                </div>
+                <div class="expandable-content" id="content-dual-inflation" style="display: none;">
+                  <div class="form-group">
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="chk-dual-inflation-enabled" checked>
+                      <span>Kích hoạt Lạm phát 2 Chặng & Trượt giá EUR/VND</span>
+                    </label>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group col-6">
+                      <label for="inp-inflation-pre">Lạm phát Pháp (Tích lũy %)</label>
+                      <input type="number" id="inp-inflation-pre" step="0.1" value="2.2" class="form-input">
+                    </div>
+                    <div class="form-group col-6">
+                      <label for="inp-inflation-post">Lạm phát VN (Hưu trí %)</label>
+                      <input type="number" id="inp-inflation-post" step="0.1" value="4.0" class="form-input">
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group col-6">
+                      <label for="inp-forex-base">Tỷ giá ban đầu (₫/€)</label>
+                      <input type="number" id="inp-forex-base" value="27500" step="100" class="form-input">
+                    </div>
+                    <div class="form-group col-6">
+                      <label for="inp-forex-drift">Trượt giá EUR/VND (%/năm)</label>
+                      <input type="number" id="inp-forex-drift" step="0.1" value="1.2" class="form-input">
+                    </div>
+                  </div>
+                  <div class="input-hint" id="hint-forex-projection">
+                    💡 Dự báo tỷ giá ở tuổi 60: <strong id="lbl-forex-future">~39,800 ₫/€</strong> • Sức mua EUR tăng ~45% tại VN.
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. Quản lý Nợ & Vay Mua Nhà (Mortgage & Crédit Immo) -->
+              <div class="expandable-panel" id="panel-mortgage">
+                <div class="expandable-header" id="btn-toggle-mortgage">
+                  <span class="expandable-title">🏡 Khoản vay Mua nhà (Crédit Immo)</span>
+                  <span class="expandable-badge" id="badge-mortgage-status">€824/tháng</span>
+                  <span class="expandable-icon">▼</span>
+                </div>
+                <div class="expandable-content" id="content-mortgage" style="display: none;">
+                  <div class="form-group">
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="chk-mortgage-enabled" checked>
+                      <span>Có khoản vay mua BĐS (Crédit Immobilier)</span>
+                    </label>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group col-6">
+                      <label for="inp-mortgage-prop-val">Giá trị BĐS hiện tại (<span id="unit-mortgage-prop">€</span>)</label>
+                      <input type="number" id="inp-mortgage-prop-val" value="200000" step="5000" class="form-input">
+                    </div>
+                    <div class="form-group col-6">
+                      <label for="inp-mortgage-loan">Số tiền vay gốc (<span id="unit-mortgage-loan">€</span>)</label>
+                      <input type="number" id="inp-mortgage-loan" value="160000" step="5000" class="form-input">
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group col-4">
+                      <label for="inp-mortgage-rate">Lãi suất (%/năm)</label>
+                      <input type="number" id="inp-mortgage-rate" value="2.2" step="0.1" class="form-input">
+                    </div>
+                    <div class="form-group col-4">
+                      <label for="inp-mortgage-term">Thời hạn (năm)</label>
+                      <input type="number" id="inp-mortgage-term" value="20" min="5" max="30" class="form-input">
+                    </div>
+                    <div class="form-group col-4">
+                      <label for="inp-mortgage-start">Bắt đầu ở tuổi</label>
+                      <input type="number" id="inp-mortgage-start" value="29" min="18" max="70" class="form-input">
+                    </div>
+                  </div>
+                  <div class="input-hint" id="hint-mortgage-summary">
+                    Góp: <strong id="lbl-mortgage-monthly">€824/tháng</strong> • Vốn sở hữu hiện tại: <strong id="lbl-mortgage-equity">€40.0k</strong> • Tất toán tuổi <strong id="lbl-mortgage-payoff">49</strong>.
+                  </div>
                 </div>
               </div>
 
@@ -331,8 +469,37 @@
                   <button class="btn btn-xs btn-ghost" id="btn-view-real">Sức mua Hiện tại (Real)</button>
                 </div>
               </div>
+              
+              <!-- Life Milestones Ribbon -->
+              <div class="milestones-ribbon-container">
+                <div class="milestones-ribbon-header">
+                  <span class="milestones-ribbon-title">🚩 Cột Mốc Cuộc Đời (Life Milestones)</span>
+                  <button type="button" class="btn btn-xs btn-outline" id="btn-manage-milestones">⚙️ Quản lý Mốc</button>
+                </div>
+                <div class="milestones-chips" id="milestones-chips-container">
+                  <!-- Dynamically populated chips -->
+                </div>
+              </div>
+
               <div class="chart-wrapper">
                 <canvas id="chart-networth"></canvas>
+              </div>
+
+              <!-- Gemini AI Chart Commentary: Net Worth -->
+              <div class="gemini-insight-box" id="gemini-box-chart-networth">
+                <div class="gemini-insight-header">
+                  <div class="gemini-header-left">
+                    <span class="gemini-sparkle">✨</span>
+                    <span class="gemini-title">Gemini AI Nhận xét & Đánh giá Chiến lược</span>
+                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-networth">Gemini Intelligence</span>
+                  </div>
+                  <button type="button" class="btn-gemini-refresh" data-chart="chart-networth" title="Phân tích lại với Gemini">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Phân tích lại
+                  </button>
+                </div>
+                <div class="gemini-insight-content" id="gemini-content-chart-networth">
+                  <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu từ Gemini...</div>
+                </div>
               </div>
             </div>
 
@@ -346,6 +513,23 @@
               </div>
               <div class="chart-wrapper">
                 <canvas id="chart-cashflow"></canvas>
+              </div>
+
+              <!-- Gemini AI Chart Commentary: Cash Flow -->
+              <div class="gemini-insight-box" id="gemini-box-chart-cashflow">
+                <div class="gemini-insight-header">
+                  <div class="gemini-header-left">
+                    <span class="gemini-sparkle">✨</span>
+                    <span class="gemini-title">Gemini AI Nhận xét & Đánh giá Dòng tiền</span>
+                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-cashflow">Gemini Intelligence</span>
+                  </div>
+                  <button type="button" class="btn-gemini-refresh" data-chart="chart-cashflow" title="Phân tích lại với Gemini">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Phân tích lại
+                  </button>
+                </div>
+                <div class="gemini-insight-content" id="gemini-content-chart-cashflow">
+                  <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu từ Gemini...</div>
+                </div>
               </div>
             </div>
 
@@ -439,6 +623,23 @@
               <div class="chart-wrapper">
                 <canvas id="chart-withdrawal-comparison"></canvas>
               </div>
+
+              <!-- Gemini AI Chart Commentary: Withdrawals -->
+              <div class="gemini-insight-box" id="gemini-box-chart-withdrawal-comparison">
+                <div class="gemini-insight-header">
+                  <div class="gemini-header-left">
+                    <span class="gemini-sparkle">✨</span>
+                    <span class="gemini-title">Gemini AI So sánh & Đánh giá Rút tiền</span>
+                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-withdrawal-comparison">Gemini Intelligence</span>
+                  </div>
+                  <button type="button" class="btn-gemini-refresh" data-chart="chart-withdrawal-comparison" title="Phân tích lại với Gemini">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Phân tích lại
+                  </button>
+                </div>
+                <div class="gemini-insight-content" id="gemini-content-chart-withdrawal-comparison">
+                  <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu từ Gemini...</div>
+                </div>
+              </div>
             </div>
 
             <div class="card">
@@ -515,6 +716,23 @@
               <div class="chart-wrapper">
                 <canvas id="chart-tax-optimization"></canvas>
               </div>
+
+              <!-- Gemini AI Chart Commentary: Taxes & Roth -->
+              <div class="gemini-insight-box" id="gemini-box-chart-tax-optimization">
+                <div class="gemini-insight-header">
+                  <div class="gemini-header-left">
+                    <span class="gemini-sparkle">✨</span>
+                    <span class="gemini-title">Gemini AI Nhận xét Chiến lược Tối ưu Thuế</span>
+                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-tax-optimization">Gemini Intelligence</span>
+                  </div>
+                  <button type="button" class="btn-gemini-refresh" data-chart="chart-tax-optimization" title="Phân tích lại với Gemini">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Phân tích lại
+                  </button>
+                </div>
+                <div class="gemini-insight-content" id="gemini-content-chart-tax-optimization">
+                  <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu từ Gemini...</div>
+                </div>
+              </div>
             </div>
 
             <div class="kpi-grid">
@@ -532,6 +750,77 @@
                   <span class="kpi-title">Tiết kiệm Trợ cấp Y tế / ACA</span>
                   <span class="kpi-value font-mono" id="kpi-aca-savings">240.0 Tr ₫</span>
                   <span class="kpi-subtitle">Giai đoạn từ nghỉ hưu đến 65 tuổi</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- French Account Tracking & Withdrawal Waterfall -->
+            <div class="card" id="card-french-accounts" style="margin-top: 1.25rem;">
+              <div class="chart-header">
+                <div>
+                  <h3 class="card-title">🇫🇷 Tách bạch Tài khoản Đầu tư & Thứ tự Rút tiền Tối ưu Thuế (Waterfall)</h3>
+                  <p class="chart-desc">Thứ tự ưu tiên rút tiền thông minh giữa PEA, Assurance-Vie và Livret A giúp tối đa hóa số tiền miễn thuế trọn đời.</p>
+                </div>
+                <div class="field-badge text-success" id="badge-waterfall-saved" style="font-weight: 700;">Tiết kiệm: €18.4k thuế</div>
+              </div>
+
+              <!-- Account Balance Cards Grid -->
+              <div class="waterfall-accounts-grid">
+                <div class="account-card">
+                  <div class="account-header">
+                    <span class="account-name">🇪🇺 PEA (Cổ phiếu EU/World)</span>
+                    <span class="account-status badge-success">> 5 năm (0% Thuế IR)</span>
+                  </div>
+                  <div class="account-balance font-mono" id="val-acc-pea">€35,000</div>
+                  <div class="account-desc">Miễn hoàn toàn 12.8% thuế thu nhập. Miễn phí xã hội CSG khi cư trú tại VN theo hiệp định.</div>
+                </div>
+
+                <div class="account-card">
+                  <div class="account-header">
+                    <span class="account-name">📜 Assurance-Vie (Hợp đồng đa quỹ)</span>
+                    <span class="account-status badge-success">> 8 năm (Miễn €4.6k/năm)</span>
+                  </div>
+                  <div class="account-balance font-mono" id="val-acc-av">€10,000</div>
+                  <div class="account-desc">Miễn thuế trên lợi nhuận lên đến 4,600 €/năm (độc thân) hoặc 9,200 €/năm (vợ chồng).</div>
+                </div>
+
+                <div class="account-card">
+                  <div class="account-header">
+                    <span class="account-name">🛡️ Livret A / LDDS / Tiền gửi</span>
+                    <span class="account-status badge-info">100% Miễn thuế</span>
+                  </div>
+                  <div class="account-balance font-mono" id="val-acc-livreta">€5,000</div>
+                  <div class="account-desc">Thanh khoản tức thì, bảo toàn vốn 100%, rút tiền không chịu bất kỳ sắc thuế nào.</div>
+                </div>
+              </div>
+
+              <!-- Waterfall Step by Step Visualization -->
+              <div class="waterfall-flow-steps">
+                <div class="flow-step">
+                  <span class="step-num">Tầng 1</span>
+                  <div class="step-content">
+                    <div class="step-title">Tiền mặt & Livret A</div>
+                    <div class="step-desc">Rút trước để giải phóng thanh khoản, 0% thuế.</div>
+                  </div>
+                  <span class="step-badge">Ưu tiên 1</span>
+                </div>
+                <div class="flow-arrow">➔</div>
+                <div class="flow-step">
+                  <span class="step-num">Tầng 2</span>
+                  <div class="step-content">
+                    <div class="step-title">Assurance-Vie (>8 năm)</div>
+                    <div class="step-desc">Rút đều đặn tối đa hạn mức miễn thuế 4,600 € lãi/năm.</div>
+                  </div>
+                  <span class="step-badge">Ưu tiên 2</span>
+                </div>
+                <div class="flow-arrow">➔</div>
+                <div class="flow-step">
+                  <span class="step-num">Tầng 3</span>
+                  <div class="step-content">
+                    <div class="step-title">PEA (>5 năm)</div>
+                    <div class="step-desc">Rút phần lớn từ ETF tăng trưởng, miễn 100% thuế IR.</div>
+                  </div>
+                  <span class="step-badge">Ưu tiên 3</span>
                 </div>
               </div>
             </div>
@@ -591,6 +880,23 @@
               </div>
               <div class="chart-wrapper">
                 <canvas id="chart-monte-carlo"></canvas>
+              </div>
+
+              <!-- Gemini AI Chart Commentary: Monte Carlo -->
+              <div class="gemini-insight-box" id="gemini-box-chart-monte-carlo">
+                <div class="gemini-insight-header">
+                  <div class="gemini-header-left">
+                    <span class="gemini-sparkle">✨</span>
+                    <span class="gemini-title">Gemini AI Đánh giá Rủi ro & Xác suất Monte Carlo</span>
+                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-monte-carlo">Gemini Intelligence</span>
+                  </div>
+                  <button type="button" class="btn-gemini-refresh" data-chart="chart-monte-carlo" title="Phân tích lại với Gemini">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Phân tích lại
+                  </button>
+                </div>
+                <div class="gemini-insight-content" id="gemini-content-chart-monte-carlo">
+                  <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu từ Gemini...</div>
+                </div>
               </div>
             </div>
 
@@ -662,6 +968,23 @@
               </div>
               <div class="chart-wrapper">
                 <canvas id="chart-scenarios"></canvas>
+              </div>
+
+              <!-- Gemini AI Chart Commentary: Scenarios -->
+              <div class="gemini-insight-box" id="gemini-box-chart-scenarios">
+                <div class="gemini-insight-header">
+                  <div class="gemini-header-left">
+                    <span class="gemini-sparkle">✨</span>
+                    <span class="gemini-title">Gemini AI Đánh giá Khả năng Chịu đựng Biến cố</span>
+                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-scenarios">Gemini Intelligence</span>
+                  </div>
+                  <button type="button" class="btn-gemini-refresh" data-chart="chart-scenarios" title="Phân tích lại với Gemini">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Phân tích lại
+                  </button>
+                </div>
+                <div class="gemini-insight-content" id="gemini-content-chart-scenarios">
+                  <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu từ Gemini...</div>
+                </div>
               </div>
             </div>
 
@@ -748,6 +1071,23 @@
               <div class="chart-wrapper">
                 <canvas id="chart-spending-smile"></canvas>
               </div>
+
+              <!-- Gemini AI Chart Commentary: Estate & Spending Smile -->
+              <div class="gemini-insight-box" id="gemini-box-chart-spending-smile">
+                <div class="gemini-insight-header">
+                  <div class="gemini-header-left">
+                    <span class="gemini-sparkle">✨</span>
+                    <span class="gemini-title">Gemini AI Nhận xét Đường cong Chi tiêu & Thừa kế</span>
+                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-spending-smile">Gemini Intelligence</span>
+                  </div>
+                  <button type="button" class="btn-gemini-refresh" data-chart="chart-spending-smile" title="Phân tích lại với Gemini">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Phân tích lại
+                  </button>
+                </div>
+                <div class="gemini-insight-content" id="gemini-content-chart-spending-smile">
+                  <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu từ Gemini...</div>
+                </div>
+              </div>
             </div>
 
             <div class="card">
@@ -760,31 +1100,172 @@
         </div>
       </section>
 
-      <!-- TAB 7: AI ADVISOR & FIRE AUDIT -->
-      <section class="tab-pane" id="tab-advisor">
-        <div class="advisor-container">
-          <div class="card advisor-header-card">
-            <div class="advisor-intro">
-              <div class="ai-avatar">🤖</div>
-              <div>
-                <h3 class="card-title">pyRetrait AI Advisor — Báo cáo Thẩm định Kế hoạch Hưu trí</h3>
-                <p>Hệ thống tự động phân tích 18 chỉ số tài chính, phát hiện các lỗ hổng rủi ro và đề xuất các hành động tối ưu ngay hôm nay.</p>
+      </section>
+
+      <!-- TAB: PATRIMOINE & LMNP (pyLocation Integration) -->
+      <section class="tab-pane" id="tab-patrimoine">
+        <div class="advisor-container" style="display: flex; flex-direction: column; gap: 1.5rem;">
+          
+          <!-- Header Banner & Action Bar -->
+          <div class="card" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%); border: 1px solid rgba(99, 102, 241, 0.25); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+              <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="font-size: 2.2rem; background: rgba(99, 102, 241, 0.15); width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid rgba(99, 102, 241, 0.3);">🏢</div>
+                <div>
+                  <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #f8fafc;">Bất Động Sản LMNP & Đội Xe Turo</h3>
+                  <p style="margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.875rem;">Mô hình tính toán chi tiết theo luật thuế Pháp (khấu hao LMNP 0% thuế, đòn bẩy ngân hàng, dòng tiền ròng sau khi hết nợ và đội xe Turo).</p>
+                </div>
               </div>
-            </div>
-            <div class="fire-overall-score">
-              <div class="score-circle" id="advisor-score-circle">
-                <span class="score-number" id="advisor-score-num">92</span>
-                <span class="score-max">/100</span>
+              <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                <span id="patrimoine-sync-badge" class="badge" style="display: none; padding: 0.5rem 0.75rem; font-size: 0.85rem;"></span>
+                <button class="btn btn-secondary" id="btn-add-apartment" style="display: flex; align-items: center; gap: 0.4rem;">
+                  <span>➕</span> Thêm Căn Hộ
+                </button>
+                <button class="btn btn-primary" id="btn-sync-to-fire" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">
+                  <span>⚡</span> Đồng Bộ Vào Kế Hoạch FIRE
+                </button>
               </div>
-              <span class="score-verdict" id="advisor-score-verdict">Sẵn sàng Tuyệt vời</span>
             </div>
           </div>
 
-          <div class="advisor-grid" id="advisor-recommendations">
-            <!-- Dynamic recommendation cards -->
+          <!-- KPI Cards Grid -->
+          <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+            <div class="kpi-card">
+              <div class="kpi-icon-badge bg-blue">🏢</div>
+              <div class="kpi-info" style="min-width: 0; flex: 1;">
+                <span class="kpi-title">Tổng Giá Trị BĐS Pháp</span>
+                <span class="kpi-value font-mono" id="patrimoine-kpi-property-val" style="font-size: 1.25rem;">€0</span>
+                <span class="kpi-subtitle" id="patrimoine-kpi-property-sub">≈ 0 ₫</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-badge bg-amber">🏦</div>
+              <div class="kpi-info" style="min-width: 0; flex: 1;">
+                <span class="kpi-title">Dư Nợ Vay Ngân Hàng</span>
+                <span class="kpi-value font-mono" id="patrimoine-kpi-total-loan" style="color: #f43f5e; font-size: 1.25rem;">€0</span>
+                <span class="kpi-subtitle" id="patrimoine-kpi-loan-sub">3 căn vay thế chấp 20 năm</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-badge bg-purple">📉</div>
+              <div class="kpi-info" style="min-width: 0; flex: 1;">
+                <span class="kpi-title">Dòng Tiền Hiện Tại (Đang vay)</span>
+                <span class="kpi-value font-mono" id="patrimoine-kpi-during-cashflow" style="font-size: 1.25rem;">€0/tháng</span>
+                <span class="kpi-subtitle">Bù lỗ nhẹ trong thời gian vay</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-badge bg-green">🏠</div>
+              <div class="kpi-info" style="min-width: 0; flex: 1;">
+                <span class="kpi-title">Dòng Tiền BĐS (Hết nợ)</span>
+                <span class="kpi-value font-mono text-success" id="patrimoine-kpi-postloan-cashflow" style="font-size: 1.25rem;">€0/tháng</span>
+                <span class="kpi-subtitle" id="patrimoine-kpi-postloan-sub">Thu nhập ròng sau 20 năm</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-badge bg-blue">🚗</div>
+              <div class="kpi-info" style="min-width: 0; flex: 1;">
+                <span class="kpi-title">Lợi Nhuận Đội Xe Turo</span>
+                <span class="kpi-value font-mono" id="patrimoine-kpi-turo-cashflow" style="color: #38bdf8; font-size: 1.25rem;">€0/tháng</span>
+                <span class="kpi-subtitle" id="patrimoine-kpi-turo-sub">Đội xe 3 chiếc cho thuê</span>
+              </div>
+            </div>
+
+            <div class="kpi-card" style="border: 1px solid rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08);">
+              <div class="kpi-icon-badge bg-green">🌟</div>
+              <div class="kpi-info" style="min-width: 0; flex: 1;">
+                <span class="kpi-title" style="color: #34d399; font-weight: 700;">Dòng Tiền Thụ Động Hưu Trí</span>
+                <span class="kpi-value font-mono text-success" id="patrimoine-kpi-total-passive" style="font-size: 1.25rem;">€0/tháng</span>
+                <span class="kpi-subtitle" id="patrimoine-kpi-total-passive-sub">Bao phủ 100% chi phí sống tại VN</span>
+              </div>
+            </div>
           </div>
+
+          <!-- Chart & Gemini AI Strategic Analysis Box -->
+          <div class="card" style="padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+              <div>
+                <h4 style="margin: 0; font-size: 1.05rem; font-weight: 700;">📊 Phân Tích Dòng Tiền Từng BĐS & Đội Xe</h4>
+                <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">So sánh Doanh thu cho thuê, Tiền trả góp nợ vay và Dòng tiền ròng (Trước vs Sau khi tất toán gói vay).</p>
+              </div>
+            </div>
+            <div style="height: 280px; position: relative;">
+              <canvas id="chart-patrimoine"></canvas>
+            </div>
+
+            <!-- Gemini AI Strategic Box -->
+            <div id="chart-patrimoine-analysis" style="margin-top: 1.25rem;">
+              <!-- Dynamic Gemini Advice rendered here -->
+            </div>
+          </div>
+
+          <!-- Section: Danh Sách Căn Hộ -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <h4 style="margin: 0; font-size: 1.05rem; font-weight: 700;">🏠 Danh Mục Căn Hộ Cho Thuê (LMNP France)</h4>
+              <span style="font-size: 0.8rem; color: var(--text-muted);">Khấu hao tài sản (Amortissement) miễn thuế thu nhập</span>
+            </div>
+            <div id="patrimoine-apartments-grid" class="advisor-grid" style="grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Section: Quản lý & Giả Lập Đội Xe Turo -->
+          <div class="card" style="padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+              <div>
+                <h4 style="margin: 0; font-size: 1.05rem; font-weight: 700;">🚗 Quản Lý & Giả Lập Đội Xe Cho Thuê Turo</h4>
+                <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">Mô hình mua xe cũ phân khúc phổ thông cho thuê tự lái trên nền tảng Turo.</p>
+              </div>
+              <button class="btn btn-secondary" id="btn-save-turo">💾 Lưu Cấu Hình Turo</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+              <div class="form-group">
+                <label for="inp-turo-num-cars">Số lượng xe</label>
+                <input type="number" id="inp-turo-num-cars" class="form-input" min="1" max="20" value="3">
+              </div>
+              <div class="form-group">
+                <label for="inp-turo-price">Giá mua xe (€/chiếc)</label>
+                <input type="number" id="inp-turo-price" class="form-input" min="1000" step="500" value="5000">
+              </div>
+              <div class="form-group">
+                <label for="inp-turo-gross">Doanh thu gộp (€/xe/năm)</label>
+                <input type="number" id="inp-turo-gross" class="form-input" min="500" step="100" value="1800">
+              </div>
+              <div class="form-group">
+                <label for="inp-turo-insurance">Bảo hiểm (€/xe/năm)</label>
+                <input type="number" id="inp-turo-insurance" class="form-input" min="100" step="50" value="350">
+              </div>
+              <div class="form-group">
+                <label for="inp-turo-repairs">Bảo dưỡng, sửa chữa (€/xe/năm)</label>
+                <input type="number" id="inp-turo-repairs" class="form-input" min="100" step="50" value="350">
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 1.5rem; background: var(--bg-hover, rgba(255,255,255,0.03)); padding: 1rem; border-radius: 8px; flex-wrap: wrap; justify-content: space-around;">
+              <div>
+                <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Tổng Vốn Mua Xe:</span>
+                <strong id="turo-metric-total-invest" style="font-size: 1.1rem; color: #f8fafc;">€15,000</strong>
+              </div>
+              <div>
+                <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Lợi Nhuận Ròng Hàng Tháng:</span>
+                <strong id="turo-metric-profit-monthly" style="font-size: 1.1rem; color: #10b981;">+€234/tháng</strong>
+              </div>
+              <div>
+                <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Tỷ Suất Sinh Lời ROI (10 năm):</span>
+                <strong id="turo-metric-roi" style="font-size: 1.1rem; color: #38bdf8;">140.9%</strong>
+              </div>
+            </div>
+          </div>
+
         </div>
       </section>
+
     </main>
   </div>
 
@@ -829,14 +1310,23 @@
           <label for="inp-income-name">Tên nguồn thu nhập</label>
           <input type="text" id="inp-income-name" placeholder="Ví dụ: Lương tại Pháp, BĐS cho thuê, Cổ tức ETF..." class="form-input">
         </div>
-        <div class="form-group">
-          <label for="inp-income-amount">Số tiền nhận được hàng năm</label>
-          <div class="input-with-unit">
-            <input type="number" id="inp-income-amount" class="form-input" step="100">
-            <span class="unit-badge" id="modal-income-unit">€</span>
+        <div class="form-row">
+          <div class="form-group col-6">
+            <label for="inp-income-amount-monthly">Số tiền mỗi tháng</label>
+            <div class="input-with-unit">
+              <input type="number" id="inp-income-amount-monthly" class="form-input" step="50">
+              <span class="unit-badge" id="modal-income-unit-monthly">€</span>
+            </div>
           </div>
-          <span class="input-hint">Thu nhập sau thuế (Net après impôt) hoặc lợi tức thu về.</span>
+          <div class="form-group col-6">
+            <label for="inp-income-amount">Quy đổi cả năm (x12)</label>
+            <div class="input-with-unit">
+              <input type="number" id="inp-income-amount" class="form-input" step="100">
+              <span class="unit-badge" id="modal-income-unit">€</span>
+            </div>
+          </div>
         </div>
+        <div class="input-hint" style="margin-top: -0.4rem; margin-bottom: 0.75rem;">Thu nhập sau thuế (Net) hoặc lợi tức. Nhập tháng hoặc năm, hệ thống tự quy đổi.</div>
         <div class="form-row">
           <div class="form-group col-6">
             <label for="inp-income-start">Bắt đầu từ tuổi</label>
@@ -860,12 +1350,325 @@
     </div>
   </div>
 
+  <!-- Modal for Managing Life Milestones -->
+  <div class="modal-overlay" id="milestone-modal" style="display: none;">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <h3 id="milestone-modal-title">🚩 Quản Lý Cột Mốc Cuộc Đời (Life Milestones)</h3>
+        <button class="modal-close" id="btn-close-milestone-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+          Đánh dấu các mốc quan trọng trong cuộc đời (mua nhà, sinh con, quỹ học vấn, tự do tài chính...) và tích hợp dòng tiền chi phí/thu nhập đột xuất vào mô phỏng biểu đồ.
+        </p>
+        
+        <!-- System Milestones Summary -->
+        <h4 style="font-size: 0.88rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.5rem;">Cột mốc Cốt lõi (Tự động tính từ Kế hoạch)</h4>
+        <div id="modal-system-milestones-list" class="milestones-system-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.6rem; margin-bottom: 1.25rem;">
+          <!-- Auto populated -->
+        </div>
+
+        <div class="form-divider"></div>
+
+        <!-- Custom User Milestones -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <h4 style="font-size: 0.88rem; font-weight: 600; color: var(--text-main);">Sự Kiện Đặc Biệt (Tùy chỉnh)</h4>
+          <button type="button" class="btn btn-xs btn-primary" id="btn-add-custom-milestone">+ Thêm Sự Kiện</button>
+        </div>
+
+        <div id="modal-custom-milestones-container" class="custom-milestones-list" style="display: flex; flex-direction: column; gap: 0.6rem; max-height: 220px; overflow-y: auto;">
+          <!-- Custom items populated here -->
+        </div>
+
+        <!-- Form to Add/Edit Milestone (collapsible) -->
+        <div id="milestone-edit-form" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.03); border: 1px dashed var(--border-color); border-radius: 8px;">
+          <h5 id="milestone-form-title" style="font-size: 0.85rem; font-weight: 700; color: var(--primary); margin-bottom: 0.75rem;">Thêm Cột Mốc Mới</h5>
+          <input type="hidden" id="inp-ms-id">
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="inp-ms-name">Tên sự kiện</label>
+              <input type="text" id="inp-ms-name" class="form-input" placeholder="Ví dụ: Mua nhà, Sinh con, Quỹ đại học...">
+            </div>
+            <div class="form-group col-3">
+              <label for="inp-ms-age">Độ tuổi</label>
+              <input type="number" id="inp-ms-age" class="form-input" min="18" max="100" value="35">
+            </div>
+            <div class="form-group col-3">
+              <label for="inp-ms-icon">Biểu tượng</label>
+              <select id="inp-ms-icon" class="form-select">
+                <option value="🏡">🏡 Mua nhà</option>
+                <option value="👶">👶 Sinh con</option>
+                <option value="🎓">🎓 Đại học</option>
+                <option value="🚗">🚗 Mua xe</option>
+                <option value="💍">💍 Kết hôn</option>
+                <option value="✈️">✈️ Du lịch</option>
+                <option value="💼">💼 Nghỉ ngơi</option>
+                <option value="💰">💰 Thừa kế</option>
+                <option value="🏥">🏥 Y tế</option>
+                <option value="⭐">⭐ Mốc khác</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="inp-ms-type">Tác động tài chính</label>
+              <select id="inp-ms-type" class="form-select">
+                <option value="expense">Khoản chi một lần (Rút từ danh mục)</option>
+                <option value="income">Khoản thu đột xuất (Bơm vào danh mục)</option>
+                <option value="none">Chỉ đánh dấu kỷ niệm (Không ảnh hưởng tiền)</option>
+              </select>
+            </div>
+            <div class="form-group col-6">
+              <label for="inp-ms-amount">Số tiền (<span id="modal-ms-unit">€</span>)</label>
+              <input type="number" id="inp-ms-amount" class="form-input" value="30000" step="1000">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="inp-ms-note">Ghi chú thêm</label>
+            <input type="text" id="inp-ms-note" class="form-input" placeholder="Ví dụ: Tiền đặt cọc nhà, bảo hiểm...">
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
+            <button type="button" class="btn btn-xs btn-ghost" id="btn-cancel-ms-form">Hủy</button>
+            <button type="button" class="btn btn-xs btn-primary" id="btn-save-ms-form">Lưu Mốc Này</button>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="btn-close-milestone-modal-footer">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Gemini AI Configuration -->
+  <div class="modal-overlay" id="modal-gemini-settings" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">✨ Cấu hình Trợ lý Google Gemini AI</h3>
+        <button class="modal-close" id="btn-close-gemini-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="gemini-modal-desc">
+          pyRetrait hỗ trợ phân tích tài chính đa chiều cho từng biểu đồ bằng <strong>Google Gemini</strong>. Bạn có thể sử dụng bộ máy Gemini Financial Intelligence tích hợp sẵn (miễn phí, không cần key) hoặc nhập <strong>Gemini API Key</strong> từ Google AI Studio để kết nối trực tiếp mô hình <em>Gemini 3.8 Flash</em> mới nhất.
+        </p>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="inp-gemini-api-key">Google Gemini API Key (Tùy chọn)</label>
+          <input type="password" id="inp-gemini-api-key" class="form-input" placeholder="AIzaSy...">
+          <small class="form-help">Lấy khóa API miễn phí tại <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--primary);">aistudio.google.com</a>. Khóa được lưu an toàn trên máy cục bộ của bạn.</small>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+            <label for="sel-gemini-model" style="margin: 0;">Phiên bản Mô hình Gemini (Model ID)</label>
+            <button type="button" class="btn btn-xs btn-outline" id="btn-fetch-gemini-models" style="font-size: 0.72rem; padding: 0.15rem 0.45rem;">
+              🔄 Dò tìm model mới từ Google
+            </button>
+          </div>
+          <select id="sel-gemini-model" class="form-input" style="width: 100%;">
+            <option value="gemini-3.8-flash">✨ Gemini 3.8 Flash (Khuyên dùng - Mới nhất)</option>
+            <option value="gemini-3.7-flash">Gemini 3.7 Flash</option>
+            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+            <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Reasoning)</option>
+            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+            <option value="custom">✏️ Nhập model tùy chỉnh (Future Model)...</option>
+          </select>
+          <input type="text" id="inp-custom-gemini-model" class="form-input" placeholder="Ví dụ: gemini-4.0-flash, gemini-ultra..." style="display: none; margin-top: 0.5rem;">
+          <small class="form-help">Tương thích tự động 100% với bất kỳ model nào Google phát hành trong tương lai.</small>
+        </div>
+
+        <div class="gemini-key-status" id="gemini-key-status">
+          <!-- Status shown here -->
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+        <button class="btn btn-ghost" id="btn-cancel-gemini-modal">Đóng</button>
+        <button class="btn btn-primary" id="btn-save-gemini-key">Lưu Cấu Hình</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Adding / Editing Apartment (pyLocation) -->
+  <div class="modal-overlay" id="apartment-modal" style="display: none;">
+    <div class="modal-card" style="max-width: 680px; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h3 id="apartment-modal-title">Thêm / Chỉnh Sửa Căn Hộ LMNP</h3>
+        <button class="modal-close" id="btn-close-apt-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="inp-apt-original-name" value="">
+        <div class="form-row">
+          <div class="form-group col-8">
+            <label for="inp-apt-name">Tên căn hộ (Định danh)</label>
+            <input type="text" id="inp-apt-name" class="form-input" placeholder="Ví dụ: Borderouge 79 000">
+          </div>
+          <div class="form-group col-4">
+            <label for="inp-apt-typology">Loại căn hộ</label>
+            <select id="inp-apt-typology" class="form-input">
+              <option value="Studio / T1">Studio / T1</option>
+              <option value="T2 (2 pièces)" selected>T2 (2 pièces)</option>
+              <option value="T3 (3 pièces)">T3 (3 pièces)</option>
+              <option value="T4+">T4+</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-8">
+            <label for="inp-apt-address">Địa chỉ / Vị trí</label>
+            <input type="text" id="inp-apt-address" class="form-input" placeholder="Toulouse, France">
+          </div>
+          <div class="form-group col-2">
+            <label for="inp-apt-surface">Diện tích (m²)</label>
+            <input type="number" id="inp-apt-surface" class="form-input" value="35">
+          </div>
+          <div class="form-group col-2">
+            <label for="inp-apt-dpe">DPE</label>
+            <select id="inp-apt-dpe" class="form-input">
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C" selected>C</option>
+              <option value="D">D</option>
+              <option value="E">E</option>
+              <option value="F">F</option>
+            </select>
+          </div>
+        </div>
+
+        <h5 style="margin: 0.75rem 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; color: var(--primary);">💰 Giá mua & Chi phí ban đầu</h5>
+        <div class="form-row">
+          <div class="form-group col-4">
+            <label for="inp-apt-price">Giá mua net (€)</label>
+            <input type="number" id="inp-apt-price" class="form-input" value="90000" step="1000">
+          </div>
+          <div class="form-group col-4">
+            <label for="inp-apt-notary">Phí công chứng Notaire (€)</label>
+            <input type="number" id="inp-apt-notary" class="form-input" value="6750">
+          </div>
+          <div class="form-group col-4">
+            <label for="inp-apt-furniture">Nội thất (€)</label>
+            <input type="number" id="inp-apt-furniture" class="form-input" value="2000">
+          </div>
+        </div>
+
+        <h5 style="margin: 0.75rem 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; color: var(--primary);">🏦 Gói vay thế chấp ngân hàng Pháp</h5>
+        <div class="form-row">
+          <div class="form-group col-3">
+            <label for="inp-apt-down-payment">Vốn tự có (€)</label>
+            <input type="number" id="inp-apt-down-payment" class="form-input" value="8000">
+          </div>
+          <div class="form-group col-3">
+            <label for="inp-apt-duration">Thời hạn (năm)</label>
+            <input type="number" id="inp-apt-duration" class="form-input" value="20">
+          </div>
+          <div class="form-group col-3">
+            <label for="inp-apt-rate">Lãi suất (%)</label>
+            <input type="number" id="inp-apt-rate" class="form-input" value="3.6" step="0.1">
+          </div>
+          <div class="form-group col-3">
+            <label for="inp-apt-ins-rate">Bảo hiểm vay (%)</label>
+            <input type="number" id="inp-apt-ins-rate" class="form-input" value="0.3" step="0.05">
+          </div>
+        </div>
+
+        <h5 style="margin: 0.75rem 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; color: var(--primary);">📈 Doanh thu & Chi phí vận hành hàng năm</h5>
+        <div class="form-row">
+          <div class="form-group col-3">
+            <label for="inp-apt-rent">Tiền thuê (€/tháng)</label>
+            <input type="number" id="inp-apt-rent" class="form-input" value="650">
+          </div>
+          <div class="form-group col-3">
+            <label for="inp-apt-coop">Phí quản lý (€/năm)</label>
+            <input type="number" id="inp-apt-coop" class="form-input" value="900">
+          </div>
+          <div class="form-group col-3">
+            <label for="inp-apt-tf">Thuế tài sản TF (€/năm)</label>
+            <input type="number" id="inp-apt-tf" class="form-input" value="800">
+          </div>
+          <div class="form-group col-3">
+            <label for="inp-apt-pno">Bảo hiểm PNO (€/năm)</label>
+            <input type="number" id="inp-apt-pno" class="form-input" value="150">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+        <button class="btn btn-ghost" id="btn-cancel-apt-modal">Hủy bỏ</button>
+        <button class="btn btn-primary" id="btn-save-apt-modal">Lưu Căn Hộ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Authentication (Login / Register) -->
+  <div class="modal-overlay" id="auth-modal" style="display: none;">
+    <div class="modal-card" style="max-width: 440px; border-radius: 16px; background: var(--bg-card); border: 1px solid var(--border-subtle); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6); backdrop-filter: blur(20px);">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem;">
+        <h4 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
+          <span>🔐</span> Tài Khoản pyRetrait Cloud
+        </h4>
+        <button class="modal-close" id="btn-close-auth-modal">✕</button>
+      </div>
+
+      <!-- Auth Tab Navigation -->
+      <div style="display: flex; gap: 0.5rem; margin-top: 1rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.6rem;">
+        <button id="auth-tab-btn-login" class="btn btn-sm btn-ghost active" style="flex: 1; font-weight: 700; border-radius: 8px; border: 1px solid var(--border-subtle);">Đăng Nhập</button>
+        <button id="auth-tab-btn-register" class="btn btn-sm btn-ghost" style="flex: 1; font-weight: 700; border-radius: 8px; border: 1px solid transparent;">Tạo Tài Khoản</button>
+      </div>
+
+      <!-- Error message container -->
+      <div id="auth-modal-error" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; padding: 0.65rem 0.85rem; border-radius: 8px; margin-top: 1rem; font-size: 0.82rem;"></div>
+
+      <div class="modal-body" style="padding-top: 0.75rem;">
+        <!-- Pane: Login -->
+        <div id="auth-pane-login">
+          <form id="auth-form-login">
+            <div class="form-group" style="margin-bottom: 1rem;">
+              <label for="auth-login-email" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--text-main);">Email</label>
+              <input type="email" id="auth-login-email" class="form-input" placeholder="ten-cua-ban@gmail.com" required style="width: 100%; box-sizing: border-box;">
+            </div>
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+              <label for="auth-login-password" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--text-main);">Mật khẩu</label>
+              <input type="password" id="auth-login-password" class="form-input" placeholder="••••••••" required style="width: 100%; box-sizing: border-box;">
+            </div>
+            <button type="submit" id="btn-submit-login" class="btn btn-primary btn-block" style="width: 100%; padding: 0.7rem; font-weight: 700; border-radius: 8px; cursor: pointer;">Đăng Nhập</button>
+            <p style="text-align: center; margin-top: 1rem; font-size: 0.82rem; color: var(--text-muted);">
+              Chưa có tài khoản? <a href="#" id="link-to-register" style="color: var(--primary); font-weight: 700; text-decoration: none;">Đăng ký miễn phí</a>
+            </p>
+          </form>
+        </div>
+
+        <!-- Pane: Register -->
+        <div id="auth-pane-register" style="display: none;">
+          <form id="auth-form-register">
+            <div class="form-group" style="margin-bottom: 0.85rem;">
+              <label for="auth-reg-name" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--text-main);">Họ & Tên hiển thị</label>
+              <input type="text" id="auth-reg-name" class="form-input" placeholder="Ví dụ: Hoàng Long" required style="width: 100%; box-sizing: border-box;">
+            </div>
+            <div class="form-group" style="margin-bottom: 0.85rem;">
+              <label for="auth-reg-email" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--text-main);">Email</label>
+              <input type="email" id="auth-reg-email" class="form-input" placeholder="ten-cua-ban@gmail.com" required style="width: 100%; box-sizing: border-box;">
+            </div>
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+              <label for="auth-reg-password" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--text-main);">Mật khẩu (tối thiểu 6 ký tự)</label>
+              <input type="password" id="auth-reg-password" class="form-input" placeholder="••••••••" minlength="6" required style="width: 100%; box-sizing: border-box;">
+            </div>
+            <button type="submit" id="btn-submit-register" class="btn btn-primary btn-block" style="width: 100%; padding: 0.7rem; font-weight: 700; border-radius: 8px; cursor: pointer; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">Tạo Tài Khoản & Đồng Bộ</button>
+            <p style="text-align: center; margin-top: 1rem; font-size: 0.82rem; color: var(--text-muted);">
+              Đã có tài khoản? <a href="#" id="link-to-login" style="color: var(--primary); font-weight: 700; text-decoration: none;">Đăng nhập ngay</a>
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Application Logic Modules -->
   <script src="js/engine.js"></script>
   <script src="js/taxOptimizer.js"></script>
   <script src="js/monteCarlo.js"></script>
   <script src="js/scenarios.js"></script>
+  <script src="js/geminiAdvisor.js"></script>
+  <script src="js/patrimoine.js"></script>
   <script src="js/export.js"></script>
+  <script src="js/auth.js"></script>
   <script src="js/ui.js"></script>
 </body>
 </html>

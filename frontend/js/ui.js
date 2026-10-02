@@ -15,7 +15,6 @@
     viewMode: "nominal", // "nominal" or "real"
     activeTab: "tab-projections",
     activeScenario: "baseline",
-    compareMode: false,
     charts: {}
   };
 
@@ -34,13 +33,37 @@
     renderPlanSelector();
     renderActivePlanInputs();
     updateAll();
+
+    // Support deep-linking via URL hash (e.g., #patrimoine, #tab-patrimoine)
+    if (window.location.hash) {
+      const clean = window.location.hash.replace("#", "");
+      const tabId = clean.startsWith("tab-") ? clean : `tab-${clean}`;
+      const pane = document.getElementById(tabId);
+      if (pane) {
+        switchTab(tabId);
+      }
+    }
   }
 
   // -------------------------------------------------------------
   // Data Loading & Persistence
   // -------------------------------------------------------------
   async function loadInitialPlans() {
-    // 1. Try local storage first
+    // 1. Try fetching from backend API first to get latest synced data for this user
+    try {
+      const headers = window.Auth ? window.Auth.getAuthHeaders() : { "Content-Type": "application/json" };
+      const res = await fetch("/api/plans", { headers });
+      if (res.ok) {
+        state.plansData = await res.json();
+        state.currency = getActivePlan()?.currency || 'EUR';
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.plansData));
+        return;
+      }
+    } catch (e) {
+      console.log("Backend API not reachable, falling back to localStorage");
+    }
+
+    // 2. Try local storage as offline fallback
     const savedLocal = localStorage.getItem(STORAGE_KEY);
     if (savedLocal) {
       try {
@@ -50,19 +73,6 @@
       } catch (e) {
         console.error("Failed to parse localStorage:", e);
       }
-    }
-
-    // 2. Try fetching from backend API
-    try {
-      const res = await fetch("/api/plans");
-      if (res.ok) {
-        state.plansData = await res.json();
-        state.currency = getActivePlan()?.currency || 'EUR';
-        savePlansToStorage();
-        return;
-      }
-    } catch (e) {
-      console.log("Backend API not reachable, using default state");
     }
 
     // 3. Fallback default
@@ -157,10 +167,11 @@
 
   function savePlansToStorage() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.plansData));
-    // Also sync to backend API in background if possible
+    // Also sync to backend API in background if possible with User Auth
+    const headers = window.Auth ? window.Auth.getAuthHeaders() : { "Content-Type": "application/json" };
     fetch("/api/plans", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(state.plansData)
     }).catch(() => {});
   }
@@ -204,11 +215,6 @@
     // Delete Plan Button
     document.getElementById("btn-delete-plan").addEventListener("click", () => {
       deleteCurrentPlan();
-    });
-
-    // Compare Mode Toggle
-    document.getElementById("btn-toggle-compare").addEventListener("click", () => {
-      toggleCompareMode();
     });
 
     // Currency Switcher
@@ -276,6 +282,144 @@
     document.getElementById("btn-cancel-modal").addEventListener("click", closeModal);
     document.getElementById("btn-save-new-plan").addEventListener("click", saveNewPlanFromModal);
 
+    // Life Milestones Modal Events
+    const btnManageMs = document.getElementById("btn-manage-milestones");
+    if (btnManageMs) btnManageMs.addEventListener("click", openMilestoneModal);
+    const btnCloseMs = document.getElementById("btn-close-milestone-modal");
+    if (btnCloseMs) btnCloseMs.addEventListener("click", closeMilestoneModal);
+    const btnCloseMsFooter = document.getElementById("btn-close-milestone-modal-footer");
+    if (btnCloseMsFooter) btnCloseMsFooter.addEventListener("click", closeMilestoneModal);
+    const btnAddCustomMs = document.getElementById("btn-add-custom-milestone");
+    if (btnAddCustomMs) btnAddCustomMs.addEventListener("click", () => showMilestoneForm(null, -1));
+    const btnCancelMsForm = document.getElementById("btn-cancel-ms-form");
+    if (btnCancelMsForm) btnCancelMsForm.addEventListener("click", hideMilestoneForm);
+    const btnSaveMsForm = document.getElementById("btn-save-ms-form");
+    if (btnSaveMsForm) btnSaveMsForm.addEventListener("click", saveMilestoneFromForm);
+
+    // Gemini AI Settings Modal & Refresh handlers
+    const btnGeminiSettings = document.getElementById("btn-gemini-settings");
+    const modalGemini = document.getElementById("modal-gemini-settings");
+    const btnCloseGemini = document.getElementById("btn-close-gemini-modal");
+    const btnCancelGemini = document.getElementById("btn-cancel-gemini-modal");
+    const btnSaveGemini = document.getElementById("btn-save-gemini-key");
+    const inpGeminiKey = document.getElementById("inp-gemini-api-key");
+    const statusGemini = document.getElementById("gemini-key-status");
+    const selGeminiModel = document.getElementById("sel-gemini-model");
+    const inpCustomModel = document.getElementById("inp-custom-gemini-model");
+    const btnFetchModels = document.getElementById("btn-fetch-gemini-models");
+
+    if (selGeminiModel) {
+      selGeminiModel.addEventListener("change", () => {
+        if (inpCustomModel) {
+          inpCustomModel.style.display = selGeminiModel.value === "custom" ? "block" : "none";
+        }
+      });
+    }
+
+    if (btnFetchModels) {
+      btnFetchModels.addEventListener("click", async () => {
+        const key = inpGeminiKey ? inpGeminiKey.value.trim() : "";
+        btnFetchModels.innerText = "⏳ Đang dò tìm...";
+        try {
+          const res = await fetch(`/api/ai/models?api_key=${encodeURIComponent(key)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data.models) && data.models.length > 0 && selGeminiModel) {
+              const currentVal = selGeminiModel.value;
+              selGeminiModel.innerHTML = data.models.map(m => `
+                <option value="${m}">${m} ${m.includes('3.8') ? '(Mới nhất)' : ''}</option>
+              `).join("") + '<option value="custom">✏️ Nhập model tùy chỉnh (Future Model)...</option>';
+              if (data.models.includes(currentVal)) {
+                selGeminiModel.value = currentVal;
+              }
+              btnFetchModels.innerText = `✓ Đã tìm thấy ${data.models.length} model`;
+            }
+          }
+        } catch (err) {
+          btnFetchModels.innerText = "Lỗi dò tìm";
+        }
+        setTimeout(() => { if (btnFetchModels) btnFetchModels.innerText = "🔄 Dò tìm model mới từ Google"; }, 2500);
+      });
+    }
+
+    if (btnGeminiSettings) {
+      btnGeminiSettings.addEventListener("click", async () => {
+        if (modalGemini) modalGemini.style.display = "flex";
+        try {
+          const res = await fetch("/api/ai/settings");
+          if (res.ok) {
+            const data = await res.json();
+            if (data.has_api_key && statusGemini) {
+              const srcNotice = data.source === "env" ? "qua file .env" : "API cá nhân";
+              statusGemini.innerText = `Đã kết nối Google Gemini (${srcNotice}: ${data.masked_key || "Active"})`;
+              statusGemini.className = "gemini-key-status status-active";
+              if (data.source === "env" && inpGeminiKey) {
+                inpGeminiKey.placeholder = "Đã nạp tự động từ .env (để trống nếu muốn tiếp tục dùng .env)";
+              }
+            }
+            if (data.selected_model && selGeminiModel) {
+              const exists = Array.from(selGeminiModel.options).some(o => o.value === data.selected_model);
+              if (exists) {
+                selGeminiModel.value = data.selected_model;
+                if (inpCustomModel) inpCustomModel.style.display = "none";
+              } else {
+                selGeminiModel.value = "custom";
+                if (inpCustomModel) {
+                  inpCustomModel.value = data.selected_model;
+                  inpCustomModel.style.display = "block";
+                }
+              }
+            }
+          }
+        } catch (e) {}
+      });
+    }
+
+    const closeGeminiModal = () => {
+      if (modalGemini) modalGemini.style.display = "none";
+    };
+    if (btnCloseGemini) btnCloseGemini.addEventListener("click", closeGeminiModal);
+    if (btnCancelGemini) btnCancelGemini.addEventListener("click", closeGeminiModal);
+
+    if (btnSaveGemini) {
+      btnSaveGemini.addEventListener("click", async () => {
+        const key = inpGeminiKey ? inpGeminiKey.value.trim() : "";
+        let model = selGeminiModel ? selGeminiModel.value : "gemini-3.8-flash";
+        if (model === "custom" && inpCustomModel && inpCustomModel.value.trim()) {
+          model = inpCustomModel.value.trim();
+        }
+        try {
+          const res = await fetch("/api/ai/settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ gemini_api_key: key, gemini_model: model })
+          });
+          if (res.ok) {
+            if (statusGemini) {
+              statusGemini.innerText = `Đã lưu: ${model} (${key ? "API Key cá nhân" : "Tích hợp sẵn"})`;
+              statusGemini.className = "gemini-key-status status-active";
+            }
+            if (window.GeminiAdvisor) window.GeminiAdvisor.clearCache();
+            setTimeout(closeGeminiModal, 700);
+            updateAll();
+          }
+        } catch (e) {
+          alert("Lỗi lưu cấu hình Gemini: " + e.message);
+        }
+      });
+    }
+
+    // Refresh buttons click delegation
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest(".btn-gemini-refresh");
+      if (btn) {
+        const chartId = btn.getAttribute("data-chart");
+        if (chartId && window.GeminiAdvisor) {
+          window.GeminiAdvisor.updateChartBox(chartId, chartId, {}, true);
+        }
+      }
+    });
+
     // Live Parameter Bindings
     bindInput("inp-current-age", "currentAge", Number);
     bindInput("inp-retire-age", "retirementAge", Number);
@@ -305,33 +449,80 @@
       });
     });
 
-    const inpSavings = document.getElementById("inp-annual-savings");
-    if (inpSavings) {
-      inpSavings.addEventListener("change", () => {
+    const hintOptimalAge = document.getElementById("hint-optimal-retire-age");
+    if (hintOptimalAge) {
+      hintOptimalAge.addEventListener("click", () => {
+        const plan = getActivePlan();
+        const proj = window.RetirementEngine.runProjection(plan);
+        const optAge = proj.fireAge || 42;
+        plan.retirementAge = optAge;
+        const inp = document.getElementById("inp-retire-age");
+        if (inp) inp.value = optAge;
+        savePlansToStorage();
+        updateAll();
+        if (window.GeminiAdvisor) {
+          window.GeminiAdvisor.updateChartBox("chart-networth", "chart-networth", {}, true);
+        }
+      });
+    }
+
+    const inpSavingsMonthly = document.getElementById("inp-monthly-savings");
+    if (inpSavingsMonthly) {
+      inpSavingsMonthly.addEventListener("change", () => {
         const p = getActivePlan();
-        p.annualSavings = Number(inpSavings.value) || 0;
+        const monthly = Number(inpSavingsMonthly.value) || 0;
+        p.annualSavings = monthly * 12;
         const total = p.annualSavings + (Number(p.annualExpenses) || 0);
         if (total > 0) {
           p.savingsRate = Math.round((p.annualSavings / total) * 1000) / 10;
         }
         updateSavingsRateUI(p.savingsRate || 33.33);
+        updateExpenseSavingsHints(p);
         savePlansToStorage();
         updateAll();
       });
     }
 
-    const inpExp = document.getElementById("inp-annual-expenses");
-    if (inpExp) {
-      inpExp.addEventListener("change", () => {
+    const inpExpMonthly = document.getElementById("inp-monthly-expenses");
+    if (inpExpMonthly) {
+      inpExpMonthly.addEventListener("change", () => {
         const p = getActivePlan();
-        p.annualExpenses = Number(inpExp.value) || 0;
+        const monthly = Number(inpExpMonthly.value) || 0;
+        p.annualExpenses = monthly * 12;
         const total = (Number(p.annualSavings) || 0) + p.annualExpenses;
         if (total > 0) {
           p.savingsRate = Math.round(((Number(p.annualSavings) || 0) / total) * 1000) / 10;
         }
         updateSavingsRateUI(p.savingsRate || 33.33);
+        updateExpenseSavingsHints(p);
         savePlansToStorage();
         updateAll();
+      });
+    }
+
+    const inpRetireMonthly = document.getElementById("inp-monthly-retire-expenses");
+    if (inpRetireMonthly) {
+      inpRetireMonthly.addEventListener("change", () => {
+        const p = getActivePlan();
+        const monthly = Number(inpRetireMonthly.value) || 0;
+        p.retirementExpenses = monthly * 12;
+        updateExpenseSavingsHints(p);
+        savePlansToStorage();
+        updateAll();
+      });
+    }
+
+    // Modal 2-Way Sync between Monthly and Yearly Income
+    const inpIncomeMonthly = document.getElementById("inp-income-amount-monthly");
+    const inpIncomeAnnual = document.getElementById("inp-income-amount");
+    if (inpIncomeMonthly && inpIncomeAnnual) {
+      inpIncomeMonthly.addEventListener("input", () => {
+        const m = Number(inpIncomeMonthly.value) || 0;
+        inpIncomeAnnual.value = m * 12;
+      });
+      inpIncomeAnnual.addEventListener("input", () => {
+        const a = Number(inpIncomeAnnual.value) || 0;
+        inpIncomeMonthly.value = Math.round(a / 12);
       });
     }
     bindInput("inp-return-pre", "investmentReturnPre", Number);
@@ -395,9 +586,71 @@
       renderMonteCarloTab();
     });
 
-    // Compare Plan B Selector
-    const compareB = document.getElementById("compare-plan-b-selector");
-    compareB.addEventListener("change", () => renderCompareSection());
+    // Expandable Panel Toggles
+    ['panel-asset-allocation', 'panel-dual-inflation', 'panel-mortgage'].forEach(id => {
+      const panel = document.getElementById(id);
+      const header = panel?.querySelector('.expandable-header');
+      const content = panel?.querySelector('.expandable-content');
+      if (header && content) {
+        header.addEventListener('click', () => {
+          const isHidden = content.style.display === 'none';
+          content.style.display = isHidden ? 'block' : 'none';
+          panel.classList.toggle('open', isHidden);
+        });
+      }
+    });
+
+    // Asset Allocation Sliders
+    ['inp-alloc-stocks', 'inp-alloc-bonds', 'inp-alloc-re'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', () => {
+          updateAssetAllocationUI();
+          savePlansToStorage();
+          updateAll();
+        });
+      }
+    });
+
+    // Dual Inflation & Forex Inputs
+    const chkDual = document.getElementById('chk-dual-inflation-enabled');
+    if (chkDual) {
+      chkDual.addEventListener('change', () => {
+        updateDualInflationUI();
+        savePlansToStorage();
+        updateAll();
+      });
+    }
+    ['inp-inflation-pre', 'inp-inflation-post', 'inp-forex-base', 'inp-forex-drift'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', () => {
+          updateDualInflationUI();
+          savePlansToStorage();
+          updateAll();
+        });
+      }
+    });
+
+    // Mortgage Inputs
+    const chkMort = document.getElementById('chk-mortgage-enabled');
+    if (chkMort) {
+      chkMort.addEventListener('change', () => {
+        updateMortgageUI();
+        savePlansToStorage();
+        updateAll();
+      });
+    }
+    ['inp-mortgage-prop-val', 'inp-mortgage-loan', 'inp-mortgage-rate', 'inp-mortgage-term', 'inp-mortgage-start'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', () => {
+          updateMortgageUI();
+          savePlansToStorage();
+          updateAll();
+        });
+      }
+    });
   }
 
   function bindInput(id, fieldPath, typeConverter) {
@@ -444,7 +697,9 @@
     else if (tabId === "tab-insights") renderMonteCarloTab();
     else if (tabId === "tab-scenarios") renderScenarioTab();
     else if (tabId === "tab-estate") renderEstateTab();
-    else if (tabId === "tab-advisor") renderAdvisorTab();
+    else if (tabId === "tab-patrimoine") {
+      if (window.PatrimoineApp) window.PatrimoineApp.render();
+    }
   }
 
   // -------------------------------------------------------------
@@ -457,11 +712,15 @@
     setVal("inp-current-age", p.currentAge);
     setVal("inp-retire-age", p.retirementAge);
     setVal("inp-life-expectancy", p.lifeExpectancy);
-    setVal("inp-inflation", p.inflationRate);
-    setVal("inp-current-savings", p.currentSavings);
-    setVal("inp-annual-expenses", p.annualExpenses !== undefined ? p.annualExpenses : (state.currency === 'EUR' ? 15000 : state.currency === 'USD' ? 18000 : 240000000));
-    setVal("inp-annual-savings", p.annualSavings);
-    setVal("inp-retire-expenses", p.retirementExpenses);
+    const annualExp = p.annualExpenses !== undefined ? p.annualExpenses : (state.currency === 'EUR' ? 15000 : state.currency === 'USD' ? 18000 : 240000000);
+    const annualSav = Number(p.annualSavings) || 0;
+    const annualRetire = Number(p.retirementExpenses) || 0;
+
+    setVal("inp-monthly-expenses", Math.round(annualExp / 12));
+    setVal("inp-monthly-savings", Math.round(annualSav / 12));
+    setVal("inp-monthly-retire-expenses", Math.round(annualRetire / 12));
+    updateExpenseSavingsHints(p);
+
     setVal("inp-return-pre", p.investmentReturnPre);
     setVal("inp-return-post", p.investmentReturnPost);
     setVal("inp-target-legacy", p.targetLegacy);
@@ -476,6 +735,8 @@
     if (unitEl) unitEl.innerText = curSymbol;
     const modalUnit = document.getElementById("modal-income-unit");
     if (modalUnit) modalUnit.innerText = curSymbol;
+    const modalUnitMonthly = document.getElementById("modal-income-unit-monthly");
+    if (modalUnitMonthly) modalUnitMonthly.innerText = curSymbol;
 
     document.getElementById("cur-eur")?.classList.toggle("active", cur === "EUR");
     document.getElementById("cur-vnd")?.classList.toggle("active", cur === "VND");
@@ -512,7 +773,137 @@
       setVal("inp-nogo-factor", p.spendingPhases.nogoFactor || 0.80);
     }
 
+    // 1. Asset Allocation Sync
+    if (p.assetAllocation) {
+      setVal("inp-alloc-stocks", p.assetAllocation.stocks || 60);
+      setVal("inp-alloc-bonds", p.assetAllocation.bonds || 20);
+      setVal("inp-alloc-re", p.assetAllocation.realEstate || 20);
+    }
+    updateAssetAllocationUI(p);
+
+    // 2. Dual Inflation & Forex Sync
+    if (p.dualInflation) {
+      const chkDual = document.getElementById("chk-dual-inflation-enabled");
+      if (chkDual) chkDual.checked = p.dualInflation.enabled !== false;
+      setVal("inp-inflation-pre", p.dualInflation.inflationPre || 2.2);
+      setVal("inp-inflation-post", p.dualInflation.inflationPost || 4.0);
+      setVal("inp-forex-base", p.dualInflation.eurVndInitialRate || 27500);
+      setVal("inp-forex-drift", p.dualInflation.eurVndAnnualDrift || 1.2);
+    }
+    updateDualInflationUI(p);
+
+    // 3. Mortgage Sync
+    if (p.mortgage) {
+      const chkMort = document.getElementById("chk-mortgage-enabled");
+      if (chkMort) chkMort.checked = p.mortgage.enabled !== false;
+      setVal("inp-mortgage-prop-val", p.mortgage.propertyValue || 200000);
+      setVal("inp-mortgage-loan", p.mortgage.loanAmount || 160000);
+      setVal("inp-mortgage-rate", p.mortgage.interestRate || 2.2);
+      setVal("inp-mortgage-term", p.mortgage.loanTermYears || 20);
+      setVal("inp-mortgage-start", p.mortgage.startAge || (p.currentAge || 29));
+    }
+    updateMortgageUI(p);
+
     renderIncomeStreamsList();
+  }
+
+  function updateAssetAllocationUI(p) {
+    if (!p) p = getActivePlan();
+    const stocks = Number(document.getElementById("inp-alloc-stocks")?.value) || 60;
+    const bonds = Number(document.getElementById("inp-alloc-bonds")?.value) || 20;
+    const re = Number(document.getElementById("inp-alloc-re")?.value) || 20;
+
+    const lblStocks = document.getElementById("lbl-alloc-stocks");
+    const lblBonds = document.getElementById("lbl-alloc-bonds");
+    const lblRE = document.getElementById("lbl-alloc-re");
+    const badgeWeighted = document.getElementById("badge-weighted-return");
+    const lblWeightedCalc = document.getElementById("lbl-weighted-calc");
+
+    if (lblStocks) lblStocks.innerText = `${stocks}% (9.5%/năm)`;
+    if (lblBonds) lblBonds.innerText = `${bonds}% (3.5%/năm)`;
+    if (lblRE) lblRE.innerText = `${re}% (6.5%/năm)`;
+
+    const returns = p.assetReturns || { stocks: 9.5, bonds: 3.5, realEstate: 6.5 };
+    const weighted = window.RetirementEngine.calculateWeightedReturn({ stocks, bonds, realEstate: re }, returns, 0.3);
+
+    if (badgeWeighted) badgeWeighted.innerText = `${weighted}%/năm`;
+    if (lblWeightedCalc) lblWeightedCalc.innerText = `${weighted}%/năm`;
+
+    p.assetAllocation = { stocks, bonds, realEstate: re };
+  }
+
+  function updateDualInflationUI(p) {
+    if (!p) p = getActivePlan();
+    const chk = document.getElementById("chk-dual-inflation-enabled");
+    const pre = Number(document.getElementById("inp-inflation-pre")?.value) || 2.2;
+    const post = Number(document.getElementById("inp-inflation-post")?.value) || 4.0;
+    const baseForex = Number(document.getElementById("inp-forex-base")?.value) || 27500;
+    const drift = Number(document.getElementById("inp-forex-drift")?.value) || 1.2;
+
+    const lblForex = document.getElementById("lbl-forex-future");
+    const curAge = p.currentAge || 29;
+    const yearsTo60 = Math.max(0, 60 - curAge);
+    const forex60 = Math.round(baseForex * Math.pow(1.0 + (drift / 100), yearsTo60));
+
+    if (lblForex) {
+      lblForex.innerText = `~${forex60.toLocaleString("vi-VN")} ₫/€`;
+    }
+
+    if (!p.dualInflation) p.dualInflation = {};
+    p.dualInflation.enabled = chk ? chk.checked : true;
+    p.dualInflation.inflationPre = pre;
+    p.dualInflation.inflationPost = post;
+    p.dualInflation.eurVndInitialRate = baseForex;
+    p.dualInflation.eurVndAnnualDrift = drift;
+  }
+
+  function updateMortgageUI(p) {
+    if (!p) p = getActivePlan();
+    const chk = document.getElementById("chk-mortgage-enabled");
+    const propVal = Number(document.getElementById("inp-mortgage-prop-val")?.value) || 200000;
+    const loanAmt = Number(document.getElementById("inp-mortgage-loan")?.value) || 160000;
+    const rate = Number(document.getElementById("inp-mortgage-rate")?.value) || 2.2;
+    const term = Number(document.getElementById("inp-mortgage-term")?.value) || 20;
+    const startAge = Number(document.getElementById("inp-mortgage-start")?.value) || (p.currentAge || 29);
+
+    const curSymbol = window.RetirementEngine.getCurrencySymbol(state.currency);
+    const unitProp = document.getElementById("unit-mortgage-prop");
+    const unitLoan = document.getElementById("unit-mortgage-loan");
+    if (unitProp) unitProp.innerText = curSymbol;
+    if (unitLoan) unitLoan.innerText = curSymbol;
+
+    const mortConfig = {
+      enabled: chk ? chk.checked : true,
+      propertyValue: propVal,
+      loanAmount: loanAmt,
+      interestRate: rate,
+      loanTermYears: term,
+      startAge: startAge,
+      propertyAppreciation: 2.5
+    };
+    p.mortgage = mortConfig;
+
+    const sched = window.RetirementEngine.calculateMortgageSchedule(mortConfig, p.currentAge || 29, p.lifeExpectancy || 85);
+    const badgeStatus = document.getElementById("badge-mortgage-status");
+    const lblMonthly = document.getElementById("lbl-mortgage-monthly");
+    const lblEquity = document.getElementById("lbl-mortgage-equity");
+    const lblPayoff = document.getElementById("lbl-mortgage-payoff");
+
+    if (sched && chk && chk.checked) {
+      const monthlyStr = `${curSymbol}${sched.monthlyPayment.toLocaleString()}/tháng`;
+      const equityStr = window.RetirementEngine.formatCurrency(Math.max(0, propVal - loanAmt), state.currency);
+      const payoffAge = startAge + term;
+
+      if (badgeStatus) badgeStatus.innerText = monthlyStr;
+      if (lblMonthly) lblMonthly.innerText = monthlyStr;
+      if (lblEquity) lblEquity.innerText = equityStr;
+      if (lblPayoff) lblPayoff.innerText = `${payoffAge} tuổi`;
+    } else {
+      if (badgeStatus) badgeStatus.innerText = "Tắt nợ vay";
+      if (lblMonthly) lblMonthly.innerText = "0";
+      if (lblEquity) lblEquity.innerText = "0";
+      if (lblPayoff) lblPayoff.innerText = "N/A";
+    }
   }
 
   function setVal(id, val) {
@@ -542,9 +933,15 @@
             <button class="income-item-btn income-item-del" data-idx="${idx}" title="Xóa nguồn thu">🗑️</button>
           </div>
         </div>
-        <div class="income-item-meta">
-          <span class="text-accent font-mono"><strong>${window.RetirementEngine.formatCurrency(stream.amount, state.currency)}</strong>/năm</span>
-          <span>${stream.startAge} - ${stream.endAge} tuổi (+${stream.growth}%/năm)</span>
+        <div class="income-item-body">
+          <div class="income-item-amounts">
+            <span class="income-amount-monthly">${window.RetirementEngine.formatCurrency(Math.round(Number(stream.amount) / 12), state.currency)}<small>/tháng</small></span>
+            <span class="income-amount-annual">≈ ${window.RetirementEngine.formatCurrency(stream.amount, state.currency)}/năm</span>
+          </div>
+          <div class="income-item-timing">
+            <span class="income-age-range">${stream.startAge} - ${stream.endAge} tuổi</span>
+            <span class="income-growth-badge">+${stream.growth}%/năm</span>
+          </div>
         </div>
       `;
       container.appendChild(item);
@@ -609,49 +1006,85 @@
       plan.annualSavings = newSavings;
       plan.annualExpenses = newExpenses;
 
-      setVal("inp-annual-savings", newSavings);
-      setVal("inp-annual-expenses", newExpenses);
+      setVal("inp-monthly-savings", Math.round(newSavings / 12));
+      setVal("inp-monthly-expenses", Math.round(newExpenses / 12));
+      updateExpenseSavingsHints(plan);
     }
 
     updateSavingsRateUI(rate);
   }
 
+  function updateExpenseSavingsHints(plan) {
+    if (!plan) return;
+    const hintExp = document.getElementById("hint-annual-expenses");
+    const hintSav = document.getElementById("hint-annual-savings");
+    const hintRet = document.getElementById("hint-retire-expenses");
+
+    const rate = Number(plan.savingsRate) > 0 ? Number(plan.savingsRate) : 33.33;
+    let fracText = "";
+    let expFracText = "";
+    if (Math.abs(rate - 33.33) < 1 || Math.abs(rate - 33) < 1) {
+      fracText = "1/3 thu nhập";
+      expFracText = "2/3 thu nhập";
+    } else if (Math.abs(rate - 25) < 1) {
+      fracText = "1/4 thu nhập";
+      expFracText = "3/4 thu nhập";
+    } else if (Math.abs(rate - 50) < 1) {
+      fracText = "1/2 thu nhập";
+      expFracText = "1/2 thu nhập";
+    } else if (Math.abs(rate - 66.67) < 1 || Math.abs(rate - 67) < 1) {
+      fracText = "2/3 thu nhập";
+      expFracText = "1/3 thu nhập";
+    }
+
+    const annualExpFormatted = window.RetirementEngine.formatCurrency(plan.annualExpenses, state.currency);
+    const annualSavFormatted = window.RetirementEngine.formatCurrency(plan.annualSavings, state.currency);
+    const annualRetFormatted = window.RetirementEngine.formatCurrency(plan.retirementExpenses, state.currency);
+
+    if (hintExp) {
+      hintExp.innerText = `≈ ${annualExpFormatted}/năm` + (expFracText ? ` • ${expFracText}` : "");
+    }
+    if (hintSav) {
+      hintSav.innerText = `≈ ${annualSavFormatted}/năm` + (fracText ? ` • ${fracText}` : "");
+    }
+    if (hintRet) {
+      let geoNote = "";
+      if (state.currency === "EUR") {
+        const vndEquivalentMonth = Math.round((Number(plan.retirementExpenses) * 27500 / 12) / 1000000);
+        geoNote = ` • khoảng ${vndEquivalentMonth} triệu ₫/tháng tại VN`;
+      } else if (state.currency === "VND") {
+        const eurEquivalentMonth = Math.round((Number(plan.retirementExpenses) / 27500 / 12));
+        geoNote = ` • tương đương ~${eurEquivalentMonth} €/tháng`;
+      }
+      hintRet.innerText = `≈ ${annualRetFormatted}/năm${geoNote}`;
+    }
+  }
+
   function updateSavingsRateUI(rate) {
     const slider = document.getElementById("inp-savings-rate");
     const lbl = document.getElementById("lbl-savings-rate");
-    const hintExp = document.getElementById("hint-annual-expenses");
-    const hintSav = document.getElementById("hint-annual-savings");
     const kpiRate = document.getElementById("kpi-savings-rate");
 
     if (slider) slider.value = rate;
 
     let fracText = "";
-    let expFracText = "";
     if (Math.abs(rate - 33.33) < 1 || Math.abs(rate - 33) < 1) {
       fracText = "1/3 Thu nhập";
-      expFracText = "2/3 Thu nhập";
     } else if (Math.abs(rate - 25) < 1) {
       fracText = "1/4 Thu nhập";
-      expFracText = "3/4 Thu nhập";
     } else if (Math.abs(rate - 50) < 1) {
       fracText = "1/2 Thu nhập";
-      expFracText = "1/2 Thu nhập";
     } else if (Math.abs(rate - 66.67) < 1 || Math.abs(rate - 67) < 1) {
       fracText = "2/3 Thu nhập";
-      expFracText = "1/3 Thu nhập";
     }
 
     if (lbl) {
       lbl.innerText = `${rate.toFixed(1)}%` + (fracText ? ` (${fracText})` : "");
     }
-    if (hintSav) {
-      hintSav.innerText = fracText ? `≈ ${fracText}` : `≈ ${rate.toFixed(1)}% thu nhập`;
-    }
-    if (hintExp) {
-      hintExp.innerText = expFracText ? `≈ ${expFracText}` : `≈ ${(100 - rate).toFixed(1)}% thu nhập`;
-    }
     if (kpiRate) {
-      kpiRate.innerHTML = `Tỷ lệ tiết kiệm: <strong>${rate.toFixed(1)}%</strong>`;
+      const plan = getActivePlan();
+      const monthlySav = Math.round((Number(plan.annualSavings) || 0) / 12);
+      kpiRate.innerHTML = `Tỷ lệ tiết kiệm: <strong>${rate.toFixed(1)}%</strong> (${window.RetirementEngine.formatCurrency(monthlySav, state.currency)}/tháng)`;
     }
 
     document.querySelectorAll(".btn-ratio").forEach(btn => {
@@ -664,8 +1097,11 @@
     const plan = getActivePlan();
     const modal = document.getElementById("income-modal");
     const title = document.getElementById("income-modal-title");
+    const curSymbol = state.currency === 'VND' ? '₫' : state.currency === 'EUR' ? '€' : '$';
     const unit = document.getElementById("modal-income-unit");
-    if (unit) unit.innerText = state.currency === 'VND' ? '₫' : state.currency === 'EUR' ? '€' : '$';
+    const unitMonthly = document.getElementById("modal-income-unit-monthly");
+    if (unit) unit.innerText = curSymbol;
+    if (unitMonthly) unitMonthly.innerText = curSymbol;
 
     document.getElementById("inp-income-idx").value = idx;
 
@@ -674,13 +1110,16 @@
       title.innerText = `Chỉnh Sửa: ${stream.name}`;
       document.getElementById("inp-income-name").value = stream.name;
       document.getElementById("inp-income-amount").value = stream.amount;
+      document.getElementById("inp-income-amount-monthly").value = Math.round(Number(stream.amount) / 12);
       document.getElementById("inp-income-start").value = stream.startAge;
       document.getElementById("inp-income-end").value = stream.endAge;
       document.getElementById("inp-income-growth").value = stream.growth !== undefined ? stream.growth : 3.5;
     } else {
       title.innerText = "Thêm Nguồn Thu Nhập Mới";
       document.getElementById("inp-income-name").value = "";
-      document.getElementById("inp-income-amount").value = state.currency === 'EUR' ? 12000 : state.currency === 'USD' ? 12000 : 120000000;
+      const defaultAnnual = state.currency === 'EUR' ? 12000 : state.currency === 'USD' ? 12000 : 120000000;
+      document.getElementById("inp-income-amount").value = defaultAnnual;
+      document.getElementById("inp-income-amount-monthly").value = Math.round(defaultAnnual / 12);
       document.getElementById("inp-income-start").value = plan.currentAge || 29;
       document.getElementById("inp-income-end").value = plan.retirementAge || 42;
       document.getElementById("inp-income-growth").value = 3.5;
@@ -701,7 +1140,9 @@
       return;
     }
 
-    const amount = Number(document.getElementById("inp-income-amount").value) || 0;
+    const annualVal = Number(document.getElementById("inp-income-amount").value);
+    const monthlyVal = Number(document.getElementById("inp-income-amount-monthly").value);
+    const amount = annualVal || (monthlyVal * 12) || 0;
     const startAge = Number(document.getElementById("inp-income-start").value) || 29;
     const endAge = Number(document.getElementById("inp-income-end").value) || 85;
     const growth = Number(document.getElementById("inp-income-growth").value) || 0;
@@ -732,6 +1173,221 @@
   }
 
   // -------------------------------------------------------------
+  // Life Milestones Modal Management
+  // -------------------------------------------------------------
+  function openMilestoneModal() {
+    const plan = getActivePlan();
+    const proj = window.RetirementEngine.runProjection(plan);
+    const modal = document.getElementById("milestone-modal");
+    const unit = document.getElementById("modal-ms-unit");
+    if (unit) unit.innerText = window.RetirementEngine.getCurrencySymbol(state.currency);
+
+    renderModalMilestonesContent(plan, proj);
+    hideMilestoneForm();
+    modal.style.display = "flex";
+  }
+
+  function closeMilestoneModal() {
+    document.getElementById("milestone-modal").style.display = "none";
+  }
+
+  function renderModalMilestonesContent(plan, proj) {
+    // 1. Render Core / System Milestones
+    const sysContainer = document.getElementById("modal-system-milestones-list");
+    if (sysContainer) {
+      sysContainer.innerHTML = "";
+      const sysMilestones = (proj.milestones || []).filter(m => m.isSystem);
+      sysMilestones.forEach(m => {
+        const card = document.createElement("div");
+        card.className = "system-milestone-card";
+        card.style.setProperty("--ms-color", m.color || "var(--primary)");
+        card.innerHTML = `
+          <div class="system-ms-icon">${m.icon}</div>
+          <div class="system-ms-info">
+            <span class="system-ms-name">${m.age} tuổi • ${m.name}</span>
+            <span class="system-ms-desc">${m.desc}</span>
+          </div>
+        `;
+        sysContainer.appendChild(card);
+      });
+    }
+
+    // 2. Render Custom Milestones
+    const customContainer = document.getElementById("modal-custom-milestones-container");
+    if (customContainer) {
+      customContainer.innerHTML = "";
+      if (!Array.isArray(plan.milestones) || plan.milestones.length === 0) {
+        customContainer.innerHTML = `<div style="font-size:0.8rem; color:var(--text-faint); padding:0.5rem 0;">Chưa có sự kiện tùy chỉnh nào. Bấm "+ Thêm Sự Kiện" bên trên để thêm mốc mua nhà, sinh con, quỹ học vấn...</div>`;
+      } else {
+        plan.milestones.forEach((ms, idx) => {
+          const item = document.createElement("div");
+          item.className = "custom-milestone-item";
+          const sign = ms.type === "income" ? "+" : ms.type === "none" ? "" : "-";
+          const amtStr = ms.type === "none" ? "Không ảnh hưởng tiền" : `${sign}${window.RetirementEngine.formatCurrency(ms.amount, state.currency, false)}`;
+          
+          item.innerHTML = `
+            <div class="custom-ms-left">
+              <span class="custom-ms-icon">${ms.icon || '⭐'}</span>
+              <div class="custom-ms-details">
+                <span class="custom-ms-title">${ms.age} tuổi • ${ms.name}</span>
+                <span class="custom-ms-sub">${amtStr}${ms.note ? ' • ' + ms.note : ''}</span>
+              </div>
+            </div>
+            <div class="custom-ms-actions">
+              <button class="income-item-btn btn-edit-ms" data-idx="${idx}" title="Chỉnh sửa">✏️</button>
+              <button class="income-item-btn btn-del-ms" data-idx="${idx}" title="Xóa">🗑️</button>
+            </div>
+          `;
+          customContainer.appendChild(item);
+        });
+
+        customContainer.querySelectorAll(".btn-edit-ms").forEach(b => {
+          b.addEventListener("click", () => {
+            const idx = Number(b.getAttribute("data-idx"));
+            showMilestoneForm(plan.milestones[idx], idx);
+          });
+        });
+
+        customContainer.querySelectorAll(".btn-del-ms").forEach(b => {
+          b.addEventListener("click", () => {
+            const idx = Number(b.getAttribute("data-idx"));
+            if (confirm(`Bạn có chắc muốn xóa mốc "${plan.milestones[idx].name}"?`)) {
+              plan.milestones.splice(idx, 1);
+              savePlansToStorage();
+              updateAll();
+              renderModalMilestonesContent(plan, window.RetirementEngine.runProjection(plan));
+            }
+          });
+        });
+      }
+    }
+  }
+
+  function showMilestoneForm(ms = null, idx = -1) {
+    const form = document.getElementById("milestone-edit-form");
+    const title = document.getElementById("milestone-form-title");
+    form.style.display = "block";
+
+    if (ms) {
+      title.innerText = `Chỉnh sửa: ${ms.name}`;
+      document.getElementById("inp-ms-id").value = idx;
+      document.getElementById("inp-ms-name").value = ms.name || "";
+      document.getElementById("inp-ms-age").value = ms.age || 35;
+      document.getElementById("inp-ms-icon").value = ms.icon || "🏡";
+      document.getElementById("inp-ms-type").value = ms.type || "expense";
+      document.getElementById("inp-ms-amount").value = ms.amount || 30000;
+      document.getElementById("inp-ms-note").value = ms.note || "";
+    } else {
+      title.innerText = "Thêm Sự Kiện Cột Mốc Mới";
+      document.getElementById("inp-ms-id").value = -1;
+      document.getElementById("inp-ms-name").value = "";
+      document.getElementById("inp-ms-age").value = 35;
+      document.getElementById("inp-ms-icon").value = "🏡";
+      document.getElementById("inp-ms-type").value = "expense";
+      const defaultAmt = state.currency === 'VND' ? 500000000 : 30000;
+      document.getElementById("inp-ms-amount").value = defaultAmt;
+      document.getElementById("inp-ms-note").value = "";
+    }
+    document.getElementById("inp-ms-name").focus();
+  }
+
+  function hideMilestoneForm() {
+    document.getElementById("milestone-edit-form").style.display = "none";
+  }
+
+  function saveMilestoneFromForm() {
+    const name = document.getElementById("inp-ms-name").value.trim();
+    if (!name) {
+      alert("Vui lòng nhập tên sự kiện!");
+      return;
+    }
+    const idx = Number(document.getElementById("inp-ms-id").value);
+    const age = Number(document.getElementById("inp-ms-age").value) || 35;
+    const icon = document.getElementById("inp-ms-icon").value || "⭐";
+    const type = document.getElementById("inp-ms-type").value || "expense";
+    const amount = Number(document.getElementById("inp-ms-amount").value) || 0;
+    const note = document.getElementById("inp-ms-note").value.trim();
+
+    const plan = getActivePlan();
+    if (!Array.isArray(plan.milestones)) plan.milestones = [];
+
+    const msObj = {
+      id: idx >= 0 && plan.milestones[idx]?.id ? plan.milestones[idx].id : ('ms_' + Date.now()),
+      name,
+      age,
+      icon,
+      type,
+      amount,
+      note,
+      enabled: true
+    };
+
+    if (idx >= 0 && idx < plan.milestones.length) {
+      plan.milestones[idx] = msObj;
+    } else {
+      plan.milestones.push(msObj);
+    }
+
+    savePlansToStorage();
+    updateAll();
+    hideMilestoneForm();
+    renderModalMilestonesContent(plan, window.RetirementEngine.runProjection(plan));
+  }
+
+  // -------------------------------------------------------------
+  // Life Milestones Ribbon Rendering
+  // -------------------------------------------------------------
+  function renderMilestonesRibbon(proj) {
+    const container = document.getElementById("milestones-chips-container");
+    if (!container) return;
+    container.innerHTML = "";
+
+    if (!proj || !Array.isArray(proj.milestones) || proj.milestones.length === 0) {
+      return;
+    }
+
+    proj.milestones.forEach(m => {
+      const chip = document.createElement("div");
+      chip.className = "milestone-chip";
+      chip.style.setProperty("--chip-color", m.color || "var(--primary)");
+      chip.title = m.desc || `${m.icon} ${m.name} (Tuổi ${m.age})`;
+      
+      let amtHtml = "";
+      if (m.amount) {
+        const sign = m.type === "income" ? "+" : "-";
+        amtHtml = `<span class="milestone-chip-amount" style="color: ${m.color}">${sign}${window.RetirementEngine.formatCurrency(m.amount, state.currency, true)}</span>`;
+      }
+
+      chip.innerHTML = `
+        <span class="milestone-chip-icon">${m.icon}</span>
+        <span class="milestone-chip-age">${m.age}t</span>
+        <span class="milestone-chip-label">${m.name}</span>
+        ${amtHtml}
+      `;
+
+      chip.addEventListener("click", () => {
+        if (state.charts.networth) {
+          const idx = proj.timeline.findIndex(p => p.age === m.age);
+          if (idx !== -1) {
+            container.querySelectorAll(".milestone-chip").forEach(c => c.classList.remove("active"));
+            chip.classList.add("active");
+            state.charts.networth.setActiveElements([
+              { datasetIndex: 0, index: idx }
+            ]);
+            state.charts.networth.tooltip.setActiveElements(
+              [{ datasetIndex: 0, index: idx }],
+              { x: 0, y: 0 }
+            );
+            state.charts.networth.update();
+          }
+        }
+      });
+
+      container.appendChild(chip);
+    });
+  }
+
+  // -------------------------------------------------------------
   // Core Update Routine (Renders KPIs, Charts, Table)
   // -------------------------------------------------------------
   function updateAll() {
@@ -744,16 +1400,29 @@
     document.getElementById("kpi-peak-age").innerText = proj.peakAge;
     document.getElementById("kpi-safe-annual-spend").innerText = window.RetirementEngine.formatCurrency(proj.safeAnnualSpend, state.currency);
     document.getElementById("kpi-estate-end").innerText = window.RetirementEngine.formatCurrency(proj.finalPortfolio, state.currency);
-    document.getElementById("kpi-fire-score").innerText = proj.readinessScore + "%";
+    const fireScoreEl = document.getElementById("kpi-fire-score");
+    if (fireScoreEl) fireScoreEl.innerText = proj.readinessScore + "%";
+
+    updateExpenseSavingsHints(plan);
 
     const kpiRate = document.getElementById("kpi-savings-rate");
     if (kpiRate) {
       const rate = Number(plan.savingsRate) > 0 ? Number(plan.savingsRate) : 33.33;
-      kpiRate.innerHTML = `Tỷ lệ tiết kiệm: <strong>${rate.toFixed(1)}%</strong>`;
+      const monthlySav = Math.round((Number(plan.annualSavings) || 0) / 12);
+      kpiRate.innerHTML = `Tỷ lệ tiết kiệm: <strong>${rate.toFixed(1)}%</strong> (${window.RetirementEngine.formatCurrency(monthlySav, state.currency)}/tháng)`;
     }
 
     // Update Sidebar
     document.getElementById("summary-retire-age").innerText = plan.retirementAge + " tuổi";
+    const optimalSummaryEl = document.getElementById("summary-optimal-age");
+    const optAge = proj.fireAge || 42;
+    if (optimalSummaryEl) {
+      optimalSummaryEl.innerText = optAge + " tuổi";
+    }
+    const lblOptimalAge = document.getElementById("lbl-optimal-age");
+    if (lblOptimalAge) {
+      lblOptimalAge.innerText = optAge + " tuổi";
+    }
     document.getElementById("summary-years-to-fire").innerText = proj.yearsToFIRE + " năm nữa";
     document.getElementById("summary-target-nest-egg").innerText = window.RetirementEngine.formatCurrency(proj.fireTargetNestEgg, state.currency);
     document.getElementById("summary-success-prob").innerText = proj.survived ? "95.4%" : "Nguy cơ";
@@ -767,11 +1436,6 @@
     // Also re-render current active tab if different from projections
     if (state.activeTab && state.activeTab !== "tab-projections") {
       renderActiveTab(state.activeTab);
-    }
-
-    // If Compare Mode is active, update comparison
-    if (state.compareMode) {
-      renderCompareSection();
     }
   }
 
@@ -787,9 +1451,87 @@
       state.charts.networth.destroy();
     }
 
+    renderMilestonesRibbon(proj);
+
+    const milestoneMap = new Map();
+    (proj.milestones || []).forEach(m => {
+      if (!milestoneMap.has(m.age)) {
+        milestoneMap.set(m.age, m);
+      }
+    });
+
+    const pointRadii = proj.timeline.map(p => milestoneMap.has(p.age) ? 5.5 : 0);
+    const pointHoverRadii = proj.timeline.map(p => milestoneMap.has(p.age) ? 8.5 : 5);
+    const pointBgColors = proj.timeline.map(p => {
+      const m = milestoneMap.get(p.age);
+      return m ? m.color : '#10b981';
+    });
+    const pointBorderColors = proj.timeline.map(p => {
+      const m = milestoneMap.get(p.age);
+      return m ? '#ffffff' : '#10b981';
+    });
+    const pointBorderWidths = proj.timeline.map(p => milestoneMap.has(p.age) ? 2 : 0);
+
     const gradient = ctx.createLinearGradient(0, 0, 0, 350);
     gradient.addColorStop(0, 'rgba(16, 185, 129, 0.45)');
     gradient.addColorStop(1, 'rgba(16, 185, 129, 0.02)');
+
+    // Custom Plugin to Draw Milestone Vertical Guidelines & Floating Pins
+    const milestoneMarkersPlugin = {
+      id: 'milestoneMarkersPlugin',
+      afterDatasetsDraw(chart) {
+        const { ctx, chartArea, scales: { x } } = chart;
+        if (!chartArea || !proj || !Array.isArray(proj.milestones)) return;
+
+        ctx.save();
+        proj.milestones.forEach((m, mIdx) => {
+          const idx = proj.timeline.findIndex(p => p.age === m.age);
+          if (idx === -1) return;
+          const xPos = x.getPixelForValue(idx);
+          if (xPos < chartArea.left - 10 || xPos > chartArea.right + 10) return;
+
+          // Vertical guideline line
+          ctx.beginPath();
+          ctx.setLineDash([4, 4]);
+          ctx.strokeStyle = m.color || '#38bdf8';
+          ctx.lineWidth = 1.3;
+          ctx.globalAlpha = 0.55;
+          ctx.moveTo(xPos, chartArea.top + 24);
+          ctx.lineTo(xPos, chartArea.bottom);
+          ctx.stroke();
+
+          // Top floating milestone pin badge
+          const pillW = 46;
+          const pillH = 19;
+          const sameAgeMilestones = proj.milestones.filter(item => item.age === m.age);
+          const sameAgeIdx = sameAgeMilestones.findIndex(item => item.id === m.id);
+          const yOffset = (sameAgeIdx > 0) ? (sameAgeIdx * 22) : ((mIdx % 2 === 0) ? 0 : 2);
+          const pillY = chartArea.top + yOffset;
+          const pillX = Math.max(chartArea.left + 2, Math.min(chartArea.right - pillW - 2, xPos - pillW / 2));
+
+          ctx.globalAlpha = 0.95;
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+          ctx.strokeStyle = m.color || '#38bdf8';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          if (ctx.roundRect) {
+            ctx.roundRect(pillX, pillY, pillW, pillH, 4);
+          } else {
+            ctx.rect(pillX, pillY, pillW, pillH);
+          }
+          ctx.fill();
+          ctx.stroke();
+
+          // Text inside badge
+          ctx.font = '600 10px Inter, sans-serif';
+          ctx.fillStyle = m.color || '#38bdf8';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`${m.icon} ${m.age}t`, pillX + pillW / 2, pillY + pillH / 2);
+        });
+        ctx.restore();
+      }
+    };
 
     state.charts.networth = new Chart(ctx, {
       type: 'line',
@@ -803,18 +1545,63 @@
           backgroundColor: gradient,
           fill: true,
           tension: 0.35,
-          pointRadius: 2,
-          pointHoverRadius: 6
+          pointRadius: pointRadii,
+          pointHoverRadius: pointHoverRadii,
+          pointBackgroundColor: pointBgColors,
+          pointBorderColor: pointBorderColors,
+          pointBorderWidth: pointBorderWidths
         }]
       },
+      plugins: [milestoneMarkersPlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
           tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            titleColor: '#f8fafc',
+            bodyColor: '#cbd5e1',
+            borderColor: 'rgba(255, 255, 255, 0.15)',
+            borderWidth: 1,
+            padding: 10,
             callbacks: {
-              label: (item) => ` ${window.RetirementEngine.formatCurrency(item.raw, state.currency, false)}`
+              title: (items) => {
+                const idx = items[0].dataIndex;
+                const p = proj.timeline[idx];
+                const m = milestoneMap.get(p.age);
+                if (m) {
+                  return `Tuổi ${p.age} • ${m.icon} ${m.name}`;
+                }
+                return `Tuổi ${p.age}`;
+              },
+              label: (item) => {
+                const val = window.RetirementEngine.formatCurrency(item.raw, state.currency, false);
+                return ` Tài sản: ${val}`;
+              },
+              afterBody: (items) => {
+                const idx = items[0].dataIndex;
+                const p = proj.timeline[idx];
+                const m = milestoneMap.get(p.age);
+                const lines = [];
+                if (m && m.desc) {
+                  lines.push(`🚩 ${m.desc}`);
+                }
+                if (p.homeEquity > 0) {
+                  lines.push(`🏡 Vốn sở hữu BĐS: ${window.RetirementEngine.formatCurrency(p.homeEquity, state.currency)}`);
+                }
+                if (p.remainingDebt > 0) {
+                  lines.push(`🏦 Dư nợ vay còn lại: ${window.RetirementEngine.formatCurrency(p.remainingDebt, state.currency)}`);
+                }
+                if (p.eurVndRate) {
+                  lines.push(`💱 Tỷ giá EUR/VND: ${p.eurVndRate.toLocaleString('vi-VN')} ₫/€`);
+                }
+                if (p.netCashFlow !== undefined) {
+                  const sign = p.netCashFlow >= 0 ? '+' : '';
+                  lines.push(`Dòng tiền ròng: ${sign}${window.RetirementEngine.formatCurrency(p.netCashFlow, state.currency, true)}`);
+                }
+                return lines;
+              }
             }
           }
         },
@@ -834,6 +1621,17 @@
         }
       }
     });
+
+    // Trigger Gemini Commentary for Net Worth Trajectory & Optimal Retirement Age
+    if (window.GeminiAdvisor) {
+      window.GeminiAdvisor.updateChartBox("chart-networth", "Biểu đồ Tăng trưởng Tài sản Ròng & Đánh giá Tuổi Nghỉ Hưu Tối Ưu", {
+        peakNetWorth: window.RetirementEngine.formatCurrency(proj.peakNetWorth, state.currency),
+        peakAge: proj.peakAge,
+        finalNetWorth: window.RetirementEngine.formatCurrency(proj.finalTotalNetWorth, state.currency),
+        fireTarget: window.RetirementEngine.formatCurrency(proj.fireTargetNestEgg, state.currency),
+        fireAge: proj.fireAge || 42
+      });
+    }
   }
 
   function renderCashFlowChart(proj) {
@@ -892,6 +1690,16 @@
         }
       }
     });
+
+    // Trigger Gemini Commentary for Cash Flow
+    if (window.GeminiAdvisor) {
+      window.GeminiAdvisor.updateChartBox("chart-cashflow", "Biểu đồ Dòng tiền Hàng năm (Cash-Flow Projections)", {
+        currentAge: proj.currentAge,
+        retireAge: proj.retireAge,
+        totalLifetimeIncome: window.RetirementEngine.formatCurrency(proj.totalLifetimeIncome, state.currency),
+        totalLifetimeExpenses: window.RetirementEngine.formatCurrency(proj.totalLifetimeExpenses, state.currency)
+      });
+    }
   }
 
   function renderProjectionsTable(proj) {
@@ -1004,6 +1812,14 @@
           `;
         }).join("");
       }
+
+      // Trigger Gemini Commentary for Withdrawal Comparison
+      if (window.GeminiAdvisor) {
+        window.GeminiAdvisor.updateChartBox("chart-withdrawal-comparison", "So sánh 4 Chiến lược Rút tiền trên Cùng Kịch bản", {
+          initialSWR: (plan.initialWithdrawalRate || 4.0) + "%",
+          chosenStrategy: plan.withdrawalStrategy || 'guyton_klinger'
+        });
+      }
     } catch (err) {
       console.error("Lỗi vẽ biểu đồ chiến lược rút tiền:", err);
     }
@@ -1020,6 +1836,20 @@
 
     document.getElementById("kpi-tax-savings").innerText = window.RetirementEngine.formatCurrency(rothRes.cumulativeTaxSavings, state.currency);
     document.getElementById("kpi-aca-savings").innerText = window.RetirementEngine.formatCurrency(acaRes.totalSubsidySaved, state.currency);
+
+    // Render French Accounts & Waterfall Savings
+    const peaVal = document.getElementById("val-acc-pea");
+    const avVal = document.getElementById("val-acc-av");
+    const livVal = document.getElementById("val-acc-livreta");
+    const waterfallBadge = document.getElementById("badge-waterfall-saved");
+
+    if (peaVal) peaVal.innerText = window.RetirementEngine.formatCurrency(plan.frenchAccounts?.peaBalance || 35000, state.currency);
+    if (avVal) avVal.innerText = window.RetirementEngine.formatCurrency(plan.frenchAccounts?.assuranceVieBalance || 10000, state.currency);
+    if (livVal) livVal.innerText = window.RetirementEngine.formatCurrency(plan.frenchAccounts?.livretABalance || 5000, state.currency);
+    if (waterfallBadge) {
+      const saved = proj.totalWaterfallTaxSaved || 18400;
+      waterfallBadge.innerText = `Tiết kiệm: ${window.RetirementEngine.formatCurrency(saved, state.currency)} thuế`;
+    }
 
     const ctx = document.getElementById("chart-tax-optimization").getContext("2d");
     if (state.charts.tax) {
@@ -1071,6 +1901,14 @@
         }
       }
     });
+
+    // Trigger Gemini Commentary for Tax Optimization
+    if (window.GeminiAdvisor) {
+      window.GeminiAdvisor.updateChartBox("chart-tax-optimization", "Kế hoạch Chuyển đổi Roth Hàng Năm & Tiết kiệm Thuế", {
+        taxSavings: window.RetirementEngine.formatCurrency(rothRes.totalTaxSaved, state.currency),
+        acaSavings: window.RetirementEngine.formatCurrency(acaRes.totalSubsidySaved, state.currency)
+      });
+    }
   }
 
   // -------------------------------------------------------------
@@ -1153,6 +1991,16 @@
         }
       }
     });
+
+    // Trigger Gemini Commentary for Monte Carlo
+    if (window.GeminiAdvisor) {
+      window.GeminiAdvisor.updateChartBox("chart-monte-carlo", "Mô phỏng Monte Carlo 1,000 Kịch bản & Rủi ro", {
+        successRate: res.successRate + "%",
+        medianEnd: window.RetirementEngine.formatCurrency(res.medianEndPortfolio, state.currency),
+        worstCase: window.RetirementEngine.formatCurrency(res.worstCaseEndPortfolio, state.currency),
+        volatility: vol + "%"
+      });
+    }
   }
 
   // -------------------------------------------------------------
@@ -1216,6 +2064,15 @@
         }
       }
     });
+
+    // Trigger Gemini Commentary for Scenarios
+    if (window.GeminiAdvisor) {
+      window.GeminiAdvisor.updateChartBox("chart-scenarios", "So sánh Kịch bản What-If: " + evaluation.meta.title, {
+        activeScenario: state.activeScenario,
+        title: evaluation.meta.title,
+        assessment: evaluation.meta.assessment
+      });
+    }
   }
 
   // -------------------------------------------------------------
@@ -1260,6 +2117,15 @@
         }
       }
     });
+
+    // Trigger Gemini Commentary for Spending Smile & Estate
+    if (window.GeminiAdvisor) {
+      window.GeminiAdvisor.updateChartBox("chart-spending-smile", "Mô hình Chi tiêu Thực tế theo Độ tuổi (Spending Smile)", {
+        targetLegacy: window.RetirementEngine.formatCurrency(target, state.currency),
+        projectedLegacy: window.RetirementEngine.formatCurrency(finalVal, state.currency),
+        pctOfTarget: pct + "%"
+      });
+    }
 
     const milestoneBox = document.getElementById("estate-milestone-box");
     const target = plan.targetLegacy || 1000000000;
@@ -1386,54 +2252,7 @@
     });
   }
 
-  // -------------------------------------------------------------
-  // Compare Mode
-  // -------------------------------------------------------------
-  function toggleCompareMode() {
-    state.compareMode = !state.compareMode;
-    const section = document.getElementById("compare-section");
-    const btn = document.getElementById("btn-toggle-compare");
 
-    section.style.display = state.compareMode ? "block" : "none";
-    btn.classList.toggle("active", state.compareMode);
-
-    if (state.compareMode) {
-      renderCompareSection();
-    }
-  }
-
-  function renderCompareSection() {
-    const selectorB = document.getElementById("compare-plan-b-selector");
-    const planKeys = Object.keys(state.plansData.plans);
-
-    // Populate compare dropdown if not already populated
-    if (selectorB.options.length !== planKeys.length) {
-      selectorB.innerHTML = planKeys.map(k => `
-        <option value="${k}" ${k !== state.plansData.activePlanId ? 'selected' : ''}>${state.plansData.plans[k].name}</option>
-      `).join("");
-    }
-
-    const planA = getActivePlan();
-    const planBKey = selectorB.value || planKeys.find(k => k !== state.plansData.activePlanId) || planKeys[0];
-    const planB = state.plansData.plans[planBKey];
-
-    document.getElementById("compare-title-a").innerText = `Kế hoạch A: ${planA.name}`;
-    const comp = window.ScenarioManager.compareTwoPlans(planA, planB);
-
-    function formatStats(p) {
-      return `
-        <div class="compare-row"><span>Tuổi nghỉ hưu:</span> <strong>${p.retireAge} tuổi</strong></div>
-        <div class="compare-row"><span>Thời gian tích lũy:</span> <strong>${p.yearsToFIRE} năm</strong></div>
-        <div class="compare-row"><span>Tài sản lúc nghỉ hưu:</span> <strong>${window.RetirementEngine.formatCurrency(p.peakNetWorth, state.currency)}</strong></div>
-        <div class="compare-row"><span>Chi tiêu an toàn/năm:</span> <strong>${window.RetirementEngine.formatCurrency(p.safeAnnualSpend, state.currency)}</strong></div>
-        <div class="compare-row"><span>Tài sản cuối đời (85t):</span> <strong>${window.RetirementEngine.formatCurrency(p.finalPortfolio, state.currency)}</strong></div>
-        <div class="compare-row"><span>Điểm sẵn sàng FIRE:</span> <strong class="text-accent">${p.fireScore}%</strong></div>
-      `;
-    }
-
-    document.getElementById("compare-stats-a").innerHTML = formatStats(comp.planA);
-    document.getElementById("compare-stats-b").innerHTML = formatStats(comp.planB);
-  }
 
   // -------------------------------------------------------------
   // Plan Management & Modal
@@ -1632,5 +2451,27 @@
     const icon = document.getElementById("theme-icon");
     if (icon) icon.innerText = saved === "dark" ? "🌙" : "☀️";
   }
+
+  // Expose global interface for GeminiAdvisor and testing
+  window.RetirementApp = {
+    getActivePlan,
+    getCurrency: () => state.currency,
+    updateAll,
+    reloadPlansFromBackend: async () => {
+      try {
+        const res = await fetch("/api/plans");
+        if (res.ok) {
+          state.plansData = await res.json();
+          savePlansToStorage();
+          renderPlanSelector();
+          renderActivePlanInputs();
+          if (typeof renderIncomeStreamsList === 'function') renderIncomeStreamsList();
+          updateAll();
+        }
+      } catch (err) {
+        console.error("Failed to reload plans from backend:", err);
+      }
+    }
+  };
 
 })();

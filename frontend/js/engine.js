@@ -42,20 +42,149 @@ window.RetirementEngine = (function() {
     }
   }
 
+  // Calculate weighted return across asset classes with optional rebalancing bonus
+  function calculateWeightedReturn(alloc, returns, rebalanceBonus = 0.3) {
+    if (!alloc) return 8.0;
+    const stocks = Number(alloc.stocks) || 60;
+    const bonds = Number(alloc.bonds) || 20;
+    const realEstate = Number(alloc.realEstate) || 20;
+    const total = stocks + bonds + realEstate || 100;
+
+    const rStocks = (returns && returns.stocks !== undefined && !isNaN(Number(returns.stocks))) ? Number(returns.stocks) : 9.5;
+    const rBonds = (returns && returns.bonds !== undefined && !isNaN(Number(returns.bonds))) ? Number(returns.bonds) : 3.5;
+    const rRE = (returns && returns.realEstate !== undefined && !isNaN(Number(returns.realEstate))) ? Number(returns.realEstate) : 6.5;
+
+    const weighted = ((stocks * rStocks) + (bonds * rBonds) + (realEstate * rRE)) / total;
+    return Math.round((weighted + (rebalanceBonus || 0)) * 100) / 100;
+  }
+
+  // Calculate full standard amortization schedule and home equity trajectory
+  function calculateMortgageSchedule(mortgage, currentAge, lifeExpectancy) {
+    if (!mortgage || mortgage.enabled === false) return null;
+    const loanAmount = Number(mortgage.loanAmount) || 0;
+    const interestRate = (Number(mortgage.interestRate) || 2.2) / 100.0;
+    const termYears = Number(mortgage.loanTermYears) || 20;
+    const startAge = Number(mortgage.startAge) || currentAge;
+    const endAge = startAge + termYears;
+    const propVal0 = Number(mortgage.propertyValue) || (loanAmount * 1.25);
+    const appreciation = (Number(mortgage.propertyAppreciation) || 2.5) / 100.0;
+
+    if (loanAmount <= 0 || termYears <= 0) return null;
+
+    const rMonthly = interestRate / 12;
+    const nMonths = termYears * 12;
+    let monthlyPayment = 0;
+    if (rMonthly > 0) {
+      monthlyPayment = loanAmount * (rMonthly / (1 - Math.pow(1 + rMonthly, -nMonths)));
+    } else {
+      monthlyPayment = loanAmount / nMonths;
+    }
+    const annualPayment = monthlyPayment * 12;
+
+    const schedule = {};
+    let balance = loanAmount;
+    let curPropVal = propVal0;
+
+    for (let age = currentAge; age <= lifeExpectancy; age++) {
+      if (age >= startAge && age < endAge) {
+        let interestPaidYear = 0;
+        let principalPaidYear = 0;
+        for (let m = 0; m < 12; m++) {
+          const interestMonth = balance * rMonthly;
+          const principalMonth = Math.min(balance, monthlyPayment - interestMonth);
+          interestPaidYear += interestMonth;
+          principalPaidYear += principalMonth;
+          balance = Math.max(0, balance - principalMonth);
+        }
+        curPropVal = curPropVal * (1.0 + appreciation);
+        const homeEquity = Math.max(0, curPropVal - balance);
+        schedule[age] = {
+          active: true,
+          monthlyPayment: Math.round(monthlyPayment),
+          annualPayment: Math.round(annualPayment),
+          interestPaid: Math.round(interestPaidYear),
+          principalPaid: Math.round(principalPaidYear),
+          remainingDebt: Math.round(balance),
+          propertyValue: Math.round(curPropVal),
+          homeEquity: Math.round(homeEquity)
+        };
+      } else if (age >= endAge) {
+        curPropVal = curPropVal * (1.0 + appreciation);
+        schedule[age] = {
+          active: false,
+          monthlyPayment: 0,
+          annualPayment: 0,
+          interestPaid: 0,
+          principalPaid: 0,
+          remainingDebt: 0,
+          propertyValue: Math.round(curPropVal),
+          homeEquity: Math.round(curPropVal)
+        };
+      } else {
+        schedule[age] = {
+          active: false,
+          monthlyPayment: 0,
+          annualPayment: 0,
+          interestPaid: 0,
+          principalPaid: 0,
+          remainingDebt: 0,
+          propertyValue: propVal0,
+          homeEquity: 0
+        };
+      }
+    }
+
+    return {
+      monthlyPayment: Math.round(monthlyPayment),
+      annualPayment: Math.round(annualPayment),
+      termYears,
+      startAge,
+      endAge,
+      totalInterest: Math.round((annualPayment * termYears) - loanAmount),
+      schedule
+    };
+  }
+
   // Calculate year-by-year cash flows and net worth trajectory
   function runProjection(plan, overrideScenario = null) {
     const currentAge = Number(plan.currentAge) || 32;
     const retireAge = Number(plan.retirementAge) || 45;
     const lifeExpectancy = Number(plan.lifeExpectancy) || 85;
-    const inflation = (Number(plan.inflationRate) || 4.0) / 100.0;
-    const returnPre = (Number(plan.investmentReturnPre) || 10.0) / 100.0;
-    const returnPost = (Number(plan.investmentReturnPost) || 8.0) / 100.0;
-    const targetLegacy = Number(plan.targetLegacy) || 1_000_000_000;
-    const baseRetireExpenses = Number(plan.retirementExpenses) || 300_000_000;
-    const annualSavings = Number(plan.annualSavings) || 360_000_000;
-    const initialSavings = Number(plan.currentSavings) || 1_500_000_000;
+
+    // 1. Asset Allocation & Weighted Returns
+    let returnPre = 0.08;
+    let returnPost = 0.075;
+    let weightedReturnPre = 8.0;
+    let weightedReturnPost = 7.5;
+    if (plan.assetAllocation) {
+      weightedReturnPre = calculateWeightedReturn(plan.assetAllocation, plan.assetReturns, 0.3);
+      weightedReturnPost = calculateWeightedReturn(plan.postAssetAllocation || plan.assetAllocation, plan.assetReturns, 0.2);
+      returnPre = weightedReturnPre / 100.0;
+      returnPost = weightedReturnPost / 100.0;
+    } else {
+      weightedReturnPre = Number(plan.investmentReturnPre) || 8.0;
+      weightedReturnPost = Number(plan.investmentReturnPost) || 7.5;
+      returnPre = weightedReturnPre / 100.0;
+      returnPost = weightedReturnPost / 100.0;
+    }
+
+    // 2. Mortgages & Amortization Schedule
+    const mortgageSchedule = calculateMortgageSchedule(plan.mortgage, currentAge, lifeExpectancy);
+
+    // 3. French Accounts tracking
+    let frenchAccs = plan.frenchAccounts ? { ...plan.frenchAccounts } : null;
+    let totalWaterfallTaxSaved = 0;
+
+    const targetLegacy = Number(plan.targetLegacy) || 100_000;
+    const baseRetireExpenses = Number(plan.retirementExpenses) || 12_000;
+    const annualSavings = Number(plan.annualSavings) || 10_000;
+    const initialSavings = Number(plan.currentSavings) || 50_000;
     const withdrawalStrategy = plan.withdrawalStrategy || 'guyton_klinger';
     const initialSWR = (Number(plan.initialWithdrawalRate) || 4.0) / 100.0;
+
+    // Base Forex parameters
+    const baseForex = Number(plan.dualInflation?.eurVndInitialRate) || Number(plan.exchangeRateEurVnd) || 27500;
+    const forexDrift = (Number(plan.dualInflation?.eurVndAnnualDrift) || 1.2) / 100.0;
 
     const timeline = [];
     let portfolio = initialSavings;
@@ -67,13 +196,25 @@ window.RetirementEngine = (function() {
     let totalTaxesPaid = 0;
     let totalLifetimeIncome = 0;
     let totalLifetimeExpenses = 0;
+    let cumInflation = 1.0;
 
     const years = lifeExpectancy - currentAge;
 
     for (let i = 0; i <= years; i++) {
       const age = currentAge + i;
-      const cumInflation = Math.pow(1.0 + inflation, i);
       const isRetired = age >= retireAge;
+
+      // 4. Dual-Stage Inflation Compounding
+      const currentInflation = (plan.dualInflation && plan.dualInflation.enabled)
+        ? (isRetired ? (Number(plan.dualInflation.inflationPost) || 4.0) / 100.0 : (Number(plan.dualInflation.inflationPre) || 2.2) / 100.0)
+        : (Number(plan.inflationRate) || 4.0) / 100.0;
+      
+      if (i > 0) {
+        cumInflation *= (1.0 + currentInflation);
+      }
+
+      // Dynamic EUR/VND Forex Rate
+      const currentEurVndRate = Math.round(baseForex * Math.pow(1.0 + forexDrift, i));
 
       // 1. Calculate Active and Passive Incomes for this year
       let annualIncome = 0;
@@ -135,6 +276,25 @@ window.RetirementEngine = (function() {
         }
       }
 
+      // Apply Custom Milestones (e.g. Buying house, child education, inheritance)
+      let milestoneCashflow = 0;
+      let activeMilestonesThisYear = [];
+      if (Array.isArray(plan.milestones)) {
+        plan.milestones.forEach(ms => {
+          if (ms.enabled !== false && Number(ms.age) === age) {
+            activeMilestonesThisYear.push(ms);
+            const amt = Number(ms.amount) || 0;
+            if (ms.type === 'expense') {
+              portfolio = Math.max(0, portfolio - amt);
+              milestoneCashflow -= amt;
+            } else if (ms.type === 'income') {
+              portfolio += amt;
+              milestoneCashflow += amt;
+            }
+          }
+        });
+      }
+
       // 3. Tax Estimation using precise Progressive Tax Engine
       let estimatedTax = 0;
       if (window.TaxOptimizer && window.TaxOptimizer.calculateProgressiveTax) {
@@ -179,10 +339,10 @@ window.RetirementEngine = (function() {
         if (withdrawalStrategy === 'bengen_4pct') {
           // Bengen rule: initial dollar amount adjusted for inflation
           const yearsIntoRetirement = age - retireAge;
-          withdrawalAmount = initialAnnualWithdrawal * Math.pow(1.0 + inflation, yearsIntoRetirement);
+          withdrawalAmount = initialAnnualWithdrawal * Math.pow(1.0 + currentInflation, yearsIntoRetirement);
         } else if (withdrawalStrategy === 'guyton_klinger') {
           // Guyton-Klinger Guardrails
-          const nominalExpected = previousYearWithdrawal * (1.0 + inflation);
+          const nominalExpected = previousYearWithdrawal * (1.0 + currentInflation);
           const currentWithdrawalRate = portfolio > 0 ? (nominalExpected / portfolio) : 1;
           
           if (currentWithdrawalRate > initialSWR * 1.20) {
@@ -218,11 +378,34 @@ window.RetirementEngine = (function() {
           const actualWithdrawal = Math.min(portfolio, Math.max(deficit, withdrawalAmount));
           portfolio = Math.max(0, (portfolio - actualWithdrawal) * (1.0 + returnRate));
           netSavingsOrWithdrawal = -actualWithdrawal;
+
+          // Tax-Efficient French Account Withdrawal Waterfall
+          if (frenchAccs && window.TaxOptimizer && window.TaxOptimizer.simulateWithdrawalWaterfall) {
+            const wf = window.TaxOptimizer.simulateWithdrawalWaterfall(frenchAccs, actualWithdrawal, true);
+            frenchAccs = wf.remainingBalances;
+            totalWaterfallTaxSaved += wf.taxSavedVsPFU;
+          }
         }
       }
 
-      if (portfolio > peakNetWorth) {
-        peakNetWorth = portfolio;
+      // Mortgage Cashflow & Home Equity Trajectory
+      const mortYear = mortgageSchedule ? mortgageSchedule.schedule[age] : null;
+      let homeEquity = 0;
+      let remainingDebt = 0;
+      let propertyValue = 0;
+      let mortgagePaymentThisYear = 0;
+      if (mortYear) {
+        homeEquity = mortYear.homeEquity;
+        remainingDebt = mortYear.remainingDebt;
+        propertyValue = mortYear.propertyValue;
+        if (mortYear.active) {
+          mortgagePaymentThisYear = mortYear.annualPayment;
+        }
+      }
+
+      const totalNetWorth = portfolio + homeEquity;
+      if (totalNetWorth > peakNetWorth) {
+        peakNetWorth = totalNetWorth;
         peakAge = age;
       }
 
@@ -234,10 +417,20 @@ window.RetirementEngine = (function() {
         isRetired,
         income: annualIncome,
         expenses: currentExpenses,
+        mortgagePayment: mortgagePaymentThisYear,
         netCashFlow: netSavingsOrWithdrawal,
         tax: estimatedTax,
         portfolioEnd: portfolio,
-        realPortfolioEnd: portfolio / cumInflation
+        realPortfolioEnd: portfolio / cumInflation,
+        cumInflation,
+        currentInflation,
+        eurVndRate: currentEurVndRate,
+        homeEquity,
+        remainingDebt,
+        propertyValue,
+        totalNetWorth,
+        realTotalNetWorth: totalNetWorth / cumInflation,
+        milestones: activeMilestonesThisYear
       });
     }
 
@@ -246,7 +439,123 @@ window.RetirementEngine = (function() {
     const fireTargetNestEgg = baseRetireExpenses * 25; // 25x rule
     const safeAnnualSpend = initialRetirePortfolio > 0 ? initialRetirePortfolio * initialSWR : fireTargetNestEgg * 0.04;
     const yearsToFIRE = Math.max(0, retireAge - currentAge);
-    
+
+    // Detect when FIRE Nest Egg is reached
+    let fireAge = null;
+    for (let i = 0; i < timeline.length; i++) {
+      if (timeline[i].portfolioEnd >= fireTargetNestEgg && fireAge === null) {
+        fireAge = timeline[i].age;
+        break;
+      }
+    }
+
+    // Build comprehensive Life Milestones markers
+    const cur = plan.currency || 'EUR';
+    const milestones = [
+      {
+        id: 'ms_current',
+        age: currentAge,
+        icon: '📍',
+        name: 'Hiện tại',
+        desc: `Tuổi ${currentAge}: Khởi đầu hành trình tích lũy (${formatCurrency(initialSavings, cur)})`,
+        color: '#38bdf8',
+        isSystem: true
+      }
+    ];
+
+    if (fireAge !== null) {
+      milestones.push({
+        id: 'ms_fire',
+        age: fireAge,
+        icon: '🔥',
+        name: 'Đạt FIRE',
+        desc: `Tuổi ${fireAge}: Danh mục chạm mốc Tự do tài chính (${formatCurrency(fireTargetNestEgg, cur)})`,
+        color: '#f97316',
+        isSystem: true
+      });
+    }
+
+    milestones.push({
+      id: 'ms_retire',
+      age: retireAge,
+      icon: '🏖️',
+      name: 'Nghỉ hưu',
+      desc: `Tuổi ${retireAge}: Bắt đầu Nghỉ hưu & Rút vốn (${formatCurrency(initialRetirePortfolio || portfolio, cur)})`,
+      color: '#fbbf24',
+      isSystem: true
+    });
+
+    if (peakAge && peakAge !== retireAge && peakAge !== currentAge) {
+      milestones.push({
+        id: 'ms_peak',
+        age: peakAge,
+        icon: '👑',
+        name: 'Đỉnh tài sản',
+        desc: `Tuổi ${peakAge}: Danh mục đạt giá trị cao nhất cuộc đời (${formatCurrency(peakNetWorth, cur)})`,
+        color: '#a855f7',
+        isSystem: true
+      });
+    }
+
+    if (Number(plan.socialSecurityAnnual) > 0) {
+      const ssAge = Number(plan.socialSecurityAge) || 65;
+      milestones.push({
+        id: 'ms_pension',
+        age: ssAge,
+        icon: '🏛️',
+        name: 'Lương hưu',
+        desc: `Tuổi ${ssAge}: Kích hoạt trợ cấp hưu trí / BHXH (${formatCurrency(plan.socialSecurityAnnual, cur)}/năm)`,
+        color: '#34d399',
+        isSystem: true
+      });
+    }
+
+    // Include custom milestones defined in the plan
+    if (Array.isArray(plan.milestones)) {
+      plan.milestones.forEach(ms => {
+        if (ms.enabled !== false) {
+          const amt = Number(ms.amount) || 0;
+          const sign = ms.type === 'income' ? '+' : '-';
+          milestones.push({
+            id: ms.id || ('ms_' + Math.random().toString(36).substr(2, 6)),
+            age: Number(ms.age),
+            icon: ms.icon || '⭐',
+            name: ms.name,
+            desc: `Tuổi ${ms.age} • ${ms.name}: ${sign}${formatCurrency(amt, cur)}${ms.note ? ' (' + ms.note + ')' : ''}`,
+            amount: amt,
+            type: ms.type || 'expense',
+            color: ms.color || (ms.type === 'income' ? '#10b981' : '#ec4899'),
+            isCustom: true
+          });
+        }
+      });
+    }
+
+    // If mortgage schedule active, add mortgage payoff celebration milestone
+    if (mortgageSchedule && mortgageSchedule.endAge <= lifeExpectancy) {
+      milestones.push({
+        id: 'ms_mortgage_paid',
+        age: mortgageSchedule.endAge,
+        icon: '🏡',
+        name: 'Tất toán nợ nhà',
+        desc: `Tuổi ${mortgageSchedule.endAge}: Hoàn tất trả nợ vay mua nhà! Sở hữu 100% BĐS (${formatCurrency(mortgageSchedule.schedule[mortgageSchedule.endAge]?.propertyValue || 0, cur)})`,
+        color: '#10b981',
+        isSystem: true
+      });
+    }
+
+    milestones.push({
+      id: 'ms_end',
+      age: lifeExpectancy,
+      icon: '🏁',
+      name: 'Di sản',
+      desc: `Tuổi ${lifeExpectancy}: Tài sản thừa kế để lại (${formatCurrency(finalPortfolio, cur)})`,
+      color: '#94a3b8',
+      isSystem: true
+    });
+
+    milestones.sort((a, b) => a.age - b.age);
+
     // Readiness score (0 - 100)
     let score = 50;
     if (finalPortfolio >= targetLegacy) score += 30;
@@ -263,7 +572,10 @@ window.RetirementEngine = (function() {
       lifeExpectancy,
       peakNetWorth,
       peakAge,
+      fireAge,
+      milestones,
       finalPortfolio,
+      finalTotalNetWorth: timeline[timeline.length - 1].totalNetWorth,
       fireTargetNestEgg,
       safeAnnualSpend,
       yearsToFIRE,
@@ -272,13 +584,19 @@ window.RetirementEngine = (function() {
       totalLifetimeExpenses,
       readinessScore: score,
       survived: finalPortfolio > 0,
-      meetsLegacy: finalPortfolio >= targetLegacy
+      meetsLegacy: finalPortfolio >= targetLegacy,
+      mortgageSchedule,
+      weightedReturnPre,
+      weightedReturnPost,
+      totalWaterfallTaxSaved
     };
   }
 
   return {
     formatCurrency,
     getCurrencySymbol,
+    calculateWeightedReturn,
+    calculateMortgageSchedule,
     runProjection
   };
 })();

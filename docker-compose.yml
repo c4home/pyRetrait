@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  pyretrait:
+    build: .
+    container_name: pyretrait_app
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      # Lưu trữ dữ liệu kế hoạch và cấu hình bền vững trên máy chủ
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1

@@ -16,7 +16,7 @@
       "inflationRate": 2.5,
       "investmentReturnPre": 8,
       "investmentReturnPost": 7.5,
-      "withdrawalStrategy": "vpw",
+      "withdrawalStrategy": "fixed_pct",
       "initialWithdrawalRate": 4,
       "targetLegacy": 100000,
       "taxRegime": "france_vietnam",
@@ -35,7 +35,7 @@
           "amount": 25000,
           "startAge": 29,
           "endAge": 42,
-          "growth": 3.5,
+          "growth": 2.5,
           "taxable": true
         },
         {
@@ -44,6 +44,22 @@
           "startAge": 38,
           "endAge": 85,
           "growth": 4,
+          "taxable": false
+        },
+        {
+          "name": "🏠 BĐS Cho thuê LMNP Pháp",
+          "amount": 16812,
+          "startAge": 29,
+          "endAge": 85,
+          "growth": 1.5,
+          "taxable": false
+        },
+        {
+          "name": "🚗 Đội xe Cho thuê Turo",
+          "amount": 2805,
+          "startAge": 29,
+          "endAge": 39,
+          "growth": 0,
           "taxable": false
         }
       ],
@@ -66,7 +82,28 @@
         "annualPostMedicare": 1500,
         "acaOptimization": false
       },
-      "savingsRate": 33.33
+      "savingsRate": 33.33,
+      "assetAllocation": {
+        "stocks": 55,
+        "bonds": 15,
+        "realEstate": 30
+      },
+      "dualInflation": {
+        "enabled": true,
+        "inflationPre": 2.2,
+        "inflationPost": 4,
+        "eurVndInitialRate": 27500,
+        "eurVndAnnualDrift": 1.2
+      },
+      "mortgage": {
+        "enabled": true,
+        "propertyValue": 200000,
+        "loanAmount": 160000,
+        "interestRate": 2.2,
+        "loanTermYears": 20,
+        "startAge": 29,
+        "propertyAppreciation": 2.5
+      }
     },
     "plan_baseline": {
       "id": "plan_baseline",

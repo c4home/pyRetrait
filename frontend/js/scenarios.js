@@ -1,5 +1,5 @@
 /**
- * pyRetrait — What-If Scenarios & Compare Mode Manager
+ * pyRetrait — What-If Scenarios & Stress Test Manager
  */
 
 window.ScenarioManager = (function() {
