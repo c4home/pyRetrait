@@ -199,8 +199,10 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  flex-wrap: wrap;
-  flex-shrink: 1;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  margin-left: 1.5rem;
+  margin-right: auto;
 }
 
 .plan-select-wrapper {
@@ -1992,7 +1994,7 @@ h1, h2, h3, h4, h5, h6 {
 /* ==========================================================================
    Responsive Breakpoints & Layout Adaptations
    ========================================================================== */
-@media (max-width: 1300px) {
+@media (max-width: 1024px) {
   .brand {
     order: 1;
   }
@@ -2003,6 +2005,9 @@ h1, h2, h3, h4, h5, h6 {
   .nav-plan-controls {
     order: 3;
     width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    justify-content: flex-start;
     padding-top: 0.35rem;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
   }

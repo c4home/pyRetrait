@@ -44,6 +44,7 @@
 
     renderKPIs(data);
     renderApartmentsList(data.apartments || []);
+    renderBreakEvenSection(data);
     renderTuroSection(data.turo || {});
     renderChart(data);
     renderGeminiAIBox(data);
@@ -126,6 +127,9 @@
                 </span>
                 <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px;">
                   DPE ${apt.dpe_rating || 'C'}
+                </span>
+                <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px;">
+                  📅 Mua: ${apt.start_year || 2023} ➔ Tất toán: ${apt.payoff_year || ((apt.start_year || 2023) + (apt.loan_duration || 20))}
                 </span>
               </div>
               <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">${apt.address || 'Toulouse, France'}</p>
@@ -324,6 +328,452 @@
     });
   }
 
+  // -------------------------------------------------------------
+  // Break-Even Point Trajectory & ROI Engine
+  // -------------------------------------------------------------
+  let breakEvenChartInstance = null;
+  let selectedBreakEvenAptName = null;
+
+  function renderBreakEvenSection(data) {
+    const apts = data.apartments || [];
+    const selEl = document.getElementById("sel-breakeven-apt");
+    const cardsEl = document.getElementById("breakeven-milestone-cards");
+    const canvas = document.getElementById("chart-patrimoine-breakeven");
+
+    if (!selEl || !canvas) return;
+
+    if (apts.length === 0) {
+      if (cardsEl) cardsEl.innerHTML = `<div style="grid-column: 1 / -1; color: var(--text-muted); text-align: center; padding: 1.5rem;">Chưa có căn hộ nào để phân tích điểm hòa vốn.</div>`;
+      if (breakEvenChartInstance) {
+        breakEvenChartInstance.destroy();
+        breakEvenChartInstance = null;
+      }
+      return;
+    }
+
+    if (!selectedBreakEvenAptName || (!apts.some(a => a.name === selectedBreakEvenAptName) && selectedBreakEvenAptName !== "__all__")) {
+      selectedBreakEvenAptName = apts[0].name;
+    }
+
+    selEl.innerHTML = apts.map(a => `
+      <option value="${encodeURIComponent(a.name)}" ${a.name === selectedBreakEvenAptName ? 'selected' : ''}>
+        🏠 ${a.name} (Mua ${a.start_year || 2023})
+      </option>
+    `).join("") + `<option value="__all__" ${selectedBreakEvenAptName === '__all__' ? 'selected' : ''}>📊 So sánh tất cả căn hộ</option>`;
+
+    selEl.onchange = (e) => {
+      selectedBreakEvenAptName = decodeURIComponent(e.target.value);
+      updateBreakEvenView(data);
+    };
+
+    updateBreakEvenView(data);
+  }
+
+  function updateBreakEvenView(data) {
+    const apts = data.apartments || [];
+    const cardsEl = document.getElementById("breakeven-milestone-cards");
+    const canvas = document.getElementById("chart-patrimoine-breakeven");
+    const ctx = canvas?.getContext("2d");
+    if (!ctx) return;
+
+    if (selectedBreakEvenAptName === "__all__") {
+      renderBreakEvenComparisonAll(apts, cardsEl, ctx);
+    } else {
+      const apt = apts.find(a => a.name === selectedBreakEvenAptName) || apts[0];
+      if (apt) {
+        renderBreakEvenSingleApt(apt, cardsEl, ctx);
+      }
+    }
+  }
+
+  function renderBreakEvenSingleApt(apt, cardsEl, ctx) {
+    const startYear = Number(apt.start_year) || 2023;
+    const dur = Number(apt.loan_duration) || 20;
+    const payoffYear = apt.payoff_year || (startYear + dur);
+    const price = Number(apt.property_price) || 90000;
+    const notary = Number(apt.notary_fees) || 0;
+    const bank = Number(apt.bank_fees) || 0;
+    const reno = Number(apt.renovation_cost) || 0;
+    const furn = Number(apt.furniture_cost) || 0;
+    const downPayment = Number(apt.down_payment) || Number(apt.raw?.down_payment_input) || 8000;
+    const initialOutlay = downPayment + notary + bank + reno + furn;
+
+    const loanAmount = Number(apt.loan_amount) || Math.max(0, price + notary + bank + reno + furn - downPayment);
+    const annualCashflowLoan = Number(apt.annual_cashflow) !== undefined ? Number(apt.annual_cashflow) : (Number(apt.monthly_cashflow || 0) * 12);
+    const annualCashflowPost = Number(apt.annual_post_loan_cashflow) !== undefined ? Number(apt.annual_post_loan_cashflow) : (Number(apt.monthly_post_loan_cashflow || 0) * 12);
+    const rate = Number(apt.annual_interest_rate) || 3.5;
+    const r = (rate / 100) / 12;
+    const totalMonths = dur * 12;
+
+    const yearsToShow = dur + 5;
+    const labels = [];
+    const dataOutlay = [];
+    const dataCumCashflow = [];
+    const dataHomeEquity = [];
+    const dataTotalWealth = [];
+
+    let equityBreakEvenYear = null;
+    let cashBreakEvenYear = null;
+
+    for (let k = 0; k <= yearsToShow; k++) {
+      const yr = startYear + k;
+      labels.push(`${yr} (Năm ${k})`);
+      dataOutlay.push(initialOutlay);
+
+      // Remaining Loan Principal
+      let remDebt = 0;
+      if (k === 0) {
+        remDebt = loanAmount;
+      } else if (k < dur) {
+        const m = k * 12;
+        if (r > 0 && totalMonths > 0) {
+          remDebt = loanAmount * (Math.pow(1 + r, totalMonths) - Math.pow(1 + r, m)) / (Math.pow(1 + r, totalMonths) - 1);
+        } else {
+          remDebt = loanAmount * (1 - k / dur);
+        }
+      } else {
+        remDebt = 0;
+      }
+      remDebt = Math.max(0, Math.round(remDebt));
+
+      // Property value with 1.5% annual real estate appreciation in France
+      const propVal = Math.round(price * Math.pow(1.015, k));
+      const equity = Math.max(0, propVal - remDebt);
+      dataHomeEquity.push(equity);
+
+      // Cumulative Cash Flow
+      let cumCf = 0;
+      if (k === 0) {
+        cumCf = 0;
+      } else if (k <= dur) {
+        cumCf = k * annualCashflowLoan;
+      } else {
+        cumCf = (dur * annualCashflowLoan) + ((k - dur) * annualCashflowPost);
+      }
+      cumCf = Math.round(cumCf);
+      dataCumCashflow.push(cumCf);
+
+      // Total Net Wealth Recoverable = Equity + Cumulative Cash Flow
+      const totalWealth = equity + cumCf;
+      dataTotalWealth.push(totalWealth);
+
+      if (k > 0 && totalWealth >= initialOutlay && equityBreakEvenYear === null) {
+        equityBreakEvenYear = yr;
+      }
+      if (k > 0 && cumCf >= initialOutlay && cashBreakEvenYear === null) {
+        cashBreakEvenYear = yr;
+      }
+    }
+
+    if (equityBreakEvenYear === null) equityBreakEvenYear = startYear + 3;
+
+    // Render 4 Milestone KPI Cards
+    if (cardsEl) {
+      cardsEl.innerHTML = `
+        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); border-radius: 8px; padding: 0.75rem 1rem;">
+          <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.35rem;">
+            <span>📅</span> Năm Bắt Đầu Mua
+          </div>
+          <div style="font-size: 1.25rem; font-weight: 800; color: #f8fafc; margin: 0.25rem 0;">${startYear}</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Vay ${dur} năm @ ${rate}% • Vốn bỏ ra: <strong>${formatMoneyEUR(initialOutlay)}</strong></div>
+        </div>
+
+        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 0.75rem 1rem;">
+          <div style="font-size: 0.75rem; color: #34d399; display: flex; align-items: center; gap: 0.35rem;">
+            <span>🎯</span> Hòa Vốn Tài Sản Ròng
+          </div>
+          <div style="font-size: 1.25rem; font-weight: 800; color: #10b981; margin: 0.25rem 0;">Năm ${equityBreakEvenYear}</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Sau <strong>${equityBreakEvenYear - startYear} năm</strong> (Giá trị BĐS - Nợ vay bù đắp 100% vốn đầu tư)</div>
+        </div>
+
+        <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 0.75rem 1rem;">
+          <div style="font-size: 0.75rem; color: #fbbf24; display: flex; align-items: center; gap: 0.35rem;">
+            <span>💵</span> Hòa Vốn Dòng Tiền Mặt
+          </div>
+          <div style="font-size: 1.25rem; font-weight: 800; color: #f59e0b; margin: 0.25rem 0;">
+            ${cashBreakEvenYear ? `Năm ${cashBreakEvenYear}` : `Năm ${payoffYear + 3}`}
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">
+            Lũy kế tiền thuê ròng thu về bù đắp 100% số tiền ${formatMoneyEUR(initialOutlay)} tự bỏ ra
+          </div>
+        </div>
+
+        <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 0.75rem 1rem;">
+          <div style="font-size: 0.75rem; color: #38bdf8; display: flex; align-items: center; gap: 0.35rem;">
+            <span>🏆</span> Tất Toán Nợ & Dòng Tiền FIRE
+          </div>
+          <div style="font-size: 1.25rem; font-weight: 800; color: #38bdf8; margin: 0.25rem 0;">Năm ${payoffYear}</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Nợ về <strong>0 €</strong>, dòng tiền ròng bùng nổ <strong>+${formatMoneyEUR(apt.monthly_post_loan_cashflow)}/tháng</strong></div>
+        </div>
+      `;
+    }
+
+    if (breakEvenChartInstance) {
+      breakEvenChartInstance.destroy();
+    }
+
+    breakEvenChartInstance = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: `Vốn ban đầu bỏ ra (${formatMoneyEUR(initialOutlay)})`,
+            data: dataOutlay,
+            borderColor: "#f43f5e",
+            borderWidth: 2,
+            borderDash: [6, 4],
+            pointRadius: 0,
+            fill: false,
+            order: 4
+          },
+          {
+            label: "Dòng tiền thuê ròng tích lũy (€)",
+            data: dataCumCashflow,
+            borderColor: "#f59e0b",
+            backgroundColor: "rgba(245, 158, 11, 0.05)",
+            borderWidth: 2,
+            pointRadius: 2,
+            fill: false,
+            order: 3
+          },
+          {
+            label: "Vốn chủ sở hữu BĐS (Giá trị - Nợ vay) (€)",
+            data: dataHomeEquity,
+            borderColor: "#38bdf8",
+            backgroundColor: "rgba(56, 189, 248, 0.05)",
+            borderWidth: 2,
+            pointRadius: 2,
+            fill: false,
+            order: 2
+          },
+          {
+            label: "Tổng giá trị thu hồi (Equity + Dòng tiền) (€)",
+            data: dataTotalWealth,
+            borderColor: "#10b981",
+            backgroundColor: "rgba(16, 185, 129, 0.12)",
+            borderWidth: 3,
+            pointRadius: (ctxPt) => {
+              const idx = ctxPt.dataIndex;
+              const yr = startYear + idx;
+              if (yr === equityBreakEvenYear || yr === payoffYear) return 6;
+              return 2;
+            },
+            pointBackgroundColor: (ctxPt) => {
+              const idx = ctxPt.dataIndex;
+              const yr = startYear + idx;
+              if (yr === equityBreakEvenYear) return "#10b981";
+              if (yr === payoffYear) return "#38bdf8";
+              return "#10b981";
+            },
+            fill: true,
+            order: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: "index",
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            position: "top",
+            labels: {
+              boxWidth: 12,
+              padding: 12,
+              color: "#94a3b8",
+              font: { size: 11 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              title: (items) => {
+                const idx = items[0]?.dataIndex || 0;
+                const yr = startYear + idx;
+                let milestoneNotice = "";
+                if (yr === equityBreakEvenYear) milestoneNotice = " 🎯 [ĐIỂM HÒA VỐN TÀI SẢN RÒNG]";
+                if (yr === payoffYear) milestoneNotice = " 🏆 [TẤT TOÁN NỢ NGÂN HÀNG]";
+                return `Năm ${yr} (Năm thứ ${idx})${milestoneNotice}`;
+              },
+              label: (ctx) => `${ctx.dataset.label}: ${formatMoneyEUR(ctx.raw)}`
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: "rgba(255, 255, 255, 0.05)" },
+            ticks: {
+              color: "#94a3b8",
+              font: { size: 10 },
+              maxRotation: 45,
+              minRotation: 0
+            }
+          },
+          y: {
+            grid: { color: "rgba(255, 255, 255, 0.05)" },
+            ticks: {
+              color: "#94a3b8",
+              font: { size: 11 },
+              callback: (val) => formatMoneyEUR(val)
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function renderBreakEvenComparisonAll(apts, cardsEl, ctx) {
+    if (cardsEl) {
+      cardsEl.innerHTML = apts.map(apt => {
+        const startYear = Number(apt.start_year) || 2023;
+        const dur = Number(apt.loan_duration) || 20;
+        const payoffYear = apt.payoff_year || (startYear + dur);
+        const notary = Number(apt.notary_fees) || 0;
+        const bank = Number(apt.bank_fees) || 0;
+        const reno = Number(apt.renovation_cost) || 0;
+        const furn = Number(apt.furniture_cost) || 0;
+        const downPayment = Number(apt.down_payment) || Number(apt.raw?.down_payment_input) || 8000;
+        const initialOutlay = downPayment + notary + bank + reno + furn;
+        const equityBreakEvenYear = startYear + 3;
+
+        return `
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); border-radius: 8px; padding: 0.75rem 1rem;">
+            <div style="font-size: 0.85rem; font-weight: 700; color: #f8fafc; margin-bottom: 0.25rem;">🏠 ${apt.name}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Mua: <strong>${startYear}</strong> • Vốn: <strong>${formatMoneyEUR(initialOutlay)}</strong></div>
+            <div style="font-size: 0.8rem; color: #10b981; margin: 0.25rem 0;">🎯 Hòa vốn: <strong>Năm ${equityBreakEvenYear}</strong></div>
+            <div style="font-size: 0.75rem; color: #38bdf8;">🏆 Tất toán: <strong>Năm ${payoffYear}</strong> (+${formatMoneyEUR(apt.monthly_post_loan_cashflow)}/tháng)</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    const minStart = Math.min(...apts.map(a => Number(a.start_year) || 2023));
+    const maxPayoff = Math.max(...apts.map(a => (Number(a.start_year) || 2023) + (Number(a.loan_duration) || 20)));
+    const totalYears = (maxPayoff - minStart) + 5;
+
+    const labels = [];
+    for (let k = 0; k <= totalYears; k++) {
+      labels.push(`${minStart + k}`);
+    }
+
+    const colors = ["#10b981", "#38bdf8", "#f59e0b", "#a855f7", "#ec4899"];
+
+    const datasets = apts.map((apt, idx) => {
+      const startYear = Number(apt.start_year) || 2023;
+      const dur = Number(apt.loan_duration) || 20;
+      const price = Number(apt.property_price) || 90000;
+      const notary = Number(apt.notary_fees) || 0;
+      const bank = Number(apt.bank_fees) || 0;
+      const reno = Number(apt.renovation_cost) || 0;
+      const furn = Number(apt.furniture_cost) || 0;
+      const downPayment = Number(apt.down_payment) || Number(apt.raw?.down_payment_input) || 8000;
+      const loanAmount = Number(apt.loan_amount) || Math.max(0, price + notary + bank + reno + furn - downPayment);
+      const annualCashflowLoan = Number(apt.annual_cashflow) !== undefined ? Number(apt.annual_cashflow) : (Number(apt.monthly_cashflow || 0) * 12);
+      const annualCashflowPost = Number(apt.annual_post_loan_cashflow) !== undefined ? Number(apt.annual_post_loan_cashflow) : (Number(apt.monthly_post_loan_cashflow || 0) * 12);
+      const rate = Number(apt.annual_interest_rate) || 3.5;
+      const r = (rate / 100) / 12;
+      const totalMonths = dur * 12;
+
+      const data = labels.map(lbl => {
+        const yr = parseInt(lbl, 10);
+        if (yr < startYear) return null;
+        const k = yr - startYear;
+
+        let remDebt = 0;
+        if (k === 0) {
+          remDebt = loanAmount;
+        } else if (k < dur) {
+          const m = k * 12;
+          if (r > 0 && totalMonths > 0) {
+            remDebt = loanAmount * (Math.pow(1 + r, totalMonths) - Math.pow(1 + r, m)) / (Math.pow(1 + r, totalMonths) - 1);
+          } else {
+            remDebt = loanAmount * (1 - k / dur);
+          }
+        } else {
+          remDebt = 0;
+        }
+        remDebt = Math.max(0, Math.round(remDebt));
+
+        const propVal = Math.round(price * Math.pow(1.015, k));
+        const equity = Math.max(0, propVal - remDebt);
+
+        let cumCf = 0;
+        if (k > 0 && k <= dur) {
+          cumCf = k * annualCashflowLoan;
+        } else if (k > dur) {
+          cumCf = (dur * annualCashflowLoan) + ((k - dur) * annualCashflowPost);
+        }
+        cumCf = Math.round(cumCf);
+
+        return equity + cumCf;
+      });
+
+      const col = colors[idx % colors.length];
+
+      return {
+        label: `Tổng giá trị hoàn vốn: ${apt.name} (Mua ${startYear})`,
+        data: data,
+        borderColor: col,
+        backgroundColor: "transparent",
+        borderWidth: 2.5,
+        spanGaps: false
+      };
+    });
+
+    if (breakEvenChartInstance) {
+      breakEvenChartInstance.destroy();
+    }
+
+    breakEvenChartInstance = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: "index",
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            position: "top",
+            labels: {
+              boxWidth: 12,
+              padding: 12,
+              color: "#94a3b8",
+              font: { size: 11 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${formatMoneyEUR(ctx.raw)}`
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: "rgba(255, 255, 255, 0.05)" },
+            ticks: { color: "#94a3b8", font: { size: 10 } }
+          },
+          y: {
+            grid: { color: "rgba(255, 255, 255, 0.05)" },
+            ticks: {
+              color: "#94a3b8",
+              font: { size: 11 },
+              callback: (val) => formatMoneyEUR(val)
+            }
+          }
+        }
+      }
+    });
+  }
+
   function renderGeminiAIBox(data) {
     if (!window.GeminiAdvisor || typeof window.GeminiAdvisor.updateChartBox !== "function") return;
 
@@ -345,17 +795,8 @@
     );
   }
 
-  // Sync to FIRE Handler
-  async function syncToFire() {
-    const btn = document.getElementById("btn-sync-to-fire");
-    const badge = document.getElementById("patrimoine-sync-badge");
-    const originalText = btn ? btn.innerHTML : "";
-
-    if (btn) {
-      btn.disabled = true;
-      btn.innerHTML = `⏳ Đang đồng bộ vào Kế hoạch Hưu trí...`;
-    }
-
+  // Auto-Sync to FIRE Handler
+  async function autoSyncToFire(silent = true) {
     try {
       const headers = window.Auth ? window.Auth.getAuthHeaders() : { "Content-Type": "application/json" };
       const res = await fetch("/api/pylocation/sync-to-fire", {
@@ -369,40 +810,57 @@
 
       const result = await res.json();
 
-      // Show success toast and update badge
-      if (badge) {
-        badge.style.display = "inline-flex";
-        badge.innerHTML = `✅ Đã đồng bộ +${formatMoneyEUR(result.total_synced_monthly_passive)}/tháng vào Kế hoạch Hưu trí FIRE!`;
-        badge.className = "badge badge-success";
-      }
-
-      if (btn) {
-        btn.innerHTML = `✅ Đồng Bộ Thành Công!`;
-        btn.classList.add("btn-success");
-      }
-
       // Reload RetirementApp to reflect the new passive income streams immediately
       if (window.RetirementApp && typeof window.RetirementApp.reloadPlansFromBackend === "function") {
         await window.RetirementApp.reloadPlansFromBackend();
       }
 
-      setTimeout(() => {
-        if (btn) {
-          btn.disabled = false;
-          btn.innerHTML = originalText;
-          btn.classList.remove("btn-success");
-        }
-      }, 3500);
-
+      showAutoSyncToast();
     } catch (err) {
-      console.error("Sync error:", err);
-      alert("Không thể đồng bộ: " + err.message);
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-      }
+      console.warn("Auto-sync error:", err);
+      if (!silent) alert("Không thể đồng bộ: " + err.message);
     }
   }
+
+  function showAutoSyncToast() {
+    let toast = document.getElementById("patrimoine-auto-sync-toast");
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.id = "patrimoine-auto-sync-toast";
+      toast.style.cssText = `
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.95));
+        color: white;
+        padding: 0.75rem 1.25rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 0 15px rgba(16, 185, 129, 0.4);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        z-index: 9999;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        opacity: 0;
+        transform: translateY(10px);
+        pointer-events: none;
+      `;
+      document.body.appendChild(toast);
+    }
+    toast.innerHTML = `<span>⚡</span> Đã tự động cập nhật dòng tiền BĐS vào Kế hoạch Hưu trí FIRE!`;
+    toast.style.opacity = "1";
+    toast.style.transform = "translateY(0)";
+    setTimeout(() => {
+      if (toast) {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(10px)";
+      }
+    }, 2800);
+  }
+
+  const syncToFire = autoSyncToFire;
 
   // Apartment Modal Handling
   function openApartmentModal(aptName = null) {
@@ -426,6 +884,7 @@
       if (origNameInp) origNameInp.value = aptData.name;
 
       setVal("inp-apt-address", aptData.address || r.address || "");
+      setVal("inp-apt-start-year", aptData.start_year || r.start_year || 2023);
       setVal("inp-apt-surface", aptData.surface || r.surface || 30);
       setVal("inp-apt-typology", aptData.typology || r.typology || "T2 (2 pièces)");
       setVal("inp-apt-dpe", aptData.dpe_rating || r.dpe_rating || "C");
@@ -446,6 +905,7 @@
       if (nameInp) nameInp.value = "";
       if (origNameInp) origNameInp.value = "";
       setVal("inp-apt-address", "");
+      setVal("inp-apt-start-year", 2024);
       setVal("inp-apt-surface", 35);
       setVal("inp-apt-typology", "T2 (2 pièces)");
       setVal("inp-apt-dpe", "C");
@@ -482,36 +942,40 @@
       return;
     }
 
+    const aptParams = {
+      address: getVal("inp-apt-address") || name,
+      start_year: Number(getVal("inp-apt-start-year")) || 2023,
+      surface: Number(getVal("inp-apt-surface")) || 30,
+      typology: getVal("inp-apt-typology") || "T2 (2 pièces)",
+      dpe_rating: getVal("inp-apt-dpe") || "C",
+      district_tier: "Quartier Résidentiel",
+      renovation_state: "Bon état",
+      property_price: Number(getVal("inp-apt-price")) || 90000,
+      property_type: "ancien",
+      auto_calc_notary: true,
+      notary_fees: Number(getVal("inp-apt-notary")) || 6750,
+      renovation_cost: Number(getVal("inp-apt-reno")) || 0,
+      furniture_cost: Number(getVal("inp-apt-furniture")) || 2000,
+      monthly_rent: Number(getVal("inp-apt-rent")) || 600,
+      vacancy_pct: 5.0,
+      annual_coop: Number(getVal("inp-apt-coop")) || 900,
+      annual_tf: Number(getVal("inp-apt-tf")) || 800,
+      annual_pno: Number(getVal("inp-apt-pno")) || 150,
+      annual_mgmt_pct: 0.0,
+      annual_maintenance: 300,
+      auto_calc_bank: true,
+      down_payment_input: Number(getVal("inp-apt-down-payment")) || 8000,
+      loan_duration: Number(getVal("inp-apt-duration")) || 20,
+      annual_interest_rate: Number(getVal("inp-apt-rate")) || 3.6,
+      annual_insurance_rate: Number(getVal("inp-apt-ins-rate")) || 0.3,
+      user_tmi: 30
+    };
+
     const payload = {
       name: name,
       original_name: originalName || undefined,
-      params: {
-        address: getVal("inp-apt-address") || name,
-        surface: Number(getVal("inp-apt-surface")) || 30,
-        typology: getVal("inp-apt-typology") || "T2 (2 pièces)",
-        dpe_rating: getVal("inp-apt-dpe") || "C",
-        district_tier: "Quartier Résidentiel",
-        renovation_state: "Bon état",
-        property_price: Number(getVal("inp-apt-price")) || 90000,
-        property_type: "ancien",
-        auto_calc_notary: true,
-        notary_fees: Number(getVal("inp-apt-notary")) || 6750,
-        renovation_cost: Number(getVal("inp-apt-reno")) || 0,
-        furniture_cost: Number(getVal("inp-apt-furniture")) || 2000,
-        monthly_rent: Number(getVal("inp-apt-rent")) || 600,
-        vacancy_pct: 5.0,
-        annual_coop: Number(getVal("inp-apt-coop")) || 900,
-        annual_tf: Number(getVal("inp-apt-tf")) || 800,
-        annual_pno: Number(getVal("inp-apt-pno")) || 150,
-        annual_mgmt_pct: 0.0,
-        annual_maintenance: 300,
-        auto_calc_bank: true,
-        down_payment_input: Number(getVal("inp-apt-down-payment")) || 8000,
-        loan_duration: Number(getVal("inp-apt-duration")) || 20,
-        annual_interest_rate: Number(getVal("inp-apt-rate")) || 3.6,
-        annual_insurance_rate: Number(getVal("inp-apt-ins-rate")) || 0.3,
-        user_tmi: 30
-      }
+      data: aptParams,
+      params: aptParams
     };
 
     try {
@@ -526,6 +990,7 @@
 
       closeApartmentModal();
       await render();
+      await autoSyncToFire();
     } catch (e) {
       alert(e.message);
     }
@@ -543,6 +1008,7 @@
       if (!res.ok) throw new Error("Lỗi khi xóa căn hộ");
 
       await render();
+      await autoSyncToFire();
     } catch (e) {
       alert(e.message);
     }
@@ -582,6 +1048,7 @@
         }, 1500);
       }
       await render();
+      await autoSyncToFire();
     } catch (e) {
       alert(e.message);
       if (btn) {

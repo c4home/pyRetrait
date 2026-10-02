@@ -2459,7 +2459,8 @@
     updateAll,
     reloadPlansFromBackend: async () => {
       try {
-        const res = await fetch("/api/plans");
+        const headers = window.Auth ? window.Auth.getAuthHeaders() : {};
+        const res = await fetch("/api/plans", { headers });
         if (res.ok) {
           state.plansData = await res.json();
           savePlansToStorage();

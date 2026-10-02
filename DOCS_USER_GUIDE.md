@@ -102,28 +102,31 @@ Hệ thống cho phép bạn mô phỏng nhiều nguồn thu khác nhau có th�
 
 ### Tab 7: Gestion de Patrimoine (`tab-patrimoine`)
 - **Dashboard Tổng Quan Tài Sản Pháp**:
-  - `Tổng giá trị BĐS Pháp`: Theo dõi tổng giá trị các bất động sản sở hữu (ví dụ 293,000 € ≈ 8.06 Tỷ ₫).
-  - `Dư nợ vay ngân hàng`: Theo dõi số nợ thế chấp còn lại (ví dụ 304,491 €).
-  - `Dòng tiền hiện tại (Đang vay)`: Dòng tiền ròng thực tế hàng tháng sau khi trừ tiền trả góp ngân hàng, thuế địa phương và chi phí quản lý (-369 €/tháng - bù nhẹ trong thời gian trả nợ).
-  - `Dòng tiền BĐS (Hết nợ)`: Dòng tiền thụ động thuần túy bùng nổ sau khi trả hết nợ (**+1,401 €/tháng** ≈ 38.5 Triệu ₫/tháng).
+  - `Tổng giá trị BĐS Pháp`: Theo dõi tổng giá trị các bất động sản sở hữu (ví dụ 214,000 € ≈ 5.88 Tỷ ₫).
+  - `Dư nợ vay ngân hàng`: Theo dõi số nợ thế chấp còn lại (ví dụ 220,618 €).
+  - `Dòng tiền hiện tại (Đang vay)`: Dòng tiền ròng thực tế hàng tháng sau khi trừ tiền trả góp ngân hàng, thuế địa phương và chi phí quản lý (-258 €/tháng - bù nhẹ trong thời gian trả nợ).
+  - `Dòng tiền BĐS (Hết nợ)`: Dòng tiền thụ động thuần túy bùng nổ sau khi trả hết nợ (**+1,014 €/tháng** ≈ 27.9 Triệu ₫/tháng).
   - `Lợi nhuận đội xe Turo`: Doanh thu và lợi nhuận ròng từ đội xe cho thuê (+234 €/tháng).
-  - `Dòng tiền thụ động hưu trí`: Tổng tiền tạo ra hàng tháng sau tuổi 50 (**+1,635 €/tháng** ≈ 45.0 Triệu ₫/tháng - thừa sức bao phủ 100% chi phí sống an nhàn tại Việt Nam!).
+  - `Dòng tiền thụ động hưu trí`: Tổng tiền tạo ra hàng tháng sau tuổi 50 (**+1,248 €/tháng** ≈ 34.3 Triệu ₫/tháng - bao phủ sinh hoạt an nhàn tại Việt Nam!).
+- **🎯 Biểu Đồ & Điểm Hòa Vốn Từng Căn Hộ (Break-Even Trajectory)**:
+  - Chọn từng căn hộ hoặc **So sánh tất cả căn hộ** để xem đường cong thu hồi vốn.
+  - **📅 Năm bắt đầu mua**: Đặt mốc thời gian mua nhà để tính toán tiến trình trả nợ gốc chuẩn xác theo từng năm.
+  - **🎯 Hòa vốn tài sản ròng (Equity Break-Even)**: Thời điểm `Giá trị nhà - Nợ vay` vượt qua 100% vốn tự có bỏ ra ban đầu (thường sau 3 - 7 năm).
+  - **💵 Hòa vốn dòng tiền mặt (Cash-on-Cash Break-Even)**: Thời điểm lũy kế tiền thuê ròng thu về bù đắp toàn bộ số tiền tự bỏ ra.
+  - **🏆 Tất toán sạch nợ (Debt Payoff)**: Năm nợ ngân hàng về 0 €, dòng tiền thụ động bùng nổ đạt đỉnh.
 - **Quản Lý Danh Mục Căn Hộ**:
-  - Nhấp nút **➕ Thêm Căn Hộ** để nhập căn hộ mới (tên căn, thành phố, giá mua, tiền vay, lãi suất %, thời hạn vay, tiền thuê tháng, thuế foncière, phí quản lý, chế độ LMNP).
-  - Xem từng thẻ căn hộ với tiến độ trả nợ, dòng tiền theo từng năm và nút chỉnh sửa ✏️ / xóa 🗑️.
-- **⚡ Đồng Bộ Vào Kế Hoạch FIRE (1-Click Sync)**:
-  - Nhấp nút xanh **Đồng Bộ Vào Kế Hoạch FIRE**: Hệ thống sẽ tự động chuyển đổi dòng tiền thuê nhà (giai đoạn đang vay bù lỗ nhẹ và giai đoạn sau khi hết nợ sinh lời lớn) thành các luồng thu nhập chính thức trong kế hoạch FIRE!
+  - Nhấp nút **➕ Thêm Căn Hộ** (nằm ngay cạnh tiêu đề *Danh Mục Căn Hộ Cho Thuê*) để nhập căn hộ mới với trường **📅 Năm bắt đầu mua**, giá mua, vốn tự có, thời hạn vay, lãi suất %, tiền thuê tháng, phí quản lý.
+  - Xem từng thẻ căn hộ với huy hiệu hiển thị mốc thời gian: `📅 Mua: 2022 ➔ Tất toán: 2042`.
+- **⚡ Tự Động Đồng Bộ Vào Kế Hoạch FIRE (Auto-Sync)**:
+  - Hệ thống **tự động 100%** chuyển đổi và cập nhật toàn bộ dòng tiền bất động sản & xe Turo vào luồng thu nhập của kế hoạch FIRE mỗi khi bạn thêm, sửa hoặc xóa căn hộ — bạn không cần phải bấm nút đồng bộ thủ công.
 
 ---
 
 ## 6. Trợ Lý Chiến Lược Gemini AI (AI Advisor)
 
-- Nhấp nút **✨ Gemini AI** màu vàng kim trên thanh menu trên cùng.
-- Cửa sổ phân tích thông minh mở ra:
-  - Tự động đọc dữ liệu tài chính kế hoạch hiện tại (tuổi nghỉ hưu, tài sản, tỷ lệ tiết kiệm, dòng tiền BĐS).
-  - **Nhận xét chuyên sâu từ Google Gemini AI**: Đánh giá tính khả thi, phân tích rủi ro thị trường (SRR), tính toán tuổi nghỉ hưu tối ưu nhất và đưa ra các ví dụ cụ thể, dễ làm theo (tránh thuật ngữ học thuật phức tạp).
-  - Có chế độ tự động chuyển sang **Heuristic Fallback** thông minh nếu mất kết nối hoặc hết hạn mức API, đảm bảo luôn luôn có khuyến nghị tài chính hữu ích.
-  - Nhấp nút **Phân tích lại với AI** bất kỳ lúc nào để nhận đánh giá mới sau khi điều chỉnh các tham số.
+- Tự động đọc dữ liệu tài chính kế hoạch hiện tại (tuổi nghỉ hưu, tài sản, tỷ lệ tiết kiệm, dòng tiền BĐS).
+- **Nhận xét chuyên sâu từ Google Gemini AI**: Đánh giá tính khả thi, phân tích rủi ro thị trường (SRR), tính toán tuổi nghỉ hưu tối ưu nhất và đưa ra các ví dụ cụ thể, dễ làm theo (tránh thuật ngữ học thuật phức tạp).
+- Có chế độ tự động chuyển sang **Heuristic Fallback** thông minh nếu mất kết nối hoặc hết hạn mức API, đảm bảo luôn luôn có khuyến nghị tài chính hữu ích.
 
 ---
 

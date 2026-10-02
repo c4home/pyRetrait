@@ -1107,23 +1107,15 @@
         <div class="advisor-container" style="display: flex; flex-direction: column; gap: 1.5rem;">
           
           <!-- Header Banner & Action Bar -->
+          <!-- Header Banner -->
           <div class="card" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%); border: 1px solid rgba(99, 102, 241, 0.25); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
               <div style="display: flex; align-items: center; gap: 1rem;">
                 <div style="font-size: 2.2rem; background: rgba(99, 102, 241, 0.15); width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid rgba(99, 102, 241, 0.3);">🏢</div>
                 <div>
                   <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #f8fafc;">Bất Động Sản LMNP & Đội Xe Turo</h3>
-                  <p style="margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.875rem;">Mô hình tính toán chi tiết theo luật thuế Pháp (khấu hao LMNP 0% thuế, đòn bẩy ngân hàng, dòng tiền ròng sau khi hết nợ và đội xe Turo).</p>
+                  <p style="margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.875rem;">Mô hình tính toán chi tiết theo luật thuế Pháp (khấu hao LMNP 0% thuế, đòn bẩy ngân hàng, dòng tiền ròng sau khi hết nợ và đội xe Turo) — <span style="color: #34d399; font-weight: 600;">⚡ Tự động đồng bộ vào kế hoạch FIRE</span>.</p>
                 </div>
-              </div>
-              <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-                <span id="patrimoine-sync-badge" class="badge" style="display: none; padding: 0.5rem 0.75rem; font-size: 0.85rem;"></span>
-                <button class="btn btn-secondary" id="btn-add-apartment" style="display: flex; align-items: center; gap: 0.4rem;">
-                  <span>➕</span> Thêm Căn Hộ
-                </button>
-                <button class="btn btn-primary" id="btn-sync-to-fire" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">
-                  <span>⚡</span> Đồng Bộ Vào Kế Hoạch FIRE
-                </button>
               </div>
             </div>
           </div>
@@ -1203,10 +1195,45 @@
             </div>
           </div>
 
+          <!-- Section: Biểu Đồ & Điểm Hòa Vốn Từng Căn Hộ -->
+          <div class="card" style="padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span style="font-size: 1.2rem;">🎯</span>
+                  <h4 style="margin: 0; font-size: 1.05rem; font-weight: 700;">Biểu Đồ & Điểm Hòa Vốn Từng Căn Hộ (Break-Even Trajectory)</h4>
+                </div>
+                <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">
+                  Mô phỏng thời điểm hoàn vốn tự có ban đầu, tiến trình trả nợ gốc và tăng trưởng tài sản ròng theo năm bắt đầu mua.
+                </p>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <label for="sel-breakeven-apt" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Chọn căn hộ:</label>
+                <select id="sel-breakeven-apt" class="form-input" style="width: auto; padding: 0.35rem 0.75rem; font-size: 0.85rem; font-weight: 600; min-width: 200px;">
+                  <!-- Dynamic options -->
+                </select>
+              </div>
+            </div>
+
+            <!-- Dynamic Break-Even Milestone Cards -->
+            <div id="breakeven-milestone-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.75rem; margin-bottom: 1rem;">
+              <!-- Populated dynamically via JS -->
+            </div>
+
+            <div style="height: 320px; position: relative;">
+              <canvas id="chart-patrimoine-breakeven"></canvas>
+            </div>
+          </div>
+
           <!-- Section: Danh Sách Căn Hộ -->
           <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-              <h4 style="margin: 0; font-size: 1.05rem; font-weight: 700;">🏠 Danh Mục Căn Hộ Cho Thuê (LMNP France)</h4>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                <h4 style="margin: 0; font-size: 1.05rem; font-weight: 700;">🏠 Danh Mục Căn Hộ Cho Thuê (LMNP France)</h4>
+                <button class="btn btn-primary btn-sm" id="btn-add-apartment" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.75rem; font-size: 0.85rem; font-weight: 600;">
+                  <span>➕</span> Thêm Căn Hộ
+                </button>
+              </div>
               <span style="font-size: 0.8rem; color: var(--text-muted);">Khấu hao tài sản (Amortissement) miễn thuế thu nhập</span>
             </div>
             <div id="patrimoine-apartments-grid" class="advisor-grid" style="grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));">
@@ -1534,17 +1561,21 @@
           </div>
         </div>
 
-        <h5 style="margin: 0.75rem 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; color: var(--primary);">💰 Giá mua & Chi phí ban đầu</h5>
+        <h5 style="margin: 0.75rem 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; color: var(--primary);">💰 Giá mua & Thời gian bắt đầu</h5>
         <div class="form-row">
-          <div class="form-group col-4">
+          <div class="form-group col-3">
+            <label for="inp-apt-start-year">📅 Năm bắt đầu mua</label>
+            <input type="number" id="inp-apt-start-year" class="form-input" value="2023" min="1990" max="2050">
+          </div>
+          <div class="form-group col-3">
             <label for="inp-apt-price">Giá mua net (€)</label>
             <input type="number" id="inp-apt-price" class="form-input" value="90000" step="1000">
           </div>
-          <div class="form-group col-4">
-            <label for="inp-apt-notary">Phí công chứng Notaire (€)</label>
+          <div class="form-group col-3">
+            <label for="inp-apt-notary">Phí công chứng (€)</label>
             <input type="number" id="inp-apt-notary" class="form-input" value="6750">
           </div>
-          <div class="form-group col-4">
+          <div class="form-group col-3">
             <label for="inp-apt-furniture">Nội thất (€)</label>
             <input type="number" id="inp-apt-furniture" class="form-input" value="2000">
           </div>
@@ -1638,10 +1669,6 @@
         <!-- Pane: Register -->
         <div id="auth-pane-register" style="display: none;">
           <form id="auth-form-register">
-            <div class="form-group" style="margin-bottom: 0.85rem;">
-              <label for="auth-reg-name" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--text-main);">Họ & Tên hiển thị</label>
-              <input type="text" id="auth-reg-name" class="form-input" placeholder="Ví dụ: Hoàng Long" required style="width: 100%; box-sizing: border-box;">
-            </div>
             <div class="form-group" style="margin-bottom: 0.85rem;">
               <label for="auth-reg-email" style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--text-main);">Email</label>
               <input type="email" id="auth-reg-email" class="form-input" placeholder="ten-cua-ban@gmail.com" required style="width: 100%; box-sizing: border-box;">

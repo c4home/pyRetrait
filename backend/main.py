@@ -385,6 +385,8 @@ def _compute_apartment_metrics(name: str, apt: Dict[str, Any]) -> Dict[str, Any]
     
     surface = float(apt.get("surface", 30))
     price_per_m2 = round(price / surface) if surface > 0 else 0
+    start_year = int(apt.get("start_year") or 2023)
+    payoff_year = start_year + dur
     
     return {
         "name": name,
@@ -392,6 +394,8 @@ def _compute_apartment_metrics(name: str, apt: Dict[str, Any]) -> Dict[str, Any]
         "surface": surface,
         "typology": apt.get("typology", "T2"),
         "dpe_rating": apt.get("dpe_rating", "C"),
+        "start_year": start_year,
+        "payoff_year": payoff_year,
         "property_price": round(price),
         "price_per_m2": price_per_m2,
         "notary_fees": round(notary),
@@ -550,7 +554,7 @@ def get_pylocation_data(authorization: Optional[str] = Header(None)):
 def save_pylocation_apartment(payload: Dict[str, Any] = Body(...), authorization: Optional[str] = Header(None)):
     """Save or update an apartment in pyLocation / user account."""
     name = str(payload.get("name", "")).strip()
-    data = payload.get("data", {})
+    data = payload.get("data") or payload.get("params") or {}
     if not name:
         raise HTTPException(status_code=400, detail="Tên căn hộ không được để trống")
     
@@ -561,7 +565,11 @@ def save_pylocation_apartment(payload: Dict[str, Any] = Body(...), authorization
         apts[name] = data
         user_pat["apartments"] = apts
         save_user_patrimoine(user["id"], user_pat)
-        return {"success": True, "message": f"Căn hộ '{name}' đã được lưu vào tài khoản đám mây của bạn!", "apartment": _compute_apartment_metrics(name, data)}
+        try:
+            sync_pylocation_to_fire(authorization=authorization)
+        except Exception as e:
+            logger.warning(f"Auto-sync on save apartment warning: {e}")
+        return {"success": True, "message": f"Căn hộ '{name}' đã được lưu và tự động đồng bộ vào kế hoạch FIRE!", "apartment": _compute_apartment_metrics(name, data)}
 
     # Guest mode
     apts_file = PYLOCATION_DATA_DIR / "saved_apartments.json"
@@ -578,7 +586,12 @@ def save_pylocation_apartment(payload: Dict[str, Any] = Body(...), authorization
     with open(apts_file, "w", encoding="utf-8") as f:
         json.dump(apts, f, ensure_ascii=False, indent=2)
 
-    return {"success": True, "message": f"Căn hộ '{name}' đã được lưu thành công", "apartment": _compute_apartment_metrics(name, data)}
+    try:
+        sync_pylocation_to_fire(authorization=authorization)
+    except Exception as e:
+        logger.warning(f"Auto-sync on save apartment warning: {e}")
+
+    return {"success": True, "message": f"Căn hộ '{name}' đã được lưu và tự động đồng bộ vào kế hoạch FIRE!", "apartment": _compute_apartment_metrics(name, data)}
 
 @app.delete("/api/pylocation/apartment/{name}")
 def delete_pylocation_apartment(name: str, authorization: Optional[str] = Header(None)):
@@ -591,7 +604,11 @@ def delete_pylocation_apartment(name: str, authorization: Optional[str] = Header
             del apts[name]
             user_pat["apartments"] = apts
             save_user_patrimoine(user["id"], user_pat)
-            return {"success": True, "message": f"Đã xóa căn hộ '{name}' khỏi tài khoản của bạn"}
+            try:
+                sync_pylocation_to_fire(authorization=authorization)
+            except Exception as e:
+                logger.warning(f"Auto-sync on delete apartment warning: {e}")
+            return {"success": True, "message": f"Đã xóa căn hộ '{name}' và tự động cập nhật kế hoạch FIRE"}
         raise HTTPException(status_code=404, detail=f"Không tìm thấy căn hộ '{name}'")
 
     apts_file = PYLOCATION_DATA_DIR / "saved_apartments.json"
@@ -605,7 +622,11 @@ def delete_pylocation_apartment(name: str, authorization: Optional[str] = Header
         del apts[name]
         with open(apts_file, "w", encoding="utf-8") as f:
             json.dump(apts, f, ensure_ascii=False, indent=2)
-        return {"success": True, "message": f"Đã xóa căn hộ '{name}'"}
+        try:
+            sync_pylocation_to_fire(authorization=authorization)
+        except Exception as e:
+            logger.warning(f"Auto-sync on delete apartment warning: {e}")
+        return {"success": True, "message": f"Đã xóa căn hộ '{name}' và tự động cập nhật kế hoạch FIRE"}
     else:
         raise HTTPException(status_code=404, detail=f"Không tìm thấy căn hộ '{name}'")
 
@@ -617,12 +638,21 @@ def save_pylocation_turo(payload: Dict[str, Any] = Body(...), authorization: Opt
         user_pat = get_user_patrimoine(user["id"]) or {}
         user_pat["turo"] = payload
         save_user_patrimoine(user["id"], user_pat)
+        try:
+            sync_pylocation_to_fire(authorization=authorization)
+        except Exception as e:
+            logger.warning(f"Auto-sync on save turo warning: {e}")
         return {"success": True, "turo": _compute_turo_metrics(payload)}
 
     turo_file = PYLOCATION_DATA_DIR / "turo_settings.json"
     PYLOCATION_DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(turo_file, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
+
+    try:
+        sync_pylocation_to_fire(authorization=authorization)
+    except Exception as e:
+        logger.warning(f"Auto-sync on save turo warning: {e}")
     return {"success": True, "turo": _compute_turo_metrics(payload)}
 
 @app.post("/api/pylocation/sync-to-fire")
@@ -638,6 +668,7 @@ def sync_pylocation_to_fire(authorization: Optional[str] = Header(None)):
     monthly_rental_cf = summary.get("total_monthly_post_loan_cashflow", 0)
     annual_rental_cf = summary.get("total_annual_post_loan_cashflow", 0)
     turo_annual_cf = turo.get("annual_net_cash_flow", 0)
+    total_properties = summary.get("total_properties", 0)
 
     # Load plans
     plans_data = get_plans(authorization=authorization)
@@ -652,35 +683,38 @@ def sync_pylocation_to_fire(authorization: Optional[str] = Header(None)):
     if not isinstance(plan.get("incomes"), list):
         plan["incomes"] = []
 
-    # 1. Update/Add Real Estate Passive Income
+    # 1. Update/Add/Remove Real Estate Passive Income
     existing_re_idx = -1
     for idx, inc in enumerate(plan["incomes"]):
         if "LMNP" in inc.get("name", "") or "BĐS Cho thuê" in inc.get("name", ""):
             existing_re_idx = idx
             break
 
-    re_income_item = {
-        "name": "🏠 BĐS Cho thuê LMNP Pháp",
-        "amount": annual_rental_cf if annual_rental_cf > 0 else 18000,
-        "startAge": cur_age,
-        "endAge": 85,
-        "growth": 1.5,
-        "taxable": False # LMNP amortized = 0 tax
-    }
-
-    if existing_re_idx >= 0:
-        plan["incomes"][existing_re_idx] = re_income_item
+    if total_properties > 0:
+        re_income_item = {
+            "name": "🏠 BĐS Cho thuê LMNP Pháp",
+            "amount": annual_rental_cf,
+            "startAge": cur_age,
+            "endAge": 85,
+            "growth": 1.5,
+            "taxable": False # LMNP amortized = 0 tax
+        }
+        if existing_re_idx >= 0:
+            plan["incomes"][existing_re_idx] = re_income_item
+        else:
+            plan["incomes"].append(re_income_item)
     else:
-        plan["incomes"].append(re_income_item)
+        if existing_re_idx >= 0:
+            plan["incomes"].pop(existing_re_idx)
 
-    # 2. Update/Add Turo Fleet Passive Income
+    # 2. Update/Add/Remove Turo Fleet Passive Income
+    existing_turo_idx = -1
+    for idx, inc in enumerate(plan["incomes"]):
+        if "Turo" in inc.get("name", "") or "Cho thuê xe" in inc.get("name", ""):
+            existing_turo_idx = idx
+            break
+
     if turo_annual_cf > 0:
-        existing_turo_idx = -1
-        for idx, inc in enumerate(plan["incomes"]):
-            if "Turo" in inc.get("name", "") or "Cho thuê xe" in inc.get("name", ""):
-                existing_turo_idx = idx
-                break
-
         turo_income_item = {
             "name": "🚗 Đội xe Cho thuê Turo",
             "amount": turo_annual_cf,
@@ -689,11 +723,13 @@ def sync_pylocation_to_fire(authorization: Optional[str] = Header(None)):
             "growth": 0.0,
             "taxable": False
         }
-
         if existing_turo_idx >= 0:
             plan["incomes"][existing_turo_idx] = turo_income_item
         else:
             plan["incomes"].append(turo_income_item)
+    else:
+        if existing_turo_idx >= 0:
+            plan["incomes"].pop(existing_turo_idx)
 
     # 3. Synchronize Real Estate Asset Allocation Weight
     if "assetAllocation" in plan:

@@ -62,11 +62,11 @@ const Auth = (function() {
     return data;
   }
 
-  async function register(email, password, name) {
+  async function register(email, password, name = "") {
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name })
+      body: JSON.stringify({ email, password, name: name || email.split("@")[0] })
     });
     const data = await res.json();
     if (!res.ok) {
@@ -158,7 +158,7 @@ const Auth = (function() {
       tabReg?.classList.add("active");
       if (paneLogin) paneLogin.style.display = "none";
       if (paneReg) paneReg.style.display = "block";
-      document.getElementById("auth-reg-name")?.focus();
+      document.getElementById("auth-reg-email")?.focus();
     } else {
       tabReg?.classList.remove("active");
       tabLogin?.classList.add("active");
@@ -277,7 +277,6 @@ const Auth = (function() {
     document.getElementById("auth-form-register")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       clearErrors();
-      const name = document.getElementById("auth-reg-name")?.value.trim();
       const email = document.getElementById("auth-reg-email")?.value.trim();
       const password = document.getElementById("auth-reg-password")?.value;
       const submitBtn = document.getElementById("btn-submit-register");
@@ -297,7 +296,7 @@ const Auth = (function() {
       }
 
       try {
-        await register(email, password, name);
+        await register(email, password);
         closeAuthModal();
         window.location.reload();
       } catch (err) {
