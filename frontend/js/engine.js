@@ -188,7 +188,45 @@ window.RetirementEngine = (function() {
     const baseForex = Number(plan.dualInflation?.eurVndInitialRate) || Number(plan.exchangeRateEurVnd) || 27500;
     const forexDrift = (Number(plan.dualInflation?.eurVndAnnualDrift) || 1.2) / 100.0;
 
+    const startAge = 18;
     const timeline = [];
+
+    // 0. Giai đoạn khởi đầu & tích lũy sớm từ năm 18 tuổi đến trước tuổi hiện tại
+    if (currentAge > startAge) {
+      const pastYears = currentAge - startAge;
+      for (let age = startAge; age < currentAge; age++) {
+        const t = (age - startAge) / pastYears;
+        const pastPortfolio = Math.round(initialSavings * Math.pow(t, 2.2));
+        const pastYear = birthYear + age;
+        const annualInc = Number(plan.annualSavings || 0) + Number(plan.annualExpenses || 15000);
+        const pastIncome = Math.round(annualInc * Math.pow(t, 1.8));
+        const pastExpenses = Math.round(Number(plan.annualExpenses || 15000) * Math.pow(t, 1.5));
+
+        timeline.push({
+          age,
+          year: pastYear,
+          isRetired: false,
+          isPast: true,
+          income: pastIncome,
+          expenses: pastExpenses,
+          mortgagePayment: 0,
+          netCashFlow: pastIncome - pastExpenses,
+          tax: 0,
+          portfolioEnd: pastPortfolio,
+          realPortfolioEnd: pastPortfolio,
+          cumInflation: 1.0,
+          currentInflation: 0.02,
+          eurVndRate: baseForex,
+          homeEquity: 0,
+          remainingDebt: 0,
+          propertyValue: 0,
+          totalNetWorth: pastPortfolio,
+          realTotalNetWorth: pastPortfolio,
+          milestones: (age === startAge) ? ['🌱 18 tuổi'] : []
+        });
+      }
+    }
+
     let portfolio = initialSavings;
     let peakNetWorth = initialSavings;
     let peakAge = currentAge;
@@ -447,10 +485,10 @@ window.RetirementEngine = (function() {
     const safeAnnualSpend = initialRetirePortfolio > 0 ? initialRetirePortfolio * initialSWR : fireTargetNestEgg * 0.04;
     const yearsToFIRE = Math.max(0, retireAge - currentAge);
 
-    // Detect when FIRE Nest Egg is reached
+    // Detect when FIRE Nest Egg is reached (tính từ tuổi hiện tại trở đi)
     let fireAge = null;
     for (let i = 0; i < timeline.length; i++) {
-      if (timeline[i].portfolioEnd >= fireTargetNestEgg && fireAge === null) {
+      if (timeline[i].age >= currentAge && timeline[i].portfolioEnd >= fireTargetNestEgg && fireAge === null) {
         fireAge = timeline[i].age;
         break;
       }
@@ -458,17 +496,29 @@ window.RetirementEngine = (function() {
 
     // Build comprehensive Life Milestones markers
     const cur = plan.currency || 'EUR';
-    const milestones = [
-      {
-        id: 'ms_current',
-        age: currentAge,
-        icon: '📍',
-        name: 'Hiện tại',
-        desc: `Tuổi ${currentAge}: Khởi đầu hành trình tích lũy (${formatCurrency(initialSavings, cur)})`,
-        color: '#38bdf8',
+    const milestones = [];
+
+    if (currentAge > 18) {
+      milestones.push({
+        id: 'ms_age18',
+        age: 18,
+        icon: '🌱',
+        name: '18 tuổi',
+        desc: `Tuổi 18 (${birthYear + 18}): Khởi đầu tuổi trưởng thành`,
+        color: '#94a3b8',
         isSystem: true
-      }
-    ];
+      });
+    }
+
+    milestones.push({
+      id: 'ms_current',
+      age: currentAge,
+      icon: '📍',
+      name: 'Hiện tại',
+      desc: `Tuổi ${currentAge} (${birthYear + currentAge}): Điểm xuất phát hiện tại (${formatCurrency(initialSavings, cur)})`,
+      color: '#38bdf8',
+      isSystem: true
+    });
 
     if (fireAge !== null) {
       milestones.push({

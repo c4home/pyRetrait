@@ -1778,8 +1778,17 @@
 
     proj.timeline.forEach(row => {
       const tr = document.createElement("tr");
+      let statusTag = '';
+      if (row.isPast) {
+        statusTag = '<span style="font-size:0.68rem; padding:1px 5px; border-radius:4px; background:rgba(148,163,184,0.15); color:#94a3b8;">Quá khứ</span>';
+      } else if (row.isRetired) {
+        statusTag = '<span class="summary-status">Hưu</span>';
+      } else if (row.age === (Number(getActivePlan().currentAge) || 29)) {
+        statusTag = '<span class="badge" style="font-size:0.68rem; padding:1px 5px; border-radius:4px; background:rgba(56,189,248,0.2); color:#38bdf8; font-weight:700;">Hiện tại</span>';
+      }
+
       tr.innerHTML = `
-        <td><strong>${row.age} tuổi</strong> <span style="font-size:0.75rem; color:var(--text-muted);">(${row.year})</span> ${row.isRetired ? '<span class="summary-status">Hưu</span>' : ''}</td>
+        <td><strong>${row.age} tuổi</strong> <span style="font-size:0.75rem; color:var(--text-muted);">(${row.year})</span> ${statusTag}</td>
         <td>${window.RetirementEngine.formatCurrency(row.income, state.currency)}</td>
         <td class="text-danger">${window.RetirementEngine.formatCurrency(row.expenses, state.currency)}</td>
         <td class="${row.netCashFlow >= 0 ? 'text-success' : 'text-warning'} font-mono">${window.RetirementEngine.formatCurrency(row.netCashFlow, state.currency)}</td>
