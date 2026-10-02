@@ -85,6 +85,7 @@ DEFAULT_PLANS = {
             "name": "🇫🇷 ➔ 🇻🇳 Kế hoạch Franco-Viet FIRE (Pháp ➔ Việt Nam)",
             "currency": "EUR",
             "currentAge": 29,
+            "birthYear": 1997,
             "retirementAge": 42,
             "lifeExpectancy": 85,
             "currentSavings": 50000,

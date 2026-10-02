@@ -780,6 +780,7 @@ h1, h2, h3, h4, h5, h6 {
   gap: 0.75rem;
 }
 
+.col-4 { flex: 1; min-width: 0; }
 .col-6 { flex: 1; }
 .col-12 { flex: 1; width: 100%; }
 

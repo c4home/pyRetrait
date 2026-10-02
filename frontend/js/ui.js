@@ -421,12 +421,46 @@
     });
 
     // Live Parameter Bindings
-    bindInput("inp-current-age", "currentAge", Number);
     bindInput("inp-retire-age", "retirementAge", Number);
     bindInput("inp-life-expectancy", "lifeExpectancy", Number);
     bindInput("inp-inflation", "inflationRate", Number);
     bindInput("inp-current-savings", "currentSavings", Number);
     bindInput("inp-savings-rate", "savingsRate", Number);
+
+    // Bidirectional sync: Năm sinh <-> Tuổi hiện tại
+    const inpBirthYear = document.getElementById("inp-birth-year");
+    const inpCurrentAge = document.getElementById("inp-current-age");
+    const currentCalYear = new Date().getFullYear();
+
+    if (inpBirthYear) {
+      inpBirthYear.addEventListener("input", (e) => {
+        const bYear = Number(e.target.value);
+        if (bYear >= 1930 && bYear <= currentCalYear) {
+          const plan = getActivePlan();
+          plan.birthYear = bYear;
+          const calculatedAge = currentCalYear - bYear;
+          plan.currentAge = calculatedAge;
+          if (inpCurrentAge) inpCurrentAge.value = calculatedAge;
+          savePlansToStorage();
+          updateAll();
+        }
+      });
+    }
+
+    if (inpCurrentAge) {
+      inpCurrentAge.addEventListener("input", (e) => {
+        const age = Number(e.target.value);
+        if (age >= 10 && age <= 100) {
+          const plan = getActivePlan();
+          plan.currentAge = age;
+          const calculatedBirthYear = currentCalYear - age;
+          plan.birthYear = calculatedBirthYear;
+          if (inpBirthYear) inpBirthYear.value = calculatedBirthYear;
+          savePlansToStorage();
+          updateAll();
+        }
+      });
+    }
 
     const sliderSavingsRate = document.getElementById("inp-savings-rate");
     if (sliderSavingsRate) {
@@ -456,6 +490,7 @@
         const proj = window.RetirementEngine.runProjection(plan);
         const optAge = proj.fireAge || 42;
         plan.retirementAge = optAge;
+        syncSalaryStreamsWithRetireAge(plan);
         const inp = document.getElementById("inp-retire-age");
         if (inp) inp.value = optAge;
         savePlansToStorage();
@@ -653,6 +688,17 @@
     });
   }
 
+  function syncSalaryStreamsWithRetireAge(plan) {
+    if (!plan || !Array.isArray(plan.incomes)) return;
+    const rAge = Number(plan.retirementAge) || 42;
+    plan.incomes.forEach(stream => {
+      const name = stream.name || "";
+      if (stream.isSalary || (/lương|salary|impôt|impot/i).test(name)) {
+        stream.endAge = rAge;
+      }
+    });
+  }
+
   function bindInput(id, fieldPath, typeConverter) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -666,6 +712,10 @@
         plan[parts[0]][parts[1]] = val;
       } else {
         plan[fieldPath] = val;
+      }
+
+      if (fieldPath === "retirementAge") {
+        syncSalaryStreamsWithRetireAge(plan);
       }
       
       savePlansToStorage();
@@ -709,8 +759,13 @@
     const p = getActivePlan();
     if (!p) return;
 
+    const curYear = new Date().getFullYear();
+    const bYear = Number(p.birthYear) || (curYear - (Number(p.currentAge) || 29));
+    p.birthYear = bYear;
+    setVal("inp-birth-year", bYear);
     setVal("inp-current-age", p.currentAge);
     setVal("inp-retire-age", p.retirementAge);
+    syncSalaryStreamsWithRetireAge(p);
     setVal("inp-life-expectancy", p.lifeExpectancy);
     const annualExp = p.annualExpenses !== undefined ? p.annualExpenses : (state.currency === 'EUR' ? 15000 : state.currency === 'USD' ? 18000 : 240000000);
     const annualSav = Number(p.annualSavings) || 0;
@@ -1165,6 +1220,12 @@
       plan.incomes.push(streamData);
     }
 
+    if (/lương|salary|impôt|impot/i.test(name)) {
+      plan.retirementAge = endAge;
+      setVal("inp-retire-age", endAge);
+      syncSalaryStreamsWithRetireAge(plan);
+    }
+
     syncSavingsAndExpensesFromRate(plan);
     savePlansToStorage();
     closeIncomeModal();
@@ -1347,10 +1408,12 @@
     }
 
     proj.milestones.forEach(m => {
+      const p = proj.timeline.find(item => item.age === m.age);
+      const yearStr = p ? ` (${p.year})` : '';
       const chip = document.createElement("div");
       chip.className = "milestone-chip";
       chip.style.setProperty("--chip-color", m.color || "var(--primary)");
-      chip.title = m.desc || `${m.icon} ${m.name} (Tuổi ${m.age})`;
+      chip.title = m.desc || `${m.icon} ${m.name} (Tuổi ${m.age}${yearStr})`;
       
       let amtHtml = "";
       if (m.amount) {
@@ -1360,7 +1423,7 @@
 
       chip.innerHTML = `
         <span class="milestone-chip-icon">${m.icon}</span>
-        <span class="milestone-chip-age">${m.age}t</span>
+        <span class="milestone-chip-age">${m.age}t${yearStr}</span>
         <span class="milestone-chip-label">${m.name}</span>
         ${amtHtml}
       `;
@@ -1444,7 +1507,7 @@
   // -------------------------------------------------------------
   function renderNetWorthChart(proj) {
     const ctx = document.getElementById("chart-networth").getContext("2d");
-    const labels = proj.timeline.map(p => `Tuổi ${p.age}`);
+    const labels = proj.timeline.map(p => [`${p.age}t`, `${p.year}`]);
     const data = proj.timeline.map(p => state.viewMode === "nominal" ? p.portfolioEnd : p.realPortfolioEnd);
 
     if (state.charts.networth) {
@@ -1501,7 +1564,7 @@
           ctx.stroke();
 
           // Top floating milestone pin badge
-          const pillW = 46;
+          const pillW = 66;
           const pillH = 19;
           const sameAgeMilestones = proj.milestones.filter(item => item.age === m.age);
           const sameAgeIdx = sameAgeMilestones.findIndex(item => item.id === m.id);
@@ -1523,11 +1586,13 @@
           ctx.stroke();
 
           // Text inside badge
+          const p = proj.timeline.find(item => item.age === m.age);
+          const yearBadge = p ? ` (${p.year})` : '';
           ctx.font = '600 10px Inter, sans-serif';
           ctx.fillStyle = m.color || '#38bdf8';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(`${m.icon} ${m.age}t`, pillX + pillW / 2, pillY + pillH / 2);
+          ctx.fillText(`${m.icon} ${m.age}t${yearBadge}`, pillX + pillW / 2, pillY + pillH / 2);
         });
         ctx.restore();
       }
@@ -1571,9 +1636,9 @@
                 const p = proj.timeline[idx];
                 const m = milestoneMap.get(p.age);
                 if (m) {
-                  return `Tuổi ${p.age} • ${m.icon} ${m.name}`;
+                  return `Tuổi ${p.age} (Năm ${p.year}) • ${m.icon} ${m.name}`;
                 }
-                return `Tuổi ${p.age}`;
+                return `Tuổi ${p.age} (Năm ${p.year})`;
               },
               label: (item) => {
                 const val = window.RetirementEngine.formatCurrency(item.raw, state.currency, false);
@@ -1636,7 +1701,7 @@
 
   function renderCashFlowChart(proj) {
     const ctx = document.getElementById("chart-cashflow").getContext("2d");
-    const labels = proj.timeline.map(p => p.age);
+    const labels = proj.timeline.map(p => [`${p.age}t`, `${p.year}`]);
     const incomes = proj.timeline.map(p => p.income);
     const expenses = proj.timeline.map(p => p.expenses);
 
@@ -1670,6 +1735,11 @@
           legend: { labels: { color: '#94a3b8', font: { size: 11 } } },
           tooltip: {
             callbacks: {
+              title: (items) => {
+                const idx = items[0].dataIndex;
+                const p = proj.timeline[idx];
+                return p ? `Tuổi ${p.age} (Năm ${p.year})` : '';
+              },
               label: (item) => ` ${item.dataset.label}: ${window.RetirementEngine.formatCurrency(item.raw, state.currency, false)}`
             }
           }
@@ -1709,7 +1779,7 @@
     proj.timeline.forEach(row => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td><strong>${row.age} tuổi</strong> ${row.isRetired ? '<span class="summary-status">Hưu</span>' : ''}</td>
+        <td><strong>${row.age} tuổi</strong> <span style="font-size:0.75rem; color:var(--text-muted);">(${row.year})</span> ${row.isRetired ? '<span class="summary-status">Hưu</span>' : ''}</td>
         <td>${window.RetirementEngine.formatCurrency(row.income, state.currency)}</td>
         <td class="text-danger">${window.RetirementEngine.formatCurrency(row.expenses, state.currency)}</td>
         <td class="${row.netCashFlow >= 0 ? 'text-success' : 'text-warning'} font-mono">${window.RetirementEngine.formatCurrency(row.netCashFlow, state.currency)}</td>
@@ -1758,8 +1828,10 @@
       }
 
       const currentAge = Number(plan.currentAge) || 29;
+      const curYear = new Date().getFullYear();
+      const bYear = Number(plan.birthYear) || (curYear - currentAge);
       const labels = (datasets[0] && datasets[0].data) 
-        ? datasets[0].data.map((_, i) => `Tuổi ${currentAge + i}`)
+        ? datasets[0].data.map((_, i) => [`${currentAge + i}t`, `${bYear + currentAge + i}`])
         : [];
 
       state.charts.withdrawals = new Chart(ctx, {
@@ -1856,7 +1928,9 @@
       state.charts.tax.destroy();
     }
 
-    const labels = rothRes.schedule.map(s => `Tuổi ${s.age}`);
+    const curYear = new Date().getFullYear();
+    const bYear = Number(plan.birthYear) || (curYear - (Number(plan.currentAge) || 29));
+    const labels = rothRes.schedule.map(s => [`${s.age}t`, `${bYear + s.age}`]);
     const conversionAmounts = rothRes.schedule.map(s => s.conversionAmount);
     const taxSaved = rothRes.schedule.map(s => s.cumulativeSavings);
 
@@ -1931,10 +2005,13 @@
       state.charts.mc.destroy();
     }
 
+    const curYear = new Date().getFullYear();
+    const bYear = Number(plan.birthYear) || (curYear - (Number(plan.currentAge) || 29));
+
     state.charts.mc = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: res.ageAxis.map(a => `Tuổi ${a}`),
+        labels: res.ageAxis.map(a => [`${a}t`, `${bYear + a}`]),
         datasets: [
           {
             label: '90th Percentile (Thị trường Bùng nổ)',
@@ -2030,7 +2107,7 @@
     state.charts.scenarios = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: evaluation.baselineProjection.timeline.map(p => `Tuổi ${p.age}`),
+        labels: evaluation.baselineProjection.timeline.map(p => [`${p.age}t`, `${p.year}`]),
         datasets: [
           {
             label: 'Kịch bản Cơ sở (Baseline)',
@@ -2091,7 +2168,7 @@
     state.charts.smile = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: retireAges.map(p => `Tuổi ${p.age}`),
+        labels: retireAges.map(p => [`${p.age}t`, `${p.year}`]),
         datasets: [{
           label: `Chi tiêu Thực tế Điều chỉnh (Spending Smile - ${window.RetirementEngine.getCurrencySymbol(state.currency)})`,
           data: retireAges.map(p => p.expenses),

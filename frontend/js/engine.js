@@ -147,9 +147,11 @@ window.RetirementEngine = (function() {
 
   // Calculate year-by-year cash flows and net worth trajectory
   function runProjection(plan, overrideScenario = null) {
-    const currentAge = Number(plan.currentAge) || 32;
-    const retireAge = Number(plan.retirementAge) || 45;
+    const currentAge = Number(plan.currentAge) || 29;
+    const retireAge = Number(plan.retirementAge) || 42;
     const lifeExpectancy = Number(plan.lifeExpectancy) || 85;
+    const currentCalendarYear = new Date().getFullYear();
+    const birthYear = Number(plan.birthYear) || (currentCalendarYear - currentAge);
 
     // 1. Asset Allocation & Weighted Returns
     let returnPre = 0.08;
@@ -220,7 +222,9 @@ window.RetirementEngine = (function() {
       let annualIncome = 0;
       if (Array.isArray(plan.incomes)) {
         plan.incomes.forEach(stream => {
-          if (age >= stream.startAge && age <= stream.endAge) {
+          const isSalary = stream.isSalary || (stream.name && (/lương|salary|impôt|impot/i).test(stream.name));
+          const effectiveEndAge = isSalary ? retireAge : (Number(stream.endAge) || retireAge);
+          if (age >= stream.startAge && age <= effectiveEndAge) {
             const streamGrowth = (Number(stream.growth) || 4.0) / 100.0;
             const streamYearsActive = age - stream.startAge;
             const streamVal = (Number(stream.amount) || 0) * Math.pow(1.0 + streamGrowth, streamYearsActive);
@@ -412,8 +416,11 @@ window.RetirementEngine = (function() {
       totalLifetimeIncome += annualIncome;
       totalLifetimeExpenses += currentExpenses;
 
+      const calendarYear = birthYear + age;
+
       timeline.push({
         age,
+        year: calendarYear,
         isRetired,
         income: annualIncome,
         expenses: currentExpenses,
@@ -588,6 +595,8 @@ window.RetirementEngine = (function() {
       mortgageSchedule,
       weightedReturnPre,
       weightedReturnPost,
+      birthYear,
+      currentCalendarYear,
       totalWaterfallTaxSaved
     };
   }

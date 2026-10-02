@@ -236,17 +236,21 @@
               <h3 class="card-title">⚙️ Thông số Cơ bản & Dòng tiền</h3>
               
               <div class="form-row">
-                <div class="form-group col-6">
-                  <label for="inp-current-age">Tuổi hiện tại</label>
-                  <input type="number" id="inp-current-age" min="18" max="80" value="32" class="form-input">
+                <div class="form-group col-4">
+                  <label for="inp-birth-year">Năm sinh</label>
+                  <input type="number" id="inp-birth-year" min="1940" max="2025" value="1997" class="form-input" placeholder="1997">
                 </div>
-                <div class="form-group col-6">
+                <div class="form-group col-4">
+                  <label for="inp-current-age">Tuổi hiện tại</label>
+                  <input type="number" id="inp-current-age" min="18" max="80" value="29" class="form-input">
+                </div>
+                <div class="form-group col-4">
                   <div class="field-header">
                     <label for="inp-retire-age">Tuổi nghỉ hưu</label>
                   </div>
                   <input type="number" id="inp-retire-age" min="25" max="80" value="42" class="form-input">
-                  <div class="input-hint text-accent" id="hint-optimal-retire-age" style="margin-top: 4px; font-size: 0.76rem; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Nhấp để áp dụng tuổi tối ưu">
-                    <span>✨ Gemini đề xuất:</span> <strong id="lbl-optimal-age" style="text-decoration: underline;">42 tuổi</strong>
+                  <div class="input-hint text-accent" id="hint-optimal-retire-age" style="margin-top: 4px; font-size: 0.72rem; cursor: pointer; display: flex; align-items: center; gap: 2px;" title="Nhấp để áp dụng tuổi tối ưu">
+                    <span>✨ Gợi ý:</span> <strong id="lbl-optimal-age" style="text-decoration: underline;">42t</strong>
                   </div>
                 </div>
               </div>
