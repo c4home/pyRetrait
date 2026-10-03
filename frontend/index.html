@@ -425,6 +425,15 @@
                       <span>Có khoản vay mua BĐS (Crédit Immobilier)</span>
                     </label>
                   </div>
+                  <div class="form-group">
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="chk-mortgage-from-patrimoine" checked>
+                      <span>🔗 Tự động lấy từ Gestion de Patrimoine</span>
+                    </label>
+                    <div class="input-hint" id="hint-mortgage-source" style="margin-top: 0.25rem;"></div>
+                  </div>
+                  <div id="mortgage-patrimoine-loans" style="display: none; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem;"></div>
+                  <div id="mortgage-manual-fields">
                   <div class="form-row">
                     <div class="form-group col-6">
                       <label for="inp-mortgage-prop-val">Giá trị BĐS hiện tại (<span id="unit-mortgage-prop">€</span>)</label>
@@ -448,6 +457,7 @@
                       <label for="inp-mortgage-start">Bắt đầu ở tuổi</label>
                       <input type="number" id="inp-mortgage-start" value="29" min="18" max="70" class="form-input">
                     </div>
+                  </div>
                   </div>
                   <div class="input-hint" id="hint-mortgage-summary">
                     Góp: <strong id="lbl-mortgage-monthly">€824/tháng</strong> • Vốn sở hữu hiện tại: <strong id="lbl-mortgage-equity">€40.0k</strong> • Tất toán tuổi <strong id="lbl-mortgage-payoff">49</strong>.

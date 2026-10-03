@@ -722,11 +722,7 @@ def sync_pylocation_to_fire(authorization: Optional[str] = Header(None)):
         if existing_turo_idx >= 0:
             plan["incomes"].pop(existing_turo_idx)
 
-    # 3. Synchronize Real Estate Asset Allocation Weight
-    if "assetAllocation" in plan:
-        plan["assetAllocation"]["realEstate"] = 30
-        plan["assetAllocation"]["stocks"] = 55
-        plan["assetAllocation"]["bonds"] = 15
+    # 3. Asset allocation is left untouched: the user controls it with the sliders.
 
     # Save plans
     save_plans(plans_data, authorization=authorization)

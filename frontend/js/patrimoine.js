@@ -796,25 +796,15 @@
   }
 
   // Auto-Sync to FIRE Handler
+  // Runs in the browser: pulls apartments/Turo data and updates the active plan's
+  // mortgage loans + LMNP/Turo income streams, then saves (localStorage, + cloud if logged in).
   async function autoSyncToFire(silent = true) {
     try {
-      const headers = window.Auth ? window.Auth.getAuthHeaders() : { "Content-Type": "application/json" };
-      const res = await fetch("/api/pylocation/sync-to-fire", {
-        method: "POST",
-        headers
-      });
-
-      if (!res.ok) {
-        throw new Error(`HTTP Error: ${res.status}`);
+      if (!window.RetirementApp || typeof window.RetirementApp.syncFromPatrimoine !== "function") {
+        throw new Error("RetirementApp chưa sẵn sàng");
       }
-
-      const result = await res.json();
-
-      // Reload RetirementApp to reflect the new passive income streams immediately
-      if (window.RetirementApp && typeof window.RetirementApp.reloadPlansFromBackend === "function") {
-        await window.RetirementApp.reloadPlansFromBackend();
-      }
-
+      const ok = await window.RetirementApp.syncFromPatrimoine();
+      if (!ok) throw new Error("Không tải được dữ liệu Gestion de Patrimoine");
       showAutoSyncToast();
     } catch (err) {
       console.warn("Auto-sync error:", err);

@@ -29,6 +29,8 @@
   async function initApp() {
     loadTheme();
     await loadInitialPlans();
+    // Pull mortgage loans + LMNP/Turo incomes from Gestion de Patrimoine automatically
+    await syncFromPatrimoine({ rerender: false });
     bindEvents();
     renderPlanSelector();
     renderActivePlanInputs();
@@ -731,6 +733,17 @@
         });
       }
     });
+    const chkMortPat = document.getElementById('chk-mortgage-from-patrimoine');
+    if (chkMortPat) {
+      chkMortPat.addEventListener('change', async () => {
+        if (chkMortPat.checked) {
+          await syncFromPatrimoine({ rerender: false });
+        }
+        updateMortgageUI();
+        savePlansToStorage();
+        updateAll();
+      });
+    }
   }
 
   function syncSalaryStreamsWithRetireAge(plan) {
@@ -902,6 +915,8 @@
       setVal("inp-mortgage-term", p.mortgage.loanTermYears || 20);
       setVal("inp-mortgage-start", p.mortgage.startAge || (p.currentAge || 29));
     }
+    const chkMortPat = document.getElementById("chk-mortgage-from-patrimoine");
+    if (chkMortPat) chkMortPat.checked = p.mortgageFromPatrimoine !== false;
     updateMortgageUI(p);
 
     renderIncomeStreamsList();
@@ -982,9 +997,147 @@
     p.dualInflation.eurVndAnnualDrift = drift;
   }
 
+  // -------------------------------------------------------------
+  // Gestion de Patrimoine → FIRE plan bridge (runs in the browser so it
+  // works identically for guests (localStorage) and logged-in users (cloud)).
+  // -------------------------------------------------------------
+  // Patrimoine data is always denominated in EUR; convert to the plan currency.
+  function eurToPlanFactor(p) {
+    const cur = (p && p.currency) || state.currency || 'EUR';
+    if (cur === 'VND') return Number(p?.dualInflation?.eurVndInitialRate) || 27500;
+    if (cur === 'USD') return 1.10;
+    return 1;
+  }
+
+  // Raw loans (EUR) extracted from the apartments of Gestion de Patrimoine
+  function extractPatrimoineLoansEur(p, data) {
+    if (!data || !Array.isArray(data.apartments)) return null;
+    const curYear = new Date().getFullYear();
+    const bYear = Number(p.birthYear) || (curYear - (Number(p.currentAge) || 29));
+    return data.apartments
+      .filter(a => Number(a.loan_amount) > 0)
+      .map(a => ({
+        name: a.name || a.address || 'Căn hộ',
+        loanAmount: Number(a.loan_amount) || 0,
+        interestRate: Number(a.annual_interest_rate) || 0,
+        insuranceRate: Number(a.annual_insurance_rate) || 0,
+        loanTermYears: Number(a.loan_duration) || 20,
+        startYear: Number(a.start_year) || curYear,
+        startAge: (Number(a.start_year) || curYear) - bYear,
+        propertyValue: Number(a.property_price) || 0,
+        monthlyPaymentEur: Number(a.monthly_loan_payment) || 0
+      }));
+  }
+
+  function buildPatrimoineLoans(p) {
+    const eurLoans = Array.isArray(p.mortgage?.patrimoineLoansEur) ? p.mortgage.patrimoineLoansEur : [];
+    const f = eurToPlanFactor(p);
+    const curYear = new Date().getFullYear();
+    const bYear = Number(p.birthYear) || (curYear - (Number(p.currentAge) || 29));
+    return eurLoans.map(l => ({
+      ...l,
+      // Recompute start age in case the birth year was edited after the sync
+      startAge: (Number(l.startYear) || curYear) - bYear,
+      loanAmount: Math.round(l.loanAmount * f),
+      propertyValue: Math.round(l.propertyValue * f),
+      propertyAppreciation: 2.5
+    }));
+  }
+
+  // Apply patrimoine data to a plan: mortgage loans + LMNP / Turo income streams
+  function applyPatrimoineToPlan(p, data) {
+    if (!p || !data) return;
+    const eurLoans = extractPatrimoineLoansEur(p, data);
+    if (eurLoans) {
+      p.mortgage = p.mortgage || {};
+      p.mortgage.patrimoineLoansEur = eurLoans;
+    }
+
+    const f = eurToPlanFactor(p);
+    const round = (v) => p.currency === 'VND' ? Math.round((v * f) / 100000) * 100000 : Math.round(v * f);
+    const summary = data.summary || {};
+    const curAge = Number(p.currentAge) || 29;
+    const retireAge = Number(p.retirementAge) || 42;
+    if (!Array.isArray(p.incomes)) p.incomes = [];
+
+    // LMNP rental income (same rule as the former server-side sync)
+    const reIdx = p.incomes.findIndex(inc => (inc.name || '').includes('LMNP') || (inc.name || '').includes('BĐS Cho thuê'));
+    if ((summary.total_properties || 0) > 0) {
+      const item = { name: '🏠 BĐS Cho thuê LMNP Pháp', amount: round(summary.total_annual_post_loan_cashflow || 0), startAge: curAge, endAge: 85, growth: 1.5, taxable: false };
+      if (reIdx >= 0) p.incomes[reIdx] = { ...p.incomes[reIdx], ...item }; else p.incomes.push(item);
+    } else if (reIdx >= 0) {
+      p.incomes.splice(reIdx, 1);
+    }
+
+    // Turo fleet income
+    const turoAnnual = Number(data.turo?.annual_net_cash_flow) || 0;
+    const turoIdx = p.incomes.findIndex(inc => (inc.name || '').includes('Turo') || (inc.name || '').includes('Cho thuê xe'));
+    if (turoAnnual > 0) {
+      const item = { name: '🚗 Đội xe Cho thuê Turo', amount: round(turoAnnual), startAge: curAge, endAge: Math.min(curAge + 10, retireAge), growth: 0.0, taxable: false };
+      if (turoIdx >= 0) p.incomes[turoIdx] = { ...p.incomes[turoIdx], ...item }; else p.incomes.push(item);
+    } else if (turoIdx >= 0) {
+      p.incomes.splice(turoIdx, 1);
+    }
+  }
+
+  async function fetchPatrimoineData() {
+    try {
+      const headers = window.Auth ? window.Auth.getAuthHeaders() : { "Content-Type": "application/json" };
+      const res = await fetch("/api/pylocation/data", { headers });
+      if (res.ok) {
+        state.patrimoineData = await res.json();
+        return state.patrimoineData;
+      }
+    } catch (e) {
+      console.warn("Không tải được dữ liệu Gestion de Patrimoine:", e);
+    }
+    return null;
+  }
+
+  // Fetch latest patrimoine data and push it into the active plan
+  async function syncFromPatrimoine({ rerender = true } = {}) {
+    const data = await fetchPatrimoineData();
+    const p = getActivePlan();
+    if (!data || !p) return false;
+    applyPatrimoineToPlan(p, data);
+    savePlansToStorage();
+    if (rerender) {
+      renderActivePlanInputs();
+      updateAll();
+    }
+    return true;
+  }
+
+  function renderPatrimoineLoansList(p, loans, sched) {
+    const box = document.getElementById("mortgage-patrimoine-loans");
+    if (!box) return;
+    if (!loans.length) { box.innerHTML = ""; return; }
+    const cur = state.currency;
+    const fmt = (v) => window.RetirementEngine.formatCurrency(v, cur);
+    const curAge = Number(p.currentAge) || 29;
+    box.innerHTML = loans.map((l, i) => {
+      const part = sched && sched.parts ? sched.parts[i] : null;
+      const row = part ? part.schedule[curAge] : null;
+      const payoffAge = l.startAge + l.loanTermYears;
+      const status = row && row.active
+        ? `Góp <strong>${fmt(row.monthlyPayment)}/tháng</strong> • Còn nợ ${fmt(row.remainingDebt)}`
+        : (curAge < l.startAge ? `Bắt đầu năm ${l.startYear}` : `✓ Đã tất toán`);
+      return `
+        <div style="background: rgba(30, 41, 59, 0.55); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.5rem 0.65rem; font-size: 0.76rem; line-height: 1.45;">
+          <div style="font-weight: 700; color: var(--text-main);">🏢 ${l.name}</div>
+          <div style="color: var(--text-muted);">Vay gốc ${fmt(l.loanAmount)} • ${l.interestRate}% + BH ${l.insuranceRate}% • ${l.loanTermYears} năm (${l.startYear} → ${l.startYear + l.loanTermYears}, tuổi ${l.startAge} → ${payoffAge})</div>
+          <div style="color: var(--text-muted);">${status}</div>
+        </div>`;
+    }).join("");
+  }
+
   function updateMortgageUI(p) {
     if (!p) p = getActivePlan();
     const chk = document.getElementById("chk-mortgage-enabled");
+    const chkPat = document.getElementById("chk-mortgage-from-patrimoine");
+    const usePat = chkPat ? chkPat.checked : (p.mortgageFromPatrimoine !== false);
+    p.mortgageFromPatrimoine = usePat;
+
     const propVal = Number(document.getElementById("inp-mortgage-prop-val")?.value) || 200000;
     const loanAmt = Number(document.getElementById("inp-mortgage-loan")?.value) || 160000;
     const rate = Number(document.getElementById("inp-mortgage-rate")?.value) || 2.2;
@@ -997,6 +1150,7 @@
     if (unitProp) unitProp.innerText = curSymbol;
     if (unitLoan) unitLoan.innerText = curSymbol;
 
+    const patrimoineLoansEur = p.mortgage?.patrimoineLoansEur || [];
     const mortConfig = {
       enabled: chk ? chk.checked : true,
       propertyValue: propVal,
@@ -1004,20 +1158,51 @@
       interestRate: rate,
       loanTermYears: term,
       startAge: startAge,
-      propertyAppreciation: 2.5
+      propertyAppreciation: 2.5,
+      patrimoineLoansEur
     };
     p.mortgage = mortConfig;
 
-    const sched = window.RetirementEngine.calculateMortgageSchedule(mortConfig, p.currentAge || 29, p.lifeExpectancy || 85);
+    const patLoans = usePat ? buildPatrimoineLoans(p) : [];
+    const fromPat = patLoans.length > 0;
+    if (fromPat) {
+      mortConfig.source = 'patrimoine';
+      mortConfig.loans = patLoans;
+    }
+
+    // Toggle manual inputs vs. synced list
+    const manualBox = document.getElementById("mortgage-manual-fields");
+    const listBox = document.getElementById("mortgage-patrimoine-loans");
+    const hintSrc = document.getElementById("hint-mortgage-source");
+    if (manualBox) manualBox.style.display = fromPat ? "none" : "block";
+    if (listBox) listBox.style.display = fromPat ? "flex" : "none";
+    if (hintSrc) {
+      if (fromPat) {
+        const totalLoan = patLoans.reduce((s, l) => s + l.loanAmount, 0);
+        hintSrc.innerHTML = `✓ Đã lấy <strong>${patLoans.length} khoản vay</strong> từ Gestion de Patrimoine (tổng vay gốc ${window.RetirementEngine.formatCurrency(totalLoan, state.currency)}). Sửa khoản vay ở tab Gestion de Patrimoine.`;
+      } else if (usePat) {
+        hintSrc.innerText = "Chưa có căn hộ nào có khoản vay trong Gestion de Patrimoine — đang dùng số liệu nhập tay bên dưới.";
+      } else {
+        hintSrc.innerText = "Đang dùng số liệu nhập tay.";
+      }
+    }
+
+    const curAge = Number(p.currentAge) || 29;
+    const sched = window.RetirementEngine.calculateMortgageSchedule(mortConfig, curAge, p.lifeExpectancy || 85);
+    renderPatrimoineLoansList(p, patLoans, sched);
+
     const badgeStatus = document.getElementById("badge-mortgage-status");
     const lblMonthly = document.getElementById("lbl-mortgage-monthly");
     const lblEquity = document.getElementById("lbl-mortgage-equity");
     const lblPayoff = document.getElementById("lbl-mortgage-payoff");
 
     if (sched && chk && chk.checked) {
-      const monthlyStr = `${curSymbol}${sched.monthlyPayment.toLocaleString()}/tháng`;
-      const equityStr = window.RetirementEngine.formatCurrency(Math.max(0, propVal - loanAmt), state.currency);
-      const payoffAge = startAge + term;
+      const monthlyStr = `${window.RetirementEngine.formatCurrency(sched.monthlyPayment, state.currency)}/tháng`;
+      const equityVal = fromPat
+        ? (sched.schedule[curAge]?.homeEquity || 0)
+        : Math.max(0, propVal - loanAmt);
+      const equityStr = window.RetirementEngine.formatCurrency(equityVal, state.currency);
+      const payoffAge = fromPat ? sched.endAge : startAge + term;
 
       if (badgeStatus) badgeStatus.innerText = monthlyStr;
       if (lblMonthly) lblMonthly.innerText = monthlyStr;
@@ -2613,9 +2798,15 @@
     getActivePlan,
     getCurrency: () => state.currency,
     updateAll,
+    syncFromPatrimoine,
     reloadPlansFromBackend: async () => {
+      // Guests keep their plans in this browser only: never replace them with server defaults
+      if (!(window.Auth && window.Auth.isLoggedIn())) {
+        await syncFromPatrimoine();
+        return;
+      }
       try {
-        const headers = window.Auth ? window.Auth.getAuthHeaders() : {};
+        const headers = window.Auth.getAuthHeaders();
         const res = await fetch("/api/plans", { headers });
         if (res.ok) {
           state.plansData = await res.json();

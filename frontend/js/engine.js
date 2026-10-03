@@ -58,32 +58,95 @@ window.RetirementEngine = (function() {
     return Math.round((weighted + (rebalanceBonus || 0)) * 100) / 100;
   }
 
-  // Calculate full standard amortization schedule and home equity trajectory
+  // Calculate full standard amortization schedule and home equity trajectory.
+  // Supports either a single manual loan, or `mortgage.loans` (an array of loans,
+  // e.g. one per apartment synced from Gestion de Patrimoine) which are summed per age.
   function calculateMortgageSchedule(mortgage, currentAge, lifeExpectancy) {
     if (!mortgage || mortgage.enabled === false) return null;
+    if (Array.isArray(mortgage.loans) && mortgage.loans.length > 0) {
+      return calculateCombinedMortgageSchedule(mortgage.loans, currentAge, lifeExpectancy);
+    }
+    return calculateSingleMortgageSchedule(mortgage, currentAge, lifeExpectancy);
+  }
+
+  function calculateCombinedMortgageSchedule(loans, currentAge, lifeExpectancy) {
+    const parts = loans
+      .map(l => calculateSingleMortgageSchedule(l, currentAge, lifeExpectancy))
+      .filter(Boolean);
+    if (parts.length === 0) return null;
+
+    const fields = ['monthlyPayment', 'annualPayment', 'interestPaid', 'principalPaid', 'remainingDebt', 'propertyValue', 'homeEquity'];
+    const schedule = {};
+    for (let age = currentAge; age <= lifeExpectancy; age++) {
+      const row = { active: false };
+      fields.forEach(f => { row[f] = 0; });
+      parts.forEach(pt => {
+        const r = pt.schedule[age];
+        if (!r) return;
+        if (r.active) row.active = true;
+        fields.forEach(f => { row[f] += r[f] || 0; });
+      });
+      schedule[age] = row;
+    }
+
+    const curRow = schedule[currentAge] || {};
+    return {
+      // Payment currently due (only loans active at the current age)
+      monthlyPayment: curRow.monthlyPayment || 0,
+      annualPayment: curRow.annualPayment || 0,
+      termYears: Math.max(...parts.map(pt => pt.termYears)),
+      startAge: Math.min(...parts.map(pt => pt.startAge)),
+      endAge: Math.max(...parts.map(pt => pt.endAge)),
+      totalInterest: parts.reduce((s, pt) => s + pt.totalInterest, 0),
+      loanCount: parts.length,
+      parts,
+      schedule
+    };
+  }
+
+  function calculateSingleMortgageSchedule(mortgage, currentAge, lifeExpectancy) {
     const loanAmount = Number(mortgage.loanAmount) || 0;
-    const interestRate = (Number(mortgage.interestRate) || 2.2) / 100.0;
+    const interestRate = (mortgage.interestRate !== undefined && !isNaN(Number(mortgage.interestRate)) ? Number(mortgage.interestRate) : 2.2) / 100.0;
+    const insuranceRate = (Number(mortgage.insuranceRate) || 0) / 100.0;
     const termYears = Number(mortgage.loanTermYears) || 20;
-    const startAge = Number(mortgage.startAge) || currentAge;
+    const startAge = (mortgage.startAge !== undefined && !isNaN(Number(mortgage.startAge))) ? Number(mortgage.startAge) : currentAge;
     const endAge = startAge + termYears;
     const propVal0 = Number(mortgage.propertyValue) || (loanAmount * 1.25);
-    const appreciation = (Number(mortgage.propertyAppreciation) || 2.5) / 100.0;
+    const appreciation = (mortgage.propertyAppreciation !== undefined ? Number(mortgage.propertyAppreciation) : 2.5) / 100.0;
 
     if (loanAmount <= 0 || termYears <= 0) return null;
 
     const rMonthly = interestRate / 12;
     const nMonths = termYears * 12;
-    let monthlyPayment = 0;
+    let principalInterestPayment = 0;
     if (rMonthly > 0) {
-      monthlyPayment = loanAmount * (rMonthly / (1 - Math.pow(1 + rMonthly, -nMonths)));
+      principalInterestPayment = loanAmount * (rMonthly / (1 - Math.pow(1 + rMonthly, -nMonths)));
     } else {
-      monthlyPayment = loanAmount / nMonths;
+      principalInterestPayment = loanAmount / nMonths;
     }
+    // French borrower insurance is charged on the initial capital, constant every month
+    const monthlyInsurance = (loanAmount * insuranceRate) / 12;
+    const monthlyPayment = principalInterestPayment + monthlyInsurance;
     const annualPayment = monthlyPayment * 12;
 
     const schedule = {};
     let balance = loanAmount;
     let curPropVal = propVal0;
+
+    // Loan started in the past (e.g. apartment bought in 2023): amortize the
+    // elapsed years first so the remaining debt at the current age is correct.
+    for (let age = startAge; age < currentAge; age++) {
+      if (age < endAge) {
+        for (let m = 0; m < 12; m++) {
+          const interestMonth = balance * rMonthly;
+          const principalMonth = Math.min(balance, principalInterestPayment - interestMonth);
+          balance = Math.max(0, balance - principalMonth);
+        }
+      } else {
+        balance = 0;
+      }
+      curPropVal = curPropVal * (1.0 + appreciation);
+    }
 
     for (let age = currentAge; age <= lifeExpectancy; age++) {
       if (age >= startAge && age < endAge) {
@@ -91,7 +154,7 @@ window.RetirementEngine = (function() {
         let principalPaidYear = 0;
         for (let m = 0; m < 12; m++) {
           const interestMonth = balance * rMonthly;
-          const principalMonth = Math.min(balance, monthlyPayment - interestMonth);
+          const principalMonth = Math.min(balance, principalInterestPayment - interestMonth);
           interestPaidYear += interestMonth;
           principalPaidYear += principalMonth;
           balance = Math.max(0, balance - principalMonth);
@@ -140,7 +203,9 @@ window.RetirementEngine = (function() {
       termYears,
       startAge,
       endAge,
-      totalInterest: Math.round((annualPayment * termYears) - loanAmount),
+      totalInterest: Math.round((principalInterestPayment * nMonths) - loanAmount),
+      name: mortgage.name || '',
+      loanAmount,
       schedule
     };
   }
