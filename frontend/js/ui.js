@@ -49,21 +49,25 @@
   // Data Loading & Persistence
   // -------------------------------------------------------------
   async function loadInitialPlans() {
-    // 1. Try fetching from backend API first to get latest synced data for this user
-    try {
-      const headers = window.Auth ? window.Auth.getAuthHeaders() : { "Content-Type": "application/json" };
-      const res = await fetch("/api/plans", { headers });
-      if (res.ok) {
-        state.plansData = await res.json();
-        state.currency = getActivePlan()?.currency || 'EUR';
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.plansData));
-        return;
+    const isLogged = window.Auth && window.Auth.isLoggedIn();
+
+    // 1. If user is logged in: fetch their personal cloud data from backend API
+    if (isLogged) {
+      try {
+        const headers = window.Auth.getAuthHeaders();
+        const res = await fetch("/api/plans", { headers });
+        if (res.ok) {
+          state.plansData = await res.json();
+          state.currency = getActivePlan()?.currency || 'EUR';
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state.plansData));
+          return;
+        }
+      } catch (e) {
+        console.log("Backend API not reachable for logged in user, falling back to localStorage");
       }
-    } catch (e) {
-      console.log("Backend API not reachable, falling back to localStorage");
     }
 
-    // 2. Try local storage as offline fallback
+    // 2. Guest Mode: read strictly from this browser's own localStorage (independent per device)
     const savedLocal = localStorage.getItem(STORAGE_KEY);
     if (savedLocal) {
       try {
@@ -73,6 +77,19 @@
       } catch (e) {
         console.error("Failed to parse localStorage:", e);
       }
+    }
+
+    // 3. New Guest on this device: fetch pristine default template from server
+    try {
+      const res = await fetch("/api/plans");
+      if (res.ok) {
+        state.plansData = await res.json();
+        state.currency = getActivePlan()?.currency || 'EUR';
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.plansData));
+        return;
+      }
+    } catch (e) {
+      console.log("Server template not reachable, using hardcoded defaults");
     }
 
     // 3. Fallback default
@@ -167,13 +184,16 @@
 
   function savePlansToStorage() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.plansData));
-    // Also sync to backend API in background if possible with User Auth
-    const headers = window.Auth ? window.Auth.getAuthHeaders() : { "Content-Type": "application/json" };
-    fetch("/api/plans", {
-      method: "POST",
-      headers,
-      body: JSON.stringify(state.plansData)
-    }).catch(() => {});
+    // Only sync to backend cloud database if user is logged in!
+    // Guest users keep their modifications 100% private to their own browser localStorage.
+    if (window.Auth && window.Auth.isLoggedIn()) {
+      const headers = window.Auth.getAuthHeaders();
+      fetch("/api/plans", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(state.plansData)
+      }).catch(() => {});
+    }
   }
 
   function getActivePlan() {

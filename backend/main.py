@@ -305,14 +305,8 @@ def get_plans(authorization: Optional[str] = Header(None)):
         save_user_plans(user["id"], DEFAULT_PLANS)
         return DEFAULT_PLANS
 
-    # Guest / Demo Mode
-    try:
-        if PLANS_FILE.exists():
-            with open(PLANS_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            return data
-    except Exception:
-        pass
+    # Guest / Demo Mode: Always return pristine default template
+    # Do not leak or share other guest's modified data across different machines
     return DEFAULT_PLANS
 
 @app.post("/api/plans")
@@ -320,15 +314,11 @@ def save_plans(payload: Dict[str, Any] = Body(...), authorization: Optional[str]
     user = get_current_user_optional(authorization)
     if user:
         save_user_plans(user["id"], payload)
-        return {"status": "success", "message": "Kế hoạch đã được lưu vào tài khoản đám mây của bạn!"}
+        return {"status": "success", "message": "Kế hoạch đã được lưu an toàn vào tài khoản đám mây của bạn!"}
 
-    # Guest / Demo Mode: write to shared file
-    try:
-        with open(PLANS_FILE, "w", encoding="utf-8") as f:
-            json.dump(payload, f, ensure_ascii=False, indent=2)
-        return {"status": "success", "message": "Đã lưu kế hoạch (Chế độ Khách)"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Guest / Demo Mode: Do not overwrite server shared file!
+    # Data for guests is stored safely and independently in each user's browser localStorage.
+    return {"status": "guest", "message": "Chế độ Khách: Dữ liệu được lưu độc lập trên trình duyệt của máy bạn. Đăng nhập để đồng bộ đám mây."}
 
 # ==============================================================================
 # pyLocation Integration: Real Estate (LMNP), Turo Fleet & Patrimoine Endpoints
