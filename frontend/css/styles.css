@@ -675,22 +675,39 @@ h1, h2, h3, h4, h5, h6 {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Charts span the full content width on top; the parameter card sits below
+   and flows its fields into as many ~340px columns as fit. */
 .panel-layout {
-  display: grid;
-  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 1.5rem;
-  align-items: start;
 }
 
 .panel-visualization {
+  order: -1;
   min-width: 0;
   max-width: 100%;
+  width: 100%;
 }
 
-@media (max-width: 1024px) {
-  .panel-layout {
-    grid-template-columns: 1fr;
-  }
+.panel-controls {
+  width: 100%;
+  min-width: 0;
+}
+
+.panel-controls > .card {
+  columns: 340px;
+  column-gap: 1.75rem;
+}
+
+.panel-controls > .card > * {
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+}
+
+.panel-controls > .card > .card-title {
+  column-span: all;
+  -webkit-column-span: all;
 }
 
 .card {
@@ -2014,11 +2031,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-@media (max-width: 1100px) {
-  .panel-layout {
-    grid-template-columns: 1fr;
-  }
-}
+
 
 @media (max-width: 900px) {
   html, body {
