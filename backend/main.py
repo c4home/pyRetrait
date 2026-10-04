@@ -498,6 +498,7 @@ def get_pylocation_data(authorization: Optional[str] = Header(None)):
             except Exception:
                 pass
 
+def _compute_full_patrimoine(apts_raw: Dict[str, Any], turo_raw: Dict[str, Any], wealth_raw: Dict[str, Any] = None) -> Dict[str, Any]:
     computed_apartments = []
     tot_val = 0
     tot_loan = 0
@@ -507,7 +508,7 @@ def get_pylocation_data(authorization: Optional[str] = Header(None)):
     tot_cf_post_loan = 0
     tot_down_payment = 0
 
-    for name, apt_data in apts_raw.items():
+    for name, apt_data in (apts_raw or {}).items():
         comp = _compute_apartment_metrics(name, apt_data)
         computed_apartments.append(comp)
         tot_val += comp["property_price"]
@@ -518,7 +519,7 @@ def get_pylocation_data(authorization: Optional[str] = Header(None)):
         tot_cf_post_loan += comp["monthly_post_loan_cashflow"]
         tot_down_payment += comp["down_payment"]
 
-    computed_turo = _compute_turo_metrics(turo_raw)
+    computed_turo = _compute_turo_metrics(turo_raw or {})
 
     summary = {
         "total_properties": len(computed_apartments),
@@ -537,9 +538,96 @@ def get_pylocation_data(authorization: Optional[str] = Header(None)):
     return {
         "apartments": computed_apartments,
         "turo": computed_turo,
-        "wealth": wealth_raw,
+        "wealth": wealth_raw or {},
         "summary": summary
     }
+
+@app.get("/api/pylocation/data")
+def get_pylocation_data(authorization: Optional[str] = Header(None)):
+    """Load and compute all real estate and Turo metrics from pyLocation data."""
+    user = get_current_user_optional(authorization)
+    
+    apts_raw = {}
+    turo_raw = {"num_cars": 3, "price": 5000, "gross_gain": 1800, "decote": 6.0, "insurance": 350, "repairs": 350, "holding_years": 10}
+    wealth_raw = {}
+
+    if user:
+        user_pat = get_user_patrimoine(user["id"])
+        if user_pat:
+            apts_raw = user_pat.get("apartments", {})
+            turo_raw = user_pat.get("turo", turo_raw)
+            wealth_raw = user_pat.get("wealth", {})
+        else:
+            # Seed from default files
+            apts_file = PYLOCATION_DATA_DIR / "saved_apartments.json"
+            if apts_file.exists():
+                try:
+                    with open(apts_file, "r", encoding="utf-8") as f:
+                        apts_raw = json.load(f)
+                except Exception:
+                    pass
+            save_user_patrimoine(user["id"], {"apartments": apts_raw, "turo": turo_raw, "wealth": wealth_raw})
+    else:
+        apts_file = PYLOCATION_DATA_DIR / "saved_apartments.json"
+        turo_file = PYLOCATION_DATA_DIR / "turo_settings.json"
+        wealth_file = PYLOCATION_DATA_DIR / "wealth_settings.json"
+        if apts_file.exists():
+            try:
+                with open(apts_file, "r", encoding="utf-8") as f:
+                    apts_raw = json.load(f)
+            except Exception:
+                pass
+        if turo_file.exists():
+            try:
+                with open(turo_file, "r", encoding="utf-8") as f:
+                    turo_raw = json.load(f)
+            except Exception:
+                pass
+        if wealth_file.exists():
+            try:
+                with open(wealth_file, "r", encoding="utf-8") as f:
+                    wealth_raw = json.load(f)
+            except Exception:
+                pass
+
+    return _compute_full_patrimoine(apts_raw, turo_raw, wealth_raw)
+
+@app.post("/api/pylocation/compute")
+def compute_pylocation_preview(payload: Dict[str, Any] = Body(...)):
+    """Compute real estate & turo metrics on the fly for guest without saving to disk."""
+    apts_raw = payload.get("apartments", {})
+    turo_raw = payload.get("turo", {"num_cars": 3, "price": 5000, "gross_gain": 1800, "decote": 6.0, "insurance": 350, "repairs": 350, "holding_years": 10})
+    wealth_raw = payload.get("wealth", {})
+    return _compute_full_patrimoine(apts_raw, turo_raw, wealth_raw)
+
+@app.post("/api/pylocation/sync-cloud")
+def sync_patrimoine_to_cloud(payload: Dict[str, Any] = Body(...), authorization: Optional[str] = Header(None)):
+    """Sync guest local patrimoine from browser localStorage into user's cloud account upon login."""
+    user = get_current_user_optional(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Vui lòng đăng nhập để đồng bộ dữ liệu lên đám mây")
+    
+    apts_raw = payload.get("apartments", {})
+    turo_raw = payload.get("turo", {})
+    wealth_raw = payload.get("wealth", {})
+    
+    user_pat = get_user_patrimoine(user["id"]) or {}
+    existing_apts = user_pat.get("apartments", {})
+    if apts_raw:
+        existing_apts.update(apts_raw)
+    user_pat["apartments"] = existing_apts
+    if turo_raw:
+        user_pat["turo"] = turo_raw
+    if wealth_raw:
+        user_pat["wealth"] = wealth_raw
+        
+    save_user_patrimoine(user["id"], user_pat)
+    try:
+        sync_pylocation_to_fire(authorization=authorization)
+    except Exception as e:
+        logger.warning(f"Auto-sync on sync-cloud warning: {e}")
+        
+    return {"success": True, "message": "Đã đồng bộ thành công dữ liệu Căn hộ vào tài khoản đám mây!", "data": _compute_full_patrimoine(existing_apts, user_pat.get("turo", {}), user_pat.get("wealth", {}))}
 
 @app.post("/api/pylocation/apartment")
 def save_pylocation_apartment(payload: Dict[str, Any] = Body(...), authorization: Optional[str] = Header(None)):
@@ -562,27 +650,9 @@ def save_pylocation_apartment(payload: Dict[str, Any] = Body(...), authorization
             logger.warning(f"Auto-sync on save apartment warning: {e}")
         return {"success": True, "message": f"Căn hộ '{name}' đã được lưu và tự động đồng bộ vào kế hoạch FIRE!", "apartment": _compute_apartment_metrics(name, data)}
 
-    # Guest mode
-    apts_file = PYLOCATION_DATA_DIR / "saved_apartments.json"
-    apts = {}
-    if apts_file.exists():
-        try:
-            with open(apts_file, "r", encoding="utf-8") as f:
-                apts = json.load(f)
-        except Exception:
-            pass
-
-    apts[name] = data
-    PYLOCATION_DATA_DIR.mkdir(parents=True, exist_ok=True)
-    with open(apts_file, "w", encoding="utf-8") as f:
-        json.dump(apts, f, ensure_ascii=False, indent=2)
-
-    try:
-        sync_pylocation_to_fire(authorization=authorization)
-    except Exception as e:
-        logger.warning(f"Auto-sync on save apartment warning: {e}")
-
-    return {"success": True, "message": f"Căn hộ '{name}' đã được lưu và tự động đồng bộ vào kế hoạch FIRE!", "apartment": _compute_apartment_metrics(name, data)}
+    # Guest mode: return computed metrics without overwriting server shared file
+    comp = _compute_apartment_metrics(name, data)
+    return {"success": True, "message": f"Căn hộ '{name}' đã được lưu trong trình duyệt của bạn!", "apartment": comp}
 
 @app.delete("/api/pylocation/apartment/{name}")
 def delete_pylocation_apartment(name: str, authorization: Optional[str] = Header(None)):
@@ -602,24 +672,7 @@ def delete_pylocation_apartment(name: str, authorization: Optional[str] = Header
             return {"success": True, "message": f"Đã xóa căn hộ '{name}' và tự động cập nhật kế hoạch FIRE"}
         raise HTTPException(status_code=404, detail=f"Không tìm thấy căn hộ '{name}'")
 
-    apts_file = PYLOCATION_DATA_DIR / "saved_apartments.json"
-    if not apts_file.exists():
-        raise HTTPException(status_code=404, detail="File không tồn tại")
-    
-    with open(apts_file, "r", encoding="utf-8") as f:
-        apts = json.load(f)
-
-    if name in apts:
-        del apts[name]
-        with open(apts_file, "w", encoding="utf-8") as f:
-            json.dump(apts, f, ensure_ascii=False, indent=2)
-        try:
-            sync_pylocation_to_fire(authorization=authorization)
-        except Exception as e:
-            logger.warning(f"Auto-sync on delete apartment warning: {e}")
-        return {"success": True, "message": f"Đã xóa căn hộ '{name}' và tự động cập nhật kế hoạch FIRE"}
-    else:
-        raise HTTPException(status_code=404, detail=f"Không tìm thấy căn hộ '{name}'")
+    return {"success": True, "message": f"Đã xóa căn hộ '{name}' khỏi bộ nhớ trình duyệt"}
 
 @app.post("/api/pylocation/turo")
 def save_pylocation_turo(payload: Dict[str, Any] = Body(...), authorization: Optional[str] = Header(None)):
@@ -635,15 +688,7 @@ def save_pylocation_turo(payload: Dict[str, Any] = Body(...), authorization: Opt
             logger.warning(f"Auto-sync on save turo warning: {e}")
         return {"success": True, "turo": _compute_turo_metrics(payload)}
 
-    turo_file = PYLOCATION_DATA_DIR / "turo_settings.json"
-    PYLOCATION_DATA_DIR.mkdir(parents=True, exist_ok=True)
-    with open(turo_file, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-
-    try:
-        sync_pylocation_to_fire(authorization=authorization)
-    except Exception as e:
-        logger.warning(f"Auto-sync on save turo warning: {e}")
+    # Guest mode
     return {"success": True, "turo": _compute_turo_metrics(payload)}
 
 @app.post("/api/pylocation/sync-to-fire")

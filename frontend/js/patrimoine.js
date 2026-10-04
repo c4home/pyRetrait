@@ -24,18 +24,81 @@
     return (num / 1e6).toFixed(1) + " Tr ₫";
   }
 
-  async function loadData() {
+  const GUEST_STORAGE_KEY = "pyRetrait_guest_patrimoine_v2";
+
+  function getGuestPatrimoine() {
     try {
-      const headers = window.Auth ? window.Auth.getAuthHeaders() : { "Content-Type": "application/json" };
-      const res = await fetch("/api/pylocation/data", { headers });
-      if (res.ok) {
-        patrimoineData = await res.json();
-        return patrimoineData;
-      }
+      const raw = localStorage.getItem(GUEST_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
     } catch (e) {
-      console.error("Failed to fetch /api/pylocation/data:", e);
+      return null;
     }
-    return null;
+  }
+
+  function saveGuestPatrimoine(data) {
+    try {
+      localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.error("Failed to save guest patrimoine to localStorage:", e);
+    }
+  }
+
+  async function loadData() {
+    const isLogged = window.Auth && window.Auth.isLoggedIn();
+
+    // 1. If user is logged in: fetch their personal cloud data from backend API
+    if (isLogged) {
+      try {
+        const headers = window.Auth.getAuthHeaders();
+        const res = await fetch("/api/pylocation/data", { headers });
+        if (res.ok) {
+          patrimoineData = await res.json();
+          return patrimoineData;
+        }
+      } catch (e) {
+        console.error("Failed to fetch cloud patrimoine data:", e);
+      }
+    }
+
+    // 2. Guest Mode: strictly read from this browser's own localStorage (independent per visitor)
+    let guestData = getGuestPatrimoine();
+    if (!guestData) {
+      // First time visitor: seed default template from server
+      try {
+        const res = await fetch("/api/pylocation/data");
+        if (res.ok) {
+          const serverSeed = await res.json();
+          const rawApts = {};
+          (serverSeed.apartments || []).forEach(apt => {
+            rawApts[apt.name] = apt.raw || apt;
+          });
+          guestData = {
+            apartments: rawApts,
+            turo: serverSeed.turo?.raw || serverSeed.turo || { num_cars: 3, price: 5000, gross_gain: 1800, decote: 6.0, insurance: 350, repairs: 350, holding_years: 10 }
+          };
+          saveGuestPatrimoine(guestData);
+        }
+      } catch (e) {
+        console.warn("Could not fetch template for guest:", e);
+      }
+    }
+
+    if (guestData) {
+      try {
+        const res = await fetch("/api/pylocation/compute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(guestData)
+        });
+        if (res.ok) {
+          patrimoineData = await res.json();
+          return patrimoineData;
+        }
+      } catch (e) {
+        console.error("Compute error for guest data:", e);
+      }
+    }
+    return patrimoineData;
   }
 
   async function render() {
@@ -971,40 +1034,70 @@
       params: aptParams
     };
 
-    try {
-      const headers = window.Auth ? window.Auth.getAuthHeaders() : { "Content-Type": "application/json" };
-      const res = await fetch("/api/pylocation/apartment", {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload)
-      });
+    const isLogged = window.Auth && window.Auth.isLoggedIn();
+    if (isLogged) {
+      try {
+        const headers = window.Auth.getAuthHeaders();
+        const res = await fetch("/api/pylocation/apartment", {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload)
+        });
 
-      if (!res.ok) throw new Error("Lỗi khi lưu căn hộ");
+        if (!res.ok) throw new Error("Lỗi khi lưu căn hộ lên đám mây");
 
-      closeApartmentModal();
-      await render();
-      await autoSyncToFire();
-    } catch (e) {
-      alert(e.message);
+        closeApartmentModal();
+        await render();
+        await autoSyncToFire();
+      } catch (e) {
+        alert(e.message);
+      }
+      return;
     }
+
+    // Guest Mode: save into localStorage
+    let guestData = getGuestPatrimoine() || { apartments: {}, turo: {} };
+    if (!guestData.apartments) guestData.apartments = {};
+    if (originalName && originalName !== name && guestData.apartments[originalName]) {
+      delete guestData.apartments[originalName];
+    }
+    guestData.apartments[name] = aptParams;
+    saveGuestPatrimoine(guestData);
+
+    closeApartmentModal();
+    await render();
+    await autoSyncToFire();
   }
 
   async function deleteApartment(name) {
     if (!confirm(`Bạn có chắc chắn muốn xóa căn hộ "${name}" không?`)) return;
 
-    try {
-      const headers = window.Auth ? window.Auth.getAuthHeaders() : {};
-      const res = await fetch(`/api/pylocation/apartment/${encodeURIComponent(name)}`, {
-        method: "DELETE",
-        headers
-      });
-      if (!res.ok) throw new Error("Lỗi khi xóa căn hộ");
+    const isLogged = window.Auth && window.Auth.isLoggedIn();
+    if (isLogged) {
+      try {
+        const headers = window.Auth.getAuthHeaders();
+        const res = await fetch(`/api/pylocation/apartment/${encodeURIComponent(name)}`, {
+          method: "DELETE",
+          headers
+        });
+        if (!res.ok) throw new Error("Lỗi khi xóa căn hộ trên đám mây");
 
-      await render();
-      await autoSyncToFire();
-    } catch (e) {
-      alert(e.message);
+        await render();
+        await autoSyncToFire();
+      } catch (e) {
+        alert(e.message);
+      }
+      return;
     }
+
+    // Guest Mode: delete from localStorage
+    let guestData = getGuestPatrimoine() || { apartments: {}, turo: {} };
+    if (guestData.apartments && guestData.apartments[name]) {
+      delete guestData.apartments[name];
+      saveGuestPatrimoine(guestData);
+    }
+    await render();
+    await autoSyncToFire();
   }
 
   async function saveTuroSettings() {
@@ -1024,31 +1117,50 @@
       holding_years: 10
     };
 
-    try {
-      const headers = window.Auth ? window.Auth.getAuthHeaders() : { "Content-Type": "application/json" };
-      const res = await fetch("/api/pylocation/turo", {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) throw new Error("Lỗi lưu Turo");
+    const isLogged = window.Auth && window.Auth.isLoggedIn();
+    if (isLogged) {
+      try {
+        const headers = window.Auth.getAuthHeaders();
+        const res = await fetch("/api/pylocation/turo", {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error("Lỗi lưu Turo lên đám mây");
 
-      if (btn) {
-        btn.innerText = "✅ Đã lưu!";
-        setTimeout(() => {
+        if (btn) {
+          btn.innerText = "✅ Đã lưu đám mây!";
+          setTimeout(() => {
+            btn.disabled = false;
+            btn.innerText = "💾 Lưu Cấu hình Turo";
+          }, 1500);
+        }
+        await render();
+        await autoSyncToFire();
+      } catch (e) {
+        alert(e.message);
+        if (btn) {
           btn.disabled = false;
           btn.innerText = "💾 Lưu Cấu hình Turo";
-        }, 1500);
+        }
       }
-      await render();
-      await autoSyncToFire();
-    } catch (e) {
-      alert(e.message);
-      if (btn) {
+      return;
+    }
+
+    // Guest Mode: save into localStorage
+    let guestData = getGuestPatrimoine() || { apartments: {}, turo: {} };
+    guestData.turo = payload;
+    saveGuestPatrimoine(guestData);
+
+    if (btn) {
+      btn.innerText = "✅ Đã lưu vào trình duyệt!";
+      setTimeout(() => {
         btn.disabled = false;
         btn.innerText = "💾 Lưu Cấu hình Turo";
-      }
+      }, 1500);
     }
+    await render();
+    await autoSyncToFire();
   }
 
   function setVal(id, val) {
