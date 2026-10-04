@@ -69,12 +69,16 @@
         if (res.ok) {
           const serverSeed = await res.json();
           const rawApts = {};
-          (serverSeed.apartments || []).forEach(apt => {
-            rawApts[apt.name] = apt.raw || apt;
-          });
+          if (serverSeed && Array.isArray(serverSeed.apartments)) {
+            serverSeed.apartments.forEach(apt => {
+              if (apt && apt.name) {
+                rawApts[apt.name] = apt.raw || apt;
+              }
+            });
+          }
           guestData = {
             apartments: rawApts,
-            turo: serverSeed.turo?.raw || serverSeed.turo || { num_cars: 3, price: 5000, gross_gain: 1800, decote: 6.0, insurance: 350, repairs: 350, holding_years: 10 }
+            turo: (serverSeed && serverSeed.turo && serverSeed.turo.raw) || (serverSeed && serverSeed.turo) || { num_cars: 3, price: 5000, gross_gain: 1800, decote: 6.0, insurance: 350, repairs: 350, holding_years: 10 }
           };
           saveGuestPatrimoine(guestData);
         }

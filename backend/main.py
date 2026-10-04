@@ -450,54 +450,6 @@ def _compute_turo_metrics(settings: Dict[str, Any]) -> Dict[str, Any]:
             "raw": settings
         }
 
-@app.get("/api/pylocation/data")
-def get_pylocation_data(authorization: Optional[str] = Header(None)):
-    """Load and compute all real estate and Turo metrics from pyLocation data."""
-    user = get_current_user_optional(authorization)
-    
-    apts_raw = {}
-    turo_raw = {"num_cars": 3, "price": 5000, "gross_gain": 1800, "decote": 6.0, "insurance": 350, "repairs": 350, "holding_years": 10}
-    wealth_raw = {}
-
-    if user:
-        user_pat = get_user_patrimoine(user["id"])
-        if user_pat:
-            apts_raw = user_pat.get("apartments", {})
-            turo_raw = user_pat.get("turo", turo_raw)
-            wealth_raw = user_pat.get("wealth", {})
-        else:
-            # Seed from default files
-            apts_file = PYLOCATION_DATA_DIR / "saved_apartments.json"
-            if apts_file.exists():
-                try:
-                    with open(apts_file, "r", encoding="utf-8") as f:
-                        apts_raw = json.load(f)
-                except Exception:
-                    pass
-            save_user_patrimoine(user["id"], {"apartments": apts_raw, "turo": turo_raw, "wealth": wealth_raw})
-    else:
-        apts_file = PYLOCATION_DATA_DIR / "saved_apartments.json"
-        turo_file = PYLOCATION_DATA_DIR / "turo_settings.json"
-        wealth_file = PYLOCATION_DATA_DIR / "wealth_settings.json"
-        if apts_file.exists():
-            try:
-                with open(apts_file, "r", encoding="utf-8") as f:
-                    apts_raw = json.load(f)
-            except Exception:
-                pass
-        if turo_file.exists():
-            try:
-                with open(turo_file, "r", encoding="utf-8") as f:
-                    turo_raw = json.load(f)
-            except Exception:
-                pass
-        if wealth_file.exists():
-            try:
-                with open(wealth_file, "r", encoding="utf-8") as f:
-                    wealth_raw = json.load(f)
-            except Exception:
-                pass
-
 def _compute_full_patrimoine(apts_raw: Dict[str, Any], turo_raw: Dict[str, Any], wealth_raw: Dict[str, Any] = None) -> Dict[str, Any]:
     computed_apartments = []
     tot_val = 0

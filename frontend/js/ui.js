@@ -38,24 +38,25 @@
   });
 
   async function initApp() {
-    loadTheme();
-    arrangeAiAndControlsColumns();
-    await loadInitialPlans();
-    // Pull mortgage loans + LMNP/Turo incomes from Gestion de Patrimoine automatically
-    await syncFromPatrimoine({ rerender: false });
-    bindEvents();
-    renderPlanSelector();
-    renderActivePlanInputs();
-    updateAll();
+    try { loadTheme(); } catch (e) { console.warn(e); }
+    try { arrangeAiAndControlsColumns(); } catch (e) { console.warn(e); }
+    try { await loadInitialPlans(); } catch (e) { console.warn(e); }
+    try { await syncFromPatrimoine({ rerender: false }); } catch (e) { console.warn(e); }
+    try { bindEvents(); } catch (e) { console.warn(e); }
+    try { renderPlanSelector(); } catch (e) { console.warn(e); }
+    try { renderActivePlanInputs(); } catch (e) { console.warn(e); }
+    try { updateAll(); } catch (e) { console.error("updateAll failed:", e); }
 
     // Support deep-linking via URL hash (e.g., #patrimoine, #tab-patrimoine)
     if (window.location.hash) {
-      const clean = window.location.hash.replace("#", "");
-      const tabId = clean.startsWith("tab-") ? clean : `tab-${clean}`;
-      const pane = document.getElementById(tabId);
-      if (pane) {
-        switchTab(tabId);
-      }
+      try {
+        const clean = window.location.hash.replace("#", "");
+        const tabId = clean.startsWith("tab-") ? clean : `tab-${clean}`;
+        const pane = document.getElementById(tabId);
+        if (pane) {
+          switchTab(tabId);
+        }
+      } catch (e) { console.warn(e); }
     }
   }
 
@@ -243,8 +244,6 @@
   // Event Binding
   // -------------------------------------------------------------
   function bindEvents() {
-    initFamilyChildrenSimulation();
-
     // Navigation Tabs
     document.querySelectorAll(".nav-item").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -252,6 +251,12 @@
         switchTab(tabId);
       });
     });
+
+    try {
+      initFamilyChildrenSimulation();
+    } catch (e) {
+      console.warn("initFamilyChildrenSimulation failed:", e);
+    }
 
     // Plan Selector
     const planSelect = document.getElementById("plan-selector");
@@ -2458,85 +2463,91 @@
   // TAB 6: Estate, Family & Spending Smile
   // -------------------------------------------------------------
   function updateFamilyChildrenSimulation() {
-    const selCount = document.getElementById("sel-family-kids-count");
-    const selStatus = document.getElementById("sel-family-status");
-    const inpKid1 = document.getElementById("inp-kid1-birth");
-    const inpKid2 = document.getElementById("inp-kid2-birth");
-    const inpKidCost = document.getElementById("inp-kid-cost-monthly");
-    const inpKidUni = document.getElementById("inp-kid-uni-monthly");
+    try {
+      const selCount = document.getElementById("sel-family-kids-count");
+      const selStatus = document.getElementById("sel-family-status");
+      const inpKid1 = document.getElementById("inp-kid1-birth");
+      const inpKid2 = document.getElementById("inp-kid2-birth");
+      const inpKidCost = document.getElementById("inp-kid-cost-monthly");
+      const inpKidUni = document.getElementById("inp-kid-uni-monthly");
 
-    if (!selCount) return;
+      if (!selCount) return;
 
-    const count = parseInt(selCount.value) || 0;
-    const status = selStatus ? selStatus.value : "couple";
-    const baseParts = status === "couple" ? 2.0 : 1.0;
-    const currentYear = new Date().getFullYear();
+      const count = parseInt(selCount.value) || 0;
+      const status = selStatus ? selStatus.value : "couple";
+      const baseParts = status === "couple" ? 2.0 : 1.0;
+      const currentYear = new Date().getFullYear();
 
-    const kid1Birth = parseInt(inpKid1?.value) || 2022;
-    const kid2Birth = parseInt(inpKid2?.value) || 2025;
-    const kid1Age = Math.max(0, currentYear - kid1Birth);
-    const kid2Age = Math.max(0, currentYear - kid2Birth);
+      const kid1Birth = parseInt(inpKid1?.value) || 2022;
+      const kid2Birth = parseInt(inpKid2?.value) || 2025;
+      const kid1Age = Math.max(0, currentYear - kid1Birth);
+      const kid2Age = Math.max(0, currentYear - kid2Birth);
+      const kidCostMonthly = parseFloat(inpKidCost?.value) || 350;
+      const kidUniMonthly = parseFloat(inpKidUni?.value) || 900;
 
-    // Toggle kid birth inputs visibility
-    const grp1 = document.getElementById("grp-kid1-birth");
-    const grp2 = document.getElementById("grp-kid2-birth");
-    const rowBirth = document.getElementById("row-children-birth");
-    if (rowBirth) rowBirth.style.display = count === 0 ? "none" : "flex";
-    if (grp1) grp1.style.display = count >= 1 ? "block" : "none";
-    if (grp2) grp2.style.display = count >= 2 ? "block" : "none";
+      // Toggle kid birth inputs visibility
+      const grp1 = document.getElementById("grp-kid1-birth");
+      const grp2 = document.getElementById("grp-kid2-birth");
+      const rowBirth = document.getElementById("row-children-birth");
+      if (rowBirth) rowBirth.style.display = count === 0 ? "none" : "flex";
+      if (grp1) grp1.style.display = count >= 1 ? "block" : "none";
+      if (grp2) grp2.style.display = count >= 2 ? "block" : "none";
 
-    // 1. Parts Fiscales in France
-    let kidParts = 0;
-    if (count === 1) kidParts = 0.5;
-    else if (count === 2) kidParts = 1.0;
-    else if (count >= 3) kidParts = 1.0 + (count - 2) * 1.0;
-    const totalParts = baseParts + kidParts;
+      // 1. Parts Fiscales in France
+      let kidParts = 0;
+      if (count === 1) kidParts = 0.5;
+      else if (count === 2) kidParts = 1.0;
+      else if (count >= 3) kidParts = 1.0 + (count - 2) * 1.0;
+      const totalParts = baseParts + kidParts;
 
-    const lblParts = document.getElementById("lbl-family-parts");
-    if (lblParts) lblParts.innerText = `${totalParts.toFixed(1)} Parts Fiscales`;
+      const lblParts = document.getElementById("lbl-family-parts");
+      if (lblParts) lblParts.innerText = `${totalParts.toFixed(1)} Parts Fiscales`;
 
-    // 2. Income Tax Savings (Capped at 1,759 € per half-part in France)
-    const halfParts = kidParts * 2;
-    const maxTaxSaving = Math.round(halfParts * 1759);
-    const lblTaxSaving = document.getElementById("lbl-family-tax-saving");
-    if (lblTaxSaving) {
-      lblTaxSaving.innerText = count > 0 ? `~${new Intl.NumberFormat('fr-FR').format(maxTaxSaving)} €/năm` : "0 €";
-    }
-
-    // 3. CAF Monthly Family Allowance (2+ children in France)
-    let cafMonthly = 0;
-    if (count === 2) cafMonthly = 148;
-    else if (count === 3) cafMonthly = 338;
-    else if (count >= 4) cafMonthly = 529;
-    const lblCaf = document.getElementById("lbl-family-caf");
-    if (lblCaf) {
-      lblCaf.innerText = count >= 2 ? `~${cafMonthly} €/tháng (~${new Intl.NumberFormat('fr-FR').format(cafMonthly * 12)} €/năm)` : "0 € (chưa đủ 2 con)";
-    }
-
-    // 4. University Milestones (Birth Year + 18)
-    const kid1UniYear = kid1Birth + 18;
-    const kid2UniYear = kid2Birth + 18;
-    const lblTimeline = document.getElementById("lbl-family-uni-timeline");
-    if (lblTimeline) {
-      if (count === 0) {
-        lblTimeline.innerText = "Chưa có dự kiến";
-      } else if (count === 1) {
-        lblTimeline.innerText = `Năm ${kid1UniYear} (khi con sinh ${kid1Birth} tròn 18t)`;
-      } else {
-        lblTimeline.innerText = `Năm ${kid1UniYear} & ${kid2UniYear} (khi tròn 18t)`;
+      // 2. Income Tax Savings (Capped at 1,759 € per half-part in France)
+      const halfParts = kidParts * 2;
+      const maxTaxSaving = Math.round(halfParts * 1759);
+      const lblTaxSaving = document.getElementById("lbl-family-tax-saving");
+      if (lblTaxSaving) {
+        lblTaxSaving.innerText = count > 0 ? `~${new Intl.NumberFormat('fr-FR').format(maxTaxSaving)} €/năm` : "0 €";
       }
-    }
 
-    // 5. Inheritance Tax Exemption (100,000 € per parent per child every 15 years)
-    const parentsCount = status === "couple" ? 2 : 1;
-    const totalExemption = count * parentsCount * 100000;
-    const lblExemption = document.getElementById("lbl-family-inheritance-exemption");
-    if (lblExemption) {
-      lblExemption.innerText = count > 0 ? `${new Intl.NumberFormat('fr-FR').format(totalExemption)} € / 15 năm` : "0 €";
-    }
+      // 3. CAF Monthly Family Allowance (2+ children in France)
+      let cafMonthly = 0;
+      if (count === 2) cafMonthly = 148;
+      else if (count === 3) cafMonthly = 338;
+      else if (count >= 4) cafMonthly = 529;
+      const lblCaf = document.getElementById("lbl-family-caf");
+      if (lblCaf) {
+        lblCaf.innerText = count >= 2 ? `~${cafMonthly} €/tháng (~${new Intl.NumberFormat('fr-FR').format(cafMonthly * 12)} €/năm)` : "0 € (chưa đủ 2 con)";
+      }
 
-    // 6. Render Chart: Family Cash Flow Trajectory
-    renderFamilyCashFlowChart(count, kid1Birth, kid2Birth, kidCostMonthly, kidUniMonthly, cafMonthly, maxTaxSaving);
+      // 4. University Milestones (Birth Year + 18)
+      const kid1UniYear = kid1Birth + 18;
+      const kid2UniYear = kid2Birth + 18;
+      const lblTimeline = document.getElementById("lbl-family-uni-timeline");
+      if (lblTimeline) {
+        if (count === 0) {
+          lblTimeline.innerText = "Chưa có dự kiến";
+        } else if (count === 1) {
+          lblTimeline.innerText = `Năm ${kid1UniYear} (khi con sinh ${kid1Birth} tròn 18t)`;
+        } else {
+          lblTimeline.innerText = `Năm ${kid1UniYear} & ${kid2UniYear} (khi tròn 18t)`;
+        }
+      }
+
+      // 5. Inheritance Tax Exemption (100,000 € per parent per child every 15 years)
+      const parentsCount = status === "couple" ? 2 : 1;
+      const totalExemption = count * parentsCount * 100000;
+      const lblExemption = document.getElementById("lbl-family-inheritance-exemption");
+      if (lblExemption) {
+        lblExemption.innerText = count > 0 ? `${new Intl.NumberFormat('fr-FR').format(totalExemption)} € / 15 năm` : "0 €";
+      }
+
+      // 6. Render Chart: Family Cash Flow Trajectory
+      renderFamilyCashFlowChart(count, kid1Birth, kid2Birth, kidCostMonthly, kidUniMonthly, cafMonthly, maxTaxSaving);
+    } catch (err) {
+      console.warn("Family children simulation update error:", err);
+    }
   }
 
   function renderFamilyCashFlowChart(count, kid1Birth, kid2Birth, kidCostMonthly, kidUniMonthly, cafMonthly, maxTaxSaving) {
@@ -2718,21 +2729,25 @@
   }
 
   function initFamilyChildrenSimulation() {
-    const selCount = document.getElementById("sel-family-kids-count");
-    const selStatus = document.getElementById("sel-family-status");
-    const inpKid1 = document.getElementById("inp-kid1-birth");
-    const inpKid2 = document.getElementById("inp-kid2-birth");
-    const inpKidCost = document.getElementById("inp-kid-cost-monthly");
-    const inpKidUni = document.getElementById("inp-kid-uni-monthly");
+    try {
+      const selCount = document.getElementById("sel-family-kids-count");
+      const selStatus = document.getElementById("sel-family-status");
+      const inpKid1 = document.getElementById("inp-kid1-birth");
+      const inpKid2 = document.getElementById("inp-kid2-birth");
+      const inpKidCost = document.getElementById("inp-kid-cost-monthly");
+      const inpKidUni = document.getElementById("inp-kid-uni-monthly");
 
-    [selCount, selStatus, inpKid1, inpKid2, inpKidCost, inpKidUni].forEach(el => {
-      if (el) {
-        el.addEventListener("input", updateFamilyChildrenSimulation);
-        el.addEventListener("change", updateFamilyChildrenSimulation);
-      }
-    });
+      [selCount, selStatus, inpKid1, inpKid2, inpKidCost, inpKidUni].forEach(el => {
+        if (el) {
+          el.addEventListener("input", updateFamilyChildrenSimulation);
+          el.addEventListener("change", updateFamilyChildrenSimulation);
+        }
+      });
 
-    updateFamilyChildrenSimulation();
+      updateFamilyChildrenSimulation();
+    } catch (e) {
+      console.warn("Family children simulation init error:", e);
+    }
   }
 
   function renderEstateTab() {
@@ -2777,6 +2792,11 @@
       }
     });
 
+    const milestoneBox = document.getElementById("estate-milestone-box");
+    const target = plan.targetLegacy || 1000000000;
+    const finalVal = proj.finalPortfolio;
+    const pct = Math.round((finalVal / target) * 100);
+
     // Trigger Gemini Commentary for Spending Smile & Estate
     if (window.GeminiAdvisor) {
       window.GeminiAdvisor.updateChartBox("chart-spending-smile", "Mô hình Chi tiêu Thực tế theo Độ tuổi (Spending Smile)", {
@@ -2785,11 +2805,6 @@
         pctOfTarget: pct + "%"
       });
     }
-
-    const milestoneBox = document.getElementById("estate-milestone-box");
-    const target = plan.targetLegacy || 1000000000;
-    const finalVal = proj.finalPortfolio;
-    const pct = Math.round((finalVal / target) * 100);
 
     milestoneBox.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
