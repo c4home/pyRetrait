@@ -951,6 +951,7 @@
       setVal("inp-apt-reno", aptData.renovation_cost || r.renovation_cost || 0);
       setVal("inp-apt-furniture", aptData.furniture_cost || r.furniture_cost || 2000);
       setVal("inp-apt-rent", aptData.monthly_rent || r.monthly_rent || 600);
+      setVal("inp-apt-vacance", aptData.vacancy_pct !== undefined ? aptData.vacancy_pct : (r.vacancy_pct !== undefined ? r.vacancy_pct : 5.0));
       setVal("inp-apt-coop", r.annual_coop || 900);
       setVal("inp-apt-tf", r.annual_tf || 800);
       setVal("inp-apt-pno", r.annual_pno || 150);
@@ -973,6 +974,7 @@
       setVal("inp-apt-reno", 0);
       setVal("inp-apt-furniture", 2000);
       setVal("inp-apt-rent", 650);
+      setVal("inp-apt-vacance", 5.0);
       setVal("inp-apt-coop", 900);
       setVal("inp-apt-tf", 800);
       setVal("inp-apt-pno", 150);
@@ -1017,7 +1019,7 @@
       renovation_cost: Number(getVal("inp-apt-reno")) || 0,
       furniture_cost: Number(getVal("inp-apt-furniture")) || 2000,
       monthly_rent: Number(getVal("inp-apt-rent")) || 600,
-      vacancy_pct: 5.0,
+      vacancy_pct: Number(getVal("inp-apt-vacance")) || 5.0,
       annual_coop: Number(getVal("inp-apt-coop")) || 900,
       annual_tf: Number(getVal("inp-apt-tf")) || 800,
       annual_pno: Number(getVal("inp-apt-pno")) || 150,
@@ -1183,16 +1185,44 @@
     const furn = parseFloat(getVal("inp-apt-furniture")) || 0;
     const reno = parseFloat(getVal("inp-apt-reno")) || 0;
     const down = parseFloat(getVal("inp-apt-down-payment")) || 0;
+    const rent = parseFloat(getVal("inp-apt-rent")) || 0;
+    const vac = (parseFloat(getVal("inp-apt-vacance")) || 5.0) / 100.0;
+    const tf = parseFloat(getVal("inp-apt-tf")) || 0;
+    const coop = parseFloat(getVal("inp-apt-coop")) || 0;
+    const pno = parseFloat(getVal("inp-apt-pno")) || 0;
+    const dur = parseInt(getVal("inp-apt-duration")) || 20;
+    const rate = (parseFloat(getVal("inp-apt-rate")) || 3.6) / 100.0;
+    const insRate = (parseFloat(getVal("inp-apt-ins-rate")) || 0.3) / 100.0;
+
     const bank = 1500; // standard bank guarantee/file fee in France
     const total = price + notary + bank + reno + furn;
     const loan = Math.max(0, total - down);
 
+    // Monthly mortgage payment
+    const r = rate / 12.0;
+    const n = dur * 12;
+    const loanPmt = (loan > 0 && r > 0) ? loan * (r / (1.0 - Math.pow(1.0 + r, -n))) : (loan / Math.max(1, n));
+    const insPmt = (loan * insRate) / 12.0;
+    const totalMonthlyPmt = loanPmt + insPmt;
+
+    // Effective rent minus vacance
+    const effectiveRent = rent * (1.0 - vac);
+    const monthlyCharges = (coop + tf + pno + 300) / 12.0; // including 300€ maintenance
+    const netCashflow = effectiveRent - totalMonthlyPmt - monthlyCharges;
+
     const lblTotal = document.getElementById("lbl-apt-total-project");
     const lblLoan = document.getElementById("lbl-apt-loan-amount");
     const lblDown = document.getElementById("lbl-apt-down-payment");
+    const lblNetCf = document.getElementById("lbl-apt-net-cashflow");
+
     if (lblTotal) lblTotal.innerText = formatMoneyEUR(total);
     if (lblLoan) lblLoan.innerText = formatMoneyEUR(loan);
     if (lblDown) lblDown.innerText = formatMoneyEUR(down);
+    if (lblNetCf) {
+      const sign = netCashflow >= 0 ? "+" : "";
+      lblNetCf.innerText = `${sign}${formatMoneyEUR(Math.round(netCashflow))}/tháng`;
+      lblNetCf.style.color = netCashflow >= 0 ? "#10b981" : "#f87171";
+    }
   }
 
   function bindEvents() {
@@ -1225,8 +1255,12 @@
       });
     }
 
-    // Live update apartment modal summary on cost inputs
-    ["inp-apt-notary", "inp-apt-furniture", "inp-apt-reno", "inp-apt-down-payment"].forEach(id => {
+    // Live update apartment modal summary on cost & revenue inputs
+    [
+      "inp-apt-price", "inp-apt-notary", "inp-apt-furniture", "inp-apt-reno",
+      "inp-apt-down-payment", "inp-apt-rent", "inp-apt-vacance", "inp-apt-tf",
+      "inp-apt-coop", "inp-apt-pno", "inp-apt-duration", "inp-apt-rate", "inp-apt-ins-rate"
+    ].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener("input", updateAptLiveSummary);
     });

@@ -712,7 +712,7 @@
     });
 
     // Expandable Panel Toggles
-    ['panel-asset-allocation', 'panel-dual-inflation', 'panel-mortgage'].forEach(id => {
+    ['panel-asset-allocation', 'panel-dual-inflation', 'panel-mortgage', 'panel-french-pension', 'panel-senior-care'].forEach(id => {
       const panel = document.getElementById(id);
       const header = panel?.querySelector('.expandable-header');
       const content = panel?.querySelector('.expandable-content');
@@ -721,6 +721,48 @@
           const isHidden = content.style.display === 'none';
           content.style.display = isHidden ? 'block' : 'none';
           panel.classList.toggle('open', isHidden);
+        });
+      }
+    });
+
+    // Retirement Location (Franco-Vietnamien PPP)
+    const selLocation = document.getElementById("sel-retirement-location");
+    if (selLocation) {
+      selLocation.addEventListener("change", (e) => {
+        const plan = getActivePlan();
+        plan.retirementLocation = e.target.value;
+        updateRetirementLocationUI(e.target.value);
+        savePlansToStorage();
+        updateAll();
+      });
+    }
+
+    // French Pension & Décote Inputs
+    ['inp-start-work-age', 'inp-pension-age', 'inp-pension-base-annual'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("input", () => {
+          const plan = getActivePlan();
+          plan.startWorkAge = Number(getVal("inp-start-work-age")) || 24;
+          plan.socialSecurityAge = Number(getVal("inp-pension-age")) || 64;
+          plan.socialSecurityAnnual = Number(getVal("inp-pension-base-annual")) || 18000;
+          updatePensionDecoteUI(plan);
+          savePlansToStorage();
+          updateAll();
+        });
+      }
+    });
+
+    // Senior Care / Dépendance Inputs
+    ['inp-senior-care-age', 'inp-senior-care-monthly'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("input", () => {
+          const plan = getActivePlan();
+          plan.seniorCareAge = Number(getVal("inp-senior-care-age")) || 78;
+          plan.seniorCareMonthly = Number(getVal("inp-senior-care-monthly")) || 0;
+          savePlansToStorage();
+          updateAll();
         });
       }
     });
@@ -883,6 +925,20 @@
     setVal("inp-effective-tax", p.taxRate || 10);
     setVal("inp-tax-regime", p.taxRegime || "international");
 
+    // Location & Franco-Vietnamien PPP
+    setVal("sel-retirement-location", p.retirementLocation || "vietnam");
+    updateRetirementLocationUI(p.retirementLocation || "vietnam");
+
+    // French Pension & Décote
+    setVal("inp-start-work-age", p.startWorkAge || 24);
+    setVal("inp-pension-age", p.socialSecurityAge || 64);
+    setVal("inp-pension-base-annual", p.socialSecurityAnnual !== undefined ? p.socialSecurityAnnual : (state.currency === 'EUR' ? 18000 : 72000000));
+    updatePensionDecoteUI(p);
+
+    // Senior Care / Dépendance
+    setVal("inp-senior-care-age", p.seniorCareAge || 78);
+    setVal("inp-senior-care-monthly", p.seniorCareMonthly || 0);
+
     // Sync currency badge & buttons
     const cur = p.currency || state.currency || 'EUR';
     state.currency = cur;
@@ -1038,6 +1094,71 @@
     p.dualInflation.inflationPost = post;
     p.dualInflation.eurVndInitialRate = baseForex;
     p.dualInflation.eurVndAnnualDrift = drift;
+  }
+
+  function updateRetirementLocationUI(loc) {
+    const badge = document.getElementById("badge-retire-location");
+    const hint = document.getElementById("hint-location-desc");
+    if (!badge) return;
+
+    if (loc === "vietnam") {
+      badge.innerText = "🇻🇳 Giảm ~55% chi phí (PPP)";
+      badge.style.background = "rgba(16, 185, 129, 0.15)";
+      badge.style.color = "#34d399";
+      if (hint) hint.innerText = "Sức mua tương đương (PPP): Cùng tiêu chuẩn sống cao, chi phí tại VN chỉ bằng ~45% tại Pháp (+ bảo hiểm CFE).";
+    } else if (loc === "hybrid") {
+      badge.innerText = "🇫🇷⇄🇻🇳 Giảm ~30% chi phí";
+      badge.style.background = "rgba(56, 189, 248, 0.15)";
+      badge.style.color = "#38bdf8";
+      if (hint) hint.innerText = "Song hành Pháp - Việt: 6 tháng sống tại Pháp & 6 tháng tại VN, tối ưu chi phí sinh hoạt kèm quỹ vé máy bay di chuyển.";
+    } else {
+      badge.innerText = "🇫🇷 Chi phí Chuẩn Pháp";
+      badge.style.background = "rgba(255, 255, 255, 0.08)";
+      badge.style.color = "#94a3b8";
+      if (hint) hint.innerText = "100% tại Pháp: Giữ nguyên mức chi phí sinh hoạt tiêu chuẩn Châu Âu.";
+    }
+  }
+
+  function updatePensionDecoteUI(p) {
+    if (!p) p = getActivePlan();
+    const startWork = Number(getVal("inp-start-work-age")) || Number(p.startWorkAge) || 24;
+    const pensionAge = Number(getVal("inp-pension-age")) || Number(p.socialSecurityAge) || 64;
+    const retireAge = Number(p.retirementAge) || 42;
+    const baseAnnual = Number(getVal("inp-pension-base-annual")) || Number(p.socialSecurityAnnual) || 18000;
+
+    const yearsWorked = Math.max(0, Math.min(retireAge, pensionAge) - startWork);
+    const quarters = yearsWorked * 4;
+    const targetQuarters = 172;
+    const missing = Math.max(0, targetQuarters - quarters);
+    const prorata = Math.min(1.0, quarters / targetQuarters);
+    const decotePenalty = (pensionAge < 67 && missing > 0) ? Math.min(20, missing) * 0.0125 : 0;
+    const effectivePension = Math.round(baseAnnual * prorata * (1.0 - decotePenalty));
+
+    const lblQuarters = document.getElementById("lbl-pension-quarters");
+    const lblDecote = document.getElementById("lbl-pension-decote");
+    const lblEffective = document.getElementById("lbl-pension-effective");
+    const badgeStatus = document.getElementById("badge-pension-status");
+
+    if (lblQuarters) {
+      lblQuarters.innerText = `${quarters} / 172 quý (${yearsWorked} năm đóng)`;
+      lblQuarters.className = quarters >= 172 ? "font-mono text-success" : "font-mono text-warning";
+    }
+    if (lblDecote) {
+      if (decotePenalty > 0) {
+        lblDecote.innerText = `-${(decotePenalty * 100).toFixed(1)}% (${missing} quý thiếu)`;
+        lblDecote.className = "font-mono text-danger";
+      } else {
+        lblDecote.innerText = "0% (Đủ điều kiện Taux Plein)";
+        lblDecote.className = "font-mono text-success";
+      }
+    }
+    if (lblEffective) {
+      lblEffective.innerText = `~${window.RetirementEngine.formatCurrency(effectivePension, state.currency)}/năm (~${window.RetirementEngine.formatCurrency(Math.round(effectivePension / 12), state.currency)}/tháng)`;
+    }
+    if (badgeStatus) {
+      badgeStatus.innerText = quarters >= 172 ? "Taux Plein" : `${quarters}/172q (${Math.round(prorata * 100)}%)`;
+      badgeStatus.style.color = quarters >= 172 ? "#34d399" : "#fbbf24";
+    }
   }
 
   // -------------------------------------------------------------

@@ -322,6 +322,85 @@
                 </div>
               </div>
 
+              <!-- Địa điểm & Phong cách Hưu trí (Franco-Vietnamien PPP) -->
+              <div class="form-group" style="margin-top: 0.5rem;">
+                <div class="field-header">
+                  <label for="sel-retirement-location">🌍 Địa điểm & Phong cách Hưu trí</label>
+                  <span class="field-badge" id="badge-retire-location" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">🇻🇳 Giảm ~55% chi phí (PPP)</span>
+                </div>
+                <select id="sel-retirement-location" class="form-select">
+                  <option value="france">🇫🇷 100% tại Pháp (Chi phí chuẩn Châu Âu)</option>
+                  <option value="hybrid">🇫🇷⇄🇻🇳 Song hành Pháp - Việt (6 tháng Pháp / 6 tháng VN, giảm ~30%)</option>
+                  <option value="vietnam" selected>🇻🇳 100% tại Việt Nam (Sức mua cao, giảm ~55% chi phí + CFE)</option>
+                </select>
+                <div class="input-hint" id="hint-location-desc" style="font-size: 0.72rem; color: #94a3b8; margin-top: 3px;">
+                  Sức mua tương đương (PPP): Cùng tiêu chuẩn sống cao, chi phí tại VN chỉ bằng ~45% tại Pháp (+ bảo hiểm CFE).
+                </div>
+              </div>
+
+              <!-- Lương Hưu Nhà Nước Pháp (Retraite de Base & Décote) -->
+              <div class="expandable-panel" id="panel-french-pension">
+                <div class="expandable-header" id="btn-toggle-french-pension">
+                  <span class="expandable-title">🏛️ Lương hưu Pháp & Kiểm tra Décote</span>
+                  <span class="expandable-badge font-mono" id="badge-pension-status">172 Quý</span>
+                  <span class="expandable-icon">▼</span>
+                </div>
+                <div class="expandable-content" id="content-french-pension" style="display: none;">
+                  <div class="form-row">
+                    <div class="form-group col-6">
+                      <label for="inp-start-work-age">Bắt đầu đi làm (tuổi)</label>
+                      <input type="number" id="inp-start-work-age" min="18" max="40" value="24" class="form-input">
+                    </div>
+                    <div class="form-group col-6">
+                      <label for="inp-pension-age">Tuổi bắt đầu nhận hưu</label>
+                      <input type="number" id="inp-pension-age" min="62" max="70" value="64" class="form-input">
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label for="inp-pension-base-annual">Lương hưu mục tiêu khi đủ 43 năm (€/năm)</label>
+                    <input type="number" id="inp-pension-base-annual" value="18000" step="500" class="form-input">
+                  </div>
+                  <div id="box-pension-decote-live" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.6rem 0.8rem; font-size: 0.78rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                      <span>Số quý tích lũy khi nghỉ việc:</span>
+                      <strong id="lbl-pension-quarters" class="font-mono text-warning">76 / 172 quý</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                      <span>Mức phạt Décote (nghỉ trước 67t):</span>
+                      <strong id="lbl-pension-decote" class="font-mono text-danger">-25% (kịch khung)</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                      <span>Lương hưu thực nhận tuổi 64:</span>
+                      <strong id="lbl-pension-effective" class="font-mono text-success">~5,965 €/năm (~497 €/tháng)</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dự phòng Chăm sóc Tuổi Già (Senior Care / Dépendance / EHPAD) -->
+              <div class="expandable-panel" id="panel-senior-care">
+                <div class="expandable-header" id="btn-toggle-senior-care">
+                  <span class="expandable-title">🩺 Dự phòng Chăm sóc Tuổi Già (78t+)</span>
+                  <span class="expandable-badge font-mono" id="badge-senior-care">EHPAD / Care</span>
+                  <span class="expandable-icon">▼</span>
+                </div>
+                <div class="expandable-content" id="content-senior-care" style="display: none;">
+                  <div class="form-row">
+                    <div class="form-group col-6">
+                      <label for="inp-senior-care-age">Bắt đầu từ tuổi</label>
+                      <input type="number" id="inp-senior-care-age" min="70" max="95" value="78" class="form-input">
+                    </div>
+                    <div class="form-group col-6">
+                      <label for="inp-senior-care-monthly">Ngân sách y tế/tháng (€)</label>
+                      <input type="number" id="inp-senior-care-monthly" min="0" max="10000" step="100" value="0" class="form-input" placeholder="0 €">
+                    </div>
+                  </div>
+                  <div class="input-hint" style="font-size: 0.72rem; color: #94a3b8;">
+                    Dự trù chi phí người giúp việc tại nhà (~1.200 €/tháng) hoặc Viện dưỡng lão EHPAD (~2.500 € - 3.500 €/tháng) để tránh thâm hụt tài sản thừa kế.
+                  </div>
+                </div>
+              </div>
+
               <div class="form-row">
                 <div class="form-group col-6">
                   <label for="inp-return-pre">Lợi nhuận tích lũy (%/năm)</label>
@@ -1781,29 +1860,36 @@
           </div>
         </div>
 
-        <!-- Live summary of project cost and loan -->
-        <div id="apt-live-summary" style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; padding: 0.6rem 0.85rem; margin-top: 0.75rem; font-size: 0.82rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-          <div>💰 <strong>Tổng dự án:</strong> <span id="lbl-apt-total-project" style="color: var(--primary); font-weight: 700;">97,125 €</span> <span style="font-size: 0.73rem; color: var(--text-muted);">(Giá + Phí CC + Vay NH + Nội thất)</span></div>
-          <div>🏦 <strong>Số tiền vay:</strong> <span id="lbl-apt-loan-amount" style="color: #10b981; font-weight: 700;">89,125 €</span></div>
+        <!-- Live summary of project cost, loan and net cashflow -->
+        <div id="apt-live-summary" style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; padding: 0.65rem 0.85rem; margin-top: 0.75rem; font-size: 0.82rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+          <div>💰 <strong>Tổng dự án:</strong> <span id="lbl-apt-total-project" style="color: var(--primary); font-weight: 700;">97,125 €</span></div>
+          <div>🏦 <strong>Số tiền vay:</strong> <span id="lbl-apt-loan-amount" style="color: #38bdf8; font-weight: 700;">89,125 €</span></div>
           <div>💳 <strong>Vốn tự có:</strong> <span id="lbl-apt-down-payment" style="color: #f59e0b; font-weight: 700;">8,000 €</span></div>
+          <div>📊 <strong>Dòng tiền Ròng:</strong> <span id="lbl-apt-net-cashflow" style="color: #10b981; font-weight: 700;">+45 €/tháng</span> <span style="font-size: 0.72rem; color: var(--text-muted);">(sau trừ TF & Trống nhà)</span></div>
         </div>
 
-        <h5 style="margin: 0.75rem 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; color: var(--primary);">📈 Doanh thu & Chi phí vận hành hàng năm</h5>
+        <h5 style="margin: 0.75rem 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; color: var(--primary);">📈 Doanh thu & Chi phí vận hành thực tế</h5>
         <div class="form-row">
-          <div class="form-group col-3">
+          <div class="form-group col-4">
             <label for="inp-apt-rent">Tiền thuê (€/tháng)</label>
             <input type="number" id="inp-apt-rent" class="form-input" value="650">
           </div>
-          <div class="form-group col-3">
-            <label for="inp-apt-coop">Phí quản lý (€/năm)</label>
-            <input type="number" id="inp-apt-coop" class="form-input" value="900">
+          <div class="form-group col-4">
+            <label for="inp-apt-vacance">Phòng trống Vacance (%)</label>
+            <input type="number" id="inp-apt-vacance" min="0" max="25" step="0.5" value="5.0" class="form-input" placeholder="5.0%">
           </div>
-          <div class="form-group col-3">
+          <div class="form-group col-4">
             <label for="inp-apt-tf">Thuế tài sản TF (€/năm)</label>
             <input type="number" id="inp-apt-tf" class="form-input" value="800">
           </div>
-          <div class="form-group col-3">
-            <label for="inp-apt-pno">Bảo hiểm PNO (€/năm)</label>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-6">
+            <label for="inp-apt-coop">Phí quản lý tòa nhà Coop (€/năm)</label>
+            <input type="number" id="inp-apt-coop" class="form-input" value="900">
+          </div>
+          <div class="form-group col-6">
+            <label for="inp-apt-pno">Bảo hiểm chủ nhà PNO (€/năm)</label>
             <input type="number" id="inp-apt-pno" class="form-input" value="150">
           </div>
         </div>

@@ -336,10 +336,27 @@ window.RetirementEngine = (function() {
         });
       }
 
-      // Add Social Security / BHXH if reached age
-      if (isRetired && age >= (Number(plan.socialSecurityAge) || 62)) {
-        const ssAnnual = (Number(plan.socialSecurityAnnual) || 0) * cumInflation;
-        annualIncome += ssAnnual;
+      // Add French Pension / BHXH if reached age (with realistic Décote calculation)
+      let pensionReceivedThisYear = 0;
+      const ssAge = Number(plan.socialSecurityAge) || 64;
+      if (isRetired && age >= ssAge) {
+        const rawSS = Number(plan.socialSecurityAnnual) || 0;
+        if (rawSS > 0) {
+          if (plan.enableFrenchDecote !== false) {
+            const startWorkAge = Number(plan.startWorkAge) || 24;
+            const yearsWorked = Math.max(0, Math.min(retireAge, ssAge) - startWorkAge);
+            const quarters = yearsWorked * 4;
+            const targetQuarters = 172; // Standard 43 years in France (Taux Plein)
+            const missingQuarters = Math.max(0, targetQuarters - quarters);
+            const prorata = Math.min(1.0, quarters / targetQuarters);
+            // Before age 67: décote penalty is 1.25% per missing quarter (max 20 quarters = 25% max penalty)
+            const decotePenalty = (age < 67 && missingQuarters > 0) ? Math.min(20, missingQuarters) * 0.0125 : 0;
+            pensionReceivedThisYear = rawSS * prorata * (1.0 - decotePenalty) * cumInflation;
+          } else {
+            pensionReceivedThisYear = rawSS * cumInflation;
+          }
+          annualIncome += pensionReceivedThisYear;
+        }
       }
 
       // 2. Calculate Base Expense with Spending Smile Adjustment
@@ -356,16 +373,37 @@ window.RetirementEngine = (function() {
         }
       }
 
+      // Purchasing Power Parity (PPP) Location Adjustment (France vs Vietnam)
+      const retireLoc = plan.retirementLocation || 'france'; // 'france' | 'hybrid' | 'vietnam'
+      let locationFactor = 1.0;
+      let expExtraCost = 0;
+      if (isRetired) {
+        if (retireLoc === 'vietnam') {
+          locationFactor = 0.45; // ~55% reduction in living expenses in Vietnam for equivalent comfort
+          expExtraCost += (Number(plan.vietnamCfeAnnual) || (cur === 'EUR' ? 1800 : 45_000_000));
+        } else if (retireLoc === 'hybrid') {
+          locationFactor = 0.70; // 6 months France / 6 months Vietnam
+          expExtraCost += (Number(plan.hybridTravelAnnual) || (cur === 'EUR' ? 2200 : 55_000_000));
+        }
+      }
+
+      // Senior Care / Dépendance / EHPAD reserve in late retirement (age 78+)
+      let seniorCareCost = 0;
+      const careAge = Number(plan.seniorCareAge) || 78;
+      if (isRetired && age >= careAge && Number(plan.seniorCareMonthly) > 0) {
+        seniorCareCost = (Number(plan.seniorCareMonthly) || 0) * 12;
+      }
+
       let currentExpenses = isRetired 
-        ? baseRetireExpenses * cumInflation * spendingFactor 
+        ? ((baseRetireExpenses * locationFactor * spendingFactor) + expExtraCost + seniorCareCost) * cumInflation 
         : (Number(plan.annualExpenses) || 240_000_000) * cumInflation;
 
       // Healthcare cost adjustments
       if (plan.healthcare && plan.healthcare.enabled) {
         if (isRetired && age < 65) {
-          currentExpenses += (Number(plan.healthcare.annualPreMedicare) || 30_000_000) * cumInflation;
+          currentExpenses += (Number(plan.healthcare.annualPreMedicare) || (cur === 'EUR' ? 1200 : 30_000_000)) * cumInflation;
         } else if (isRetired && age >= 65) {
-          currentExpenses += (Number(plan.healthcare.annualPostMedicare) || 15_000_000) * cumInflation;
+          currentExpenses += (Number(plan.healthcare.annualPostMedicare) || (cur === 'EUR' ? 600 : 15_000_000)) * cumInflation;
         }
       }
 
@@ -546,7 +584,10 @@ window.RetirementEngine = (function() {
 
     // Key metrics calculations
     const finalPortfolio = timeline[timeline.length - 1].portfolioEnd;
-    const fireTargetNestEgg = baseRetireExpenses * 25; // 25x rule
+    const locFactor = (plan.retirementLocation === 'vietnam') ? 0.45 : (plan.retirementLocation === 'hybrid' ? 0.70 : 1.0);
+    const locExtra = (plan.retirementLocation === 'vietnam') ? (cur === 'EUR' ? 1800 : 45_000_000) : (plan.retirementLocation === 'hybrid' ? (cur === 'EUR' ? 2200 : 55_000_000) : 0);
+    const effectiveRetireBase = (baseRetireExpenses * locFactor) + locExtra;
+    const fireTargetNestEgg = Math.round(effectiveRetireBase * 25); // 25x rule tailored to retirement location
     const safeAnnualSpend = initialRetirePortfolio > 0 ? initialRetirePortfolio * initialSWR : fireTargetNestEgg * 0.04;
     const yearsToFIRE = Math.max(0, retireAge - currentAge);
 
@@ -620,14 +661,33 @@ window.RetirementEngine = (function() {
     }
 
     if (Number(plan.socialSecurityAnnual) > 0) {
-      const ssAge = Number(plan.socialSecurityAge) || 65;
+      const ssAge = Number(plan.socialSecurityAge) || 64;
+      const startWork = Number(plan.startWorkAge) || 24;
+      const quarters = Math.max(0, Math.min(retireAge, ssAge) - startWork) * 4;
+      const descPension = (plan.enableFrenchDecote !== false && quarters < 172)
+        ? `Tuổi ${ssAge}: Kích hoạt lương hưu (${quarters}/172 quý - Bị phạt Décote do nghỉ sớm)`
+        : `Tuổi ${ssAge}: Kích hoạt trợ cấp hưu trí / BHXH (${formatCurrency(plan.socialSecurityAnnual, cur)}/năm)`;
+
       milestones.push({
         id: 'ms_pension',
         age: ssAge,
         icon: '🏛️',
         name: 'Lương hưu',
-        desc: `Tuổi ${ssAge}: Kích hoạt trợ cấp hưu trí / BHXH (${formatCurrency(plan.socialSecurityAnnual, cur)}/năm)`,
+        desc: descPension,
         color: '#34d399',
+        isSystem: true
+      });
+    }
+
+    if (Number(plan.seniorCareMonthly) > 0) {
+      const careAge = Number(plan.seniorCareAge) || 78;
+      milestones.push({
+        id: 'ms_senior_care',
+        age: careAge,
+        icon: '🩺',
+        name: 'Chăm sóc Tuổi Già (Dépendance)',
+        desc: `Tuổi ${careAge}: Kích hoạt quỹ y tế & viện dưỡng lão (${formatCurrency(Number(plan.seniorCareMonthly) * 12, cur)}/năm)`,
+        color: '#ec4899',
         isSystem: true
       });
     }
