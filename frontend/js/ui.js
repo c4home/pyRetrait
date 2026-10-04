@@ -21,6 +21,17 @@
   // Local Storage Key
   const STORAGE_KEY = "pyRetrait_plans_v2";
 
+  // Shared x-axis ticks for age/year axes: horizontal two-line labels ("35t" / "2032")
+  // take far less room than 45° rotated ones, so many more ages fit on the axis.
+  const ageAxisTicks = () => ({
+    color: '#94a3b8',
+    font: { size: 9 },
+    maxRotation: 0,
+    minRotation: 0,
+    autoSkip: true,
+    autoSkipPadding: 4
+  });
+
   // Document Ready
   document.addEventListener("DOMContentLoaded", () => {
     initApp();
@@ -28,6 +39,7 @@
 
   async function initApp() {
     loadTheme();
+    arrangeAiAndControlsColumns();
     await loadInitialPlans();
     // Pull mortgage loans + LMNP/Turo incomes from Gestion de Patrimoine automatically
     await syncFromPatrimoine({ rerender: false });
@@ -45,6 +57,30 @@
         switchTab(tabId);
       }
     }
+  }
+
+  // Layout per tab: charts full width on top, then a 2-column row below with
+  // the Gemini AI commentaries (left) next to the parameter card (right).
+  // Boxes are only moved in the DOM; GeminiAdvisor finds them by id, so updates keep working.
+  function arrangeAiAndControlsColumns() {
+    document.querySelectorAll(".panel-layout").forEach(layout => {
+      if (layout.querySelector(":scope > .panel-bottom")) return; // already arranged
+      const vis = layout.querySelector(":scope > .panel-visualization");
+      const ctrl = layout.querySelector(":scope > .panel-controls");
+      if (!vis || !ctrl) return;
+      const boxes = vis.querySelectorAll(".gemini-insight-box");
+      if (!boxes.length) return;
+
+      const bottom = document.createElement("div");
+      bottom.className = "panel-bottom";
+      const aiCol = document.createElement("div");
+      aiCol.className = "panel-ai-column";
+      boxes.forEach(box => aiCol.appendChild(box));
+
+      bottom.appendChild(ctrl);
+      bottom.appendChild(aiCol);
+      layout.appendChild(bottom);
+    });
   }
 
   // -------------------------------------------------------------
@@ -1928,7 +1964,7 @@
         scales: {
           x: {
             grid: { color: 'rgba(255, 255, 255, 0.05)' },
-            ticks: { color: '#94a3b8', font: { size: 10 } }
+            ticks: ageAxisTicks()
           },
           y: {
             grid: { color: 'rgba(255, 255, 255, 0.05)' },
@@ -2002,7 +2038,7 @@
         scales: {
           x: {
             grid: { display: false },
-            ticks: { color: '#94a3b8', font: { size: 10 } }
+            ticks: ageAxisTicks()
           },
           y: {
             grid: { color: 'rgba(255, 255, 255, 0.05)' },
@@ -2120,7 +2156,7 @@
             }
           },
           scales: {
-            x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8', maxTicksLimit: 12 } },
+            x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: ageAxisTicks() },
             y: {
               grid: { color: 'rgba(255, 255, 255, 0.05)' },
               ticks: {
@@ -2228,7 +2264,7 @@
           legend: { labels: { color: '#94a3b8' } }
         },
         scales: {
-          x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+          x: { grid: { display: false }, ticks: ageAxisTicks() },
           y: {
             grid: { color: 'rgba(255, 255, 255, 0.05)' },
             ticks: {
@@ -2321,7 +2357,7 @@
           legend: { labels: { color: '#94a3b8' } }
         },
         scales: {
-          x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } },
+          x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: ageAxisTicks() },
           y: {
             grid: { color: 'rgba(255, 255, 255, 0.05)' },
             ticks: {
@@ -2394,7 +2430,7 @@
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-          x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } },
+          x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: ageAxisTicks() },
           y: {
             grid: { color: 'rgba(255, 255, 255, 0.05)' },
             ticks: {

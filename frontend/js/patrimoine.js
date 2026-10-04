@@ -873,13 +873,14 @@
       if (nameInp) nameInp.value = aptData.name;
       if (origNameInp) origNameInp.value = aptData.name;
 
+      const price = aptData.property_price || r.property_price || 90000;
       setVal("inp-apt-address", aptData.address || r.address || "");
       setVal("inp-apt-start-year", aptData.start_year || r.start_year || 2023);
       setVal("inp-apt-surface", aptData.surface || r.surface || 30);
       setVal("inp-apt-typology", aptData.typology || r.typology || "T2 (2 pièces)");
       setVal("inp-apt-dpe", aptData.dpe_rating || r.dpe_rating || "C");
-      setVal("inp-apt-price", aptData.property_price || r.property_price || 90000);
-      setVal("inp-apt-notary", aptData.notary_fees || r.notary_fees || 6750);
+      setVal("inp-apt-price", price);
+      setVal("inp-apt-notary", aptData.notary_fees || r.notary_fees || Math.round(price * 0.075));
       setVal("inp-apt-reno", aptData.renovation_cost || r.renovation_cost || 0);
       setVal("inp-apt-furniture", aptData.furniture_cost || r.furniture_cost || 2000);
       setVal("inp-apt-rent", aptData.monthly_rent || r.monthly_rent || 600);
@@ -894,13 +895,14 @@
       if (titleEl) titleEl.innerText = "Thêm Căn hộ Cho thuê Mới";
       if (nameInp) nameInp.value = "";
       if (origNameInp) origNameInp.value = "";
+      const defaultPrice = 95000;
       setVal("inp-apt-address", "");
       setVal("inp-apt-start-year", 2024);
       setVal("inp-apt-surface", 35);
       setVal("inp-apt-typology", "T2 (2 pièces)");
       setVal("inp-apt-dpe", "C");
-      setVal("inp-apt-price", 95000);
-      setVal("inp-apt-notary", 7200);
+      setVal("inp-apt-price", defaultPrice);
+      setVal("inp-apt-notary", Math.round(defaultPrice * 0.075));
       setVal("inp-apt-reno", 0);
       setVal("inp-apt-furniture", 2000);
       setVal("inp-apt-rent", 650);
@@ -913,6 +915,7 @@
       setVal("inp-apt-ins-rate", 0.3);
     }
 
+    updateAptLiveSummary();
     modal.style.display = "flex";
   }
 
@@ -1058,6 +1061,24 @@
     return el ? el.value : "";
   }
 
+  function updateAptLiveSummary() {
+    const price = parseFloat(getVal("inp-apt-price")) || 0;
+    const notary = parseFloat(getVal("inp-apt-notary")) || 0;
+    const furn = parseFloat(getVal("inp-apt-furniture")) || 0;
+    const reno = parseFloat(getVal("inp-apt-reno")) || 0;
+    const down = parseFloat(getVal("inp-apt-down-payment")) || 0;
+    const bank = 1500; // standard bank guarantee/file fee in France
+    const total = price + notary + bank + reno + furn;
+    const loan = Math.max(0, total - down);
+
+    const lblTotal = document.getElementById("lbl-apt-total-project");
+    const lblLoan = document.getElementById("lbl-apt-loan-amount");
+    const lblDown = document.getElementById("lbl-apt-down-payment");
+    if (lblTotal) lblTotal.innerText = formatMoneyEUR(total);
+    if (lblLoan) lblLoan.innerText = formatMoneyEUR(loan);
+    if (lblDown) lblDown.innerText = formatMoneyEUR(down);
+  }
+
   function bindEvents() {
     const btnSync = document.getElementById("btn-sync-to-fire");
     if (btnSync) btnSync.addEventListener("click", syncToFire);
@@ -1076,6 +1097,23 @@
 
     const btnSaveTuro = document.getElementById("btn-save-turo");
     if (btnSaveTuro) btnSaveTuro.addEventListener("click", saveTuroSettings);
+
+    // Auto-calculate Notary Fees (~7.5% in France) when property price changes
+    const inpPrice = document.getElementById("inp-apt-price");
+    const inpNotary = document.getElementById("inp-apt-notary");
+    if (inpPrice && inpNotary) {
+      inpPrice.addEventListener("input", () => {
+        const p = parseFloat(inpPrice.value) || 0;
+        inpNotary.value = Math.round(p * 0.075);
+        updateAptLiveSummary();
+      });
+    }
+
+    // Live update apartment modal summary on cost inputs
+    ["inp-apt-notary", "inp-apt-furniture", "inp-apt-reno", "inp-apt-down-payment"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("input", updateAptLiveSummary);
+    });
   }
 
   // Initialize on DOM load

@@ -1594,8 +1594,8 @@
             <input type="number" id="inp-apt-price" class="form-input" value="90000" step="1000">
           </div>
           <div class="form-group col-3">
-            <label for="inp-apt-notary">Phí công chứng (€)</label>
-            <input type="number" id="inp-apt-notary" class="form-input" value="6750">
+            <label for="inp-apt-notary">Phí công chứng (€) <small style="color: var(--primary); font-size: 0.72rem; font-weight: 600;">(Tự động ~7.5%)</small></label>
+            <input type="number" id="inp-apt-notary" class="form-input" value="6750" title="Tự động tính theo tỷ lệ công chứng chuẩn 7.5% tại Pháp">
           </div>
           <div class="form-group col-3">
             <label for="inp-apt-furniture">Nội thất (€)</label>
@@ -1621,6 +1621,13 @@
             <label for="inp-apt-ins-rate">Bảo hiểm vay (%)</label>
             <input type="number" id="inp-apt-ins-rate" class="form-input" value="0.3" step="0.05">
           </div>
+        </div>
+
+        <!-- Live summary of project cost and loan -->
+        <div id="apt-live-summary" style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; padding: 0.6rem 0.85rem; margin-top: 0.75rem; font-size: 0.82rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+          <div>💰 <strong>Tổng dự án:</strong> <span id="lbl-apt-total-project" style="color: var(--primary); font-weight: 700;">97,125 €</span> <span style="font-size: 0.73rem; color: var(--text-muted);">(Giá + Phí CC + Vay NH + Nội thất)</span></div>
+          <div>🏦 <strong>Số tiền vay:</strong> <span id="lbl-apt-loan-amount" style="color: #10b981; font-weight: 700;">89,125 €</span></div>
+          <div>💳 <strong>Vốn tự có:</strong> <span id="lbl-apt-down-payment" style="color: #f59e0b; font-weight: 700;">8,000 €</span></div>
         </div>
 
         <h5 style="margin: 0.75rem 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; color: var(--primary);">📈 Doanh thu & Chi phí vận hành hàng năm</h5>
