@@ -2534,6 +2534,187 @@
     if (lblExemption) {
       lblExemption.innerText = count > 0 ? `${new Intl.NumberFormat('fr-FR').format(totalExemption)} € / 15 năm` : "0 €";
     }
+
+    // 6. Render Chart: Family Cash Flow Trajectory
+    renderFamilyCashFlowChart(count, kid1Birth, kid2Birth, kidCostMonthly, kidUniMonthly, cafMonthly, maxTaxSaving);
+  }
+
+  function renderFamilyCashFlowChart(count, kid1Birth, kid2Birth, kidCostMonthly, kidUniMonthly, cafMonthly, maxTaxSaving) {
+    const canvas = document.getElementById("chart-family-cashflow");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (state.charts.familyCashFlow) {
+      state.charts.familyCashFlow.destroy();
+    }
+
+    const currentYear = new Date().getFullYear();
+    const maxBirth = count >= 2 ? Math.max(kid1Birth, kid2Birth) : (count === 1 ? kid1Birth : currentYear);
+    const endYear = Math.max(currentYear + 20, maxBirth + 25);
+    const years = [];
+    const childExpenses = [];
+    const familyBenefits = [];
+    const realEstateCashFlow = [];
+
+    // Check apartments from Gestion de Patrimoine
+    let rawApts = [];
+    try {
+      const guestPat = JSON.parse(localStorage.getItem("pyRetrait_guest_patrimoine_v2") || "{}");
+      if (guestPat.apartments) {
+        rawApts = Object.entries(guestPat.apartments).map(([name, data]) => ({ name, ...data }));
+      }
+    } catch (e) {}
+
+    for (let yr = currentYear; yr <= endYear; yr++) {
+      years.push(yr);
+
+      // 1. Child expenses
+      let annualChildCost = 0;
+      if (count >= 1) {
+        const k1Age = yr - kid1Birth;
+        if (k1Age >= 0 && k1Age < 18) annualChildCost += kidCostMonthly * 12;
+        else if (k1Age >= 18 && k1Age <= 23) annualChildCost += kidUniMonthly * 12;
+      }
+      if (count >= 2) {
+        const k2Age = yr - kid2Birth;
+        if (k2Age >= 0 && k2Age < 18) annualChildCost += kidCostMonthly * 12;
+        else if (k2Age >= 18 && k2Age <= 23) annualChildCost += kidUniMonthly * 12;
+      }
+      childExpenses.push(annualChildCost);
+
+      // 2. Family benefits (CAF + Tax savings)
+      let annualBenefits = 0;
+      let depCount = 0;
+      if (count >= 1 && (yr - kid1Birth) >= 0 && (yr - kid1Birth) < 21) depCount++;
+      if (count >= 2 && (yr - kid2Birth) >= 0 && (yr - kid2Birth) < 21) depCount++;
+
+      if (depCount >= 2) {
+        annualBenefits = cafMonthly * 12 + maxTaxSaving;
+      } else if (depCount === 1) {
+        annualBenefits = Math.round(maxTaxSaving * 0.5);
+      }
+      familyBenefits.push(annualBenefits);
+
+      // 3. Real Estate Net Cash Flow (Patrimoine)
+      let annualReCf = 0;
+      if (rawApts.length > 0) {
+        rawApts.forEach(apt => {
+          const startYr = Number(apt.start_year) || 2023;
+          const dur = Number(apt.loan_duration) || 20;
+          const monthlyRent = Number(apt.monthly_rent) || 600;
+          const monthlyLoan = Number(apt.monthly_loan_payment) || (monthlyRent * 0.8);
+          const duringCf = (monthlyRent * 0.95 - monthlyLoan - 150) * 12;
+          const postCf = (monthlyRent * 0.95 - 150) * 12;
+
+          if (yr >= startYr) {
+            if (yr < startYr + dur) {
+              annualReCf += duringCf;
+            } else {
+              annualReCf += postCf;
+            }
+          }
+        });
+      } else {
+        // Sample standard benchmark from 3 apartments:
+        // Loan matures around 2043 (20 years from 2023), net cash flow rises to +18,768 €/year
+        if (yr < 2043) {
+          annualReCf = -1200; // slight debt service
+        } else {
+          annualReCf = 18768; // +1,564 €/month post-loan
+        }
+      }
+      realEstateCashFlow.push(Math.round(annualReCf));
+    }
+
+    state.charts.familyCashFlow = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: years.map(y => `${y}`),
+        datasets: [
+          {
+            label: 'Chi phí Nuôi con & Đại học (€/năm)',
+            data: childExpenses,
+            borderColor: '#f43f5e',
+            backgroundColor: 'rgba(244, 63, 94, 0.25)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.35
+          },
+          {
+            label: 'Dòng tiền Ròng BĐS Bù đắp (€/năm)',
+            data: realEstateCashFlow,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderWidth: 3,
+            fill: false,
+            tension: 0.25
+          },
+          {
+            label: 'Trợ cấp CAF & Tiết kiệm Thuế (€/năm)',
+            data: familyBenefits,
+            borderColor: '#38bdf8',
+            backgroundColor: 'rgba(56, 189, 248, 0.2)',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            fill: false,
+            tension: 0.2
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              title: (items) => `Năm ${items[0].label}`,
+              label: (item) => {
+                const val = new Intl.NumberFormat('fr-FR').format(item.raw);
+                return ` ${item.dataset.label}: ${val} €`;
+              },
+              afterBody: (items) => {
+                const yr = parseInt(items[0].label);
+                const lines = [];
+                if (count >= 1) {
+                  const a1 = yr - kid1Birth;
+                  const st1 = a1 < 0 ? 'chưa sinh' : (a1 < 18 ? `${a1} tuổi (Đi học)` : (a1 <= 23 ? `${a1} tuổi (Đại học 🎓)` : `${a1} tuổi (Tự lập 🌟)`));
+                  lines.push(`• Bé 1 (sinh ${kid1Birth}): ${st1}`);
+                }
+                if (count >= 2) {
+                  const a2 = yr - kid2Birth;
+                  const st2 = a2 < 0 ? 'chưa sinh' : (a2 < 18 ? `${a2} tuổi (Đi học)` : (a2 <= 23 ? `${a2} tuổi (Đại học 🎓)` : `${a2} tuổi (Tự lập 🌟)`));
+                  lines.push(`• Bé 2 (sinh ${kid2Birth}): ${st2}`);
+                }
+                return lines;
+              }
+            }
+          },
+          legend: {
+            labels: { color: '#94a3b8', font: { size: 11 } }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: {
+              color: '#94a3b8',
+              font: { size: 10 },
+              maxTicksLimit: 14
+            }
+          },
+          y: {
+            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: {
+              color: '#94a3b8',
+              callback: (val) => `${new Intl.NumberFormat('fr-FR').format(val)} €`
+            }
+          }
+        }
+      }
+    });
   }
 
   function initFamilyChildrenSimulation() {
