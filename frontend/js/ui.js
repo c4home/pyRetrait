@@ -243,6 +243,8 @@
   // Event Binding
   // -------------------------------------------------------------
   function bindEvents() {
+    initFamilyChildrenSimulation();
+
     // Navigation Tabs
     document.querySelectorAll(".nav-item").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -2453,11 +2455,107 @@
   }
 
   // -------------------------------------------------------------
-  // TAB 6: Estate & Spending Smile
+  // TAB 6: Estate, Family & Spending Smile
   // -------------------------------------------------------------
+  function updateFamilyChildrenSimulation() {
+    const selCount = document.getElementById("sel-family-kids-count");
+    const selStatus = document.getElementById("sel-family-status");
+    const inpKid1 = document.getElementById("inp-kid1-age");
+    const inpKid2 = document.getElementById("inp-kid2-age");
+    const inpKidCost = document.getElementById("inp-kid-cost-monthly");
+    const inpKidUni = document.getElementById("inp-kid-uni-monthly");
+
+    if (!selCount) return;
+
+    const count = parseInt(selCount.value) || 0;
+    const status = selStatus ? selStatus.value : "couple";
+    const baseParts = status === "couple" ? 2.0 : 1.0;
+    const kid1Age = Math.min(30, Math.max(0, parseInt(inpKid1?.value) || 0));
+    const kid2Age = Math.min(30, Math.max(0, parseInt(inpKid2?.value) || 0));
+
+    // Toggle kid age inputs visibility
+    const grp1 = document.getElementById("grp-kid1-age");
+    const grp2 = document.getElementById("grp-kid2-age");
+    const rowAges = document.getElementById("row-children-ages");
+    if (rowAges) rowAges.style.display = count === 0 ? "none" : "flex";
+    if (grp1) grp1.style.display = count >= 1 ? "block" : "none";
+    if (grp2) grp2.style.display = count >= 2 ? "block" : "none";
+
+    // 1. Parts Fiscales in France
+    let kidParts = 0;
+    if (count === 1) kidParts = 0.5;
+    else if (count === 2) kidParts = 1.0;
+    else if (count >= 3) kidParts = 1.0 + (count - 2) * 1.0;
+    const totalParts = baseParts + kidParts;
+
+    const lblParts = document.getElementById("lbl-family-parts");
+    if (lblParts) lblParts.innerText = `${totalParts.toFixed(1)} Parts Fiscales`;
+
+    // 2. Income Tax Savings (Capped at 1,759 € per half-part in France)
+    const halfParts = kidParts * 2;
+    const maxTaxSaving = Math.round(halfParts * 1759);
+    const lblTaxSaving = document.getElementById("lbl-family-tax-saving");
+    if (lblTaxSaving) {
+      lblTaxSaving.innerText = count > 0 ? `~${new Intl.NumberFormat('fr-FR').format(maxTaxSaving)} €/năm` : "0 €";
+    }
+
+    // 3. CAF Monthly Family Allowance (2+ children in France)
+    let cafMonthly = 0;
+    if (count === 2) cafMonthly = 148;
+    else if (count === 3) cafMonthly = 338;
+    else if (count >= 4) cafMonthly = 529;
+    const lblCaf = document.getElementById("lbl-family-caf");
+    if (lblCaf) {
+      lblCaf.innerText = count >= 2 ? `~${cafMonthly} €/tháng (~${new Intl.NumberFormat('fr-FR').format(cafMonthly * 12)} €/năm)` : "0 € (chưa đủ 2 con)";
+    }
+
+    // 4. University Milestones & Patrimoine Real Estate Connection
+    const currentYear = new Date().getFullYear();
+    const kid1UniYear = currentYear + Math.max(0, 18 - kid1Age);
+    const kid2UniYear = currentYear + Math.max(0, 18 - kid2Age);
+    const lblTimeline = document.getElementById("lbl-family-uni-timeline");
+    if (lblTimeline) {
+      if (count === 0) {
+        lblTimeline.innerText = "Chưa có dự kiến";
+      } else if (count === 1) {
+        lblTimeline.innerText = `Năm ${kid1UniYear} (khi con 18t)`;
+      } else {
+        lblTimeline.innerText = `Năm ${kid1UniYear} & ${kid2UniYear}`;
+      }
+    }
+
+    // 5. Inheritance Tax Exemption (100,000 € per parent per child every 15 years)
+    const parentsCount = status === "couple" ? 2 : 1;
+    const totalExemption = count * parentsCount * 100000;
+    const lblExemption = document.getElementById("lbl-family-inheritance-exemption");
+    if (lblExemption) {
+      lblExemption.innerText = count > 0 ? `${new Intl.NumberFormat('fr-FR').format(totalExemption)} € / 15 năm` : "0 €";
+    }
+  }
+
+  function initFamilyChildrenSimulation() {
+    const selCount = document.getElementById("sel-family-kids-count");
+    const selStatus = document.getElementById("sel-family-status");
+    const inpKid1 = document.getElementById("inp-kid1-age");
+    const inpKid2 = document.getElementById("inp-kid2-age");
+    const inpKidCost = document.getElementById("inp-kid-cost-monthly");
+    const inpKidUni = document.getElementById("inp-kid-uni-monthly");
+
+    [selCount, selStatus, inpKid1, inpKid2, inpKidCost, inpKidUni].forEach(el => {
+      if (el) {
+        el.addEventListener("input", updateFamilyChildrenSimulation);
+        el.addEventListener("change", updateFamilyChildrenSimulation);
+      }
+    });
+
+    updateFamilyChildrenSimulation();
+  }
+
   function renderEstateTab() {
     const plan = getActivePlan();
     const proj = window.RetirementEngine.runProjection(plan);
+
+    updateFamilyChildrenSimulation();
 
     const ctx = document.getElementById("chart-spending-smile").getContext("2d");
     if (state.charts.smile) {
