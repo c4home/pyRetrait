@@ -829,6 +829,65 @@
         updateAll();
       });
     }
+
+    // Franco-Vietnamese Health & Pension Guide Sub-tabs & Calculator
+    try {
+      initFrancoVietGuideInteractions();
+    } catch (e) {
+      console.warn("initFrancoVietGuideInteractions error:", e);
+    }
+  }
+
+  function initFrancoVietGuideInteractions() {
+    const btnHealth = document.getElementById("btn-guide-tab-health");
+    const btnPension = document.getElementById("btn-guide-tab-pension");
+    const contentHealth = document.getElementById("content-guide-health");
+    const contentPension = document.getElementById("content-guide-pension");
+
+    if (btnHealth && btnPension && contentHealth && contentPension) {
+      btnHealth.addEventListener("click", () => {
+        btnHealth.classList.add("active");
+        btnHealth.style.borderColor = "var(--border-subtle)";
+        btnPension.classList.remove("active");
+        btnPension.style.borderColor = "transparent";
+        contentHealth.style.display = "block";
+        contentPension.style.display = "none";
+      });
+
+      btnPension.addEventListener("click", () => {
+        btnPension.classList.add("active");
+        btnPension.style.borderColor = "var(--border-subtle)";
+        btnHealth.classList.remove("active");
+        btnHealth.style.borderColor = "transparent";
+        contentPension.style.display = "block";
+        contentHealth.style.display = "none";
+      });
+    }
+
+    // Mini Live Calculator for BHXH Tu Nguyen VN
+    const selIncome = document.getElementById("sel-calc-bhxh-income");
+    const selYears = document.getElementById("sel-calc-bhxh-years");
+    const lblPay = document.getElementById("lbl-bhxh-monthly-pay");
+    const lblPension = document.getElementById("lbl-bhxh-pension-est");
+
+    function updateBhxhCalc() {
+      if (!selIncome || !selYears || !lblPay || !lblPension) return;
+      const income = Number(selIncome.value) || 10000000;
+      const years = Number(selYears.value) || 15;
+      const monthlyPay = Math.round(income * 0.22);
+      const pensionRate = (years === 15) ? 0.45 : (0.45 + (years - 15) * 0.02);
+      const monthlyPension = Math.round(income * pensionRate);
+      const eurRate = 27500;
+
+      lblPay.innerText = `${monthlyPay.toLocaleString("vi-VN")} ₫/tháng (~${Math.round(monthlyPay / eurRate)} €)`;
+      lblPension.innerText = `~${monthlyPension.toLocaleString("vi-VN")} ₫/tháng (~${Math.round(monthlyPension / eurRate)} €)`;
+    }
+
+    if (selIncome && selYears) {
+      selIncome.addEventListener("change", updateBhxhCalc);
+      selYears.addEventListener("change", updateBhxhCalc);
+      updateBhxhCalc();
+    }
   }
 
   function syncSalaryStreamsWithRetireAge(plan) {
