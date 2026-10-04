@@ -2460,8 +2460,8 @@
   function updateFamilyChildrenSimulation() {
     const selCount = document.getElementById("sel-family-kids-count");
     const selStatus = document.getElementById("sel-family-status");
-    const inpKid1 = document.getElementById("inp-kid1-age");
-    const inpKid2 = document.getElementById("inp-kid2-age");
+    const inpKid1 = document.getElementById("inp-kid1-birth");
+    const inpKid2 = document.getElementById("inp-kid2-birth");
     const inpKidCost = document.getElementById("inp-kid-cost-monthly");
     const inpKidUni = document.getElementById("inp-kid-uni-monthly");
 
@@ -2470,14 +2470,18 @@
     const count = parseInt(selCount.value) || 0;
     const status = selStatus ? selStatus.value : "couple";
     const baseParts = status === "couple" ? 2.0 : 1.0;
-    const kid1Age = Math.min(30, Math.max(0, parseInt(inpKid1?.value) || 0));
-    const kid2Age = Math.min(30, Math.max(0, parseInt(inpKid2?.value) || 0));
+    const currentYear = new Date().getFullYear();
 
-    // Toggle kid age inputs visibility
-    const grp1 = document.getElementById("grp-kid1-age");
-    const grp2 = document.getElementById("grp-kid2-age");
-    const rowAges = document.getElementById("row-children-ages");
-    if (rowAges) rowAges.style.display = count === 0 ? "none" : "flex";
+    const kid1Birth = parseInt(inpKid1?.value) || 2022;
+    const kid2Birth = parseInt(inpKid2?.value) || 2025;
+    const kid1Age = Math.max(0, currentYear - kid1Birth);
+    const kid2Age = Math.max(0, currentYear - kid2Birth);
+
+    // Toggle kid birth inputs visibility
+    const grp1 = document.getElementById("grp-kid1-birth");
+    const grp2 = document.getElementById("grp-kid2-birth");
+    const rowBirth = document.getElementById("row-children-birth");
+    if (rowBirth) rowBirth.style.display = count === 0 ? "none" : "flex";
     if (grp1) grp1.style.display = count >= 1 ? "block" : "none";
     if (grp2) grp2.style.display = count >= 2 ? "block" : "none";
 
@@ -2509,18 +2513,17 @@
       lblCaf.innerText = count >= 2 ? `~${cafMonthly} €/tháng (~${new Intl.NumberFormat('fr-FR').format(cafMonthly * 12)} €/năm)` : "0 € (chưa đủ 2 con)";
     }
 
-    // 4. University Milestones & Patrimoine Real Estate Connection
-    const currentYear = new Date().getFullYear();
-    const kid1UniYear = currentYear + Math.max(0, 18 - kid1Age);
-    const kid2UniYear = currentYear + Math.max(0, 18 - kid2Age);
+    // 4. University Milestones (Birth Year + 18)
+    const kid1UniYear = kid1Birth + 18;
+    const kid2UniYear = kid2Birth + 18;
     const lblTimeline = document.getElementById("lbl-family-uni-timeline");
     if (lblTimeline) {
       if (count === 0) {
         lblTimeline.innerText = "Chưa có dự kiến";
       } else if (count === 1) {
-        lblTimeline.innerText = `Năm ${kid1UniYear} (khi con 18t)`;
+        lblTimeline.innerText = `Năm ${kid1UniYear} (khi con sinh ${kid1Birth} tròn 18t)`;
       } else {
-        lblTimeline.innerText = `Năm ${kid1UniYear} & ${kid2UniYear}`;
+        lblTimeline.innerText = `Năm ${kid1UniYear} & ${kid2UniYear} (khi tròn 18t)`;
       }
     }
 
@@ -2536,8 +2539,8 @@
   function initFamilyChildrenSimulation() {
     const selCount = document.getElementById("sel-family-kids-count");
     const selStatus = document.getElementById("sel-family-status");
-    const inpKid1 = document.getElementById("inp-kid1-age");
-    const inpKid2 = document.getElementById("inp-kid2-age");
+    const inpKid1 = document.getElementById("inp-kid1-birth");
+    const inpKid2 = document.getElementById("inp-kid2-birth");
     const inpKidCost = document.getElementById("inp-kid-cost-monthly");
     const inpKidUni = document.getElementById("inp-kid-uni-monthly");
 
