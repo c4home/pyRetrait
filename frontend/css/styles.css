@@ -558,6 +558,21 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 4px;
 }
 
+.summary-status.status-danger {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+}
+
+.summary-status.status-warning {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
+
+.summary-status.status-success {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--primary);
+}
+
 .summary-metric {
   display: flex;
   justify-content: space-between;
@@ -1966,6 +1981,21 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 0.86rem;
   line-height: 1.6;
   color: #cbd5e1;
+}
+
+.gemini-tldr {
+  background: rgba(56, 189, 248, 0.08);
+  border-left: 3px solid #38bdf8;
+  padding: 0.55rem 0.8rem;
+  margin: 0.2rem 0 0.85rem 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: #f1f5f9;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.gemini-tldr strong {
+  color: #38bdf8;
 }
 
 .gemini-subheading {

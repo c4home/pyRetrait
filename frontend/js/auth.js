@@ -185,39 +185,53 @@ const Auth = (function() {
   }
 
   async function syncGuestDataToCloud() {
-    // 1. Sync guest real estate & Turo patrimoine to user cloud database
+    const headers = getAuthHeaders();
+
+    // 1. Sync guest real estate & Turo patrimoine ONLY if user cloud account has no apartments yet
     const guestPat = localStorage.getItem("pyRetrait_guest_patrimoine_v2");
     if (guestPat) {
       try {
-        await fetch("/api/pylocation/sync-cloud", {
-          method: "POST",
-          headers: getAuthHeaders(),
-          body: guestPat
-        });
-        localStorage.removeItem("pyRetrait_guest_patrimoine_v2");
-      } catch (e) {
-        console.warn("Failed to sync guest patrimoine to cloud:", e);
-      }
-    }
-
-    // 2. Sync guest FIRE plans if cloud account has no plans yet
-    const guestPlans = localStorage.getItem("pyRetrait_plans_v2");
-    if (guestPlans) {
-      try {
-        const resCheck = await fetch("/api/plans", { headers: getAuthHeaders() });
-        if (resCheck.ok) {
-          const cloudPlans = await resCheck.json();
-          if (!cloudPlans || !cloudPlans.plans || !cloudPlans.plans.length) {
-            await fetch("/api/plans", {
+        const checkPat = await fetch("/api/pylocation/data", { headers });
+        if (checkPat.ok) {
+          const cloudPat = await checkPat.json();
+          const hasCloudApts = cloudPat && Array.isArray(cloudPat.apartments) && cloudPat.apartments.length > 0;
+          if (!hasCloudApts) {
+            await fetch("/api/pylocation/sync-cloud", {
               method: "POST",
-              headers: getAuthHeaders(),
-              body: guestPlans
+              headers,
+              body: guestPat
             });
           }
         }
+        localStorage.removeItem("pyRetrait_guest_patrimoine_v2");
       } catch (e) {
-        console.warn("Failed to check/sync guest plans:", e);
+        console.warn("Failed to check/sync guest patrimoine to cloud:", e);
       }
+    }
+
+    // 2. Sync FIRE plans: if cloud account has existing plans, load them into this browser;
+    // only if cloud has no plans at all, upload guest plans.
+    const guestPlans = localStorage.getItem("pyRetrait_plans_v2");
+    try {
+      const resCheck = await fetch("/api/plans", { headers });
+      if (resCheck.ok) {
+        const cloudPlans = await resCheck.json();
+        const hasCloudPlans = cloudPlans && cloudPlans.plans && Object.keys(cloudPlans.plans).length > 0;
+
+        if (!hasCloudPlans && guestPlans) {
+          // Cloud account is brand new / empty -> upload guest plans
+          await fetch("/api/plans", {
+            method: "POST",
+            headers,
+            body: guestPlans
+          });
+        } else if (hasCloudPlans) {
+          // Cloud account already has plans -> load them to localStorage so this browser is instantly identical
+          localStorage.setItem("pyRetrait_plans_v2", JSON.stringify(cloudPlans));
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to check/sync guest plans:", e);
     }
   }
 

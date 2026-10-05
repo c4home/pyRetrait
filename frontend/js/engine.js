@@ -256,16 +256,33 @@ window.RetirementEngine = (function() {
     const startAge = 18;
     const timeline = [];
 
-    // 0. Giai đoạn khởi đầu & tích lũy sớm từ năm 18 tuổi đến trước tuổi hiện tại
     if (currentAge > startAge) {
-      const pastYears = currentAge - startAge;
       for (let age = startAge; age < currentAge; age++) {
-        const t = (age - startAge) / pastYears;
-        const pastPortfolio = Math.round(initialSavings * Math.pow(t, 2.2));
         const pastYear = birthYear + age;
-        const annualInc = Number(plan.annualSavings || 0) + Number(plan.annualExpenses || 15000);
-        const pastIncome = Math.round(annualInc * Math.pow(t, 1.8));
-        const pastExpenses = Math.round(Number(plan.annualExpenses || 15000) * Math.pow(t, 1.5));
+
+        // Chỉ tính thu nhập trong quá khứ NẾU người dùng thực sự có cấu hình nguồn thu nhập tại độ tuổi đó
+        let pastIncome = 0;
+        if (Array.isArray(plan.incomes)) {
+          plan.incomes.forEach(stream => {
+            if (stream.enabled === false) return;
+            const sAge = Number(stream.startAge);
+            const isSalary = stream.isSalary || (stream.name && (/lương|salary|impôt|impot/i).test(stream.name));
+            const effectiveEndAge = isSalary ? retireAge : (Number(stream.endAge) || retireAge);
+            if (age >= sAge && age <= effectiveEndAge) {
+              const streamGrowth = (Number(stream.growth) || 0) / 100.0;
+              const streamYearsActive = age - sAge;
+              const streamVal = (Number(stream.amount) || 0) * Math.pow(1.0 + streamGrowth, streamYearsActive);
+              pastIncome += streamVal;
+            }
+          });
+        }
+        pastIncome = Math.round(pastIncome);
+
+        // Chi tiêu sinh hoạt quá khứ: chỉ phát sinh tương ứng nếu có thu nhập thực tế, nếu không có thu nhập thì mặc định = 0
+        const pastExpenses = pastIncome > 0 ? Math.min(pastIncome, Math.round(Number(plan.annualExpenses || 15000))) : 0;
+
+        // Tài sản quá khứ: chỉ có nếu có tích lũy từ thu nhập thực tế, không tự động sinh số dương giả lập
+        const pastPortfolio = pastIncome > 0 ? Math.max(0, pastIncome - pastExpenses) : 0;
 
         timeline.push({
           age,

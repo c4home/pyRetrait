@@ -36,13 +36,16 @@ window.GeminiAdvisor = (function () {
     html = html.replace(/^\s*(\d+)\.\s+(.*$)/gim, '<li class="gemini-num-item">$2</li>');
     html = html.replace(/(<li class="gemini-num-item">.*<\/li>\s*)+/g, '<ol class="gemini-num-list">$&</ol>');
 
+    // Blockquotes / TL;DR Callouts
+    html = html.replace(/^\s*&gt;\s*(.*$)/gim, '<div class="gemini-tldr">$1</div>');
+
     // Paragraphs
     html = html.replace(/\n\n+/g, '</p><p class="gemini-para">');
     html = '<p class="gemini-para">' + html + '</p>';
 
-    // Cleanup empty paragraphs around lists/headers/dividers
-    html = html.replace(/<p class="gemini-para">\s*(<h\d|<ul|<ol|<hr)/g, '$1');
-    html = html.replace(/(<\/h\d>|<\/ul>|<\/ol>|<hr[^>]*>)\s*<\/p>/g, '$1');
+    // Cleanup empty paragraphs around lists/headers/dividers/callouts
+    html = html.replace(/<p class="gemini-para">\s*(<h\d|<ul|<ol|<hr|<div)/g, '$1');
+    html = html.replace(/(<\/h\d>|<\/ul>|<\/ol>|<hr[^>]*>|<\/div>)\s*<\/p>/g, '$1');
     html = html.replace(/<p class="gemini-para">\s*<\/p>/g, '');
 
     return html;

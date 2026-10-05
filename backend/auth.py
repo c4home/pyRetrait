@@ -61,7 +61,7 @@ def init_db():
     conn.close()
 
 # Password hashing using PBKDF2-HMAC-SHA256 (standard library, 100,000 iterations)
-def hash_password(password: str, salt: bytes = None) -> Tuple[str, str]:
+def hash_password(password: str, salt: Optional[bytes] = None) -> Tuple[str, str]:
     if not salt:
         salt = os.urandom(16)
     h = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100_000)

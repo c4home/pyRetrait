@@ -1,12 +1,17 @@
 import os
 import json
+import logging
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 from fastapi import FastAPI, HTTPException, Body, Header
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
+
+# Logging configuration
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+logger = logging.getLogger("pyRetrait")
+
 
 # Authentication & Multi-user database
 from backend.auth import (
@@ -47,9 +52,12 @@ PLANS_FILE = DATA_DIR / "plans.json"
 # pyLocation Integration Directories & Path
 import sys
 PYLOCATION_DIR = BASE_DIR / "pyLocation"
+if not PYLOCATION_DIR.exists():
+    PYLOCATION_DIR = BASE_DIR.parent / "pyLocation"
 PYLOCATION_DATA_DIR = PYLOCATION_DIR / "data"
 if PYLOCATION_DIR.exists() and str(PYLOCATION_DIR) not in sys.path:
     sys.path.insert(0, str(PYLOCATION_DIR))
+
 
 # Tải biến môi trường từ file .env nếu có
 def _load_env_file(env_path: Path):
@@ -242,8 +250,8 @@ def register_user(payload: Dict[str, Any] = Body(...)):
     name = payload.get("name", "")
     
     user, err = create_user(email, password, name)
-    if err:
-        raise HTTPException(status_code=400, detail=err)
+    if err or not user:
+        raise HTTPException(status_code=400, detail=err or "Không thể tạo tài khoản")
     
     # Initialize default starter plans for this user in database
     save_user_plans(user["id"], DEFAULT_PLANS)
@@ -272,8 +280,8 @@ def login_user(payload: Dict[str, Any] = Body(...)):
     password = payload.get("password", "")
     
     user, err = authenticate_user(email, password)
-    if err:
-        raise HTTPException(status_code=401, detail=err)
+    if err or not user:
+        raise HTTPException(status_code=401, detail=err or "Đăng nhập thất bại")
     
     token = create_token(user["id"], user["email"], user["name"])
     return {
@@ -325,7 +333,7 @@ def save_plans(payload: Dict[str, Any] = Body(...), authorization: Optional[str]
 # ==============================================================================
 def _compute_apartment_metrics(name: str, apt: Dict[str, Any]) -> Dict[str, Any]:
     try:
-        from calculator.mortgage import calculate_mortgage, calculate_notary_fees
+        from calculator.mortgage import calculate_mortgage, calculate_notary_fees  # type: ignore[import-not-found,import-untyped]
     except Exception:
         def calculate_notary_fees(p, t="ancien"): return p * 0.075
         def calculate_mortgage(loan, rate, dur, ins=0.3):
@@ -414,7 +422,7 @@ def _compute_apartment_metrics(name: str, apt: Dict[str, Any]) -> Dict[str, Any]
 
 def _compute_turo_metrics(settings: Dict[str, Any]) -> Dict[str, Any]:
     try:
-        from calculator.turo import calculate_turo_investment
+        from calculator.turo import calculate_turo_investment  # type: ignore[import-not-found,import-untyped]
         res = calculate_turo_investment(
             initial_car_price=float(settings.get("price", 5000)),
             annual_gross_gain=float(settings.get("gross_gain", 1800)),
@@ -450,7 +458,7 @@ def _compute_turo_metrics(settings: Dict[str, Any]) -> Dict[str, Any]:
             "raw": settings
         }
 
-def _compute_full_patrimoine(apts_raw: Dict[str, Any], turo_raw: Dict[str, Any], wealth_raw: Dict[str, Any] = None) -> Dict[str, Any]:
+def _compute_full_patrimoine(apts_raw: Dict[str, Any], turo_raw: Dict[str, Any], wealth_raw: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     computed_apartments = []
     tot_val = 0
     tot_loan = 0
@@ -552,6 +560,96 @@ def compute_pylocation_preview(payload: Dict[str, Any] = Body(...)):
     wealth_raw = payload.get("wealth", {})
     return _compute_full_patrimoine(apts_raw, turo_raw, wealth_raw)
 
+@app.post("/api/pylocation/sync-to-fire")
+def sync_pylocation_to_fire(authorization: Optional[str] = Header(None)):
+    """
+    Magic Bridge: Sync all pyLocation real estate passive cash flows and Turo profits
+    directly into the active pyRetrait FIRE retirement plan!
+    """
+    data = get_pylocation_data(authorization=authorization)
+    summary = data.get("summary", {})
+    turo = data.get("turo", {})
+    
+    monthly_rental_cf = summary.get("total_monthly_post_loan_cashflow", 0)
+    annual_rental_cf = summary.get("total_annual_post_loan_cashflow", 0)
+    turo_annual_cf = turo.get("annual_net_cash_flow", 0)
+    total_properties = summary.get("total_properties", 0)
+
+    # Load plans
+    plans_data = get_plans(authorization=authorization)
+    active_id = plans_data.get("activePlanId", "plan_franco_viet")
+    if active_id not in plans_data.get("plans", {}):
+        active_id = list(plans_data.get("plans", {}).keys())[0]
+    
+    plan = plans_data["plans"][active_id]
+    cur_age = int(plan.get("currentAge", 29))
+    retire_age = int(plan.get("retirementAge", 42))
+
+    if not isinstance(plan.get("incomes"), list):
+        plan["incomes"] = []
+
+    # 1. Update/Add/Remove Real Estate Passive Income
+    existing_re_idx = -1
+    for idx, inc in enumerate(plan["incomes"]):
+        if "LMNP" in inc.get("name", "") or "BĐS Cho thuê" in inc.get("name", ""):
+            existing_re_idx = idx
+            break
+
+    if total_properties > 0:
+        re_income_item = {
+            "name": "🏠 BĐS Cho thuê LMNP Pháp",
+            "amount": annual_rental_cf,
+            "startAge": cur_age,
+            "endAge": 85,
+            "growth": 1.5,
+            "taxable": False # LMNP amortized = 0 tax
+        }
+        if existing_re_idx >= 0:
+            plan["incomes"][existing_re_idx] = re_income_item
+        else:
+            plan["incomes"].append(re_income_item)
+    else:
+        if existing_re_idx >= 0:
+            plan["incomes"].pop(existing_re_idx)
+
+    # 2. Update/Add/Remove Turo Fleet Passive Income
+    existing_turo_idx = -1
+    for idx, inc in enumerate(plan["incomes"]):
+        if "Turo" in inc.get("name", "") or "Cho thuê xe" in inc.get("name", ""):
+            existing_turo_idx = idx
+            break
+
+    if turo_annual_cf > 0:
+        turo_income_item = {
+            "name": "🚗 Đội xe Cho thuê Turo",
+            "amount": turo_annual_cf,
+            "startAge": cur_age,
+            "endAge": min(cur_age + 10, retire_age),
+            "growth": 0.0,
+            "taxable": False
+        }
+        if existing_turo_idx >= 0:
+            plan["incomes"][existing_turo_idx] = turo_income_item
+        else:
+            plan["incomes"].append(turo_income_item)
+    else:
+        if existing_turo_idx >= 0:
+            plan["incomes"].pop(existing_turo_idx)
+
+    # 3. Asset allocation is left untouched: the user controls it with the sliders.
+
+    # Save plans
+    save_plans(plans_data, authorization=authorization)
+
+    return {
+        "success": True,
+        "message": "Đã đồng bộ thành công danh mục BĐS & Turo vào Kế hoạch Hưu trí FIRE!",
+        "addedMonthlyRental": monthly_rental_cf,
+        "addedMonthlyTuro": turo.get("monthly_net_cash_flow", 0),
+        "totalPropertyValue": summary.get("total_property_value", 0),
+        "activePlanId": active_id
+    }
+
 @app.post("/api/pylocation/sync-cloud")
 def sync_patrimoine_to_cloud(payload: Dict[str, Any] = Body(...), authorization: Optional[str] = Header(None)):
     """Sync guest local patrimoine from browser localStorage into user's cloud account upon login."""
@@ -643,96 +741,6 @@ def save_pylocation_turo(payload: Dict[str, Any] = Body(...), authorization: Opt
     # Guest mode
     return {"success": True, "turo": _compute_turo_metrics(payload)}
 
-@app.post("/api/pylocation/sync-to-fire")
-def sync_pylocation_to_fire(authorization: Optional[str] = Header(None)):
-    """
-    Magic Bridge: Sync all pyLocation real estate passive cash flows and Turo profits
-    directly into the active pyRetrait FIRE retirement plan!
-    """
-    data = get_pylocation_data(authorization=authorization)
-    summary = data.get("summary", {})
-    turo = data.get("turo", {})
-    
-    monthly_rental_cf = summary.get("total_monthly_post_loan_cashflow", 0)
-    annual_rental_cf = summary.get("total_annual_post_loan_cashflow", 0)
-    turo_annual_cf = turo.get("annual_net_cash_flow", 0)
-    total_properties = summary.get("total_properties", 0)
-
-    # Load plans
-    plans_data = get_plans(authorization=authorization)
-    active_id = plans_data.get("activePlanId", "plan_franco_viet")
-    if active_id not in plans_data.get("plans", {}):
-        active_id = list(plans_data.get("plans", {}).keys())[0]
-    
-    plan = plans_data["plans"][active_id]
-    cur_age = int(plan.get("currentAge", 29))
-    retire_age = int(plan.get("retirementAge", 42))
-
-    if not isinstance(plan.get("incomes"), list):
-        plan["incomes"] = []
-
-    # 1. Update/Add/Remove Real Estate Passive Income
-    existing_re_idx = -1
-    for idx, inc in enumerate(plan["incomes"]):
-        if "LMNP" in inc.get("name", "") or "BĐS Cho thuê" in inc.get("name", ""):
-            existing_re_idx = idx
-            break
-
-    if total_properties > 0:
-        re_income_item = {
-            "name": "🏠 BĐS Cho thuê LMNP Pháp",
-            "amount": annual_rental_cf,
-            "startAge": cur_age,
-            "endAge": 85,
-            "growth": 1.5,
-            "taxable": False # LMNP amortized = 0 tax
-        }
-        if existing_re_idx >= 0:
-            plan["incomes"][existing_re_idx] = re_income_item
-        else:
-            plan["incomes"].append(re_income_item)
-    else:
-        if existing_re_idx >= 0:
-            plan["incomes"].pop(existing_re_idx)
-
-    # 2. Update/Add/Remove Turo Fleet Passive Income
-    existing_turo_idx = -1
-    for idx, inc in enumerate(plan["incomes"]):
-        if "Turo" in inc.get("name", "") or "Cho thuê xe" in inc.get("name", ""):
-            existing_turo_idx = idx
-            break
-
-    if turo_annual_cf > 0:
-        turo_income_item = {
-            "name": "🚗 Đội xe Cho thuê Turo",
-            "amount": turo_annual_cf,
-            "startAge": cur_age,
-            "endAge": min(cur_age + 10, retire_age),
-            "growth": 0.0,
-            "taxable": False
-        }
-        if existing_turo_idx >= 0:
-            plan["incomes"][existing_turo_idx] = turo_income_item
-        else:
-            plan["incomes"].append(turo_income_item)
-    else:
-        if existing_turo_idx >= 0:
-            plan["incomes"].pop(existing_turo_idx)
-
-    # 3. Asset allocation is left untouched: the user controls it with the sliders.
-
-    # Save plans
-    save_plans(plans_data, authorization=authorization)
-
-    return {
-        "success": True,
-        "message": "Đã đồng bộ thành công danh mục BĐS & Turo vào Kế hoạch Hưu trí FIRE!",
-        "addedMonthlyRental": monthly_rental_cf,
-        "addedMonthlyTuro": turo.get("monthly_net_cash_flow", 0),
-        "totalPropertyValue": summary.get("total_property_value", 0),
-        "activePlanId": active_id
-    }
-
 @app.post("/api/simulate/monte-carlo")
 def run_monte_carlo(payload: Dict[str, Any] = Body(...)):
     """
@@ -750,7 +758,8 @@ def run_monte_carlo(payload: Dict[str, Any] = Body(...)):
         volatility = float(payload.get("volatility", 15.0)) / 100.0
         inflation = float(payload.get("inflationRate", 4.0)) / 100.0
         num_simulations = int(payload.get("numSimulations", 1000))
-        withdrawal_rate = float(payload.get("withdrawalRate", 4.0)) / 100.0
+        # withdrawal_rate reserved for custom withdrawal strategies
+        _ = float(payload.get("withdrawalRate", 4.0)) / 100.0
         
         years = life_expectancy - current_age + 1
         age_axis = list(range(current_age, life_expectancy + 1))
@@ -905,153 +914,183 @@ async def get_available_models(api_key: Optional[str] = None):
                     # Put newest/flash models at top
                     gemini_list.sort(reverse=True)
                     return {"models": gemini_list, "source": "google_api"}
-    except Exception as e:
+    except Exception:
         pass
 
     return {"models": default_models, "source": "static"}
 
 def generate_local_gemini_analysis(chart_id: str, chart_title: str, chart_summary: Dict[str, Any], plan: Dict[str, Any]) -> str:
-    """Phân tích tài chính thông thái, thân thiện, dễ hiểu, không dùng thuật ngữ rườm rà và luôn có ví dụ thực tế."""
+    """Phân tích tài chính thông thái, thân thiện, dễ hiểu, bám sát số liệu mô phỏng thực tế và luôn có ví dụ cụ thể."""
     cur = plan.get("currency", "EUR")
     cur_sym = "€" if cur == "EUR" else ("₫" if cur == "VND" else "$")
-    cur_age = plan.get("currentAge", 29)
-    retire_age = plan.get("retirementAge", 42)
-    life_exp = plan.get("lifeExpectancy", 85)
+    cur_age = int(plan.get("currentAge") or 29)
+    retire_age = int(plan.get("retirementAge") or 42)
+    life_exp = int(plan.get("lifeExpectancy") or 85)
+    
+    incomes = plan.get("incomes", [])
+    total_salary = sum(float(inc.get("amount", 0)) for inc in incomes if inc.get("enabled", True))
+    if total_salary <= 0:
+        total_salary = float(plan.get("annualSavings", 7922)) / max(0.01, float(plan.get("savingsRate", 33.3)) / 100)
+        
+    ann_sav = float(plan.get("annualSavings", 7922))
+    ret_exp = float(plan.get("retirementExpenses", 10000))
+    forex = float(plan.get("exchangeRateEurVnd", 27500))
+    monthly_exp_vnd = round((ret_exp * forex) / 12 / 1_000_000)
+    
+    early_age = max(cur_age, retire_age - 3)
+    late_age = retire_age + 3
+    fire_age = chart_summary.get("fireAge", retire_age)
     
     if chart_id in ("chart-networth", "chart-net-worth"):
         peak = chart_summary.get("peakNetWorth", "N/A")
         peak_age = chart_summary.get("peakAge", retire_age)
         final_nw = chart_summary.get("finalNetWorth", "N/A")
         fire_target = chart_summary.get("fireTarget", "N/A")
-        fire_age = chart_summary.get("fireAge", 42)
-        has_mortgage = plan.get("mortgage", {}).get("enabled", True)
-        
-        salary_amt = plan.get("incomes", [{}])[0].get("amount", 25000) if plan.get("incomes") else 25000
-        ann_sav = plan.get("annualSavings", 7922)
-        ret_exp = plan.get("retirementExpenses", 10000)
-        forex = plan.get("exchangeRateEurVnd", 27500)
-        monthly_exp_vnd = round((ret_exp * forex) / 12 / 1_000_000)
+        has_mortgage = plan.get("mortgage", {}).get("enabled", False) or bool(plan.get("frenchMortgages"))
         
         mortgage_text = (
-            "- **Căn nhà trả góp tại Pháp**: Đến năm 42 tuổi, bạn đã trả nợ được 13/20 năm. Khi về Việt Nam, bạn có thể cho thuê nhà tại Pháp để tiền thuê tự nuôi phần nợ còn lại, hoặc bán lấy một khoản vốn lớn mang về nước."
+            "- **Khoản vay mua nhà**: Khi bước vào tuổi nghỉ hưu, bạn có thể tiếp tục để tiền thuê tự nuôi khoản nợ vay hoặc cơ cấu lại danh mục để tối đa hóa dòng tiền ròng."
             if has_mortgage else
-            "- **Toàn bộ tiền ở dạng linh hoạt**: Bạn không bị kẹt vốn vào nhà đất, giúp bạn hoàn toàn chủ động điều chuyển tiền và an tâm sinh sống."
+            "- **Tài sản hoàn toàn linh hoạt**: Bạn không bị gánh nặng nợ vay, giúp toàn quyền chủ động điều chuyển vốn và an tâm sinh sống."
         )
         
         return (
-            f"### 🎯 Tuổi nghỉ hưu thích hợp nhất: 41 – 42 tuổi\n"
-            f"Dựa trên thu nhập lương {salary_amt:,.0f} {cur_sym}/năm, tiền để dành đều đặn ~{ann_sav:,.0f} {cur_sym}/năm (~{round(ann_sav/12)} {cur_sym}/tháng) và mức chi tiêu mong muốn khi về Việt Nam là {ret_exp:,.0f} {cur_sym}/năm (~{monthly_exp_vnd} triệu VNĐ/tháng), **độ tuổi nghỉ hưu thích hợp và an toàn nhất cho bạn là 41 – 42 tuổi** (đúng ngay mốc bạn đang nhắm tới).\n\n"
-            f"### 💡 1. Tại sao mốc 41 – 42 tuổi là điểm vàng hưu trí của bạn?\n"
-            f"- **Tiền tự đẻ ra tiền đủ nuôi bạn**: Ở tuổi 42, danh mục đầu tư đạt mốc mục tiêu khoảng **{fire_target}** (gần 7,1 tỷ VNĐ). Chỉ cần rút 4% tiền lời mỗi năm ({round(ret_exp):,.0f} {cur_sym}/năm), cộng thêm 200 {cur_sym}/tháng tiền cổ tức có sẵn từ tuổi 38, bạn có **~29 triệu VNĐ/tháng** — dư sức chi trả mức sống {monthly_exp_vnd} triệu/tháng và còn dư tiền làm quỹ du lịch.\n"
-            f"- **Tiền gốc không bao giờ vơi**: Bạn chỉ tiêu phần tiền lãi, còn tiền gốc vẫn tiếp tục sinh sôi. Đến tuổi {life_exp}, bạn vẫn còn khoảng **{final_nw}** (tài sản đạt đỉnh **{peak}** ở tuổi {peak_age}).\n"
+            f"> 💡 **Tóm tắt cốt lõi (TL;DR)**: Mục tiêu nghỉ hưu ở tuổi {retire_age} của bạn hoàn toàn khả thi và cân bằng; tài sản tích lũy sinh lời đủ chi trả mức sống mong muốn và bảo toàn vốn đến tuổi {life_exp}.\n\n"
+            f"### 🎯 Đánh giá Mốc Tuổi Nghỉ Hưu {retire_age} tuổi\n"
+            f"Dựa trên thu nhập tổng {total_salary:,.0f} {cur_sym}/năm, tiền để dành đều đặn ~{ann_sav:,.0f} {cur_sym}/năm (~{round(ann_sav/12)} {cur_sym}/tháng) và mức chi tiêu hưu trí dự kiến là {ret_exp:,.0f} {cur_sym}/năm (~{monthly_exp_vnd} triệu ₫/tháng), **mốc {retire_age} tuổi là điểm cân bằng vàng** cho hành trình độc lập tài chính của bạn (điểm chạm mục tiêu FIRE rơi vào khoảng {fire_age} tuổi).\n\n"
+            f"### 💡 1. Sức bền của Khối Tài sản & Tiền Lãi Nuôi Sống\n"
+            f"- **Tiền tự đẻ ra tiền đủ trang trải**: Ở tuổi {retire_age}, danh mục đầu tư đạt mốc mục tiêu khoảng **{fire_target}**. Với tỷ lệ rút vốn an toàn 3.8%–4% mỗi năm ({round(ret_exp):,.0f} {cur_sym}/năm), dòng tiền sinh lời đủ bao phủ hoàn toàn chi phí sinh hoạt hàng tháng mà không làm hao mòn vốn gốc.\n"
+            f"- **Tiền gốc tiếp tục tăng trưởng**: Nhờ sức mạnh lãi kép, danh mục dự kiến đạt đỉnh **{peak}** ở tuổi {peak_age}, và đến tuổi {life_exp} bạn vẫn duy trì được khối tài sản khoảng **{final_nw}**.\n"
             f"{mortgage_text}\n\n"
-            f"### ⚖️ 2. So sánh 3 mốc tuổi để bạn dễ dàng lựa chọn\n"
-            f"- **Mốc 39 tuổi (Nghỉ sớm - Hơi sát nút)**: Tài sản tích lũy đạt ~180.000 € (~5 tỷ VNĐ). Mức này đủ tiền ăn tiêu cơ bản, nhưng nếu năm đó thị trường kinh tế khó khăn thì dễ bị hụt tiền. Bạn chỉ nên nghỉ ở tuổi 39 nếu có thêm một công việc tự do nhẹ nhàng kiếm thêm 5–7 triệu VNĐ/tháng.\n"
-            f"- **Mốc 41 – 42 tuổi (Khuyên dùng - Cân bằng hoàn hảo)**: Tài sản đạt ~260.000 €, tạo ra dòng tiền an toàn ~29 triệu VNĐ/tháng. Bạn hoàn toàn tự do tài chính, không sợ biến động thị trường và thoải mái tận hưởng cuộc sống.\n"
-            f"- **Mốc 45 tuổi (Rất dư dả)**: Danh mục vượt 380.000 € (~10,4 tỷ VNĐ), chi tiêu thoải mái 35–40 triệu VNĐ/tháng không cần suy nghĩ.\n\n"
-            f"### 🎯 3. Các bước cụ thể bạn có thể làm theo ngay\n"
-            f"1. **Duy trì thói quen 'trả cho mình trước'**: Cứ ngày nhận lương, tự động chuyển ngay {round(ann_sav/12)} {cur_sym} vào tài khoản đầu tư tích lũy (PEA / quỹ chỉ số ETF toàn cầu) trước khi chi tiêu sinh hoạt.\n"
-            f"2. **Chuẩn bị 2 năm tiền mặt ở tuổi 40–41**: Khoảng 1–2 năm trước khi về Việt Nam, hãy trích sẵn khoảng 20.000 € vào sổ tiết kiệm ngắn hạn (như Livret A). Khoản tiền này để chi tiêu 2 năm đầu tiên về nước, giúp bạn ngủ ngon dù thị trường có lên xuống."
+            f"### ⚖️ 2. So sánh 3 mốc tuổi nghỉ hưu linh hoạt\n"
+            f"- **Mốc {early_age} tuổi (Nghỉ sớm hơn)**: Bạn có thể nghỉ sớm hơn dự kiến nếu chuẩn bị thêm một nguồn thu nhập phụ nhẹ nhàng khoảng 5–7 triệu ₫/tháng để giảm áp lực rút tiền những năm đầu.\n"
+            f"- **Mốc {retire_age} tuổi (Mục tiêu tối ưu)**: Tài sản đạt điểm chạm FIRE hoàn hảo, dòng tiền thảnh thơi và bạn hoàn toàn làm chủ thời gian của mình.\n"
+            f"- **Mốc {late_age} tuổi (Làm thêm tích lũy)**: Khối tài sản sẽ phình to hơn đáng kể, cho phép bạn nâng mức chi tiêu du lịch trải nghiệm hoặc để lại khối di sản lớn cho gia đình.\n\n"
+            f"### 🎯 3. Các bước cụ thể làm theo ngay\n"
+            f"1. **Duy trì nguyên tắc 'trả cho mình trước'**: Cứ ngày nhận lương, tự động chuyển ngay ~{round(ann_sav/12)} {cur_sym} vào danh mục đầu tư tích lũy dài hạn trước khi chi tiêu sinh hoạt.\n"
+            f"2. **Chuẩn bị bình oxy tiền mặt 2 năm trước khi nghỉ việc**: Khoảng 1–2 năm trước khi bước sang tuổi {retire_age}, hãy trích sẵn khoảng 2 năm chi phí sinh hoạt (~{round(ret_exp * 2):,.0f} {cur_sym}) vào tài khoản tiết kiệm an toàn để chi tiêu giai đoạn đầu về hưu."
         )
 
     elif chart_id in ("chart-cashflow", "chart-cash-flow"):
+        gap_years = max(0, 65 - retire_age)
+        gap_text = (
+            f"- **Khoảng trống dòng tiền từ tuổi {retire_age} đến 65 (khoảng {gap_years} năm)**: Trong những năm này, bạn chưa có lương hưu nhà nước hỗ trợ mà phải hoàn toàn tự túc từ số tiền tích lũy. Vì vậy cần tránh các khoản chi tiêu quá lớn bất ngờ."
+            if gap_years > 0 else
+            f"- **Dòng tiền hưu trí tức thì**: Do bạn nghỉ hưu ở mốc {retire_age} tuổi, bạn có thể kết hợp ngay các nguồn hưu trí và thu nhập thụ động để ổn định cuộc sống."
+        )
         return (
-            f"### 💡 1. Nhìn nhanh dòng tiền vào và ra của bạn\n"
-            f"- **Giai đoạn đi làm (Tuổi {cur_age} – {retire_age})**: Tiền lương hàng tháng tại Pháp nhiều hơn tiền chi tiêu, phần dư ra liên tục được đưa vào đầu tư giúp tài sản tăng nhanh.\n"
-            f"- **Giai đoạn nghỉ hưu sớm (Sau tuổi {retire_age})**: Bạn ngừng nhận lương, chuyển sang dùng tiền lãi và rút một phần nhỏ từ tài sản đầu tư để sinh sống tại Việt Nam.\n"
-            f"- **Sau tuổi 65 có thêm tiền hỗ trợ**: Bạn sẽ bắt đầu nhận thêm tiền lương hưu từ Pháp, giúp giảm gánh nặng phải tự rút tiền túi.\n\n"
+            f"> 💡 **Tóm tắt cốt lõi (TL;DR)**: Dòng tiền của bạn chuyển dịch nhịp nhàng từ tích lũy chủ động sang rút vốn có kiểm soát; cần lưu ý bảo toàn dòng tiền trong những năm đầu sau khi ngừng đi làm.\n\n"
+            f"### 💡 1. Nhìn nhanh dòng tiền vào và ra theo từng chặng đời\n"
+            f"- **Giai đoạn đi làm (Tuổi {cur_age} – {retire_age})**: Thu nhập hàng tháng vượt chi phí sinh hoạt, phần thặng dư liên tục được tái đầu tư giúp tài sản tăng tốc.\n"
+            f"- **Giai đoạn nghỉ hưu sớm (Sau tuổi {retire_age})**: Bạn ngừng nhận lương chủ động, chuyển sang dùng tiền lời và rút một phần nhỏ từ tài sản đầu tư để sinh sống.\n"
+            f"- **Giai đoạn tuổi vàng**: Sau mốc 64–65 tuổi, các khoản trợ cấp hoặc lương hưu bổ sung sẽ giảm bớt gánh nặng rút tiền túi cá nhân.\n\n"
             f"### ⚠️ 2. Điểm cần lưu ý về dòng tiền\n"
-            f"- **Khoảng trống từ tuổi {retire_age} đến 65 (khoảng {65 - retire_age} năm)**: Trong những năm này, bạn chưa có lương hưu hỗ trợ mà phải hoàn toàn tự túc từ số tiền tích lũy. Vì vậy cần tránh các khoản chi tiêu quá lớn bất ngờ.\n\n"
-            f"### 🎯 3. Các bước cụ thể bạn có thể làm theo ngay\n"
-            f"1. **Tạo thêm nguồn thu nhập nhẹ nhàng** (Ví dụ: Mua một căn nhà nhỏ cho thuê hoặc nhận tiền cổ tức đều đặn khoảng vài triệu mỗi tháng, giúp bạn có thêm tiền tiêu vặt mà không phải rút vào tiền gốc).\n"
-            f"2. **Nếu lãi vay nhà đang thấp, không cần vội trả hết** (Ví dụ: Nếu lãi vay mua nhà chỉ 1.5%–2%/năm, bạn nên trả góp đều đặn hàng tháng thay vì dồn một cục tiền lớn trả hết, vì đem số tiền đó đi đầu tư có thể sinh lời 6%–8%/năm)."
+            f"{gap_text}\n\n"
+            f"### 🎯 3. Các bước cụ thể làm theo ngay\n"
+            f"1. **Tạo thêm nguồn thu nhập nhẹ nhàng**: Chuẩn bị một vài tài sản tạo dòng tiền như cổ tức hoặc nhà cho thuê để có thêm tiền tiêu vặt mà không phải bán tài sản gốc.\n"
+            f"2. **Nếu lãi suất vay đang thấp, không cần vội tất toán trước hạn**: Khi lãi suất vay chỉ 1.5%–2.5%/năm, duy trì trả góp đều đặn và để phần vốn còn lại sinh lời 6%–8%/năm trong quỹ đầu tư sẽ có lợi hơn nhiều."
         )
 
     elif chart_id in ("chart-withdrawal-comparison", "chart-withdrawals"):
         return (
+            f"> 💡 **Tóm tắt cốt lõi (TL;DR)**: Chiến lược Lan can Guyton-Klinger mang lại sự cân bằng hoàn hảo nhất giữa mức chi tiêu ổn định và khả năng chống cạn kiệt tài sản đến tuổi {life_exp}.\n\n"
             f"### 💡 1. So sánh 4 cách rút tiền khi về hưu\n"
-            f"- **Cách linh hoạt theo tình hình (Lan can - Khuyên dùng)**: Khi thị trường tăng tốt thì bạn được tiêu nhiều hơn một chút; khi năm nào kinh tế khó khăn thì tự động bớt chi tiêu khoảng 10%. Cách này giúp bạn không bao giờ sợ hết tiền.\n"
-            f"- **Cách rút số tiền cố định mỗi năm**: Năm nào cũng rút một số tiền như nhau cộng thêm trượt giá. Cách này dễ tính nhưng nếu gặp năm thị trường giảm sâu thì tiền hao hụt khá nhanh.\n"
-            f"- **Cách rút theo phần trăm**: Mỗi năm rút một tỷ lệ cố định trên số tiền còn lại. Tiền không bao giờ cạn, nhưng số tiền tiêu mỗi năm sẽ lên xuống thất thường.\n\n"
+            f"- **Cách linh hoạt theo tình hình (Lan can Guyton-Klinger - Khuyên dùng)**: Khi thị trường tăng tốt bạn được tiêu nhiều hơn một chút; khi năm nào kinh tế khó khăn thì tự động thắt lưng buộc bụng bớt 10%. Cách này giúp bạn không bao giờ sợ hết tiền.\n"
+            f"- **Cách rút số tiền cố định mỗi năm (Quy tắc 4% Bengen)**: Năm nào cũng rút một số tiền như nhau cộng trượt giá. Cách này dễ dự toán nhưng nếu gặp năm thị trường giảm sâu thì tiền hao hụt rất nhanh.\n"
+            f"- **Cách rút theo phần trăm cố định**: Mỗi năm rút một tỷ lệ cố định trên số dư còn lại. Tiền không bao giờ cạn, nhưng số tiền tiêu mỗi năm sẽ trồi sụt theo thị trường.\n"
+            f"- **Cách rút theo tuổi thọ (VPW)**: Tối đa hóa số tiền được tiêu theo từng độ tuổi, nhưng đòi hỏi tính kỷ luật cao.\n\n"
             f"### ⚠️ 2. Điều cần tránh\n"
-            f"- Đừng rút quá 4%–4.5% tổng tài sản mỗi năm (Ví dụ: Có 10 tỷ thì mỗi năm chỉ nên rút khoảng 350 – 400 triệu để chi tiêu. Nếu rút nhiều hơn, tiền có thể hết trước tuổi già).\n\n"
-            f"### 🎯 3. Các bước cụ thể bạn có thể làm theo ngay\n"
-            f"1. **Áp dụng nguyên tắc linh hoạt**: Đặt mức chi tiêu khởi điểm khoảng 3.8% tổng tài sản (Ví dụ: Có 5 tỷ thì năm đầu tiêu khoảng 190 triệu, tương đương ~16 triệu/tháng).\n"
-            f"2. **Điều chỉnh theo từng năm**: Năm nào danh mục lời nhiều thì tự thưởng chuyến du lịch; năm nào thị trường giảm thì giảm bớt chi tiêu mua sắm xa xỉ."
+            f"- Tuyệt đối tránh rút quá 4%–4.5% tổng tài sản mỗi năm trong những năm thị trường suy thoái, vì bán tài sản ở đáy sẽ triệt tiêu cơ hội phục hồi.\n\n"
+            f"### 🎯 3. Các bước cụ thể làm theo ngay\n"
+            f"1. **Áp dụng tỷ lệ khởi điểm 3.8%**: Đặt mức chi tiêu năm đầu tiên bằng khoảng 3.8% tổng tài sản để tạo biên an toàn dự phòng.\n"
+            f"2. **Điều chỉnh linh hoạt từng năm**: Năm nào danh mục tăng trưởng vượt kỳ vọng thì tự thưởng chuyến du lịch; năm nào thị trường ảm đạm thì cắt giảm các chi tiêu xa xỉ."
         )
 
     elif chart_id in ("chart-tax-optimization", "chart-taxes"):
         return (
-            f"### 💡 1. Cách giữ lại nhiều tiền nhất trước thuế\n"
-            f"- **Tận dụng tài khoản ưu đãi tại Pháp (PEA và Assurance-Vie)**: Nước Pháp có chính sách rất tốt cho người biết tích lũy dài hạn. Khi giữ tài khoản đủ thời gian (5 năm với PEA và 8 năm với Assurance-Vie), bạn sẽ được miễn phần lớn thuế thu nhập trên tiền lời.\n"
-            f"- **Tiết kiệm hàng trăm triệu đồng**: Bằng cách chọn đúng tài khoản để rút tiền trước, bạn sẽ tránh được việc phải nộp thuế cao không đáng có.\n\n"
-            f"### ⚠️ 2. Điều cần nhớ về thời gian\n"
-            f"- Các tài khoản này tính tuổi từ **ngày bạn mở tài khoản**, chứ không phải từ ngày bạn nộp nhiều tiền. Nếu để sát ngày về hưu mới mở thì sẽ không kịp thời gian để được miễn thuế.\n\n"
-            f"### 🎯 3. Các bước cụ thể bạn có thể làm theo ngay\n"
-            f"1. **Mở tài khoản PEA và Assurance-Vie ngay hôm nay**: Kể cả chỉ nộp vào 50 € hoặc 100 € để 'bấm giờ' tính thời gian càng sớm càng tốt.\n"
-            f"2. **Thứ tự rút tiền thông minh**: Khi cần tiền tiêu, ưu tiên rút từ tài khoản tiết kiệm an toàn trước ➔ sau đó rút từ Assurance-Vie trong hạn mức miễn thuế ➔ rồi mới đến các tài khoản khác."
+            "> 💡 **Tóm tắt cốt lõi (TL;DR)**: Tận dụng các tài khoản ưu đãi thuế dài hạn và thứ tự rút tiền đúng cách có thể giúp bạn tiết kiệm hàng trăm triệu đồng thuế thu nhập.\n\n"
+            "### 💡 1. Cách giữ lại nhiều tiền nhất trước thuế\n"
+            "- **Tận dụng tài khoản ưu đãi (PEA và Assurance-Vie / Roth)**: Khi giữ tài khoản đủ thời gian quy định (5 năm với PEA và 8 năm với Assurance-Vie), bạn sẽ được miễn phần lớn thuế thu nhập trên tiền lời.\n"
+            "- **Tiết kiệm hàng trăm triệu đồng**: Bằng cách chọn đúng tài khoản để rút tiền trước, bạn sẽ tránh được việc phải nộp thuế suất cao không đáng có.\n\n"
+            "### ⚠️ 2. Điều cần nhớ về thời gian mở tài khoản\n"
+            "- Các tài khoản này tính niên hạn từ **ngày bạn mở tài khoản**, chứ không phải từ ngày bạn nộp nhiều tiền. Nếu để sát ngày về hưu mới mở thì sẽ không kịp thời gian để được hưởng ưu đãi miễn thuế.\n\n"
+            "### 🎯 3. Các bước cụ thể làm theo ngay\n"
+            "1. **Mở tài khoản ưu đãi ngay hôm nay**: Kể cả chỉ nộp vào một số tiền nhỏ (50 € – 100 €) để bấm giờ tính thâm niên tài khoản càng sớm càng tốt.\n"
+            "2. **Thứ tự rút tiền thông minh**: Khi cần tiền tiêu, ưu tiên rút từ tài khoản tiết kiệm an toàn trước ➔ sau đó rút từ tài khoản ưu đãi trong hạn mức miễn thuế ➔ rồi mới đến các tài khoản chịu thuế cao."
         )
 
     elif chart_id in ("chart-monte-carlo", "chart-insights"):
+        succ_rate = chart_summary.get("successRate", "95%+")
         return (
+            f"> 💡 **Tóm tắt cốt lõi (TL;DR)**: Thử nghiệm 1.000 cuộc đời giả lập cho thấy kế hoạch của bạn đạt độ an toàn rất cao ({succ_rate}); chỉ cần chuẩn bị quỹ tiền mặt dự phòng để vô hiệu hóa rủi ro thị trường giảm sớm.\n\n"
             f"### 💡 1. Kết quả thử nghiệm 1.000 tình huống cuộc đời\n"
-            f"- Hệ thống đã giả lập 1.000 kịch bản thị trường khác nhau (từ những năm kinh tế bùng nổ đến những đợt khủng hoảng lớn).\n"
-            f"- **Kết quả rất khả quan**: Phần lớn các trường hợp bạn đều an toàn về đích với tài sản dư dả cho đến tuổi 85.\n\n"
+            f"- Hệ thống đã giả lập 1.000 kịch bản thị trường khác nhau (từ những năm kinh tế bùng nổ đến những đợt khủng hoảng tài chính toàn cầu).\n"
+            f"- **Kết quả rất khả quan**: Phần lớn các trường hợp bạn đều an toàn về đích với tài sản dư dả cho đến tuổi {life_exp}.\n\n"
             f"### ⚠️ 2. Kịch bản xui xẻo nhất cần phòng ngừa\n"
-            f"- Nếu chẳng may ngay khi vừa nghỉ việc mà thị trường chứng khoán giảm mạnh 2-3 năm liền, số tiền của bạn sẽ bị sụt giảm nhanh hơn dự tính nếu bạn phải bán tài sản giá rẻ để lấy tiền ăn tiêu.\n\n"
+            f"- Nếu chẳng may ngay khi vừa thôi việc mà thị trường chứng khoán giảm mạnh 2-3 năm liền, số tiền của bạn sẽ bị sụt giảm nhanh hơn dự tính nếu bạn phải bán tháo tài sản giá rẻ để lấy tiền ăn tiêu.\n\n"
             f"### 🎯 3. Cách phòng ngừa rất dễ làm theo\n"
-            f"1. **Chuẩn bị 'bình oxy tiền mặt' trước khi nghỉ việc 1 năm**: Để sẵn 2 năm chi phí sinh hoạt trong tài khoản an toàn (ví dụ: sổ tiết kiệm ngân hàng). Khi thị trường giảm, bạn chỉ tiêu tiền trong bình oxy này, tuyệt đối không bán lỗ các khoản đầu tư.\n"
-            f"2. **Kiên nhẫn chờ thị trường hồi phục**: Lịch sử cho thấy các đợt giảm giá thường phục hồi sau 1-2 năm. Tiền mặt dự phòng sẽ giúp bạn hoàn toàn an tâm ngủ ngon."
+            f"1. **Chuẩn bị 'bình oxy tiền mặt' trước khi nghỉ việc 1 năm**: Để sẵn 2 năm chi phí sinh hoạt trong tài khoản an toàn (như sổ tiết kiệm). Khi thị trường giảm, bạn chỉ tiêu tiền trong bình oxy này, tuyệt đối không bán lỗ các khoản đầu tư.\n"
+            f"2. **Kiên nhẫn chờ thị trường hồi phục**: Lịch sử cho thấy các đợt khủng hoảng thường phục hồi sau 1–2 năm. Tiền mặt dự phòng sẽ giúp bạn hoàn toàn an tâm ngủ ngon."
         )
 
     elif chart_id in ("chart-scenarios", "chart-stress-test"):
+        sc_title = chart_summary.get("title", "Biến cố thị trường")
         return (
-            f"### 💡 1. Thử sức tài chính trước các biến cố lớn\n"
+            f"> 💡 **Tóm tắt cốt lõi (TL;DR)**: Danh mục của bạn có độ dẻo dai tốt trước các cú sốc lớn; việc chủ động mua bảo hiểm sức khỏe và giữ lối sống linh hoạt là chìa khóa phòng thủ vững chắc nhất.\n\n"
+            f"### 💡 1. Thử sức tài chính trước biến cố: {sc_title}\n"
             f"- **Thị trường giảm sâu (-35%)**: Tài sản của bạn giảm tạm thời trên màn hình, nhưng tiền sinh hoạt hàng ngày vẫn được bảo đảm nếu bạn không bán tháo tài sản lúc giá rẻ.\n"
-            f"- **Giá cả sinh hoạt tại Việt Nam tăng cao**: Vì phần lớn tài sản của bạn được đầu tư vào các quỹ uy tín và doanh nghiệp lớn, giá trị tài sản sẽ tự động tăng theo thời gian để bù đắp sự mất giá của đồng tiền.\n\n"
-            f"### ⚠️ 2. Biến cố tốn kém nhất: Sức khỏe\n"
-            f"- Những chi phí y tế đột xuất lúc lớn tuổi là nguyên nhân lớn nhất làm hao hụt tài sản nếu không chuẩn bị trước.\n\n"
+            f"- **Lạm phát giá cả sinh hoạt**: Nhờ phần lớn tài sản được đầu tư vào các quỹ doanh nghiệp và tài sản thực, giá trị tài sản sẽ tự động tăng theo thời gian để bù đắp sự mất giá của đồng tiền.\n\n"
+            f"### ⚠️ 2. Biến cố tốn kém nhất: Chi phí Sức khỏe\n"
+            f"- Những chi phí y tế đột xuất lúc lớn tuổi là nguyên nhân lớn nhất làm hao hụt tài sản hưu trí nếu không có phương án che chắn từ trước.\n\n"
             f"### 🎯 3. Việc cụ thể bạn nên làm theo ngay\n"
-            f"1. **Mua bảo hiểm sức khỏe chu đáo trước khi nghỉ việc**: Đảm bảo bạn và gia đình có thẻ bảo hiểm sức khỏe toàn cầu hoặc gói bảo hiểm cao cấp tại Việt Nam, để nếu có ốm đau thì bảo hiểm chi trả, không phải đụng vào tiền tiết kiệm nghỉ hưu.\n"
-            f"2. **Cắt giảm 10% các khoản chi tiêu không thiết yếu khi có biến cố** (Ví dụ: Tạm hoãn mua đồ công nghệ mới, giảm bớt vài chuyến du lịch xa trong năm đó)."
+            f"1. **Mua bảo hiểm sức khỏe chu đáo trước khi nghỉ việc**: Đảm bảo bạn và gia đình có thẻ bảo hiểm sức khỏe toàn diện để nếu có ốm đau thì bảo hiểm chi trả, không phải đụng vào tiền tiết kiệm nghỉ hưu.\n"
+            f"2. **Cắt giảm 10% các khoản chi tiêu không thiết yếu khi có biến cố**: Tạm hoãn mua sắm đồ đắt tiền hoặc giảm bớt các chuyến du lịch xa trong năm thị trường khó khăn."
         )
 
     elif chart_id in ("chart-spending-smile", "chart-estate"):
+        tgt_leg = chart_summary.get("targetLegacy", "N/A")
+        proj_leg = chart_summary.get("projectedLegacy", "N/A")
+        pct = chart_summary.get("pctOfTarget", "100%")
         return (
+            f"> 💡 **Tóm tắt cốt lõi (TL;DR)**: Chi tiêu đời người tự nhiên giảm dần sau 60 tuổi; kế hoạch của bạn đảm bảo tài sản tích lũy đạt {pct} mục tiêu di sản để lại ({proj_leg}).\n\n"
             f"### 💡 1. Đường cong chi tiêu thực tế theo độ tuổi\n"
-            f"- Chi tiêu trong đời người thường có hình 'nụ cười':\n"
-            f"  - **Lúc vừa nghỉ hưu (Tuổi {retire_age}–60)**: Đang còn trẻ khỏe, thích đi du lịch, trải nghiệm nên tiêu nhiều nhất.\n"
-            f"  - **Tuổi trung niên (Tuổi 60–75)**: Sống chậm rãi, thích ở nhà chăm vườn, nấu ăn nên chi tiêu tự nhiên giảm xuống.\n"
+            f"- Chi tiêu trong đời người thường có hình 'nụ cười' (Spending Smile):\n"
+            f"  - **Lúc vừa nghỉ hưu (Tuổi {retire_age}–60)**: Đang còn trẻ khỏe, thích đi du lịch và trải nghiệm nên chi tiêu đạt mức cao nhất.\n"
+            f"  - **Tuổi trung niên (Tuổi 60–75)**: Sống chậm rãi, thích ở nhà chăm vườn, nấu ăn nên chi tiêu tự nhiên giảm bớt.\n"
             f"  - **Sau tuổi 75**: Đi lại ít hơn nhưng cần thêm một phần tiền chăm sóc sức khỏe và bồi dưỡng tuổi già.\n\n"
-            f"### ⚠️ 2. Để lại tiền cho con cháu sao cho đỡ tốn thuế\n"
-            f"- Số tiền còn lại ở tuổi 85 của bạn dự kiến khá lớn. Nếu để dồn đến cuối đời mới chuyển giao thì có thể chịu thuế thừa kế không cần thiết.\n\n"
-            f"### 🎯 3. Các bước cụ thể bạn có thể làm theo ngay\n"
-            f"1. **Tận dụng luật tặng tiền miễn thuế của Pháp**: Cứ mỗi 15 năm, cha mẹ được phép tặng cho mỗi người con tới 100.000 € hoàn toàn miễn thuế. Hãy chia dần từng phần khi con cái lập nghiệp hoặc lập gia đình.\n"
-            f"2. **Lên kế hoạch tận hưởng đúng giai đoạn**: Đừng quá dè sẻn trong 10 năm đầu sau khi nghỉ hưu (tuổi {retire_age}–52), vì đó là lúc bạn có nhiều sức khỏe nhất để tận hưởng cuộc sống."
+            f"### 🏛️ 2. Để lại tiền cho con cháu và di sản thừa kế\n"
+            f"- Tài sản dự kiến còn lại ở tuổi {life_exp} đạt khoảng **{proj_leg}** (so với mục tiêu di sản {tgt_leg}). Bạn hoàn toàn có thể an tâm chuyển giao di sản cho thế hệ sau.\n\n"
+            f"### 🎯 3. Các bước cụ thể làm theo ngay\n"
+            f"1. **Chuyển giao dần khi con cái lập nghiệp**: Thay vì dồn toàn bộ đến cuối đời, hãy tận dụng các hạn mức quà tặng miễn thuế để hỗ trợ con cái mua nhà hoặc lập nghiệp.\n"
+            f"2. **Lên kế hoạch tận hưởng trọn vẹn 10 năm đầu hưu trí**: Đừng quá dè sẻn trong thập kỷ đầu tiên sau tuổi {retire_age}, vì đó là lúc bạn có nhiều năng lượng nhất để sống trọn vẹn từng ngày."
         )
 
     elif chart_id in ("chart-patrimoine", "chart-pylocation"):
+        apt_count = chart_summary.get("total_apartments", 3)
         total_prop = chart_summary.get("total_property_value", 293000)
         postloan_cf = chart_summary.get("total_postloan_cashflow_monthly", 1401)
-        turo_cf = chart_summary.get("turo_cashflow_monthly", 234)
+        turo_cf = chart_summary.get("turo_cashflow_monthly", 0)
         total_cf = postloan_cf + turo_cf
+        turo_text = f", cộng thêm lợi nhuận đội xe Turo (+{turo_cf:,.0f} {cur_sym}/tháng)" if turo_cf > 0 else ""
         return (
-            f"### 💡 1. Sức mạnh đòn bẩy BĐS Pháp & Cỗ máy dòng tiền tự động\n"
-            f"- Danh mục 3 căn hộ ({total_prop:,.0f} €) đang được người thuê nhà và ngân hàng tài trợ trả nợ thay bạn. Sau khi hoàn thành kỳ trả nợ 20 năm, toàn bộ danh mục sẽ bơm về dòng tiền ròng **+{postloan_cf:,.0f} €/tháng** (~38.5 Triệu ₫/tháng).\n"
-            f"- Cộng thêm lợi nhuận đội xe Turo ({turo_cf:,.0f} €/tháng), tổng dòng tiền thụ động đạt **+{total_cf:,.0f} €/tháng** (~45 Triệu ₫/tháng). Con số này bao phủ trọn vẹn chi phí sinh hoạt khi bạn về Việt Nam hưu trí mà chưa cần bán bất kỳ cổ phiếu hay chứng chỉ quỹ ETF nào!\n\n"
-            f"### 🛡️ 2. Tấm khiên thuế LMNP (Khấu hao tài sản Amortissement)\n"
-            f"- Nhờ cơ chế trích khấu hao tài sản (Amortissement comptable) của chế độ LMNP Réel tại Pháp, doanh thu cho thuê gần như **được miễn thuế 0%** trong suốt 10–15 năm đầu. Đây là ưu thế vượt trội giúp dòng tiền tích lũy tăng trưởng tối đa.\n\n"
+            f"> 💡 **Tóm tắt cốt lõi (TL;DR)**: Danh mục {apt_count} BĐS là cỗ máy tạo dòng tiền thụ động vững chắc (+{total_cf:,.0f} {cur_sym}/tháng sau khi trả hết nợ vay), đủ bao phủ chi phí sinh hoạt tuổi hưu.\n\n"
+            f"### 💡 1. Sức mạnh đòn bẩy BĐS & Cỗ máy dòng tiền tự động\n"
+            f"- Danh mục {apt_count} căn hộ ({total_prop:,.0f} {cur_sym}) đang được người thuê nhà và ngân hàng tài trợ trả nợ thay bạn. Sau khi hoàn thành kỳ trả góp, danh mục sẽ bơm về dòng tiền ròng **+{postloan_cf:,.0f} {cur_sym}/tháng**{turo_text}.\n"
+            f"- Tổng dòng tiền thụ động đạt **+{total_cf:,.0f} {cur_sym}/tháng**, bảo đảm mức sống thảnh thơi mà chưa cần bán bất kỳ cổ phiếu hay chứng chỉ quỹ ETF nào.\n\n"
+            f"### 🛡️ 2. Tấm khiên thuế Khấu hao Tài sản\n"
+            f"- Nhờ cơ chế trích khấu hao tài sản (Amortissement), doanh thu cho thuê gần như **được miễn thuế 0%** trong suốt nhiều năm đầu. Đây là ưu thế vượt trội giúp dòng tiền tích lũy tăng trưởng tối đa.\n\n"
             f"### 🎯 3. Các bước hành động cụ thể để quản lý từ xa\n"
-            f"1. **Tạo quỹ đệm dự phòng BĐS**: Trích riêng 3–6 tháng tiền thuê (khoảng 5.000 € – 6.000 €) vào tài khoản tiết kiệm an toàn để xử lý ngay khi cần sửa chữa điều hòa, thay thiết bị hoặc lấp phòng trống.\n"
-            f"2. **Ủy thác quản lý chuyên nghiệp khi hồi hương**: Khi về Việt Nam sinh sống, hãy ký hợp đồng ủy quyền với đơn vị quản lý căn hộ hoặc Conciergerie với mức phí 7–8% doanh thu để hưởng trọn dòng tiền thụ động mà không phải đau đầu lo việc bảo trì hay đón khách."
+            f"1. **Tạo quỹ đệm dự phòng BĐS**: Trích riêng 3–6 tháng tiền thuê vào tài khoản tiết kiệm an toàn để xử lý ngay khi cần sửa chữa thiết bị hoặc lấp phòng trống.\n"
+            f"2. **Ủy thác quản lý chuyên nghiệp khi hồi hương**: Khi chuyển nơi sinh sống, hãy ký hợp đồng ủy quyền với đơn vị quản lý chuyên nghiệp với mức phí 7–8% doanh thu để hưởng trọn dòng tiền thụ động mà không phải đau đầu lo việc bảo trì hay đón khách."
         )
 
     else:
         return (
-            f"### 💡 1. Nhận xét chung\n"
-            f"- Kế hoạch tài chính của bạn đang đi rất đúng hướng. Việc kiếm tiền ở nơi có thu nhập cao và về nơi có chi phí sinh hoạt vừa phải để nghỉ hưu sớm là một quyết định rất sáng suốt.\n\n"
+            f"> 💡 **Tóm tắt cốt lõi (TL;DR)**: Kế hoạch tài chính của bạn đang đi rất đúng hướng; mục tiêu tự do tài chính ở tuổi {retire_age} hoàn toàn trong tầm tay.\n\n"
+            f"### 💡 1. Nhận xét tổng quan\n"
+            f"- Việc kiếm tiền ở nơi có thu nhập cao và tối ưu chi phí sinh hoạt để nghỉ hưu sớm là một chiến lược rất sáng suốt.\n\n"
             f"### 🎯 2. Lời khuyên bỏ túi\n"
-            f"- Hãy kiên trì trích tiền tiết kiệm và đầu tư đều đặn mỗi tháng, mục tiêu tự do tài chính ở tuổi {retire_age} đang ở rất gần bạn!"
+            f"- Hãy kiên trì trích tiền tiết kiệm và đầu tư đều đặn mỗi tháng, mục tiêu độc lập tài chính ở tuổi {retire_age} đang ở rất gần bạn!"
         )
 
 @app.post("/api/ai/analyze-chart")
@@ -1064,9 +1103,23 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
     
     cur = plan.get("currency", "EUR")
     cur_sym = "€" if cur == "EUR" else ("₫" if cur == "VND" else "$")
-    cur_age = plan.get("currentAge", 29)
-    retire_age = plan.get("retirementAge", 42)
-    life_exp = plan.get("lifeExpectancy", 85)
+    cur_age = int(plan.get("currentAge") or 29)
+    retire_age = int(plan.get("retirementAge") or 42)
+    life_exp = int(plan.get("lifeExpectancy") or 85)
+    
+    incomes = plan.get("incomes", [])
+    total_annual_income = sum(float(inc.get("amount", 0)) for inc in incomes if inc.get("enabled", True))
+    if total_annual_income <= 0:
+        total_annual_income = float(plan.get("annualSavings", 7922)) / max(0.01, (float(plan.get("savingsRate", 33.3)) / 100))
+        
+    ann_sav = float(plan.get("annualSavings", 7922))
+    ret_exp = float(plan.get("retirementExpenses", 10000))
+    forex = float(plan.get("exchangeRateEurVnd", 27500))
+    monthly_exp_vnd = round((ret_exp * forex) / 12 / 1_000_000)
+    
+    early_age = max(cur_age, retire_age - 3)
+    late_age = retire_age + 3
+    fire_age = chart_summary.get("fireAge", retire_age)
     
     if not api_key and SETTINGS_FILE.exists():
         try:
@@ -1081,128 +1134,175 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
         try:
             import httpx
             
-            # Specialized prompt tailored exclusively for each specific chart topic
+            # System instruction with strict guardrails, conciseness and persona definition
+            system_instruction = (
+                "Bạn là chuyên gia tư vấn tài chính cá nhân độc lập, thân thiện, thông thái và thực tế của phần mềm pyRetrait.\n"
+                "NHIỆM VỤ: Phân tích biểu đồ tài chính người dùng đang quan sát, đưa ra nhận xét sâu sắc và khuyến nghị khả thi.\n\n"
+                "CÁC NGUYÊN TẮC CỐT LÕI (BẮT BUỘC TUÂN THỦ):\n"
+                "1. ĐỘ DÀI & ĐỘ SÚC TÍCH: Trả lời ngắn gọn, cô đọng (khoảng 220 - 320 từ), đi thẳng vào trọng tâm số liệu, không lan man kéo dài.\n"
+                "2. KHỞI ĐẦU BẰNG HỘP TL;DR: Luôn bắt đầu bài phân tích bằng đúng 1 dòng trích dẫn tóm tắt cốt lõi định dạng blockquote: `> 💡 **Tóm tắt cốt lõi (TL;DR)**: [Kết luận 1-2 câu quan trọng nhất]`.\n"
+                "3. DIỄN ĐẠT ĐỜI THƯỜNG, DỄ HIỂU: Giọng văn ấm áp, khích lệ như một người bạn am hiểu tài chính. Tuyệt đối KHÔNG dùng thuật ngữ đao to búa lớn (KHÔNG dùng: geo-arbitrage, glidepath, sequence of returns risk, waterfall rút vốn, hệ số beta/sharpe...). Hãy giải thích bằng ngôn từ thực tế như 'bình oxy tiền mặt', 'chia tiền vào nhiều giỏ', 'tiền đẻ ra tiền'.\n"
+                "4. KHÔNG SINH BẢNG HOẶC KHỐI CODE: Giao diện hiển thị không hỗ trợ bảng (markdown table) hay khối code (```). CHỈ ĐƯỢC DÙNG tiêu đề H3 (###), danh sách gạch đầu dòng (-), danh sách số (1.) và chữ in đậm (**).\n"
+                "5. BÁM SÁT DỮ LIỆU ĐƯỢC CUNG CẤP: Tuyệt đối không bịa đặt số liệu mâu thuẫn với thông số của người dùng. Mọi ví dụ số tiền đều phải lấy tỷ lệ phù hợp với quy mô thu nhập và chi tiêu của họ.\n"
+                "6. ĐÚNG CHUYÊN ĐỀ BIỂU ĐỒ: Tập trung 100% vào nội dung của biểu đồ được yêu cầu, không lặp lại nội dung của biểu đồ khác."
+            )
+
+            # Specialized prompt tailored dynamically for each specific chart topic
             if chart_id in ("chart-networth", "chart-net-worth"):
                 chart_specific_instructions = (
-                    "CHỦ ĐỀ CHUYÊN BIỆT: BIỂU ĐỒ TĂNG TRƯỞNG TÀI SẢN RÒNG & TUỔI NGHỈ HƯU TỐI ƯU\n"
-                    "Trọng tâm phân tích: Điểm uốn tài sản chạm mốc Nest Egg tự do tài chính, đỉnh tài sản (Peak Net Worth), và ĐÁNH GIÁ TUỔI NGHỈ HƯU THÍCH HỢP NHẤT (41-42 tuổi) dựa vào thu nhập và chi tiêu.\n\n"
-                    "HÃY TRẢ LỜI ĐÚNG CÁC PHẦN SAU:\n"
-                    "### 🎯 Đánh giá Tuổi Nghỉ Hưu Thích Hợp Nhất từ Gemini\n"
-                    "(Khẳng định rõ tuổi nghỉ hưu tối ưu dựa trên thu nhập, tiền để dành và chi tiêu người dùng đã nhập)\n\n"
-                    "### 💡 1. Bức tranh tài sản & Điểm uốn Tự do Tài chính\n"
-                    "(Giải thích dễ hiểu về mốc tài sản mục tiêu, tiền sinh lời hàng tháng đủ sống, tiền gốc không bị vơi)\n\n"
-                    "### ⚖️ 2. So sánh 3 mốc tuổi nghỉ hưu (39 tuổi vs 41–42 tuổi vs 45 tuổi)\n"
-                    "(Chỉ ra sự khác biệt thực tế giữa 3 mốc tuổi và lý do vì sao 41-42 là điểm vàng cân bằng nhất)\n\n"
-                    "### 🎯 3. Các bước cụ thể bạn có thể làm theo ngay\n"
-                    "(Đưa ra 2 việc làm cụ thể kèm số tiền ví dụ thực tế)"
+                    f"CHỦ ĐỀ CHUYÊN BIỆT: TĂNG TRƯỞNG TÀI SẢN RÒNG & ĐIỂM CHẠM TỰ DO TÀI CHÍNH (FIRE)\n"
+                    f"Dữ liệu biểu đồ: Điểm FIRE đạt ở tuổi {fire_age} với Nest Egg mục tiêu {chart_summary.get('fireTarget', 'N/A')}. "
+                    f"Đỉnh tài sản đạt {chart_summary.get('peakNetWorth', 'N/A')} ở tuổi {chart_summary.get('peakAge', retire_age)}. "
+                    f"Tài sản cuối đời tuổi {life_exp} dự kiến còn {chart_summary.get('finalNetWorth', 'N/A')}.\n\n"
+                    f"YÊU CẦU CẤU TRÚC PHẢN HỒI (sau dòng TL;DR):\n"
+                    f"### 🎯 Đánh giá Mốc Tuổi Nghỉ Hưu {retire_age} tuổi\n"
+                    f"(So sánh tuổi mong muốn {retire_age} tuổi với tuổi đạt FIRE thực tế {fire_age} tuổi. Khẳng định xem kế hoạch khả thi hay cần điều chỉnh thời gian tích lũy)\n\n"
+                    f"### 💡 1. Sức bền của Khối Tài sản & Tiền Lãi Nuôi Sống\n"
+                    f"(Giải thích dễ hiểu về mốc tài sản mục tiêu, dòng tiền sinh lời hàng năm so với mức chi tiêu {ret_exp:,.0f} {cur_sym}/năm, tiền gốc có bị vơi không)\n\n"
+                    f"### ⚖️ 2. So sánh 3 mốc tuổi nghỉ hưu linh hoạt\n"
+                    f"- **Mốc {early_age} tuổi (Nghỉ sớm hơn)**: [Đánh giá mức độ an toàn và điều kiện cần nếu muốn nghỉ sớm]\n"
+                    f"- **Mốc {retire_age} tuổi (Mốc mục tiêu của bạn)**: [Đánh giá độ cân bằng giữa tích lũy và hưởng thụ]\n"
+                    f"- **Mốc {late_age} tuổi (Làm thêm vài năm)**: [Đánh giá độ dư dả và gia tăng di sản]\n\n"
+                    f"### 🎯 3. Các bước hành động cụ thể làm theo ngay\n"
+                    f"1. [Hành động tích lũy tự động hàng tháng kèm con số thực tế]\n"
+                    f"2. [Hành động chuẩn bị quỹ đệm an toàn trước thềm nghỉ hưu]"
                 )
             elif chart_id in ("chart-cashflow", "chart-cash-flow"):
                 chart_specific_instructions = (
-                    "CHỦ ĐỀ CHUYÊN BIỆT: BIỂU ĐỒ DÒNG TIỀN HÀNG NĂM (THU NHẬP vs CHI TIÊU vs RÚT TIỀN)\n"
-                    "Trọng tâm phân tích: Cân đối giữa dòng tiền thu vào (lương đi làm, cổ tức thụ động, lương hưu Pháp sau tuổi 65) và dòng tiền chi ra (sinh hoạt phí, nợ vay mua nhà). Đặc biệt chỉ rõ KHOẢNG TRỐNG DÒNG TIỀN từ lúc nghỉ hưu đến tuổi 65 (khi chưa có lương hưu trợ lực) và sự an nhàn sau 65 tuổi.\n\n"
-                    "HÃY TRẢ LỜI ĐÚNG CÁC PHẦN SAU:\n"
-                    "### 💡 1. Nhìn nhanh Dòng tiền Vào & Ra theo từng chặng đời\n"
-                    "(Phân tích dòng tiền giai đoạn đi làm, giai đoạn hưu trí sớm tự túc, và giai đoạn sau 65 tuổi có lương hưu Pháp)\n\n"
-                    "### ⚠️ 2. Cảnh báo Khoảng trống Dòng tiền trước tuổi 65\n"
-                    "(Chỉ ra vì sao những năm đầu nghỉ hưu cần quản lý dòng tiền cẩn thận và tránh rút tiền quá đà)\n\n"
-                    "### 🎯 3. Cách tối ưu dòng tiền hàng tháng để luôn thảnh thơi\n"
-                    "(Đưa ra 2 hành động cụ thể, ví dụ tạo thêm nguồn thu nhẹ nhàng hoặc tối ưu nợ vay mua nhà)"
+                    f"CHỦ ĐỀ CHUYÊN BIỆT: DÒNG TIỀN THEO TỪNG CHẶNG ĐỜI (THU NHẬP vs CHI TIÊU vs TÍCH LŨY/RÚT VỐN)\n"
+                    f"Dữ liệu biểu đồ: Tuổi đi làm ({cur_age} – {retire_age} tuổi), Tuổi hưu trí ({retire_age} – {life_exp} tuổi). "
+                    f"Tổng thu nhập cả đời: {chart_summary.get('totalLifetimeIncome', 'N/A')}, Tổng chi tiêu cả đời: {chart_summary.get('totalLifetimeExpenses', 'N/A')}. "
+                    f"Tích lũy hàng năm hiện tại: {ann_sav:,.0f} {cur_sym}/năm, Chi tiêu hưu trí dự kiến: {ret_exp:,.0f} {cur_sym}/năm.\n\n"
+                    f"YÊU CẦU CẤU TRÚC PHẢN HỒI (sau dòng TL;DR):\n"
+                    f"### 💡 1. Dòng tiền Vào & Ra qua 2 giai đoạn cuộc đời\n"
+                    f"(Phân tích giai đoạn tích lũy tuổi {cur_age}–{retire_age} và bước ngoặt chuyển sang giai đoạn rút tiền từ tuổi {retire_age})\n\n"
+                    f"### ⚠️ 2. Lưu ý về Khoảng trống Dòng tiền những năm đầu nghỉ hưu\n"
+                    f"(Chỉ rõ rủi ro khi thu nhập chủ động chấm dứt ở tuổi {retire_age} nhưng các nguồn lương hưu nhà nước hoặc dòng tiền thụ động khác chưa đạt đỉnh; cách quản lý chi tiêu tránh thâm hụt vốn sớm)\n\n"
+                    f"### 🎯 3. Cách tối ưu dòng tiền hàng tháng để luôn thảnh thơi\n"
+                    f"1. [Chiến lược tạo thêm dòng thu nhập nhẹ nhàng hoặc phân bổ tiền mặt]\n"
+                    f"2. [Tối ưu hóa các khoản nợ vay hoặc chi phí cố định]"
                 )
             elif chart_id in ("chart-withdrawal-comparison", "chart-withdrawals"):
+                strat_info = json.dumps(chart_summary.get("strategies", []), ensure_ascii=False)
                 chart_specific_instructions = (
-                    "CHỦ ĐỀ CHUYÊN BIỆT: SO SÁNH 4 CHIẾN LƯỢC RÚT TIỀN HƯU TRÍ\n"
-                    "Trọng tâm phân tích: So sánh trực quan giữa 4 cách rút tiền: Quy tắc Bengen 4% cố định, Chiến lược Lan can Guyton-Klinger, Rút theo tuổi thọ VPW, và Rút tỷ lệ % cố định. Nêu bật vì sao Guyton-Klinger là lựa chọn khuyên dùng nhất.\n\n"
-                    "HÃY TRẢ LỜI ĐÚNG CÁC PHẦN SAU:\n"
-                    "### 💡 1. Ưu & Nhược điểm thực tế của 4 cách rút tiền khi về hưu\n"
-                    "(So sánh ngắn gọn, đời thường giữa rút cố định cứng nhắc, rút theo % và rút linh hoạt theo thị trường)\n\n"
-                    "### 🛡️ 2. Vì sao Chiến lược Lan can (Guyton-Klinger) giúp bạn không bao giờ sợ cạn tiền?\n"
-                    "(Giải thích quy tắc thắt lưng buộc bụng 10% khi thị trường khó khăn và tự thưởng khi thị trường thắng lớn)\n\n"
-                    "### 🎯 3. Hướng dẫn rút tiền thực tế từng năm kèm ví dụ cụ thể\n"
-                    "(Đưa ra ví dụ cụ thể bằng số tiền hàng năm để người dùng áp dụng làm theo)"
+                    f"CHỦ ĐỀ CHUYÊN BIỆT: SO SÁNH 4 CHIẾN LƯỢC RÚT TIỀN HƯU TRÍ TRÊN CÙNG KỊCH BẢN\n"
+                    f"Dữ liệu mô phỏng thực tế của 4 chiến lược: {strat_info}. Tỷ lệ rút ban đầu (SWR): {chart_summary.get('initialSWR', '4%')}. "
+                    f"Chiến lược người dùng đang chọn: {chart_summary.get('chosenStrategy', 'guyton_klinger')}.\n\n"
+                    f"YÊU CẦU CẤU TRÚC PHẢN HỒI (sau dòng TL;DR):\n"
+                    f"### 💡 1. Đánh giá số dư thực tế của 4 chiến lược ở tuổi {life_exp}\n"
+                    f"(Trích dẫn trực tiếp số dư cuối đời và tính ổn định của 4 phương pháp từ dữ liệu mô phỏng: Quy tắc 4% cố định Bengen, Lan can Guyton-Klinger, Tỷ lệ thay đổi VPW, và Rút % cố định)\n\n"
+                    f"### 🛡️ 2. Vì sao Chiến lược Lan can (Guyton-Klinger) là lá chắn an toàn nhất?\n"
+                    f"(Giải thích cơ chế tự điều chỉnh: giảm 10% chi tiêu khi thị trường khó khăn và tự thưởng khi danh mục tăng trưởng vượt trội)\n\n"
+                    f"### 🎯 3. Quy tắc rút tiền thực tế từng năm bạn nên áp dụng\n"
+                    f"1. [Hướng dẫn mức rút năm đầu tiên kèm số tiền cụ thể]\n"
+                    f"2. [Nguyên tắc ứng phó khi thị trường giảm điểm]"
                 )
             elif chart_id in ("chart-tax-optimization", "chart-taxes"):
                 chart_specific_instructions = (
-                    "CHỦ ĐỀ CHUYÊN BIỆT: TỐI ƯU HÓA THUẾ & TẬN DỤNG TÀI KHOẢN PHÁP (PEA, ASSURANCE-VIE)\n"
-                    "Trọng tâm phân tích: Cách tiết kiệm hàng trăm triệu đồng tiền thuế nhờ ưu đãi tài khoản PEA (miễn thuế sau 5 năm) và Assurance-Vie (miễn thuế tiền lời sau 8 năm), Hiệp định tránh đánh thuế 2 lần giữa Pháp và Việt Nam, và thứ tự rút tiền thông minh (waterfall).\n\n"
-                    "HÃY TRẢ LỜI ĐÚNG CÁC PHẦN SAU:\n"
-                    "### 💡 1. Cách giữ lại nhiều tiền nhất trước thuế nhờ PEA & Assurance-Vie\n"
-                    "(Giải thích đơn giản luật ưu đãi thuế của Pháp và tại sao được giữ nguyên tài khoản khi chuyển về Việt Nam)\n\n"
-                    "### ⚠️ 2. Cạm bẫy thuế cần tránh khi chuyển cư trú thuế về Việt Nam\n"
-                    "(Nhắc nhở về điều kiện thời gian mở tài khoản và cách khai báo thuế theo Hiệp định 1992)\n\n"
-                    "### 🎯 3. Thứ tự rút tiền thông minh nhất (Quy trình 3 bước)\n"
-                    "(Hướng dẫn thứ tự rút từ tài khoản an toàn trước ➔ đến tài khoản ưu đãi thuế ➔ giúp tiết kiệm tối đa)"
+                    f"CHỦ ĐỀ CHUYÊN BIỆT: TỐI ƯU HÓA THUẾ & TẬN DỤNG CÁC TÀI KHOẢN ƯU ĐÃI (PEA, ASSURANCE-VIE, ROTH)\n"
+                    f"Dữ liệu tài khoản: Số dư PEA: {chart_summary.get('peaBalance', '35.000 €')}, Assurance-Vie: {chart_summary.get('avBalance', '10.000 €')}, "
+                    f"Tổng thuế tiết kiệm từ chuyển đổi: {chart_summary.get('taxSavings', 'N/A')}, Tiết kiệm từ thứ tự rút vốn (waterfall): {chart_summary.get('waterfallTaxSaved', '18.400 €')}.\n\n"
+                    f"YÊU CẦU CẤU TRÚC PHẢN HỒI (sau dòng TL;DR):\n"
+                    f"### 💡 1. Giá trị của việc tối ưu thuế & Ưu đãi từ tài khoản tích lũy\n"
+                    f"(Giải thích lợi thế giữ lại tiền lời nhờ mốc thời gian 5 năm PEA và 8 năm Assurance-Vie hoặc tài khoản miễn thuế; tại sao tiết kiệm thuế tương đương với tăng tỷ suất sinh lời)\n\n"
+                    f"### ⚠️ 2. Cạm bẫy về thời gian & Thay đổi cư trú thuế\n"
+                    f"(Nhắc nhở quan trọng: tuổi tài khoản tính từ ngày mở chứ không phải ngày nộp nhiều tiền; lưu ý khi chuyển cư trú giữa các quốc gia)\n\n"
+                    f"### 🎯 3. Thứ tự rút tiền thông minh 3 bước (Rút đúng giỏ tiền)\n"
+                    f"1. [Bước 1: Rút từ tài khoản tiền mặt/tiết kiệm ngắn hạn không thuế]\n"
+                    f"2. [Bước 2: Rút từ tài khoản có ưu đãi thuế trong hạn mức miễn thuế hàng năm]\n"
+                    f"3. [Bước 3: Tối ưu tài khoản đầu tư sinh lời còn lại]"
                 )
             elif chart_id in ("chart-monte-carlo", "chart-insights"):
                 chart_specific_instructions = (
-                    "CHỦ ĐỀ CHUYÊN BIỆT: MÔ PHỎNG MONTE CARLO 1.000 KỊCH BẢN & RỦI RO SỤT GIẢM SỚM (SRR)\n"
-                    "Trọng tâm phân tích: Kết quả giả lập 1.000 kịch bản thị trường cuộc đời, tỷ lệ thành công của kế hoạch, phân tích nguy cơ lớn nhất là Sequence of Returns Risk (thị trường giảm sâu vào đúng 2-3 năm đầu nghỉ việc) và giải pháp xây dựng đệm tiền mặt an toàn.\n\n"
-                    "HÃY TRẢ LỜI ĐÚNG CÁC PHẦN SAU:\n"
-                    "### 💡 1. Ý nghĩa của 1.000 kịch bản cuộc đời & Tỷ lệ thành công\n"
-                    "(Giải thích dễ hiểu về tỷ lệ thành công và tại sao danh mục có khả năng vượt qua các đợt suy thoái)\n\n"
-                    "### ⚠️ 2. Kịch bản xui xẻo nhất: Thị trường giảm sâu ngay khi vừa nghỉ việc\n"
-                    "(Giải thích vì sao bán tài sản lúc giá rẻ trong 3 năm đầu là nguy hiểm nhất)\n\n"
-                    "### 🎯 3. Cách tạo 'Bình Oxy Tiền Mặt 2 Năm' để ngủ ngon trước mọi biến động\n"
-                    "(Hướng dẫn chuẩn bị lượng tiền mặt dự phòng trước khi nghỉ việc kèm con số ví dụ cụ thể)"
+                    f"CHỦ ĐỀ CHUYÊN BIỆT: MÔ PHỎNG MONTE CARLO KỊCH BẢN THỊ TRƯỜNG & RỦI RO SỤT GIẢM SỚM (SRR)\n"
+                    f"Dữ liệu mô phỏng: Tỷ lệ sống sót thành công: {chart_summary.get('successRate', 'N/A')}. "
+                    f"Kịch bản trung vị (50th): {chart_summary.get('medianEnd', 'N/A')}. "
+                    f"Kịch bản xấu nhất (10th/Khủng hoảng): {chart_summary.get('worstCase', 'N/A')}. "
+                    f"Kịch bản bùng nổ (90th): {chart_summary.get('bestCase', 'N/A')}. Độ biến động giả định: {chart_summary.get('volatility', '15%')}.\n\n"
+                    f"YÊU CẦU CẤU TRÚC PHẢN HỒI (sau dòng TL;DR):\n"
+                    f"### 💡 1. Ý nghĩa của Tỷ lệ Thành công {chart_summary.get('successRate', '')} trong 1.000 Cuộc Đời Giả Lập\n"
+                    f"(Đánh giá xem tỷ lệ thành công này đã đủ an tâm chưa và tiềm năng tăng trưởng trung vị {chart_summary.get('medianEnd', '')})\n\n"
+                    f"### ⚠️ 2. Kịch bản Nguy Hiểm Nhất: Thị trường giảm sâu vào đúng 2-3 năm đầu nghỉ việc\n"
+                    f"(Giải thích vì sao bán tháo tài sản khi thị trường sụt giảm đầu kỳ nghỉ hưu là đòn chí mạng bào mòn vốn)\n\n"
+                    f"### 🎯 3. Cách tạo 'Bình Oxy Tiền Mặt 2 Năm' để ngủ ngon\n"
+                    f"1. [Hướng dẫn trích lập số tiền mặt chi tiêu 2 năm trước ngày nghỉ việc kèm con số ví dụ]\n"
+                    f"2. [Nguyên tắc bất di bất dịch: Khi thị trường gấu thì chỉ tiêu tiền trong bình oxy, chờ thị trường hồi phục]"
                 )
             elif chart_id in ("chart-scenarios", "chart-stress-test"):
                 chart_specific_instructions = (
-                    "CHỦ ĐỀ CHUYÊN BIỆT: THỬ SỨC TÀI CHÍNH TRƯỚC CÁC BIẾN CỐ LỚN (WHAT-IF STRESS TEST)\n"
-                    "Trọng tâm phân tích: Sức chịu đựng của tài sản trước 4 cú sốc lớn: Khủng hoảng chứng khoán (-35%), Lạm phát cao kéo dài, Cú sốc chi phí y tế lớn, và Thu nhỏ nhà cửa (Downsizing). Đánh giá biến cố nào nguy hiểm nhất và giải pháp phòng thủ.\n\n"
-                    "HÃY TRẢ LỜI ĐÚNG CÁC PHẦN SAU:\n"
-                    "### 💡 1. Đánh giá Khả năng Chịu Đựng của Tài sản trước Biến cố lớn\n"
-                    "(Giải thích tại sao tài sản vẫn đứng vững trước đợt sụt giảm thị trường nhờ đầu tư dài hạn)\n\n"
-                    "### ⚠️ 2. Biến cố tốn kém nhất: Chi phí Y tế & Sức khỏe tuổi già\n"
-                    "(Chỉ ra vì sao viện phí bất ngờ là rủi ro lớn nhất làm hao hụt tiền hưu)\n\n"
-                    "### 🎯 3. Kế hoạch phòng thủ 2 lớp (Bảo hiểm toàn diện + Tiết giảm chi tiêu)\n"
-                    "(Đưa ra việc làm cụ thể về mua bảo hiểm sức khỏe và cách linh hoạt cắt giảm chi tiêu khi gặp biến cố)"
+                    f"CHỦ ĐỀ CHUYÊN BIỆT: THỬ SỨC TÀI CHÍNH TRƯỚC CÁC BIẾN CỐ LỚN (WHAT-IF STRESS TEST)\n"
+                    f"Kịch bản đang kiểm tra: '{chart_summary.get('title', 'What-If')}' (Mã: {chart_summary.get('activeScenario', '')}).\n"
+                    f"Đánh giá hệ thống: {chart_summary.get('assessment', '')}. "
+                    f"Chênh lệch tài sản cuối đời so với cơ sở: {chart_summary.get('netWorthDiff', '0')}. "
+                    f"Khả năng tồn tại tài sản: {chart_summary.get('survived', 'An toàn')}. "
+                    f"Tài sản kịch bản: {chart_summary.get('scenarioFinalNW', 'N/A')} (so với cơ sở {chart_summary.get('baseFinalNW', 'N/A')}).\n\n"
+                    f"YÊU CẦU CẤU TRÚC PHẢN HỒI (sau dòng TL;DR):\n"
+                    f"### 💡 1. Tác động thực tế của Cú sốc này lên Kế hoạch FIRE\n"
+                    f"(Phân tích mức độ suy giảm tài sản và khả năng chống chịu của danh mục trước biến cố)\n\n"
+                    f"### ⚠️ 2. Điểm yếu dễ bị tổn thương nhất\n"
+                    f"(Chỉ ra nguyên nhân khiến tài sản bị suy giảm và hậu quả nếu không có phương án ứng phó)\n\n"
+                    f"### 🎯 3. Biện pháp phòng thủ chủ động\n"
+                    f"1. [Hành động phòng ngừa trước khi biến cố xảy ra]\n"
+                    f"2. [Hành động thích ứng nếu biến cố thực sự diễn ra (cắt giảm chi tiêu linh hoạt, điều chỉnh lối sống)]"
                 )
             elif chart_id in ("chart-spending-smile", "chart-estate"):
                 chart_specific_instructions = (
-                    "CHỦ ĐỀ CHUYÊN BIỆT: ĐƯỜNG CONG CHI TIÊU HÌNH NỤ CƯỜI (SPENDING SMILE) & THỪA KẾ DI SẢN\n"
-                    "Trọng tâm phân tích: Mô hình chi tiêu thực tế đời người hình nụ cười (Go-Go tiêu nhiều để trải nghiệm ➔ Slow-Go sống chậm tiết kiệm ➔ No-Go chăm sóc y tế) và Kế hoạch chuyển giao di sản thừa kế cho con cháu để không bị đóng thuế thừa kế nặng.\n\n"
-                    "HÃY TRẢ LỜI ĐÚNG CÁC PHẦN SAU:\n"
-                    "### 💡 1. Chi tiêu đời người hình 'Nụ cười' (Spending Smile)\n"
-                    "(Giải thích tại sao tuổi 42-55 tiêu nhiều nhất và sau đó tự nhiên giảm bớt, giúp nhẹ gánh tích lũy)\n\n"
-                    "### 🏛️ 2. Kế hoạch để lại Di sản & Tối ưu Thuế Thừa kế\n"
-                    "(Tận dụng luật tặng quà miễn thuế của Pháp 100.000 € mỗi 15 năm cho con để chuyển giao dần tài sản)\n\n"
-                    "### 🎯 3. Lời khuyên phân bổ chi tiêu để tận hưởng trọn vẹn cuộc sống\n"
-                    "(Khuyên người dùng mạnh dạn tận hưởng 10 năm đầu hưu trí khi còn nhiều sức khỏe nhất kèm ví dụ)"
+                    f"CHỦ ĐỀ CHUYÊN BIỆT: ĐƯỜNG CONG CHI TIÊU HÌNH NỤ CƯỜI & KẾ HOẠCH DI SẢN THỪA KẾ\n"
+                    f"Dữ liệu: Tuổi nghỉ hưu: {chart_summary.get('retireAge', retire_age)} tuổi, Tuổi thọ dự tính: {chart_summary.get('lifeExpectancy', life_exp)} tuổi. "
+                    f"Mục tiêu di sản để lại: {chart_summary.get('targetLegacy', 'N/A')}, Dự kiến tài sản để lại: {chart_summary.get('projectedLegacy', 'N/A')} "
+                    f"(Đạt {chart_summary.get('pctOfTarget', 'N/A')} mục tiêu).\n\n"
+                    f"YÊU CẦU CẤU TRÚC PHẢN HỒI (sau dòng TL;DR):\n"
+                    f"### 💡 1. Chi tiêu đời người hình 'Nụ cười' (Go-Go ➔ Slow-Go ➔ No-Go)\n"
+                    f"(Giải thích vì sao 10 năm đầu hưu trí ({chart_summary.get('retireAge', retire_age)}–{int(chart_summary.get('retireAge', retire_age)) + 12} tuổi) là lúc tiêu nhiều nhất để trải nghiệm, sau đó chi tiêu tự giảm xuống giúp giảm áp lực tích lũy)\n\n"
+                    f"### 🏛️ 2. Kế hoạch Chuyển giao Di sản & Tối ưu Thuế\n"
+                    f"(Đánh giá con số tài sản để lại so với mục tiêu; cách chuyển giao dần từng phần khi con cháu lập nghiệp thay vì dồn vào cuối đời)\n\n"
+                    f"### 🎯 3. Lời khuyên phân bổ để tận hưởng trọn vẹn cuộc sống\n"
+                    f"1. [Mạnh dạn chi tiêu trải nghiệm cho giai đoạn sức khỏe sung mãn nhất]\n"
+                    f"2. [Kế hoạch chuẩn bị quỹ chăm sóc y tế cho chặng đời sau 75 tuổi]"
                 )
             elif chart_id in ("chart-patrimoine", "chart-pylocation"):
+                apt_cnt = chart_summary.get('total_apartments', 0)
+                prop_val = chart_summary.get('total_property_value', 0)
+                loan_amt = chart_summary.get('total_loan_amount', 0)
+                during_cf = chart_summary.get('total_during_cashflow_monthly', 0)
+                post_cf = chart_summary.get('total_postloan_cashflow_monthly', 0)
+                turo_cnt = chart_summary.get('turo_cars_count', 0)
+                turo_cf = chart_summary.get('turo_cashflow_monthly', 0)
+                total_passive = chart_summary.get('total_passive_monthly', post_cf + turo_cf)
+                turo_desc = f"kèm đội xe Turo {turo_cnt} xe mang về dòng tiền +{turo_cf:,.0f} {cur_sym}/tháng" if turo_cnt > 0 or turo_cf > 0 else "chưa bao gồm xe Turo"
+
                 chart_specific_instructions = (
-                    "CHỦ ĐỀ CHUYÊN BIỆT: BẤT ĐỘNG SẢN PHÁP (LMNP), ĐÒN BẨY TÀI CHÍNH & DÒNG TIỀN THỤ ĐỘNG NGHỈ HƯU\n"
-                    "Trọng tâm phân tích: Sức mạnh đòn bẩy ngân hàng mua BĐS cho thuê tại Pháp (người thuê trả nợ hộ), cơ chế khiên thuế LMNP khấu hao Amortissement giúp 0% thuế thu nhập, dòng tiền ròng vững chắc sau khi tất toán gói vay 20 năm so sánh với chi phí sinh hoạt tại Việt Nam, và chiến lược đội xe Turo.\n\n"
-                    "HÃY TRẢ LỜI ĐÚNG CÁC PHẦN SAU:\n"
-                    "### 💡 1. Sức mạnh Đòn bẩy BĐS & Cỗ máy Dòng tiền Thụ động\n"
-                    "(Phân tích danh mục 3 căn hộ đang được ngân hàng và người thuê gánh nợ, dòng tiền về già khi hết nợ so sánh với chi phí sống hưu trí ở VN)\n\n"
-                    "### 🛡️ 2. Tấm khiên thuế LMNP Khấu hao (Amortissement)\n"
-                    "(Giải thích vì sao LMNP Réel tại Pháp cho phép khấu hao tài sản giúp không phải đóng thuế thu nhập trong 10-15 năm đầu)\n\n"
-                    "### 🎯 3. Các bước hành động cụ thể để quản lý từ xa khi hồi hương\n"
-                    "(Đưa ra việc làm cụ thể: lập quỹ đệm khẩn cấp 5.000€ và cách ủy thác cho đơn vị quản lý chuyên nghiệp khi về Việt Nam)"
+                    f"CHỦ ĐỀ CHUYÊN BIỆT: BẤT ĐỘNG SẢN CHO THUÊ (LMNP), ĐÒN BẨY TÀI CHÍNH & DÒNG TIỀN THỤ ĐỘNG\n"
+                    f"Dữ liệu danh mục: {apt_cnt} bất động sản (tổng giá trị {prop_val:,.0f} {cur_sym}, dư nợ vay {loan_amt:,.0f} {cur_sym}). "
+                    f"Dòng tiền hàng tháng trong kỳ trả góp: {during_cf:,.0f} {cur_sym}/tháng. "
+                    f"Dòng tiền ròng sau khi trả hết nợ vay: +{post_cf:,.0f} {cur_sym}/tháng ({turo_desc}). "
+                    f"Tổng dòng tiền thụ động kỳ vọng về già: +{total_passive:,.0f} {cur_sym}/tháng.\n\n"
+                    f"YÊU CẦU CẤU TRÚC PHẢN HỒI (sau dòng TL;DR):\n"
+                    f"### 💡 1. Sức mạnh Đòn bẩy Ngân hàng & Cỗ máy Dòng tiền Thụ động\n"
+                    f"(Phân tích danh mục {apt_cnt} BĐS đang được người thuê nhà trả nợ thay bạn; dòng tiền ròng vững chắc sau khi tất toán gói vay đối chiếu với chi phí sinh hoạt tuổi già)\n\n"
+                    f"### 🛡️ 2. Tấm khiên thuế Khấu hao Tài sản (Amortissement)\n"
+                    f"(Giải thích cơ chế trích khấu hao tài sản giúp giảm hoặc triệt tiêu thuế thu nhập từ tiền thuê nhà trong nhiều năm đầu)\n\n"
+                    f"### 🎯 3. Các bước hành động cụ thể để quản lý an nhàn\n"
+                    f"1. [Trích lập quỹ đệm sửa chữa và phòng ngừa rủi ro trống phòng khoảng 3–6 tháng tiền thuê]\n"
+                    f"2. [Chiến lược ủy thác vận hành chuyên nghiệp khi chuyển nơi sinh sống để hưởng dòng tiền thụ động không lo âu]"
                 )
             else:
                 chart_specific_instructions = (
                     "CHỦ ĐỀ: PHÂN TÍCH CHIẾN LƯỢC TÀI CHÍNH TỔNG THỂ\n"
-                    "HÃY TRẢ LỜI ĐÚNG 3 PHẦN SAU:\n"
+                    "YÊU CẦU CẤU TRÚC PHẢN HỒI (sau dòng TL;DR):\n"
                     "### 💡 1. Đánh giá Tổng thể Biểu đồ\n"
                     "### ⚠️ 2. Điểm cần lưu ý\n"
                     "### 🎯 3. Hành động đề xuất cụ thể kèm ví dụ"
                 )
 
             prompt = (
-                f"Bạn là người cố vấn tài chính cá nhân thân thiện, thông thái và thực tế của phần mềm pyRetrait.\n"
                 f"Hãy phân tích biểu đồ tài chính '{chart_title}' (Chart ID: {chart_id}) cho người dùng dựa trên dữ liệu sau:\n"
                 f"- Tên kế hoạch: {plan.get('name', 'Franco-Viet FIRE')}\n"
                 f"- Tiền tệ: {plan.get('currency', 'EUR')}\n"
                 f"- Tuổi hiện tại: {cur_age}, Tuổi dự định nghỉ hưu sớm: {retire_age}, Tuổi thọ dự kiến: {life_exp}\n"
-                f"- Thu nhập hàng năm: {plan.get('incomes', [{}])[0].get('amount', 25000) if plan.get('incomes') else 25000} {cur_sym}, Tiết kiệm hàng năm: {plan.get('annualSavings', 7922)} {cur_sym} (tỷ lệ {plan.get('savingsRate', 33.3)}%)\n"
-                f"- Chi tiêu khi về hưu: {plan.get('retirementExpenses', 10000)} {cur_sym}/năm\n"
-                f"- Tóm tắt số liệu biểu đồ: {json.dumps(chart_summary, ensure_ascii=False)}\n\n"
-                f"NGUYÊN TẮC CỐT LÕI (BẮT BUỘC TUÂN THỦ):\n"
-                f"1. TẬP TRUNG 100% VÀO CHỦ ĐỀ RIÊNG CỦA BIỂU ĐỒ NÀY: Tuyệt đối không lặp lại nội dung của các biểu đồ khác. Biểu đồ nào chỉ nói sâu vào chuyên môn của biểu đồ đó.\n"
-                f"2. DIỄN ĐẠT CỰC KỲ DỄ HIỂU, BÌNH DÂN: Trò chuyện gần gũi, khích lệ, như một người bạn hiểu biết về tiền bạc đang chia sẻ chân tình. Tránh giọng văn trịnh thượng hay cứng nhắc.\n"
-                f"3. TUYỆT ĐỐI HẠN CHẾ THUẬT NGỮ CHUYÊN MÔN: KHÔNG dùng các từ đao to búa lớn (KHÔNG dùng: geo-arbitrage, glidepath, waterfall, sequence of returns risk, địa tài chính, hệ số tương quan, tỷ lệ rút tĩnh...). Hãy dùng các cách gọi đời thường ai cũng hiểu (như 'đệm tiền mặt', 'chia tiền ra nhiều giỏ', 'tiền đẻ ra tiền').\n"
-                f"4. BẮT BUỘC PHẢI CÓ VÍ DỤ MINH HỌA CỤ THỂ, DỄ LÀM THEO: Từng lời khuyên đều phải đi kèm VÍ DỤ RÕ RÀNG bằng con số hoặc hành động cụ thể.\n\n"
+                f"- Tổng thu nhập hàng năm: {total_annual_income:,.0f} {cur_sym}, Tiết kiệm hàng năm: {ann_sav:,.0f} {cur_sym} (tỷ lệ {plan.get('savingsRate', 33.3)}%)\n"
+                f"- Chi tiêu khi về hưu: {ret_exp:,.0f} {cur_sym}/năm (~{monthly_exp_vnd} triệu ₫/tháng)\n"
+                f"- Tóm tắt số liệu mô phỏng: {json.dumps(chart_summary, ensure_ascii=False)}\n\n"
                 f"{chart_specific_instructions}"
             )
 
@@ -1225,7 +1325,7 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
 
             for model_name in candidate_models:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key.strip()}"
-                gen_config = {
+                gen_config: Dict[str, Any] = {
                     "temperature": 0.4,
                     "maxOutputTokens": 4096
                 }
@@ -1234,6 +1334,9 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
                     gen_config["thinkingConfig"] = {"thinkingBudget": 0}
 
                 req_body = {
+                    "system_instruction": {
+                        "parts": [{"text": system_instruction}]
+                    },
                     "contents": [{
                         "parts": [{"text": prompt}]
                     }],
@@ -1241,6 +1344,16 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
                 }
                 async with httpx.AsyncClient(timeout=20.0) as client:
                     resp = await client.post(url, json=req_body)
+                    # If endpoint doesn't support system_instruction field, fallback by prepending to user prompt
+                    if resp.status_code == 400 and "system_instruction" in resp.text:
+                        fallback_body = {
+                            "contents": [{
+                                "parts": [{"text": f"CHỈ THỊ HỆ THỐNG:\n{system_instruction}\n\n---\n\n{prompt}"}]
+                            }],
+                            "generationConfig": gen_config
+                        }
+                        resp = await client.post(url, json=fallback_body)
+
                     if resp.status_code == 200:
                         data = resp.json()
                         candidates = data.get("candidates", [])
@@ -1266,7 +1379,7 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
         "success": True,
         "source": "gemini_engine",
         "model": "Chế độ Ngoại tuyến (Heuristic Fallback)",
-        "analysis": f"> ℹ️ *Lưu ý: Phân tích dự phòng theo thuật toán Heuristic nội bộ (do Gemini API chưa kết nối hoặc model tạm hết quota).*\n\n" + analysis
+        "analysis": "> ℹ️ *Lưu ý: Phân tích dự phòng theo thuật toán Heuristic nội bộ (do Gemini API chưa kết nối hoặc model tạm hết quota).*\n\n" + analysis
     }
 
 # Mount frontend files

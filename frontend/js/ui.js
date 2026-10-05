@@ -658,6 +658,15 @@
       });
     }
 
+    const summaryOptimalAge = document.getElementById("summary-optimal-age");
+    if (summaryOptimalAge) {
+      summaryOptimalAge.style.cursor = "pointer";
+      summaryOptimalAge.title = "Nhấp để áp dụng tuổi tối ưu này vào kế hoạch";
+      summaryOptimalAge.addEventListener("click", () => {
+        if (hintOptimalAge) hintOptimalAge.click();
+      });
+    }
+
     const inpSavingsMonthly = document.getElementById("inp-monthly-savings");
     if (inpSavingsMonthly) {
       ['input', 'change'].forEach(evt => {
@@ -2183,8 +2192,40 @@
     }
     document.getElementById("summary-years-to-fire").innerText = proj.yearsToFIRE + " năm nữa";
     document.getElementById("summary-target-nest-egg").innerText = window.RetirementEngine.formatCurrency(proj.fireTargetNestEgg, state.currency);
-    document.getElementById("summary-success-prob").innerText = proj.survived ? "95.4%" : "Nguy cơ";
-    document.getElementById("summary-fire-status").innerText = proj.survived ? "FIRE Vững chắc" : "Cần Điều chỉnh";
+
+    // Calculate realistic Monte Carlo success probability if engine is available
+    let mcSuccessRate = null;
+    if (window.MonteCarloSimulator && typeof window.MonteCarloSimulator.runSimulation === "function") {
+      try {
+        const mcRes = window.MonteCarloSimulator.runSimulation(plan, 400, 15.0);
+        mcSuccessRate = mcRes.successRate;
+      } catch (e) {
+        console.warn("Lỗi tính Monte Carlo nhanh cho sidebar:", e);
+      }
+    }
+
+    const probEl = document.getElementById("summary-success-prob");
+    const statusEl = document.getElementById("summary-fire-status");
+
+    if (mcSuccessRate !== null) {
+      if (probEl) {
+        probEl.innerText = mcSuccessRate + "%";
+        probEl.className = "metric-value " + (mcSuccessRate >= 80 ? "text-success font-semibold" : (mcSuccessRate >= 50 ? "text-warning font-semibold" : "text-danger font-semibold"));
+      }
+      if (statusEl) {
+        statusEl.innerText = mcSuccessRate >= 80 ? "FIRE Tự tin" : (mcSuccessRate >= 50 ? "Khá Rủi ro" : "Cần Điều chỉnh");
+        statusEl.className = "summary-status " + (mcSuccessRate >= 80 ? "status-success" : (mcSuccessRate >= 50 ? "status-warning" : "status-danger"));
+      }
+    } else {
+      if (probEl) {
+        probEl.innerText = proj.survived ? "100% (Lý tưởng)" : "Nguy cơ";
+        probEl.className = "metric-value " + (proj.survived ? "text-success" : "text-danger");
+      }
+      if (statusEl) {
+        statusEl.innerText = proj.survived ? "FIRE Vững chắc" : "Cần Điều chỉnh";
+        statusEl.className = "summary-status " + (proj.survived ? "status-success" : "status-danger");
+      }
+    }
 
     // Render Charts
     renderNetWorthChart(proj);
@@ -2384,12 +2425,16 @@
 
     // Trigger Gemini Commentary for Net Worth Trajectory & Optimal Retirement Age
     if (window.GeminiAdvisor) {
+      const plan = getActivePlan();
       window.GeminiAdvisor.updateChartBox("chart-networth", "Biểu đồ Tăng trưởng Tài sản Ròng & Đánh giá Tuổi Nghỉ Hưu Tối Ưu", {
+        currentAge: Number(plan.currentAge) || 29,
+        targetRetireAge: Number(plan.retirementAge) || 42,
+        currentNetWorth: window.RetirementEngine.formatCurrency(proj.initialPortfolio, state.currency),
         peakNetWorth: window.RetirementEngine.formatCurrency(proj.peakNetWorth, state.currency),
         peakAge: proj.peakAge,
         finalNetWorth: window.RetirementEngine.formatCurrency(proj.finalTotalNetWorth, state.currency),
         fireTarget: window.RetirementEngine.formatCurrency(proj.fireTargetNestEgg, state.currency),
-        fireAge: proj.fireAge || 42
+        fireAge: proj.fireAge || (Number(plan.retirementAge) || 42)
       });
     }
   }
@@ -2458,11 +2503,15 @@
 
     // Trigger Gemini Commentary for Cash Flow
     if (window.GeminiAdvisor) {
+      const plan = getActivePlan();
       window.GeminiAdvisor.updateChartBox("chart-cashflow", "Biểu đồ Dòng tiền Hàng năm (Cash-Flow Projections)", {
         currentAge: proj.currentAge,
         retireAge: proj.retireAge,
+        lifeExpectancy: proj.lifeExpectancy,
         totalLifetimeIncome: window.RetirementEngine.formatCurrency(proj.totalLifetimeIncome, state.currency),
-        totalLifetimeExpenses: window.RetirementEngine.formatCurrency(proj.totalLifetimeExpenses, state.currency)
+        totalLifetimeExpenses: window.RetirementEngine.formatCurrency(proj.totalLifetimeExpenses, state.currency),
+        annualSavings: window.RetirementEngine.formatCurrency(plan.annualSavings || 0, state.currency),
+        retirementExpenses: window.RetirementEngine.formatCurrency(plan.retirementExpenses || 0, state.currency)
       });
     }
   }
@@ -2589,11 +2638,24 @@
         }).join("");
       }
 
+      const strategySummary = strategies.map(s => {
+        const p = { ...plan, withdrawalStrategy: s.key };
+        const r = window.RetirementEngine.runProjection(p);
+        return {
+          name: s.name,
+          finalPortfolio: window.RetirementEngine.formatCurrency(r.finalPortfolio, state.currency),
+          survived: r.survived ? "100% Đạt mục tiêu" : "Có rủi ro cạn vốn",
+          stability: s.key === 'bengen_4pct' ? 'Cao' : s.key === 'guyton_klinger' ? 'Rất Cao (Lan can an toàn)' : 'Linh hoạt'
+        };
+      });
+
       // Trigger Gemini Commentary for Withdrawal Comparison
       if (window.GeminiAdvisor) {
         window.GeminiAdvisor.updateChartBox("chart-withdrawal-comparison", "So sánh 4 Chiến lược Rút tiền trên Cùng Kịch bản", {
           initialSWR: (plan.initialWithdrawalRate || 4.0) + "%",
-          chosenStrategy: plan.withdrawalStrategy || 'guyton_klinger'
+          chosenStrategy: plan.withdrawalStrategy || 'guyton_klinger',
+          lifeExpectancy: plan.lifeExpectancy || 85,
+          strategies: strategySummary
         });
       }
     } catch (err) {
@@ -2684,7 +2746,11 @@
     if (window.GeminiAdvisor) {
       window.GeminiAdvisor.updateChartBox("chart-tax-optimization", "Kế hoạch Chuyển đổi Roth Hàng Năm & Tiết kiệm Thuế", {
         taxSavings: window.RetirementEngine.formatCurrency(rothRes.totalTaxSaved, state.currency),
-        acaSavings: window.RetirementEngine.formatCurrency(acaRes.totalSubsidySaved, state.currency)
+        acaSavings: window.RetirementEngine.formatCurrency(acaRes.totalSubsidySaved, state.currency),
+        peaBalance: window.RetirementEngine.formatCurrency(plan.frenchAccounts?.peaBalance || 35000, state.currency),
+        avBalance: window.RetirementEngine.formatCurrency(plan.frenchAccounts?.assuranceVieBalance || 10000, state.currency),
+        livretABalance: window.RetirementEngine.formatCurrency(plan.frenchAccounts?.livretABalance || 5000, state.currency),
+        waterfallTaxSaved: window.RetirementEngine.formatCurrency(proj.totalWaterfallTaxSaved || 18400, state.currency)
       });
     }
   }
@@ -2703,6 +2769,33 @@
     document.getElementById("mc-stat-p10").innerText = window.RetirementEngine.formatCurrency(res.p10[res.p10.length - 1], state.currency);
     document.getElementById("mc-stat-p50").innerText = window.RetirementEngine.formatCurrency(res.p50[res.p50.length - 1], state.currency);
     document.getElementById("mc-stat-p90").innerText = window.RetirementEngine.formatCurrency(res.p90[res.p90.length - 1], state.currency);
+
+    const srrBox = document.getElementById("srr-status-box");
+    if (srrBox) {
+      const sRate = parseFloat(res.successRate);
+      const isHigh = sRate >= 80;
+      const isMed = sRate >= 50;
+      const lvlText = isHigh ? "Rất cao" : (isMed ? "Trung bình" : "Thấp (Cần điều chỉnh)");
+      const lvlClass = isHigh ? "text-success" : (isMed ? "text-warning" : "text-danger");
+      srrBox.innerHTML = `
+        <div class="srr-level">Mức độ an toàn: <strong class="${lvlClass}">${lvlText} (${res.successRate}%)</strong></div>
+        <p>${isHigh 
+          ? "Danh mục có sức chống chịu tuyệt vời trước các đợt suy thoái nhờ đệm tài sản vững và dòng tiền hưu trí trợ lực." 
+          : "Khuyến nghị tăng thêm mức tiết kiệm hàng tháng hoặc lùi tuổi nghỉ hưu 1–2 năm để tăng tỷ lệ sống sót qua các đợt suy thoái."}</p>
+      `;
+    }
+
+    // Keep sidebar in sync
+    const probEl = document.getElementById("summary-success-prob");
+    const statusEl = document.getElementById("summary-fire-status");
+    if (probEl) {
+      probEl.innerText = res.successRate + "%";
+      probEl.className = "metric-value " + (parseFloat(res.successRate) >= 80 ? "text-success font-semibold" : (parseFloat(res.successRate) >= 50 ? "text-warning font-semibold" : "text-danger font-semibold"));
+    }
+    if (statusEl) {
+      statusEl.innerText = parseFloat(res.successRate) >= 80 ? "FIRE Tự tin" : (parseFloat(res.successRate) >= 50 ? "Khá Rủi ro" : "Cần Điều chỉnh");
+      statusEl.className = "summary-status " + (parseFloat(res.successRate) >= 80 ? "status-success" : (parseFloat(res.successRate) >= 50 ? "status-warning" : "status-danger"));
+    }
 
     const ctx = document.getElementById("chart-monte-carlo").getContext("2d");
     if (state.charts.mc) {
@@ -2779,7 +2872,10 @@
         successRate: res.successRate + "%",
         medianEnd: window.RetirementEngine.formatCurrency(res.medianEndPortfolio, state.currency),
         worstCase: window.RetirementEngine.formatCurrency(res.worstCaseEndPortfolio, state.currency),
-        volatility: vol + "%"
+        bestCase: window.RetirementEngine.formatCurrency(res.p90 ? res.p90[res.p90.length - 1] : 0, state.currency),
+        volatility: vol + "%",
+        iterations: iters,
+        averageFailureAge: res.averageFailureAge || null
       });
     }
   }
@@ -2851,7 +2947,11 @@
       window.GeminiAdvisor.updateChartBox("chart-scenarios", "So sánh Kịch bản What-If: " + evaluation.meta.title, {
         activeScenario: state.activeScenario,
         title: evaluation.meta.title,
-        assessment: evaluation.meta.assessment
+        assessment: evaluation.meta.assessment,
+        netWorthDiff: window.RetirementEngine.formatCurrency(evaluation.netWorthDiff, state.currency),
+        survived: evaluation.scenarioRes?.survived ? "Đảm bảo tài sản" : "Có rủi ro thiếu hụt",
+        baseFinalNW: window.RetirementEngine.formatCurrency(evaluation.baseRes?.finalPortfolio || 0, state.currency),
+        scenarioFinalNW: window.RetirementEngine.formatCurrency(evaluation.scenarioRes?.finalPortfolio || 0, state.currency)
       });
     }
   }
@@ -2966,9 +3066,13 @@
     // Check apartments from Gestion de Patrimoine
     let rawApts = [];
     try {
-      const guestPat = JSON.parse(localStorage.getItem("pyRetrait_guest_patrimoine_v2") || "{}");
-      if (guestPat.apartments) {
-        rawApts = Object.entries(guestPat.apartments).map(([name, data]) => ({ name, ...data }));
+      if (state.patrimoineData && Array.isArray(state.patrimoineData.apartments)) {
+        rawApts = state.patrimoineData.apartments;
+      } else {
+        const guestPat = JSON.parse(localStorage.getItem("pyRetrait_guest_patrimoine_v2") || "{}");
+        if (guestPat.apartments) {
+          rawApts = Object.entries(guestPat.apartments).map(([name, data]) => ({ name, ...data }));
+        }
       }
     } catch (e) {}
 
@@ -3199,7 +3303,10 @@
       window.GeminiAdvisor.updateChartBox("chart-spending-smile", "Mô hình Chi tiêu Thực tế theo Độ tuổi (Spending Smile)", {
         targetLegacy: window.RetirementEngine.formatCurrency(target, state.currency),
         projectedLegacy: window.RetirementEngine.formatCurrency(finalVal, state.currency),
-        pctOfTarget: pct + "%"
+        pctOfTarget: pct + "%",
+        retireAge: plan.retirementAge || 42,
+        lifeExpectancy: plan.lifeExpectancy || 85,
+        surplus: finalVal >= target
       });
     }
 
