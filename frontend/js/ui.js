@@ -21,10 +21,22 @@
   // Local Storage Key
   const STORAGE_KEY = "pyRetrait_plans_v2";
 
-  // Safe DOM input value getter helper
+  // Safe DOM input value getter & setter helpers
   function getVal(id) {
     const el = document.getElementById(id);
     return el ? el.value : "";
+  }
+
+  function parseVal(id, fallback = 0) {
+    const el = document.getElementById(id);
+    if (!el) return fallback;
+    const v = parseFloat(el.value);
+    return isNaN(v) ? fallback : v;
+  }
+
+  function setVal(id, val) {
+    const el = document.getElementById(id);
+    if (el && val !== undefined && val !== null) el.value = val;
   }
 
   // Shared x-axis ticks for age/year axes: horizontal two-line labels ("35t" / "2032")
@@ -529,43 +541,51 @@
     const currentCalYear = new Date().getFullYear();
 
     if (inpBirthYear) {
-      inpBirthYear.addEventListener("input", (e) => {
-        const bYear = Number(e.target.value);
-        if (bYear >= 1930 && bYear <= currentCalYear) {
-          const plan = getActivePlan();
-          plan.birthYear = bYear;
-          const calculatedAge = currentCalYear - bYear;
-          plan.currentAge = calculatedAge;
-          if (inpCurrentAge) inpCurrentAge.value = calculatedAge;
-          savePlansToStorage();
-          updateAll();
-        }
+      ['input', 'change'].forEach(evt => {
+        inpBirthYear.addEventListener(evt, (e) => {
+          const bYear = Number(e.target.value);
+          if (bYear >= 1930 && bYear <= currentCalYear) {
+            const plan = getActivePlan();
+            plan.birthYear = bYear;
+            const calculatedAge = currentCalYear - bYear;
+            plan.currentAge = calculatedAge;
+            if (inpCurrentAge) inpCurrentAge.value = calculatedAge;
+            syncSavingsAndExpensesFromRate(plan);
+            savePlansToStorage();
+            updateAll();
+          }
+        });
       });
     }
 
     if (inpCurrentAge) {
-      inpCurrentAge.addEventListener("input", (e) => {
-        const age = Number(e.target.value);
-        if (age >= 10 && age <= 100) {
-          const plan = getActivePlan();
-          plan.currentAge = age;
-          const calculatedBirthYear = currentCalYear - age;
-          plan.birthYear = calculatedBirthYear;
-          if (inpBirthYear) inpBirthYear.value = calculatedBirthYear;
-          savePlansToStorage();
-          updateAll();
-        }
+      ['input', 'change'].forEach(evt => {
+        inpCurrentAge.addEventListener(evt, (e) => {
+          const age = Number(e.target.value);
+          if (age >= 10 && age <= 100) {
+            const plan = getActivePlan();
+            plan.currentAge = age;
+            const calculatedBirthYear = currentCalYear - age;
+            plan.birthYear = calculatedBirthYear;
+            if (inpBirthYear) inpBirthYear.value = calculatedBirthYear;
+            syncSavingsAndExpensesFromRate(plan);
+            savePlansToStorage();
+            updateAll();
+          }
+        });
       });
     }
 
     const sliderSavingsRate = document.getElementById("inp-savings-rate");
     if (sliderSavingsRate) {
-      sliderSavingsRate.addEventListener("input", (e) => {
-        const val = Number(e.target.value);
-        getActivePlan().savingsRate = val;
-        syncSavingsAndExpensesFromRate(getActivePlan());
-        savePlansToStorage();
-        updateAll();
+      ['input', 'change'].forEach(evt => {
+        sliderSavingsRate.addEventListener(evt, (e) => {
+          const val = Number(e.target.value);
+          getActivePlan().savingsRate = val;
+          syncSavingsAndExpensesFromRate(getActivePlan());
+          savePlansToStorage();
+          updateAll();
+        });
       });
     }
 
@@ -599,47 +619,53 @@
 
     const inpSavingsMonthly = document.getElementById("inp-monthly-savings");
     if (inpSavingsMonthly) {
-      inpSavingsMonthly.addEventListener("change", () => {
-        const p = getActivePlan();
-        const monthly = Number(inpSavingsMonthly.value) || 0;
-        p.annualSavings = monthly * 12;
-        const total = p.annualSavings + (Number(p.annualExpenses) || 0);
-        if (total > 0) {
-          p.savingsRate = Math.round((p.annualSavings / total) * 1000) / 10;
-        }
-        updateSavingsRateUI(p.savingsRate || 33.33);
-        updateExpenseSavingsHints(p);
-        savePlansToStorage();
-        updateAll();
+      ['input', 'change'].forEach(evt => {
+        inpSavingsMonthly.addEventListener(evt, () => {
+          const p = getActivePlan();
+          const monthly = Number(inpSavingsMonthly.value) || 0;
+          p.annualSavings = monthly * 12;
+          const total = p.annualSavings + (Number(p.annualExpenses) || 0);
+          if (total > 0) {
+            p.savingsRate = Math.round((p.annualSavings / total) * 1000) / 10;
+          }
+          updateSavingsRateUI(p.savingsRate || 33.33);
+          updateExpenseSavingsHints(p);
+          savePlansToStorage();
+          updateAll();
+        });
       });
     }
 
     const inpExpMonthly = document.getElementById("inp-monthly-expenses");
     if (inpExpMonthly) {
-      inpExpMonthly.addEventListener("change", () => {
-        const p = getActivePlan();
-        const monthly = Number(inpExpMonthly.value) || 0;
-        p.annualExpenses = monthly * 12;
-        const total = (Number(p.annualSavings) || 0) + p.annualExpenses;
-        if (total > 0) {
-          p.savingsRate = Math.round(((Number(p.annualSavings) || 0) / total) * 1000) / 10;
-        }
-        updateSavingsRateUI(p.savingsRate || 33.33);
-        updateExpenseSavingsHints(p);
-        savePlansToStorage();
-        updateAll();
+      ['input', 'change'].forEach(evt => {
+        inpExpMonthly.addEventListener(evt, () => {
+          const p = getActivePlan();
+          const monthly = Number(inpExpMonthly.value) || 0;
+          p.annualExpenses = monthly * 12;
+          const total = (Number(p.annualSavings) || 0) + p.annualExpenses;
+          if (total > 0) {
+            p.savingsRate = Math.round(((Number(p.annualSavings) || 0) / total) * 1000) / 10;
+          }
+          updateSavingsRateUI(p.savingsRate || 33.33);
+          updateExpenseSavingsHints(p);
+          savePlansToStorage();
+          updateAll();
+        });
       });
     }
 
     const inpRetireMonthly = document.getElementById("inp-monthly-retire-expenses");
     if (inpRetireMonthly) {
-      inpRetireMonthly.addEventListener("change", () => {
-        const p = getActivePlan();
-        const monthly = Number(inpRetireMonthly.value) || 0;
-        p.retirementExpenses = monthly * 12;
-        updateExpenseSavingsHints(p);
-        savePlansToStorage();
-        updateAll();
+      ['input', 'change'].forEach(evt => {
+        inpRetireMonthly.addEventListener(evt, () => {
+          const p = getActivePlan();
+          const monthly = Number(inpRetireMonthly.value) || 0;
+          p.retirementExpenses = monthly * 12;
+          updateExpenseSavingsHints(p);
+          savePlansToStorage();
+          updateAll();
+        });
       });
     }
 
@@ -747,14 +773,16 @@
     ['inp-start-work-age', 'inp-pension-age', 'inp-pension-base-annual'].forEach(id => {
       const el = document.getElementById(id);
       if (el) {
-        el.addEventListener("input", () => {
-          const plan = getActivePlan();
-          plan.startWorkAge = Number(getVal("inp-start-work-age")) || 24;
-          plan.socialSecurityAge = Number(getVal("inp-pension-age")) || 64;
-          plan.socialSecurityAnnual = Number(getVal("inp-pension-base-annual")) || 18000;
-          updatePensionDecoteUI(plan);
-          savePlansToStorage();
-          updateAll();
+        ['input', 'change'].forEach(evt => {
+          el.addEventListener(evt, () => {
+            const plan = getActivePlan();
+            plan.startWorkAge = parseVal("inp-start-work-age", 24);
+            plan.socialSecurityAge = parseVal("inp-pension-age", 64);
+            plan.socialSecurityAnnual = parseVal("inp-pension-base-annual", 18000);
+            updatePensionDecoteUI(plan);
+            savePlansToStorage();
+            updateAll();
+          });
         });
       }
     });
@@ -763,12 +791,14 @@
     ['inp-senior-care-age', 'inp-senior-care-monthly'].forEach(id => {
       const el = document.getElementById(id);
       if (el) {
-        el.addEventListener("input", () => {
-          const plan = getActivePlan();
-          plan.seniorCareAge = Number(getVal("inp-senior-care-age")) || 78;
-          plan.seniorCareMonthly = Number(getVal("inp-senior-care-monthly")) || 0;
-          savePlansToStorage();
-          updateAll();
+        ['input', 'change'].forEach(evt => {
+          el.addEventListener(evt, () => {
+            const plan = getActivePlan();
+            plan.seniorCareAge = parseVal("inp-senior-care-age", 78);
+            plan.seniorCareMonthly = parseVal("inp-senior-care-monthly", 0);
+            savePlansToStorage();
+            updateAll();
+          });
         });
       }
     });
@@ -777,10 +807,12 @@
     ['inp-alloc-stocks', 'inp-alloc-bonds', 'inp-alloc-re'].forEach(id => {
       const el = document.getElementById(id);
       if (el) {
-        el.addEventListener('input', () => {
-          updateAssetAllocationUI();
-          savePlansToStorage();
-          updateAll();
+        ['input', 'change'].forEach(evt => {
+          el.addEventListener(evt, () => {
+            updateAssetAllocationUI();
+            savePlansToStorage();
+            updateAll();
+          });
         });
       }
     });
@@ -797,10 +829,12 @@
     ['inp-inflation-pre', 'inp-inflation-post', 'inp-forex-base', 'inp-forex-drift'].forEach(id => {
       const el = document.getElementById(id);
       if (el) {
-        el.addEventListener('input', () => {
-          updateDualInflationUI();
-          savePlansToStorage();
-          updateAll();
+        ['input', 'change'].forEach(evt => {
+          el.addEventListener(evt, () => {
+            updateDualInflationUI();
+            savePlansToStorage();
+            updateAll();
+          });
         });
       }
     });
@@ -817,10 +851,12 @@
     ['inp-mortgage-prop-val', 'inp-mortgage-loan', 'inp-mortgage-rate', 'inp-mortgage-term', 'inp-mortgage-start'].forEach(id => {
       const el = document.getElementById(id);
       if (el) {
-        el.addEventListener('input', () => {
-          updateMortgageUI();
-          savePlansToStorage();
-          updateAll();
+        ['input', 'change'].forEach(evt => {
+          el.addEventListener(evt, () => {
+            updateMortgageUI();
+            savePlansToStorage();
+            updateAll();
+          });
         });
       }
     });
@@ -910,24 +946,26 @@
   function bindInput(id, fieldPath, typeConverter) {
     const el = document.getElementById(id);
     if (!el) return;
-    el.addEventListener("input", (e) => {
-      const val = typeConverter(e.target.value);
-      const plan = getActivePlan();
-      
-      if (fieldPath.includes('.')) {
-        const parts = fieldPath.split('.');
-        if (!plan[parts[0]]) plan[parts[0]] = {};
-        plan[parts[0]][parts[1]] = val;
-      } else {
-        plan[fieldPath] = val;
-      }
+    ['input', 'change'].forEach(evt => {
+      el.addEventListener(evt, (e) => {
+        const val = typeConverter(e.target.value);
+        const plan = getActivePlan();
+        
+        if (fieldPath.includes('.')) {
+          const parts = fieldPath.split('.');
+          if (!plan[parts[0]]) plan[parts[0]] = {};
+          plan[parts[0]][parts[1]] = val;
+        } else {
+          plan[fieldPath] = val;
+        }
 
-      if (fieldPath === "retirementAge") {
-        syncSalaryStreamsWithRetireAge(plan);
-      }
-      
-      savePlansToStorage();
-      updateAll();
+        if (fieldPath === "retirementAge") {
+          syncSalaryStreamsWithRetireAge(plan);
+        }
+        
+        savePlansToStorage();
+        updateAll();
+      });
     });
   }
 
@@ -1186,10 +1224,10 @@
 
   function updatePensionDecoteUI(p) {
     if (!p) p = getActivePlan();
-    const startWork = Number(getVal("inp-start-work-age")) || Number(p.startWorkAge) || 24;
-    const pensionAge = Number(getVal("inp-pension-age")) || Number(p.socialSecurityAge) || 64;
-    const retireAge = Number(p.retirementAge) || 42;
-    const baseAnnual = Number(getVal("inp-pension-base-annual")) || Number(p.socialSecurityAnnual) || 18000;
+    const startWork = parseVal("inp-start-work-age", Number(p?.startWorkAge) || 24);
+    const pensionAge = parseVal("inp-pension-age", Number(p?.socialSecurityAge) || 64);
+    const retireAge = parseVal("inp-retire-age", Number(p?.retirementAge) || 42);
+    const baseAnnual = parseVal("inp-pension-base-annual", Number(p?.socialSecurityAnnual) || 18000);
 
     const yearsWorked = Math.max(0, Math.min(retireAge, pensionAge) - startWork);
     const quarters = yearsWorked * 4;
@@ -1445,10 +1483,6 @@
     }
   }
 
-  function setVal(id, val) {
-    const el = document.getElementById(id);
-    if (el && val !== undefined) el.value = val;
-  }
 
   function renderIncomeStreamsList() {
     const container = document.getElementById("income-streams-container");
@@ -1547,6 +1581,10 @@
 
       setVal("inp-monthly-savings", Math.round(newSavings / 12));
       setVal("inp-monthly-expenses", Math.round(newExpenses / 12));
+      updateExpenseSavingsHints(plan);
+    } else {
+      plan.annualSavings = 0;
+      setVal("inp-monthly-savings", 0);
       updateExpenseSavingsHints(plan);
     }
 
@@ -1940,6 +1978,9 @@
   function updateAll() {
     const plan = getActivePlan();
     const proj = window.RetirementEngine.runProjection(plan);
+
+    // Keep Pension & Décote live display synchronized
+    updatePensionDecoteUI(plan);
 
     // Update Top KPIs
     document.getElementById("kpi-current-networth").innerText = window.RetirementEngine.formatCurrency(plan.currentSavings, state.currency);
