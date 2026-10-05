@@ -409,6 +409,21 @@
     const btnSaveMsForm = document.getElementById("btn-save-ms-form");
     if (btnSaveMsForm) btnSaveMsForm.addEventListener("click", saveMilestoneFromForm);
 
+    const modalMs = document.getElementById("milestone-modal");
+    if (modalMs) {
+      modalMs.addEventListener("click", (e) => {
+        if (e.target === modalMs) closeMilestoneModal();
+      });
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        if (modalMs && modalMs.style.display === "flex") {
+          closeMilestoneModal();
+        }
+      }
+    });
+
     // Gemini AI Settings Modal & Refresh handlers
     const btnGeminiSettings = document.getElementById("btn-gemini-settings");
     const modalGemini = document.getElementById("modal-gemini-settings");
@@ -1939,7 +1954,9 @@
   }
 
   function closeMilestoneModal() {
-    document.getElementById("milestone-modal").style.display = "none";
+    hideMilestoneForm();
+    const modal = document.getElementById("milestone-modal");
+    if (modal) modal.style.display = "none";
   }
 
   function renderModalMilestonesContent(plan, proj) {
@@ -1985,8 +2002,8 @@
               </div>
             </div>
             <div class="custom-ms-actions">
-              <button type="button" class="income-item-btn btn-edit-ms" data-idx="${idx}" title="Chỉnh sửa">✏️</button>
-              <button type="button" class="income-item-btn btn-del-ms" data-idx="${idx}" title="Xóa">🗑️</button>
+              <button type="button" class="income-item-btn btn-edit-ms" data-idx="${idx}" title="Chỉnh sửa sự kiện" style="padding: 0.25rem 0.6rem; font-weight: 600;">✏️ Sửa</button>
+              <button type="button" class="income-item-btn income-item-del btn-del-ms" data-idx="${idx}" title="Xóa sự kiện" style="padding: 0.25rem 0.6rem;">🗑️</button>
             </div>
           `;
           customContainer.appendChild(item);
@@ -2050,11 +2067,16 @@
       document.getElementById("inp-ms-amount").value = defaultAmt;
       document.getElementById("inp-ms-note").value = "";
     }
-    document.getElementById("inp-ms-name").focus();
+    setTimeout(() => {
+      form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const nameInp = document.getElementById("inp-ms-name");
+      if (nameInp) nameInp.focus();
+    }, 60);
   }
 
   function hideMilestoneForm() {
-    document.getElementById("milestone-edit-form").style.display = "none";
+    const form = document.getElementById("milestone-edit-form");
+    if (form) form.style.display = "none";
   }
 
   function saveMilestoneFromForm() {
@@ -2146,6 +2168,20 @@
           }
         }
       });
+
+      if (!m.isSystem) {
+        chip.title += " • Nhấn đúp để chỉnh sửa";
+        chip.addEventListener("dblclick", () => {
+          openMilestoneModal();
+          const p = getActivePlan();
+          if (Array.isArray(p.milestones)) {
+            const cIdx = p.milestones.findIndex(item => item.id === m.id || (item.name === m.name && item.age === m.age));
+            if (cIdx !== -1) {
+              showMilestoneForm(p.milestones[cIdx], cIdx);
+            }
+          }
+        });
+      }
 
       container.appendChild(chip);
     });

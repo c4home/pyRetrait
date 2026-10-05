@@ -20,7 +20,7 @@
   </script>
   
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=20261005i">
 </head>
 <body>
   <!-- Top Navigation Bar -->
@@ -1844,9 +1844,9 @@
     <div class="modal-card modal-lg">
       <div class="modal-header">
         <h3 id="milestone-modal-title">🚩 Quản Lý Cột Mốc Cuộc Đời (Life Milestones)</h3>
-        <button class="modal-close" id="btn-close-milestone-modal">✕</button>
+        <button class="modal-close" id="btn-close-milestone-modal" title="Đóng cửa sổ">✕</button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body" id="milestone-modal-body">
         <p class="modal-desc" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
           Đánh dấu các mốc quan trọng trong cuộc đời (mua nhà, sinh con, quỹ học vấn, tự do tài chính...) và tích hợp dòng tiền chi phí/thu nhập đột xuất vào mô phỏng biểu đồ.
         </p>
@@ -1857,21 +1857,24 @@
           <!-- Auto populated -->
         </div>
 
-        <div class="form-divider"></div>
+        <div class="form-divider" style="margin: 1rem 0; border-top: 1px solid var(--border-subtle);"></div>
 
         <!-- Custom User Milestones -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-          <h4 style="font-size: 0.88rem; font-weight: 600; color: var(--text-main);">Sự Kiện Đặc Biệt (Tùy chỉnh)</h4>
-          <button type="button" class="btn btn-xs btn-primary" id="btn-add-custom-milestone">+ Thêm Sự Kiện</button>
+          <h4 style="font-size: 0.88rem; font-weight: 600; color: var(--text-main); margin: 0;">Sự Kiện Đặc Biệt (Tùy chỉnh)</h4>
+          <button type="button" class="btn btn-sm btn-primary" id="btn-add-custom-milestone" style="font-weight: 600;">+ Thêm Sự Kiện Mới</button>
         </div>
 
-        <div id="modal-custom-milestones-container" class="custom-milestones-list" style="display: flex; flex-direction: column; gap: 0.6rem; max-height: 220px; overflow-y: auto;">
+        <div id="modal-custom-milestones-container" class="custom-milestones-list" style="display: flex; flex-direction: column; gap: 0.6rem; max-height: 200px; overflow-y: auto;">
           <!-- Custom items populated here -->
         </div>
 
         <!-- Form to Add/Edit Milestone (collapsible) -->
-        <div id="milestone-edit-form" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.03); border: 1px dashed var(--border-color); border-radius: 8px;">
-          <h5 id="milestone-form-title" style="font-size: 0.85rem; font-weight: 700; color: var(--primary); margin-bottom: 0.75rem;">Thêm Cột Mốc Mới</h5>
+        <div id="milestone-edit-form" style="display: none; margin-top: 1.25rem; padding: 1.25rem; background: rgba(30, 41, 59, 0.7); border: 1px solid var(--primary); border-radius: 10px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
+            <h5 id="milestone-form-title" style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin: 0;">Thêm Cột Mốc Mới</h5>
+            <span style="font-size: 0.78rem; color: var(--text-muted);">Nhập thông tin sự kiện và bấm Lưu</span>
+          </div>
           <input type="hidden" id="inp-ms-id">
           <div class="form-row">
             <div class="form-group col-6">
@@ -1916,15 +1919,15 @@
             <label for="inp-ms-note">Ghi chú thêm</label>
             <input type="text" id="inp-ms-note" class="form-input" placeholder="Ví dụ: Tiền đặt cọc nhà, bảo hiểm...">
           </div>
-          <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
-            <button type="button" class="btn btn-xs btn-ghost" id="btn-cancel-ms-form">Hủy</button>
-            <button type="button" class="btn btn-xs btn-primary" id="btn-save-ms-form">Lưu Mốc Này</button>
+          <div class="milestone-form-actions" style="display: flex; justify-content: flex-end; align-items: center; gap: 0.75rem; margin-top: 1.25rem; padding-top: 0.75rem; border-top: 1px solid var(--border-subtle);">
+            <button type="button" class="btn btn-ghost" id="btn-cancel-ms-form" style="padding: 0.55rem 1.15rem; font-weight: 600;">✕ Hủy form</button>
+            <button type="button" class="btn btn-primary" id="btn-save-ms-form" style="padding: 0.55rem 1.4rem; font-weight: 700; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);">💾 Lưu Sự Kiện</button>
           </div>
         </div>
 
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-ghost" id="btn-close-milestone-modal-footer">Đóng</button>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; align-items: center;">
+        <button type="button" class="btn btn-outline" id="btn-close-milestone-modal-footer" style="padding: 0.5rem 1.25rem; font-weight: 600;">✕ Đóng Cửa Sổ</button>
       </div>
     </div>
   </div>
@@ -2318,14 +2321,14 @@
   </div>
 
   <!-- Application Logic Modules -->
-  <script src="js/engine.js?v=20261005h"></script>
-  <script src="js/taxOptimizer.js?v=20261005h"></script>
-  <script src="js/monteCarlo.js?v=20261005h"></script>
-  <script src="js/scenarios.js?v=20261005h"></script>
-  <script src="js/geminiAdvisor.js?v=20261005h"></script>
-  <script src="js/patrimoine.js?v=20261005h"></script>
-  <script src="js/export.js?v=20261005h"></script>
-  <script src="js/auth.js?v=20261005h"></script>
-  <script src="js/ui.js?v=20261005h"></script>
+  <script src="js/engine.js?v=20261005i"></script>
+  <script src="js/taxOptimizer.js?v=20261005i"></script>
+  <script src="js/monteCarlo.js?v=20261005i"></script>
+  <script src="js/scenarios.js?v=20261005i"></script>
+  <script src="js/geminiAdvisor.js?v=20261005i"></script>
+  <script src="js/patrimoine.js?v=20261005i"></script>
+  <script src="js/export.js?v=20261005i"></script>
+  <script src="js/auth.js?v=20261005i"></script>
+  <script src="js/ui.js?v=20261005i"></script>
 </body>
 </html>
