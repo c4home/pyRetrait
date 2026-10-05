@@ -770,7 +770,7 @@
     }
 
     // French Pension & Décote Inputs
-    ['inp-start-work-age', 'inp-pension-age', 'inp-pension-base-annual'].forEach(id => {
+    ['inp-start-work-age', 'inp-pension-age'].forEach(id => {
       const el = document.getElementById(id);
       if (el) {
         ['input', 'change'].forEach(evt => {
@@ -778,7 +778,6 @@
             const plan = getActivePlan();
             plan.startWorkAge = parseVal("inp-start-work-age", 24);
             plan.socialSecurityAge = parseVal("inp-pension-age", 64);
-            plan.socialSecurityAnnual = parseVal("inp-pension-base-annual", 18000);
             updatePensionDecoteUI(plan);
             savePlansToStorage();
             updateAll();
@@ -786,6 +785,32 @@
         });
       }
     });
+
+    const inpPensionBase = document.getElementById("inp-pension-base-annual");
+    if (inpPensionBase) {
+      ['input', 'change'].forEach(evt => {
+        inpPensionBase.addEventListener(evt, () => {
+          const plan = getActivePlan();
+          plan.pensionBaseAuto = false;
+          plan.socialSecurityAnnual = parseVal("inp-pension-base-annual", 18000);
+          syncPensionBaseAuto(plan, false);
+          savePlansToStorage();
+          updatePensionDecoteUI(plan);
+          updateAll();
+        });
+      });
+    }
+
+    const btnAutoPension = document.getElementById("btn-auto-pension-base");
+    if (btnAutoPension) {
+      btnAutoPension.addEventListener("click", () => {
+        const plan = getActivePlan();
+        syncPensionBaseAuto(plan, true);
+        savePlansToStorage();
+        updatePensionDecoteUI(plan);
+        updateAll();
+      });
+    }
 
     // Senior Care / Dépendance Inputs
     ['inp-senior-care-age', 'inp-senior-care-monthly'].forEach(id => {
@@ -1035,7 +1060,7 @@
     // French Pension & Décote
     setVal("inp-start-work-age", p.startWorkAge || 24);
     setVal("inp-pension-age", p.socialSecurityAge || 64);
-    setVal("inp-pension-base-annual", p.socialSecurityAnnual !== undefined ? p.socialSecurityAnnual : (state.currency === 'EUR' ? 18000 : 72000000));
+    syncPensionBaseAuto(p);
     updatePensionDecoteUI(p);
 
     // Senior Care / Dépendance
@@ -1219,6 +1244,80 @@
       badge.style.background = "rgba(255, 255, 255, 0.08)";
       badge.style.color = "#94a3b8";
       if (hint) hint.innerText = "100% tại Pháp: Giữ nguyên mức chi phí sinh hoạt tiêu chuẩn Châu Âu.";
+    }
+  }
+
+  // Ước tính Lương hưu mục tiêu 43 năm (Taux Plein) theo chuẩn hưu trí Pháp (Réforme 2023)
+  // CNAV (Retraite de base tối đa 50% trần PASS) + Agirc-Arrco (Retraite complémentaire theo điểm)
+  function estimateFrenchFullPension(netSalary, cur = 'EUR') {
+    const eurRate = 27500;
+    const s = (cur === 'VND') ? (netSalary / eurRate) : (cur === 'USD' ? netSalary / 1.10 : netSalary);
+    if (s <= 0) return (cur === 'EUR' ? 18000 : cur === 'VND' ? 72000000 : 20000);
+
+    const passNet = 36000; // PASS ròng ~36,000 €/năm (PASS gộp ~46,368 €)
+    let pensionEur = 0;
+    if (s <= 18000) {
+      // Mức SMIC: Tỷ lệ thay thế gộp CNAV + Agirc-Arrco ~75%
+      pensionEur = s * 0.75;
+    } else if (s <= passNet) {
+      // Từ SMIC đến trần PASS: 18k * 0.75 + phần vượt * 0.60
+      pensionEur = 18000 * 0.75 + (s - 18000) * 0.60;
+    } else {
+      // Trên trần PASS: CNAV kịch trần (24,300 €) + Agirc-Arrco Tranche 2 (~35% phần vượt)
+      pensionEur = 24300 + (s - passNet) * 0.35;
+    }
+    pensionEur = Math.round(pensionEur / 100) * 100;
+    if (cur === 'VND') return Math.round(pensionEur * eurRate);
+    if (cur === 'USD') return Math.round(pensionEur * 1.10);
+    return pensionEur;
+  }
+
+  function getPrimarySalaryIncome(plan) {
+    if (!plan || !Array.isArray(plan.incomes)) return 0;
+    const salaryStream = plan.incomes.find(s => s.isSalary || /lương|salary|wage/i.test(s.name || ""));
+    if (salaryStream && Number(salaryStream.amount) > 0) {
+      return Number(salaryStream.amount);
+    }
+    const currentAge = Number(plan.currentAge) || 29;
+    const activeStreams = plan.incomes.filter(s => currentAge >= s.startAge && currentAge <= s.endAge && !/thuê|rent|bđs|turo|lmnp|cổ tức|dividend/i.test(s.name || ""));
+    if (activeStreams.length > 0) {
+      return Number(activeStreams[0].amount) || 0;
+    }
+    return getActiveIncomeAtAge(plan, currentAge);
+  }
+
+  function syncPensionBaseAuto(p, force = false) {
+    if (!p) p = getActivePlan();
+    const isAuto = force || (p.pensionBaseAuto !== false);
+    const salary = getPrimarySalaryIncome(p);
+    const estimated = estimateFrenchFullPension(salary, state.currency);
+
+    const txtExp = document.getElementById("txt-pension-base-explanation");
+    const badgeMode = document.getElementById("badge-pension-base-mode");
+    const unitEl = document.getElementById("unit-pension-base");
+    if (unitEl) unitEl.innerText = state.currency === 'VND' ? '₫' : state.currency === 'USD' ? '$' : '€';
+
+    if (isAuto) {
+      p.pensionBaseAuto = true;
+      p.socialSecurityAnnual = estimated;
+      setVal("inp-pension-base-annual", estimated);
+      if (badgeMode) {
+        badgeMode.innerText = "Tự động";
+        badgeMode.style.background = "rgba(52, 211, 153, 0.15)";
+        badgeMode.style.color = "#34d399";
+      }
+      if (txtExp) {
+        txtExp.innerHTML = `⚡ Tự động tính từ lương (<strong>${window.RetirementEngine.formatCurrency(salary, state.currency)}/năm</strong>): ~<strong>${window.RetirementEngine.formatCurrency(estimated, state.currency)}/năm</strong> (CNAV + Agirc-Arrco)`;
+      }
+    } else {
+      if (badgeMode) {
+        badgeMode.innerText = "Tùy chỉnh";
+        badgeMode.style.background = "rgba(251, 191, 36, 0.15)";
+        badgeMode.style.color = "#fbbf24";
+      }
+      if (txtExp) {
+        txtExp.innerHTML = `⚡ Chuẩn theo lương: ~${window.RetirementEngine.formatCurrency(estimated, state.currency)}/năm • Đang dùng số tự nhập`;
+      }
     }
   }
 
@@ -1536,6 +1635,9 @@
         if (confirm(`Bạn có chắc chắn muốn xóa "${streamName}"?`)) {
           getActivePlan().incomes.splice(idx, 1);
           syncSavingsAndExpensesFromRate(getActivePlan());
+          if (getActivePlan().pensionBaseAuto !== false) {
+            syncPensionBaseAuto(getActivePlan(), true);
+          }
           savePlansToStorage();
           renderIncomeStreamsList();
           updateAll();
@@ -1746,6 +1848,10 @@
       plan.retirementAge = endAge;
       setVal("inp-retire-age", endAge);
       syncSalaryStreamsWithRetireAge(plan);
+    }
+
+    if (plan.pensionBaseAuto !== false) {
+      syncPensionBaseAuto(plan, true);
     }
 
     syncSavingsAndExpensesFromRate(plan);

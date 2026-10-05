@@ -369,8 +369,17 @@
                     </div>
                   </div>
                   <div class="form-group">
-                    <label for="inp-pension-base-annual">Lương hưu mục tiêu khi đủ 43 năm (€/năm)</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                      <label for="inp-pension-base-annual" style="margin-bottom: 0; font-weight: 500;">Lương hưu mục tiêu khi đủ 43 năm (<span id="unit-pension-base">€</span>/năm)</label>
+                      <button type="button" id="btn-auto-pension-base" class="btn btn-xs" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); cursor: pointer;" title="Tự động tính từ mức lương sự nghiệp (CNAV 50% + Agirc-Arrco)">
+                        ⚡ Tự động tính theo lương
+                      </button>
+                    </div>
                     <input type="number" id="inp-pension-base-annual" value="18000" step="500" class="form-input">
+                    <div id="hint-pension-base-auto" style="font-size: 0.73rem; color: var(--text-faint); margin-top: 4px; display: flex; justify-content: space-between; align-items: center;">
+                      <span id="txt-pension-base-explanation">⚡ Ước tính từ lương: ~17.700 €/năm (Tỷ lệ thay thế ~62% lương CNAV + Agirc-Arrco)</span>
+                      <span id="badge-pension-base-mode" style="font-size: 0.68rem; padding: 1px 6px; border-radius: 3px; background: rgba(52, 211, 153, 0.15); color: #34d399;">Tự động</span>
+                    </div>
                   </div>
                   <div id="box-pension-decote-live" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.6rem 0.8rem; font-size: 0.78rem;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
@@ -388,7 +397,8 @@
                     <!-- Inline Formula: French Pension & Décote -->
                     <div class="formula-inline-box formula-warning" style="margin-top: 0.6rem;">
                       <div class="formula-tag">📐 Công thức Hưu Trí Pháp (Réforme 2023)</div>
-                      <code>• Số quý = (Tuổi nhận hưu - Tuổi đi làm) × 4 (Chuẩn: 172 quý = 43 năm)</code><br>
+                      <code>• Lương mục tiêu 43n (Taux Plein) = CNAV (50% lương ≤ PASS) + Agirc-Arrco (~15-25% lương)</code><br>
+                      <code>• Số quý = (min(Tuổi hưu FIRE, Tuổi nhận hưu) - Tuổi đi làm) × 4 (Chuẩn: 172 quý = 43 năm)</code><br>
                       <code>• Tỷ lệ Prorata = min(172, Số quý) / 172</code><br>
                       <code>• Phạt Décote = -1.25% × Quý thiếu (Tối đa -25% nếu < 67t; Đủ 67t tự động = 0%)</code><br>
                       <code>• Lương thực nhận = Lương mục tiêu × Prorata × (1 - Décote)</code>
@@ -2295,14 +2305,14 @@
   </div>
 
   <!-- Application Logic Modules -->
-  <script src="js/engine.js?v=20261005c"></script>
-  <script src="js/taxOptimizer.js?v=20261005c"></script>
-  <script src="js/monteCarlo.js?v=20261005c"></script>
-  <script src="js/scenarios.js?v=20261005c"></script>
-  <script src="js/geminiAdvisor.js?v=20261005c"></script>
-  <script src="js/patrimoine.js?v=20261005c"></script>
-  <script src="js/export.js?v=20261005c"></script>
-  <script src="js/auth.js?v=20261005c"></script>
-  <script src="js/ui.js?v=20261005c"></script>
+  <script src="js/engine.js?v=20261005d"></script>
+  <script src="js/taxOptimizer.js?v=20261005d"></script>
+  <script src="js/monteCarlo.js?v=20261005d"></script>
+  <script src="js/scenarios.js?v=20261005d"></script>
+  <script src="js/geminiAdvisor.js?v=20261005d"></script>
+  <script src="js/patrimoine.js?v=20261005d"></script>
+  <script src="js/export.js?v=20261005d"></script>
+  <script src="js/auth.js?v=20261005d"></script>
+  <script src="js/ui.js?v=20261005d"></script>
 </body>
 </html>
