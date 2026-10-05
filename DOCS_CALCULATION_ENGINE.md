@@ -81,6 +81,50 @@ Mức sống khi nghỉ hưu thay đổi theo các chu kỳ sức khỏe và nhu
 - **Giai đoạn Slow-Go (60 - 75 tuổi)**: Sinh hoạt chậm rãi tại nhà $\implies \text{Hệ số} = 0.90$ (-10%).
 - **Giai đoạn No-Go (sau 75 tuổi)**: Nhu cầu tiêu dùng cơ bản giảm, quỹ y tế riêng $\implies \text{Hệ số} = 0.80$ (-20%).
 
+### 2.4. Thuật Toán Lương Hưu Pháp & Phạt Décote (French Pension Décote Engine)
+Theo Cải cách Hưu trí Pháp 2023 (Réforme des Retraites), mức hưởng lương hưu tối đa (Taux Plein) đòi hỏi người lao động phải tích lũy đủ **172 quý (Trimestres)**, tương đương 43 năm đóng bảo hiểm:
+
+1. **Tính Số Năm & Số Quý Đã Đóng Góp**:
+   $$\text{YearsWorked} = \max\Big(0, \, \min(\text{RetireAge}, \text{SSAge}) - \text{StartWorkAge}\Big)$$
+   $$\text{QuartersContributed} = \text{YearsWorked} \times 4$$
+2. **Hệ Số Tỷ Lệ Đóng (Prorata Quarters Ratio)**:
+   $$\text{Prorata} = \frac{\min(172, \, \text{QuartersContributed})}{172}$$
+3. **Tính Phạt Thiếu Quý (Décote Penalty)**:
+   - Số quý còn thiếu để đạt chuẩn 172 quý:
+     $$\text{MissingQuarters} = \max(0, \, 172 - \text{QuartersContributed})$$
+   - **Cơ chế Tuổi 67 Tự Động Xóa Phạt (Taux Plein Automatique à 67 ans)**:
+     - Nếu người lao động bắt đầu nhận lương hưu từ tuổi $\text{SSAge} \ge 67$:
+       $$\text{PenaltyRate} = 0\% \quad (\text{Miễn trừ toàn bộ phạt Décote})$$
+     - Nếu nhận lương hưu trước 67 tuổi ($\text{SSAge} < 67$):
+       $$\text{PenaltyRate} = \min(25\%, \, \text{MissingQuarters} \times 1.25\%)$$
+4. **Tỷ Lệ Lương Hưu Thực Nhận Hiệu Lực (Effective Pension Ratio)**:
+   $$\text{EffectivePensionRatio} = \text{Prorata} \times (1 - \text{PenaltyRate})$$
+   $$\text{FrenchPensionReceived}(\text{age}) = \text{GrossBasePension} \times \text{EffectivePensionRatio} \quad (\text{với } \text{age} \ge \text{SSAge})$$
+
+### 2.5. Hệ Số Sức Mua Địa Điểm Hưu Trí & Phí Bảo Hiểm CFE (Purchasing Power Parity - PPP)
+pyRetrait mô hình hóa sự khác biệt về sức mua giữa Pháp và Việt Nam thông qua hệ số nhân chi phí $k_{\text{loc}}$ và chi phí bảo hiểm quốc tế bổ sung:
+
+$$\text{AdjustedExpenses}(t) = \Big(\text{BaseLivingExpenses} \times k_{\text{loc}}\Big) + \text{CFE\_AnnualCost}$$
+
+Trong đó:
+- **Kịch bản 1: 100% Pháp**:
+  - $k_{\text{loc}} = 1.00$
+  - $\text{CFE\_AnnualCost} = 0 €$
+- **Kịch bản 2: Song hành (6 tháng Pháp / 6 tháng Việt Nam)**:
+  - $k_{\text{loc}} = 0.70$ (Tiết kiệm 30% chi phí sống tổng thể)
+  - $\text{CFE\_AnnualCost} = 0 €$ (Duy trì thẻ Vitale thông thường)
+- **Kịch bản 3: 100% Việt Nam (Hồi hương toàn phần)**:
+  - $k_{\text{loc}} = 0.45$ (Sức mua tại Việt Nam giúp giảm tới 55% chi phí sinh hoạt)
+  - $\text{CFE\_AnnualCost} = 1,800 €/\text{năm}$ (~150 €/tháng duy trì Quỹ CFE + Bảo hiểm Top-up quốc tế)
+
+### 2.6. Quỹ Chăm Sóc Tuổi Già (Senior Care / Dépendance Reserve)
+Từ tuổi 78 trở đi, chi phí y tế và chăm sóc đặc biệt (viện dưỡng lão cao cấp hoặc điều dưỡng tại nhà) được kích hoạt:
+$$\text{SeniorCare}(\text{age}) = \begin{cases} 
+\text{SeniorCareBudget} \times 12, & \text{khi } \text{age} \ge 78 \\
+0, & \text{khi } \text{age} < 78 
+\end{cases}$$
+Khoản chi này được cộng trực tiếp vào tổng chi tiêu hưu trí hàng năm, giúp kiểm thử độ an toàn của danh mục trước rủi ro sức khỏe giai đoạn cuối đời.
+
 ---
 
 ## 3. Mô Phỏng Monte Carlo & Đo Lường Rủi Ro SRR
@@ -120,13 +164,46 @@ Nhờ khoản khấu hao phi tiền mặt (*Amortissement*), $\text{TaxableIncom
 ### 4.3. Dòng Tiền 2 Pha & Đồng Bộ Vào FIRE
 Dòng tiền ròng được chia thành hai pha rõ rệt:
 1. **Pha 1: Đang trong thời gian trả nợ vay (Under Mortgage)**:
-   $$\text{CashFlow}_{\text{mortgage}} = \text{Rent} - M - \text{Charges} - \text{TaxeFoncière}$$
-   (Thường hòa vốn hoặc bù nhẹ khoảng $-300$ đến $-400 €$/tháng để xây dựng tài sản ròng bằng đòn bẩy ngân hàng).
+   $$\text{CashFlow}_{\text{mortgage}} = \text{EffectiveRent} - M - \text{MonthlyCharges}$$
+   (Thường hòa vốn hoặc bù nhẹ khoảng $-100$ đến $-300 €$/tháng để xây dựng tài sản ròng bằng đòn bẩy ngân hàng).
 2. **Pha 2: Sau khi tất toán nợ (Post-Debt Passive Surge)**:
-   $$\text{CashFlow}_{\text{post-debt}} = \text{Rent} - \text{Charges} - \text{TaxeFoncière}$$
+   $$\text{CashFlow}_{\text{post-debt}} = \text{EffectiveRent} - \text{MonthlyCharges}$$
    Toàn bộ tiền thuê được giải phóng thành dòng tiền thụ động ròng (**$+1,400 €$/tháng**).
 3. **Đội xe Turo**:
    $$\text{Profit}_{\text{Turo}} = \text{Revenue} - \text{Depreciation} - \text{Insurance} - \text{Maintenance} - \text{PlatformFee} \approx +234 €/\text{tháng}$$
 4. **Tích hợp vào Kế hoạch FIRE**:
    Hệ thống chuyển đổi tự động sang các luồng thu nhập với mốc tuổi tương ứng. Khi bước vào tuổi nghỉ hưu, dòng tiền thụ động ròng (+1,635 €/tháng) tự động đối trừ vào chi phí sinh hoạt $\text{Expenses}_t$, giúp giảm đáng kể số tiền cần rút từ danh mục chứng khoán PEA/S&P500.
+
+### 4.4. Mô Hình Chi Phí & Dòng Tiền BĐS Thực Tế (Notaire, Vacance, Taxe Foncière)
+Để phản ánh chính xác kinh tế học BĐS tại Pháp:
+1. **Phí Công Chứng Mua Bán (Frais de Notaire 7.5%)**:
+   $$\text{TotalAcquisitionCost} = \text{PurchasePrice} \times 1.075$$
+   $$\text{LoanAmount} = \text{TotalAcquisitionCost} - \text{DownPayment}$$
+2. **Tỷ Lệ Phòng Trống (Vacance Locative)**:
+   $$\text{EffectiveMonthlyRent} = \text{GrossMonthlyRent} \times (1 - \text{VacancyRate})$$
+3. **Tổng Chi Phí Vận Hành Hàng Tháng**:
+   $$\text{MonthlyCharges} = \frac{\text{CoopCharges} + \text{TaxeFonciere} + \text{PNO\_Insurance} + \text{MaintenanceBudget}}{12}$$
+4. **Dòng Tiền Ròng Trực Tiếp (Live Net Cash Flow)**:
+   $$\text{NetCashFlow} = \text{EffectiveMonthlyRent} - M - \text{MonthlyCharges}$$
+
+---
+
+## 5. Mô Hình Vòng Đời Gia Đình & Con Cái (Family Lifecycle & Education Engine)
+
+pyRetrait tích hợp mô hình dòng tiền gia đình đa thế hệ dựa trên **Năm sinh của con cái**:
+
+1. **Xác Định Độ Tuổi Của Con Theo Từng Năm Mô Phỏng**:
+   $$\text{ChildAge}(t) = \text{SimulationYear}(t) - \text{BirthYear}_{\text{child}}$$
+2. **Giai Đoạn Trợ Cấp Gia Đình Pháp (Allocations Familiales Caf)**:
+   - Áp dụng khi gia đình có từ 2 con trở lên trong độ tuổi $0 \le \text{ChildAge} < 18$:
+     $$\text{CafIncome}(t) \approx 140 € – 320 €/\text{tháng}$$
+3. **Giai Đoạn Chi Phí Học Đại Học / Thạc Sĩ (Higher Education)**:
+   - Kích hoạt trong khung tuổi $18 \le \text{ChildAge} \le 23$:
+     $$\text{AnnualEducationCost} = \text{Tuition} + \text{StudentHousing} + \text{LivingStipend}$$
+     (Ước tính từ 6,000 € – 15,000 €/năm/con tùy học tại Pháp hay quốc tế).
+4. **Giai Đoạn Trưởng Thành & Hỗ Trợ Ban Đầu (Wedding / Kickstart)**:
+   - Tại mốc tuổi $\text{ChildAge} \in [24, 26]$: Khoản hỗ trợ một lần (ví dụ 10,000 € – 30,000 €) được đối trừ vào dòng tiền danh mục.
+5. **Hiển Thị Trên Biểu Đồ Family Trajectory**:
+   Các đỉnh chi phí đại học được vẽ đè lên đường cong tài sản ròng, giúp cha mẹ chủ động chuẩn bị quỹ học vấn mà không làm gãy đổ lộ trình FIRE.
+
 

@@ -99,6 +99,7 @@ Hệ thống cho phép bạn mô phỏng nhiều nguồn thu khác nhau có th�
 ### Tab 6: Thừa kế & Chi tiêu Smile (`tab-estate`)
 - Bật/tắt mô hình chi tiêu thực tế **Spending Smile** (Go-Go, Slow-Go, No-Go).
 - Đặt mục tiêu tài sản thừa kế để lại cho con cháu và xem thanh tiến độ hoàn thành.
+- **Kỹ thuật Chuyển nhượng Di sản (Démembrement / Nue-propriété)**: Xem hướng dẫn tối ưu hạn mức miễn thuế 100.000 €/bố mẹ/con mỗi 15 năm và định giá theo Điều 669 CGI.
 
 ### Tab 7: Gestion de Patrimoine (`tab-patrimoine`)
 - **Dashboard Tổng Quan Tài Sản Pháp**:
@@ -114,15 +115,63 @@ Hệ thống cho phép bạn mô phỏng nhiều nguồn thu khác nhau có th�
   - **🎯 Hòa vốn tài sản ròng (Equity Break-Even)**: Thời điểm `Giá trị nhà - Nợ vay` vượt qua 100% vốn tự có bỏ ra ban đầu (thường sau 3 - 7 năm).
   - **💵 Hòa vốn dòng tiền mặt (Cash-on-Cash Break-Even)**: Thời điểm lũy kế tiền thuê ròng thu về bù đắp toàn bộ số tiền tự bỏ ra.
   - **🏆 Tất toán sạch nợ (Debt Payoff)**: Năm nợ ngân hàng về 0 €, dòng tiền thụ động bùng nổ đạt đỉnh.
-- **Quản Lý Danh Mục Căn Hộ**:
-  - Nhấp nút **➕ Thêm Căn Hộ** (nằm ngay cạnh tiêu đề *Danh Mục Căn Hộ Cho Thuê*) để nhập căn hộ mới với trường **📅 Năm bắt đầu mua**, giá mua, vốn tự có, thời hạn vay, lãi suất %, tiền thuê tháng, phí quản lý.
+- **Quản Lý Danh Mục Căn Hộ Thực Tế**:
+  - Nhấp nút **➕ Thêm Căn Hộ** (nằm ngay cạnh tiêu đề *Danh Mục Căn Hộ Cho Thuê*) để mở modal thiết lập:
+    - **Phí công chứng tự động (Frais de Notaire 7.5%)**: Tự động tính vào tổng chi phí đầu tư và số tiền vay thế chấp.
+    - **Tỷ lệ phòng trống (Vacance Locative %)**: Mặc định 5% (khoảng 2.5 tuần trống/năm), cho phép người dùng tùy biến sát thực tế thị trường.
+    - **Thuế đất Taxe Foncière & Phí quản lý**: Tích hợp đầy đủ vào chi phí vận hành.
+    - **⚡ Live Net Cash Flow**: Khung hiển thị màu xanh/hổ phách tính toán ngay dòng tiền ròng thực tế hàng tháng theo thời gian thực mỗi khi bạn thay đổi bất kỳ ô nhập liệu nào!
   - Xem từng thẻ căn hộ với huy hiệu hiển thị mốc thời gian: `📅 Mua: 2022 ➔ Tất toán: 2042`.
 - **⚡ Tự Động Đồng Bộ Vào Kế Hoạch FIRE (Auto-Sync)**:
   - Hệ thống **tự động 100%** chuyển đổi và cập nhật toàn bộ dòng tiền bất động sản & xe Turo vào luồng thu nhập của kế hoạch FIRE mỗi khi bạn thêm, sửa hoặc xóa căn hộ — bạn không cần phải bấm nút đồng bộ thủ công.
 
 ---
 
-## 6. Trợ Lý Chiến Lược Gemini AI (AI Advisor)
+## 6. Các Tính Năng Hiện Thực Hóa & Franco-Viet Chuyên Sâu
+
+### 6.1. Lựa Chọn Địa Điểm Hưu Trí & Sức Mua PPP (Purchasing Power Parity)
+Tại bảng điều khiển bên trái, bạn có thể lựa chọn 1 trong 3 kịch bản địa điểm:
+1. **🇫🇷 100% Pháp**: Áp dụng 100% mức chi phí sống chuẩn Euro.
+2. **✈️ Song hành (6 tháng Pháp / 6 tháng Việt Nam)**: Chi phí sinh hoạt tự động giảm 30% (hệ số 0.70).
+3. **🇻🇳 100% Việt Nam (Hồi hương toàn phần)**: Sức mua tại Việt Nam giúp **tiết kiệm tới 55% chi phí sống** (hệ số 0.45), đồng thời tự động cộng thêm chi phí bảo hiểm quốc tế CFE (1,800 €/năm).
+
+### 6.2. Cấu Hình Hưu Trí Pháp & Phạt Décote (Réforme 2023)
+Nhấp vào thanh mở rộng **🇫🇷 Lương Hưu Pháp & Phạt Décote** ở sidebar:
+- Nhập `Tuổi bắt đầu đi làm` (ví dụ 24 tuổi) và `Tuổi nhận lương hưu Pháp` (ví dụ 64 hoặc 67 tuổi).
+- Hệ thống tự động tính toán:
+  - Số năm và số quý đã đóng bảo hiểm (Trimestres).
+  - So sánh với chuẩn 172 quý (43 năm) theo luật mới.
+  - Tỷ lệ giảm trừ (Décote -1.25%/quý thiếu, tối đa -25%) nếu nhận hưu trước 67 tuổi.
+  - **Mẹo tối ưu**: Nhận hưu từ mốc 67 tuổi sẽ kích hoạt cơ chế **Taux Plein Tự Động**, xóa bỏ hoàn toàn phạt phần trăm dù bạn chỉ đóng một số năm tại Pháp!
+
+### 6.3. Quỹ Chăm Sóc Tuổi Già (Senior Care / Dépendance từ 78t)
+- Nhập ngân sách dự trù hàng tháng (ví dụ 1,500 €/tháng) trong thanh mở rộng bên trái.
+- Mô hình sẽ tự động cộng khoản chi này vào chi phí sinh hoạt từ tuổi 78 trở đi, kiểm tra xem danh mục có đủ sức chống đỡ chi phí điều dưỡng hay viện dưỡng lão cao cấp mà không làm thâm hụt di sản để lại cho con cái.
+
+### 6.4. Cẩm Nang Sức Khỏe & Lương Hưu Song Tịch (Franco-Viet Guide)
+Nằm ngay dưới biểu đồ dòng tiền ở Tab 1, thẻ cẩm nang cung cấp 2 chuyên đề cốt lõi:
+- **Tab 1: Khám Sức Khỏe Định Kỳ & Y Tế Dự Phòng (Pháp vs Việt Nam)**:
+  - Chi tiết chương trình mới `Mon Bilan Prévention` (18-25t, 45-50t, 60-65t, 70-75t) miễn phí 100% tại Pháp.
+  - Khám tổng quát dự phòng `EPS CPAM` mỗi 5 năm qua cổng Ameli.fr.
+  - Gói khám bệnh viện quốc tế (Vinmec, FV, Hoàn Mỹ) và công lập tuyến 1 tại Việt Nam.
+  - Giải pháp thẻ CFE + Mutuelle quốc tế để hưởng dịch vụ **Bảo lãnh viện phí trực tiếp (Tiers Payant)**.
+- **Tab 2: Lương Hưu Kép & BHXH Tự Nguyện Việt Nam**:
+  - Hướng dẫn Luật BHXH 2024 (hiệu lực 01/07/2025) hạ mốc đóng tối thiểu xuống **15 năm**.
+  - Cơ chế đóng một lần cho các năm còn thiếu (đóng vét) khi đủ tuổi nghỉ hưu.
+  - Đặc quyền thẻ BHYT thanh toán 95% chi phí y tế trọn đời.
+  - **Công cụ Tính thử BHXH Tự nguyện Live Calculator**: Cho phép bạn nhập mức thu nhập lựa chọn (ví dụ 10.000.000 ₫/tháng) và xem ngay:
+    - Tiền đóng 22%: 2.200.000 ₫/tháng (~80 €)
+    - Lương hưu nhận về: ~4.500.000 ₫/tháng (~164 €)
+    - Thời gian hoàn vốn gốc: **7.3 năm!**
+
+### 6.5. Kế Hoạch Con Cái & Gia Đình (Family Planning)
+- Nhập **Năm sinh** của các con thay vì tuổi cố định để hệ thống tự động đồng bộ tuổi của con theo từng năm chạy mô phỏng.
+- Tự động tích hợp trợ cấp Caf, các đợt đỉnh chi phí đại học/thạc sĩ (18 - 23 tuổi), và quà hỗ trợ lập nghiệp/kết hôn (24 - 26 tuổi).
+- Biểu đồ **Family Cash Flow Trajectory Chart** giúp bạn nhìn rõ toàn cảnh dòng tiền gia đình.
+
+---
+
+## 7. Trợ Lý Chiến Lược Gemini AI (AI Advisor)
 
 - Tự động đọc dữ liệu tài chính kế hoạch hiện tại (tuổi nghỉ hưu, tài sản, tỷ lệ tiết kiệm, dòng tiền BĐS).
 - **Nhận xét chuyên sâu từ Google Gemini AI**: Đánh giá tính khả thi, phân tích rủi ro thị trường (SRR), tính toán tuổi nghỉ hưu tối ưu nhất và đưa ra các ví dụ cụ thể, dễ làm theo (tránh thuật ngữ học thuật phức tạp).
@@ -130,17 +179,18 @@ Hệ thống cho phép bạn mô phỏng nhiều nguồn thu khác nhau có th�
 
 ---
 
-## 7. Giao Diện Pinned Sidebar & Trải Nghiệm Người Dùng
+## 8. Giao Diện Pinned Sidebar & Trải Nghiệm Người Dùng
 
 - **Thanh điều hướng Pinned Sidebar (Đóng băng)**: Cột menu bên trái luôn đứng yên tại chỗ khi bạn cuộn trang xem nội dung bên phải, giúp bạn chuyển đổi giữa các tab nhanh chóng bất kể trang dài bao nhiêu.
 - **Icon lề trái tiết kiệm không gian**: Toàn bộ icon được bố trí bên trái văn bản giúp thanh điều hướng gọn gàng, hiển thị trọn vẹn cả 7 tab và thẻ tóm tắt *Mục tiêu Độc lập* trên mọi độ phân giải.
 
 ---
 
-## 8. Xuất Báo Cáo & Sao Lưu Dữ Liệu
+## 9. Xuất Báo Cáo & Sao Lưu Dữ Liệu
 
 Nhấp vào nút xanh **Xuất báo cáo** ở góc trên cùng bên phải:
 - **📊 Xuất dữ liệu CSV (Excel)**: Tải về file `.csv` chứa toàn bộ bảng dòng tiền chi tiết từng năm.
 - **🖨️ In / Lưu Báo cáo PDF**: Mở giao diện in chuẩn định dạng tài liệu, hỗ trợ lưu thành tệp PDF chất lượng cao.
 - **💾 Sao lưu Kế hoạch (JSON)**: Tải tệp dự phòng toàn bộ các kế hoạch của bạn.
 - **📂 Khôi phục từ JSON**: Nhập lại dữ liệu kế hoạch từ tệp sao lưu trước đó.
+
