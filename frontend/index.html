@@ -60,11 +60,6 @@
         <button class="currency-btn" data-currency="USD" id="cur-usd" title="Đô la Mỹ">$</button>
       </div>
 
-      <!-- Formula Guide Button -->
-      <button id="btn-show-formula-guide" class="btn btn-secondary btn-sm" title="Giải thích chi tiết các công thức toán học & tài chính">
-        <span>📐 Công thức</span>
-      </button>
-
       <!-- Export Menu -->
       <div class="dropdown-menu-wrapper">
         <button id="btn-export-menu" class="btn btn-primary btn-sm">
@@ -187,6 +182,10 @@
         <div class="summary-metric">
           <span class="metric-label">Tỷ lệ thành công:</span>
           <span class="metric-value text-success" id="summary-success-prob">94.8%</span>
+        </div>
+        <div class="formula-inline-box formula-success" style="margin-top: 0.65rem; font-size: 0.72rem; padding: 0.45rem 0.6rem;">
+          <div class="formula-tag" style="margin-bottom: 0.2rem;">📐 Công thức Mục Tiêu FIRE</div>
+          <code>Mục tiêu = Chi tiêu hưu/năm ÷ SWR (Quy tắc 4%: Chi tiêu × 25)</code>
         </div>
       </div>
     </aside>
@@ -314,7 +313,14 @@
                 </div>
               </div>
 
-              <div class="form-group">
+              <!-- Inline Formula: Income Allocation -->
+              <div class="formula-inline-box" style="margin-top: 0.25rem;">
+                <div class="formula-tag">📐 Công thức Phân Bổ Thu Nhập</div>
+                <code>• Tiết kiệm/tháng = Thu nhập ròng × Tỷ lệ tiết kiệm %</code><br>
+                <code>• Chi tiêu/tháng = Thu nhập ròng × (1 - Tỷ lệ tiết kiệm %)</code>
+              </div>
+
+              <div class="form-group" style="margin-top: 0.75rem;">
                 <label for="inp-monthly-retire-expenses">Chi tiêu/tháng khi về hưu</label>
                 <div class="input-with-sub">
                   <input type="number" id="inp-monthly-retire-expenses" value="833" step="50" class="form-input">
@@ -335,6 +341,12 @@
                 </select>
                 <div class="input-hint" id="hint-location-desc" style="font-size: 0.72rem; color: #94a3b8; margin-top: 3px;">
                   Sức mua tương đương (PPP): Cùng tiêu chuẩn sống cao, chi phí tại VN chỉ bằng ~45% tại Pháp (+ bảo hiểm CFE).
+                </div>
+                <!-- Inline Formula: PPP Location -->
+                <div class="formula-inline-box formula-success" style="margin-top: 0.45rem;">
+                  <div class="formula-tag">📐 Công thức Sức Mua Địa Điểm (PPP)</div>
+                  <code>Chi tiêu thực tế = Chi tiêu gốc × Hệ số địa điểm + Phí CFE</code><br>
+                  <span style="font-size: 0.71rem; color: #94a3b8;">• 🇫🇷 Pháp: 1.00x | ✈️ Song hành: 0.70x | 🇻🇳 Việt Nam: 0.45x + 150€/tháng CFE</span>
                 </div>
               </div>
 
@@ -373,6 +385,14 @@
                       <span>Lương hưu thực nhận tuổi 64:</span>
                       <strong id="lbl-pension-effective" class="font-mono text-success">~5,965 €/năm (~497 €/tháng)</strong>
                     </div>
+                    <!-- Inline Formula: French Pension & Décote -->
+                    <div class="formula-inline-box formula-warning" style="margin-top: 0.6rem;">
+                      <div class="formula-tag">📐 Công thức Hưu Trí Pháp (Réforme 2023)</div>
+                      <code>• Số quý = (Tuổi nhận hưu - Tuổi đi làm) × 4 (Chuẩn: 172 quý = 43 năm)</code><br>
+                      <code>• Tỷ lệ Prorata = min(172, Số quý) / 172</code><br>
+                      <code>• Phạt Décote = -1.25% × Quý thiếu (Tối đa -25% nếu < 67t; Đủ 67t tự động = 0%)</code><br>
+                      <code>• Lương thực nhận = Lương mục tiêu × Prorata × (1 - Décote)</code>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -398,6 +418,11 @@
                   <div class="input-hint" style="font-size: 0.72rem; color: #94a3b8;">
                     Dự trù chi phí người giúp việc tại nhà (~1.200 €/tháng) hoặc Viện dưỡng lão EHPAD (~2.500 € - 3.500 €/tháng) để tránh thâm hụt tài sản thừa kế.
                   </div>
+                  <!-- Inline Formula: Senior Care -->
+                  <div class="formula-inline-box formula-purple" style="margin-top: 0.5rem;">
+                    <div class="formula-tag">📐 Công thức Quỹ Chăm Sóc Cao Niên</div>
+                    <code>Chi phí năm = Ngân sách/tháng × 12 (Tự động kích hoạt khi Tuổi ≥ 78)</code>
+                  </div>
                 </div>
               </div>
 
@@ -410,6 +435,11 @@
                   <label for="inp-return-post">Lợi nhuận hưu trí (%/năm)</label>
                   <input type="number" id="inp-return-post" step="0.1" value="8.0" class="form-input">
                 </div>
+              </div>
+              <!-- Inline Formula: Compounding Accumulation -->
+              <div class="formula-inline-box" style="margin-top: 0.35rem;">
+                <div class="formula-tag">📐 Công thức Tích Lũy Lãi Kép Trước Hưu Trí</div>
+                <code>Tài sản(t+1) = [Tài sản(t) + Tiết kiệm ròng(t)] × (1 + R_tích_lũy)</code>
               </div>
 
               <!-- 1. Phân bổ Danh mục & Tái cân bằng (Asset Allocation) -->
@@ -443,8 +473,10 @@
                   </div>
                   <div class="input-hint" id="hint-asset-allocation">
                     Lợi nhuận theo trọng số: <strong id="lbl-weighted-calc">8.0%/năm</strong> (đã gồm +0.3% thưởng kỷ luật tái cân bằng).
-                    <div style="margin-top: 0.35rem;">
-                      <a href="#" id="link-open-formula-alloc" style="color: var(--primary); font-size: 0.76rem; text-decoration: underline;">📐 Xem công thức & cơ chế tính chi tiết</a>
+                    <!-- Inline Formula: Weighted Return -->
+                    <div class="formula-inline-box" style="margin-top: 0.45rem;">
+                      <div class="formula-tag">📐 Công thức Lợi Nhuận Trọng Số Danh Mục</div>
+                      <code>R_danh_mục = (% Cổ phiếu × 9.5%) + (% Trái phiếu × 3.5%) + (% BĐS × 6.5%) + 0.3% (Tái cân bằng)</code>
                     </div>
                   </div>
                 </div>
@@ -486,6 +518,12 @@
                   </div>
                   <div class="input-hint" id="hint-forex-projection">
                     💡 Dự báo tỷ giá ở tuổi 60: <strong id="lbl-forex-future">~39,800 ₫/€</strong> • Sức mua EUR tăng ~45% tại VN.
+                  </div>
+                  <!-- Inline Formula: Dual Inflation & Forex -->
+                  <div class="formula-inline-box" style="margin-top: 0.5rem;">
+                    <div class="formula-tag">📐 Công thức Lạm Phát Kép & Trượt Giá Tỷ Giá</div>
+                    <code>• Chi phí(t) = Chi phí ban đầu × (1 + Tỷ lệ lạm phát)^t</code><br>
+                    <code>• Tỷ giá EUR/VND(t) = Tỷ giá ban đầu × (1 + Tốc độ trượt giá)^t</code>
                   </div>
                 </div>
               </div>
@@ -540,6 +578,11 @@
                   </div>
                   <div class="input-hint" id="hint-mortgage-summary">
                     Góp: <strong id="lbl-mortgage-monthly">€824/tháng</strong> • Vốn sở hữu hiện tại: <strong id="lbl-mortgage-equity">€40.0k</strong> • Tất toán tuổi <strong id="lbl-mortgage-payoff">49</strong>.
+                  </div>
+                  <!-- Inline Formula: Mortgage Mensualité -->
+                  <div class="formula-inline-box" style="margin-top: 0.5rem;">
+                    <div class="formula-tag">📐 Công thức Trả Góp Thế Chấp (Mensualité)</div>
+                    <code>M = Vốn vay × [r(1+r)^n] / [(1+r)^n - 1] (r = Lãi suất/12, n = Số tháng)</code>
                   </div>
                 </div>
               </div>
@@ -677,6 +720,9 @@
                   <div class="strategy-content">
                     <div class="strategy-name">Quy tắc 4% Cố định (Bengen Rule)</div>
                     <div class="strategy-detail">Rút 4% ở năm đầu tiên, sau đó điều chỉnh tăng đều đặn theo lạm phát hàng năm. Dễ hiểu nhưng cứng nhắc.</div>
+                    <div class="formula-inline-box" style="margin-top: 0.4rem; padding: 0.35rem 0.55rem; font-size: 0.72rem;">
+                      <code>Rút(t) = [Danh mục(0) × SWR] × (1 + lạm phát)^t</code>
+                    </div>
                   </div>
                 </label>
 
@@ -685,6 +731,10 @@
                   <div class="strategy-content">
                     <div class="strategy-name">Chiến lược Lan can Guyton-Klinger (Khuyên dùng)</div>
                     <div class="strategy-detail">Tự động tăng chi tiêu khi thị trường thắng lớn và thắt lưng buộc bụng 10% khi thị trường giảm sút mạnh. Tăng tỷ lệ sống sót lên 99%.</div>
+                    <div class="formula-inline-box formula-success" style="margin-top: 0.4rem; padding: 0.35rem 0.55rem; font-size: 0.72rem;">
+                      <code>• Rút thực tế > 1.2 × SWR ➔ Cắt giảm 10% chi tiêu</code><br>
+                      <code>• Rút thực tế < 0.8 × SWR ➔ Thưởng tăng 10% chi tiêu</code>
+                    </div>
                   </div>
                 </label>
 
@@ -693,6 +743,9 @@
                   <div class="strategy-content">
                     <div class="strategy-name">Tỷ lệ Thay đổi VPW (Variable Percentage)</div>
                     <div class="strategy-detail">Điều chỉnh tỷ lệ rút linh hoạt theo độ tuổi và thời gian còn lại của cuộc đời. Không bao giờ cạn kiệt tài sản hoàn toàn.</div>
+                    <div class="formula-inline-box formula-purple" style="margin-top: 0.4rem; padding: 0.35rem 0.55rem; font-size: 0.72rem;">
+                      <code>Tỷ lệ rút(t) = 1 / (Tuổi thọ - Tuổi(t) + 1) + 2%</code>
+                    </div>
                   </div>
                 </label>
 
@@ -701,6 +754,9 @@
                   <div class="strategy-content">
                     <div class="strategy-name">Tỷ lệ Cố định trên Danh mục (Fixed %)</div>
                     <div class="strategy-detail">Luôn rút một tỷ lệ cố định (ví dụ 3.5% hay 4%) trên số dư thực tế cuối năm. Chi tiêu biến động theo thị trường.</div>
+                    <div class="formula-inline-box formula-warning" style="margin-top: 0.4rem; padding: 0.35rem 0.55rem; font-size: 0.72rem;">
+                      <code>Rút(t) = Danh mục(t) × SWR cố định</code>
+                    </div>
                   </div>
                 </label>
               </div>
@@ -1200,6 +1256,14 @@
                     • Mỗi người con được nhận thừa kế hoặc cho tặng <strong style="color: #f8fafc;">100.000 €</strong> từ mỗi bố/mẹ hoàn toàn miễn thuế (0%) mỗi chu kỳ 15 năm.
                   </div>
                 </div>
+
+                <!-- Inline Formula: Family Lifecycle -->
+                <div class="formula-inline-box" style="margin-top: 0.35rem;">
+                  <div class="formula-tag">📐 Công thức Tính Tuổi & Ngân Sách Con Cái</div>
+                  <code>• Tuổi bé(t) = Năm chạy mô phỏng(t) - Năm sinh bé</code><br>
+                  <code>• Trợ cấp Caf: 0 ≤ Tuổi bé < 18 (Gia đình có từ 2 con trở lên)</code><br>
+                  <code>• Chi phí đại học: 18 ≤ Tuổi bé ≤ 23 (Kích hoạt ngân sách đại học)</code>
+                </div>
               </div>
             </div>
 
@@ -1250,6 +1314,12 @@
                     <input type="number" id="inp-nogo-factor" step="0.05" value="0.80" class="form-input">
                   </div>
                 </div>
+              </div>
+
+              <!-- Inline Formula: Spending Smile -->
+              <div class="formula-inline-box formula-purple" style="margin-top: 0.5rem;">
+                <div class="formula-tag">📐 Công thức Chi Tiêu Spending Smile</div>
+                <code>Chi tiêu(t) = Chi tiêu cơ bản × Hệ số giai đoạn (Go-Go: 1.15x | Slow-Go: 0.90x | No-Go: 0.80x)</code>
               </div>
 
               <div class="form-divider"></div>
@@ -1416,6 +1486,13 @@
                       <div>• Tiền đóng hàng tháng (22%): <strong id="lbl-bhxh-monthly-pay" style="color: #38bdf8;">2.200.000 ₫/tháng (~80 €)</strong></div>
                       <div>• Lương hưu nhận khi về già: <strong id="lbl-bhxh-pension-est" style="color: #34d399;">~4.500.000 ₫/tháng (~164 €)</strong></div>
                       <div>• Quyền lợi đi kèm: <strong style="color: #fbbf24;">Thẻ BHYT miễn phí 95% trọn đời</strong></div>
+                    </div>
+                    <!-- Inline Formula: BHXH Voluntary -->
+                    <div class="formula-inline-box formula-success" style="margin-top: 0.45rem; font-size: 0.71rem; padding: 0.4rem 0.55rem;">
+                      <div class="formula-tag" style="margin-bottom: 0.15rem;">📐 Công thức BHXH Tự Nguyện</div>
+                      <code>• Tiền đóng/tháng = Thu nhập đóng × 22%</code><br>
+                      <code>• Lương hưu = Thu nhập đóng × 45% (Nữ) hoặc 40% (Nam)</code><br>
+                      <code>• Hoàn vốn = Tổng vốn đóng ÷ (Lương hưu/tháng × 12) ≈ 7.3 năm</code>
                     </div>
                   </div>
                 </div>
@@ -1618,6 +1695,13 @@
                 <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Tỷ Suất Sinh Lời ROI (10 năm):</span>
                 <strong id="turo-metric-roi" style="font-size: 1.1rem; color: #38bdf8;">140.9%</strong>
               </div>
+            </div>
+
+            <!-- Inline Formula: Turo Fleet -->
+            <div class="formula-inline-box formula-warning" style="margin-top: 0.75rem;">
+              <div class="formula-tag">📐 Công thức Đầu Tư & Dòng Tiền Đội Xe Turo</div>
+              <code>• Tổng vốn mua = Số lượng xe × Giá mua/xe</code><br>
+              <code>• Lợi nhuận ròng/tháng = [Doanh thu gộp - (Bảo hiểm + Bảo dưỡng)] / 12 × Số xe</code>
             </div>
           </div>
 
@@ -1975,6 +2059,15 @@
           <div>🏦 <strong>Số tiền vay:</strong> <span id="lbl-apt-loan-amount" style="color: #38bdf8; font-weight: 700;">89,125 €</span></div>
           <div>💳 <strong>Vốn tự có:</strong> <span id="lbl-apt-down-payment" style="color: #f59e0b; font-weight: 700;">8,000 €</span></div>
           <div>📊 <strong>Dòng tiền Ròng:</strong> <span id="lbl-apt-net-cashflow" style="color: #10b981; font-weight: 700;">+45 €/tháng</span> <span style="font-size: 0.72rem; color: var(--text-muted);">(sau trừ TF & Trống nhà)</span></div>
+        </div>
+
+        <!-- Inline Formula: Realistic Real Estate Economics -->
+        <div class="formula-inline-box" style="margin-top: 0.65rem;">
+          <div class="formula-tag">📐 Công thức Vốn Vay & Dòng Tiền Ròng BĐS Pháp</div>
+          <code>• Tổng dự án = Giá mua + Phí công chứng (~7.5%) + Nội thất</code><br>
+          <code>• Số tiền vay ngân hàng = Tổng dự án - Vốn tự có</code><br>
+          <code>• Tiền thuê thực nhận = Tiền thuê × (1 - Phòng trống %)</code><br>
+          <code>• Dòng tiền ròng = Tiền thuê thực nhận - Trả góp ngân hàng - (Phí Coop + TF + PNO)/12</code>
         </div>
 
         <h5 style="margin: 0.75rem 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; color: var(--primary);">📈 Doanh thu & Chi phí vận hành thực tế</h5>

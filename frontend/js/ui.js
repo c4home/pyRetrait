@@ -21,6 +21,12 @@
   // Local Storage Key
   const STORAGE_KEY = "pyRetrait_plans_v2";
 
+  // Safe DOM input value getter helper
+  function getVal(id) {
+    const el = document.getElementById(id);
+    return el ? el.value : "";
+  }
+
   // Shared x-axis ticks for age/year axes: horizontal two-line labels ("35t" / "2032")
   // take far less room than 45° rotated ones, so many more ages fit on the axis.
   const ageAxisTicks = () => ({
