@@ -242,7 +242,7 @@
               </strong>
             </div>
           </div>
-          <div style="font-size: 0.71rem; color: var(--text-muted); background: rgba(0,0,0,0.22); padding: 0.35rem 0.55rem; border-radius: 6px; font-family: var(--font-mono, monospace); line-height: 1.4;">
+          <div style="font-size: 0.73rem; color: var(--text-muted); background: rgba(0,0,0,0.22); padding: 0.35rem 0.55rem; border-radius: 6px; font-family: var(--font-sans); line-height: 1.4;">
             📐 Dòng tiền = [Thuê (${formatMoneyEUR(apt.monthly_rent)}) × (1 - ${apt.vacancy_rate || 5}%)] - Trả nợ (${formatMoneyEUR(apt.monthly_loan_payment)}) - Phí vận hành = <strong style="color: ${isNegative ? '#f59e0b' : '#34d399'};">${isNegative ? '' : '+'}${formatMoneyEUR(netMonthly)}/tháng</strong>
           </div>
         </div>

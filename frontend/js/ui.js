@@ -1129,7 +1129,7 @@
 
     if (badgeWeighted) badgeWeighted.innerText = `${weighted}%/năm`;
     if (lblWeightedCalc) {
-      lblWeightedCalc.innerHTML = `<strong>${weighted}%/năm</strong> (đã gồm +0.3% thưởng kỷ luật tái cân bằng)${totalWarning}<div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem; font-family: monospace;">📐 Công thức: (${stocks}% × 9.5%) + (${bonds}% × 3.5%) + (${re}% × 6.5%) + 0.3% = ${weighted}%</div>`;
+      lblWeightedCalc.innerHTML = `<strong>${weighted}%/năm</strong> (đã gồm +0.3% thưởng kỷ luật tái cân bằng)${totalWarning}<div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem; font-family: var(--font-sans);">📐 Công thức: (${stocks}% × 9.5%) + (${bonds}% × 3.5%) + (${re}% × 6.5%) + 0.3% = ${weighted}%</div>`;
     }
 
     p.assetAllocation = { stocks, bonds, realEstate: re };
