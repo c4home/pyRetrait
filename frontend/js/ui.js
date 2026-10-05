@@ -1348,7 +1348,7 @@
         badgeMode.style.color = "#34d399";
       }
       if (txtExp) {
-        txtExp.innerHTML = `⚡ Tự động tính từ lương (<strong>${window.RetirementEngine.formatCurrency(salary, state.currency)}/năm</strong>): ~<strong>${window.RetirementEngine.formatCurrency(estimated, state.currency)}/năm</strong> (CNAV + Agirc-Arrco)`;
+        txtExp.innerHTML = `⚡ Chuẩn sức mua hiện tại từ lương (<strong>${window.RetirementEngine.formatCurrency(salary, state.currency)}/năm</strong>): ~<strong>${window.RetirementEngine.formatCurrency(estimated, state.currency)}/năm</strong> (CNAV + Agirc-Arrco)`;
       }
     } else {
       if (badgeMode) {
