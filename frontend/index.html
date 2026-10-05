@@ -2304,15 +2304,28 @@
     </div>
   </div>
 
+  <!-- Modal: Universal In-App Confirmation Dialog -->
+  <div class="modal-overlay" id="confirm-modal" style="display: none; z-index: 99999;">
+    <div class="modal-card" style="max-width: 440px; border-radius: 16px; background: var(--bg-card); border: 1px solid var(--border-subtle); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); backdrop-filter: blur(20px); text-align: center; padding: 1.75rem 1.5rem;">
+      <div style="font-size: 2.5rem; margin-bottom: 0.5rem;" id="confirm-modal-icon">🗑️</div>
+      <h3 style="margin: 0 0 0.5rem 0; font-size: 1.15rem; font-weight: 700; color: var(--text-main);" id="confirm-modal-title">Xác nhận xóa</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 1.5rem 0; line-height: 1.5;" id="confirm-modal-message">Bạn có chắc chắn muốn thực hiện hành động này?</p>
+      <div style="display: flex; gap: 0.75rem; justify-content: center;">
+        <button type="button" class="btn btn-ghost" id="btn-confirm-cancel" style="min-width: 110px; padding: 0.6rem 1rem; border-radius: 8px;">Hủy bỏ</button>
+        <button type="button" class="btn btn-danger" id="btn-confirm-ok" style="min-width: 140px; padding: 0.6rem 1rem; border-radius: 8px; background: #ef4444; color: #fff; border: none; font-weight: 600; cursor: pointer;">Xác nhận xóa</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Application Logic Modules -->
-  <script src="js/engine.js?v=20261005d"></script>
-  <script src="js/taxOptimizer.js?v=20261005d"></script>
-  <script src="js/monteCarlo.js?v=20261005d"></script>
-  <script src="js/scenarios.js?v=20261005d"></script>
-  <script src="js/geminiAdvisor.js?v=20261005d"></script>
-  <script src="js/patrimoine.js?v=20261005d"></script>
-  <script src="js/export.js?v=20261005d"></script>
-  <script src="js/auth.js?v=20261005d"></script>
-  <script src="js/ui.js?v=20261005d"></script>
+  <script src="js/engine.js?v=20261005e"></script>
+  <script src="js/taxOptimizer.js?v=20261005e"></script>
+  <script src="js/monteCarlo.js?v=20261005e"></script>
+  <script src="js/scenarios.js?v=20261005e"></script>
+  <script src="js/geminiAdvisor.js?v=20261005e"></script>
+  <script src="js/patrimoine.js?v=20261005e"></script>
+  <script src="js/export.js?v=20261005e"></script>
+  <script src="js/auth.js?v=20261005e"></script>
+  <script src="js/ui.js?v=20261005e"></script>
 </body>
 </html>

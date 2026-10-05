@@ -39,6 +39,36 @@
     if (el && val !== undefined && val !== null) el.value = val;
   }
 
+  let confirmCallback = null;
+
+  function showConfirmDialog({ icon = "🗑️", title = "Xác nhận thao tác", message = "Bạn có chắc chắn muốn thực hiện?", confirmText = "Xác nhận", onConfirm }) {
+    const modal = document.getElementById("confirm-modal");
+    if (!modal) {
+      if (window.confirm(message.replace(/<[^>]*>?/gm, ''))) {
+        if (onConfirm) onConfirm();
+      }
+      return;
+    }
+    const iconEl = document.getElementById("confirm-modal-icon");
+    const titleEl = document.getElementById("confirm-modal-title");
+    const msgEl = document.getElementById("confirm-modal-message");
+    const btnOk = document.getElementById("btn-confirm-ok");
+
+    if (iconEl) iconEl.innerText = icon;
+    if (titleEl) titleEl.innerText = title;
+    if (msgEl) msgEl.innerHTML = message;
+    if (btnOk) btnOk.innerText = confirmText;
+
+    confirmCallback = onConfirm;
+    modal.style.display = "flex";
+  }
+
+  function closeConfirmDialog() {
+    const modal = document.getElementById("confirm-modal");
+    if (modal) modal.style.display = "none";
+    confirmCallback = null;
+  }
+
   // Shared x-axis ticks for age/year axes: horizontal two-line labels ("35t" / "2032")
   // take far less room than 45° rotated ones, so many more ages fit on the axis.
   const ageAxisTicks = () => ({
@@ -516,6 +546,17 @@
         if (e.target === modalFormula) closeFormulaModal();
       });
     }
+
+    // In-App Universal Confirm Modal Listeners
+    document.getElementById("btn-confirm-cancel")?.addEventListener("click", closeConfirmDialog);
+    document.getElementById("btn-confirm-ok")?.addEventListener("click", () => {
+      const cb = confirmCallback;
+      closeConfirmDialog();
+      if (cb) cb();
+    });
+    document.getElementById("confirm-modal")?.addEventListener("click", (e) => {
+      if (e.target.id === "confirm-modal") closeConfirmDialog();
+    });
 
     // Refresh buttons click delegation
     document.addEventListener("click", (e) => {
@@ -1601,8 +1642,8 @@
         <div class="income-item-header">
           <span class="income-item-name">${stream.name}</span>
           <div class="income-item-actions">
-            <button class="income-item-btn income-item-edit" data-idx="${idx}" title="Chỉnh sửa nguồn thu">✏️ Sửa</button>
-            <button class="income-item-btn income-item-del" data-idx="${idx}" title="Xóa nguồn thu">🗑️</button>
+            <button type="button" class="income-item-btn income-item-edit" data-idx="${idx}" title="Chỉnh sửa nguồn thu">✏️ Sửa</button>
+            <button type="button" class="income-item-btn income-item-del" data-idx="${idx}" title="Xóa nguồn thu">🗑️</button>
           </div>
         </div>
         <div class="income-item-body">
@@ -1622,6 +1663,7 @@
     container.querySelectorAll(".income-item-edit").forEach(btn => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
+        e.preventDefault();
         const idx = Number(btn.getAttribute("data-idx"));
         openIncomeModal(idx);
       });
@@ -1630,18 +1672,29 @@
     container.querySelectorAll(".income-item-del").forEach(btn => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
+        e.preventDefault();
         const idx = Number(btn.getAttribute("data-idx"));
-        const streamName = getActivePlan().incomes[idx]?.name || "nguồn thu này";
-        if (confirm(`Bạn có chắc chắn muốn xóa "${streamName}"?`)) {
-          getActivePlan().incomes.splice(idx, 1);
-          syncSavingsAndExpensesFromRate(getActivePlan());
-          if (getActivePlan().pensionBaseAuto !== false) {
-            syncPensionBaseAuto(getActivePlan(), true);
+        const plan = getActivePlan();
+        const stream = plan.incomes[idx];
+        const streamName = stream?.name || "nguồn thu này";
+        const amtStr = window.RetirementEngine.formatCurrency(stream?.amount || 0, state.currency);
+
+        showConfirmDialog({
+          icon: "🗑️",
+          title: "Xác nhận xóa nguồn thu",
+          message: `Bạn có chắc chắn muốn xóa <strong>"${streamName}"</strong> (${amtStr}/năm)?<br><span style="font-size:0.75rem; color:var(--text-faint); margin-top:6px; display:inline-block;">Các chỉ số chi tiêu, tỷ lệ tiết kiệm và hưu trí sẽ được tự động tính toán lại.</span>`,
+          confirmText: "🗑️ Xóa nguồn thu",
+          onConfirm: () => {
+            plan.incomes.splice(idx, 1);
+            syncSavingsAndExpensesFromRate(plan);
+            if (plan.pensionBaseAuto !== false) {
+              syncPensionBaseAuto(plan, true);
+            }
+            savePlansToStorage();
+            renderIncomeStreamsList();
+            updateAll();
           }
-          savePlansToStorage();
-          renderIncomeStreamsList();
-          updateAll();
-        }
+        });
       });
     });
   }
@@ -1923,29 +1976,40 @@
               </div>
             </div>
             <div class="custom-ms-actions">
-              <button class="income-item-btn btn-edit-ms" data-idx="${idx}" title="Chỉnh sửa">✏️</button>
-              <button class="income-item-btn btn-del-ms" data-idx="${idx}" title="Xóa">🗑️</button>
+              <button type="button" class="income-item-btn btn-edit-ms" data-idx="${idx}" title="Chỉnh sửa">✏️</button>
+              <button type="button" class="income-item-btn btn-del-ms" data-idx="${idx}" title="Xóa">🗑️</button>
             </div>
           `;
           customContainer.appendChild(item);
         });
 
         customContainer.querySelectorAll(".btn-edit-ms").forEach(b => {
-          b.addEventListener("click", () => {
+          b.addEventListener("click", (e) => {
+            e.stopPropagation();
+            e.preventDefault();
             const idx = Number(b.getAttribute("data-idx"));
             showMilestoneForm(plan.milestones[idx], idx);
           });
         });
 
         customContainer.querySelectorAll(".btn-del-ms").forEach(b => {
-          b.addEventListener("click", () => {
+          b.addEventListener("click", (e) => {
+            e.stopPropagation();
+            e.preventDefault();
             const idx = Number(b.getAttribute("data-idx"));
-            if (confirm(`Bạn có chắc muốn xóa mốc "${plan.milestones[idx].name}"?`)) {
-              plan.milestones.splice(idx, 1);
-              savePlansToStorage();
-              updateAll();
-              renderModalMilestonesContent(plan, window.RetirementEngine.runProjection(plan));
-            }
+            const msName = plan.milestones[idx]?.name || "mốc này";
+            showConfirmDialog({
+              icon: "🚩",
+              title: "Xác nhận xóa cột mốc",
+              message: `Bạn có chắc chắn muốn xóa cột mốc <strong>"${msName}"</strong>?`,
+              confirmText: "🗑️ Xóa cột mốc",
+              onConfirm: () => {
+                plan.milestones.splice(idx, 1);
+                savePlansToStorage();
+                updateAll();
+                renderModalMilestonesContent(plan, window.RetirementEngine.runProjection(plan));
+              }
+            });
           });
         });
       }
@@ -3334,19 +3398,23 @@
     }
 
     const cur = getActivePlan();
-    if (!confirm(`Bạn có chắc chắn muốn xóa kế hoạch "${cur.name}"? Hành động này không thể hoàn tác.`)) {
-      return;
-    }
+    showConfirmDialog({
+      icon: "⚠️",
+      title: "Xác nhận xóa kế hoạch",
+      message: `Bạn có chắc chắn muốn xóa kế hoạch <strong>"${cur.name}"</strong>?<br><span style="font-size:0.75rem; color:#f87171; margin-top:6px; display:inline-block;">Hành động này không thể hoàn tác.</span>`,
+      confirmText: "🗑️ Xóa kế hoạch",
+      onConfirm: () => {
+        delete state.plansData.plans[cur.id];
+        const remainingKeys = Object.keys(state.plansData.plans);
+        state.plansData.activePlanId = remainingKeys[0];
+        state.currency = getActivePlan().currency || 'EUR';
 
-    delete state.plansData.plans[cur.id];
-    const remainingKeys = Object.keys(state.plansData.plans);
-    state.plansData.activePlanId = remainingKeys[0];
-    state.currency = getActivePlan().currency || 'EUR';
-
-    savePlansToStorage();
-    renderPlanSelector();
-    renderActivePlanInputs();
-    updateAll();
+        savePlansToStorage();
+        renderPlanSelector();
+        renderActivePlanInputs();
+        updateAll();
+      }
+    });
   }
 
   function handleJSONImport(e) {
