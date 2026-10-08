@@ -1162,6 +1162,172 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ==========================================================================
+   Expense Streams & Crédits
+   ========================================================================== */
+.expense-item {
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(244, 63, 94, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  transition: var(--transition-fast);
+}
+
+.expense-item:hover {
+  border-color: rgba(244, 63, 94, 0.45);
+  background: rgba(244, 63, 94, 0.04);
+}
+
+.expense-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.expense-item-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.expense-item-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 0.25rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed rgba(244, 63, 94, 0.2);
+}
+
+.expense-amount-monthly {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #f43f5e;
+  font-family: var(--font-mono);
+}
+
+.expense-amount-monthly small {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.expense-amount-annual {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+
+.expense-growth-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #fb7185;
+  background: rgba(244, 63, 94, 0.12);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+
+.debt-badge {
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+}
+
+/* Live Cashflow Balance Box */
+.cashflow-balance-card {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.7));
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.cashflow-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+}
+
+.cashflow-metric-item {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 0.55rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.cashflow-metric-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.cashflow-metric-val {
+  font-size: 1.05rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  letter-spacing: -0.02em;
+}
+
+.cashflow-metric-sub {
+  font-size: 0.68rem;
+  color: var(--text-faint);
+}
+
+.cashflow-split-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.cashflow-split-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.cashflow-split-expense {
+  background: linear-gradient(90deg, #f43f5e, #fb7185);
+  height: 100%;
+  transition: width 0.35s ease;
+}
+
+.cashflow-split-savings {
+  background: linear-gradient(90deg, #10b981, #34d399);
+  height: 100%;
+  transition: width 0.35s ease;
+}
+
+.cashflow-split-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+
+/* ==========================================================================
    Withdrawal Strategy Cards
    ========================================================================== */
 .strategy-options {
@@ -2361,5 +2527,91 @@ h1, h2, h3, h4, h5, h6 {
   background: rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
+
+/* ==========================================================================
+   PEA Masterclass & Strategic Tips (Native pyRetrait Design System)
+   ========================================================================== */
+.pea-filter-group {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.pea-filter-group .btn-ratio {
+  cursor: pointer;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+}
+
+.pea-filter-group .btn-ratio:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-main);
+  border-color: var(--border-strong);
+}
+
+.pea-filter-group .btn-ratio.active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
+.pea-callout-box {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.8rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-top: auto;
+}
+
+.pea-callout-box strong {
+  color: var(--text-main);
+}
+
+#pea-tips-grid .advisor-card,
+#av-tips-grid .advisor-card,
+#livret-tips-grid .advisor-card {
+  cursor: default;
+}
+
+#pea-tips-grid .advisor-card:hover,
+#av-tips-grid .advisor-card:hover,
+#livret-tips-grid .advisor-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.pea-ticker-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--bg-accent-subtle);
+  border: 1px solid var(--border-subtle);
+  padding: 0.18rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.pea-ticker-chip:hover {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: var(--primary);
+}
+
+.pea-ticker-chip .copy-icon {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+
 
 

@@ -27,6 +27,15 @@ Mở trình duyệt web và truy cập địa chỉ: **[http://localhost:8000](h
 - **Đơn vị tiền tệ**: Nhấp vào các nút **`€`**, **`₫`**, **`$`** để chuyển đổi toàn bộ đơn vị tiền tệ trên toàn giao diện theo tỷ giá thời gian thực.
 - **Chế độ Sáng / Tối**: Nhấp biểu tượng 🌙 / ☀️ ở góc phải để đổi giao diện Dark/Light mode theo sở thích.
 
+### 2.1. Tài Khoản pyRetrait Cloud & Bảo Mật Cá Nhân
+Ở góc trên bên phải thanh điều hướng có nút **Đăng Nhập / Tạo Tài Khoản**:
+- **Chế độ Khách (Guest Mode)**: Dữ liệu được lưu trữ trực tiếp trên bộ nhớ trình duyệt (`localStorage`) của máy tính. Phù hợp khi bạn muốn dùng thử nhanh mà không cần tạo tài khoản.
+- **Chế độ Đám Mây (Cloud Account)**:
+  - Cho phép đăng ký bằng Email và Mật khẩu (mã hóa chuẩn công nghiệp PBKDF2/SHA-256 + salt).
+  - Tự động đồng bộ toàn bộ các kế hoạch của bạn lên cơ sở dữ liệu máy chủ SQLite độc lập.
+  - Khi đăng nhập trên máy tính khác, điện thoại hoặc trình duyệt khác, bạn luôn truy cập được đầy đủ dữ liệu mới nhất của mình.
+  - **Tự động chuyển tiếp (Migration)**: Khi bạn đang tạo kế hoạch ở chế độ Khách và bấm "Tạo Tài Khoản", hệ thống sẽ tự động đưa các kế hoạch hiện có lên tài khoản mới lập, bạn không lo bị mất dữ liệu.
+
 ---
 
 ## 3. Thiết Lập Thông Số Cơ Bản & Tích Lũy Hàng Năm
@@ -70,6 +79,24 @@ Hệ thống cho phép bạn mô phỏng nhiều nguồn thu khác nhau có th�
 
 ---
 
+## 4.1. Quản Lý Cột Mốc Cuộc Đời (Life Milestones Ribbon)
+
+Nằm ngay phía trên biểu đồ Tài sản Ròng (Net Worth Trajectory) là **Dải Ruy Băng Cột Mốc (Life Milestones Ribbon)**:
+- **Hiển thị trực quan**: Các mốc quan trọng được gắn cờ (chip) theo thứ tự độ tuổi kèm số tiền tác động (ví dụ: `🏡 35t Mua nhà -50,000 €`, `👶 33t Sinh con`, `💰 50t Thừa kế +100,000 €`).
+- **Nút "⚙️ Quản lý Mốc"**: Nhấp nút này để mở hộp thoại quản lý toàn diện:
+  - **Cột mốc Cốt lõi**: Tự động tính toán từ kế hoạch (Bắt đầu đi làm, Tuổi đạt FIRE, Tuổi hưởng hưu Pháp/Việt, Tuổi thọ).
+  - **Sự kiện Tùy chỉnh (+ Thêm Sự Kiện Mới)**: Cho phép tạo sự kiện bất kỳ (Mua nhà, Sinh con, Quỹ đại học, Mua xe, Kết hôn, Du lịch, Nghỉ ngơi, Thừa kế, Y tế...).
+  - **Tác động tài chính linh hoạt**:
+    1. *Khoản chi một lần (expense)*: Rút vốn trực tiếp từ danh mục đầu tư tại độ tuổi xảy ra sự kiện.
+    2. *Khoản thu đột xuất (income)*: Bơm một khoản tiền mặt lớn vào danh mục đầu tư (thừa kế, thanh lý tài sản).
+    3. *Mốc kỷ niệm (none)*: Đánh dấu mốc cuộc sống mà không làm biến động số dư tài sản.
+- **Thao tác nhanh tiện ích**:
+  - **Nhấp vào chip sự kiện**: Biểu đồ tự động đánh dấu và hiển thị tooltip giá trị tài sản ròng tại năm tuổi đó.
+  - **Nhấp đúp chuột (Double click) vào chip**: Mở ngay modal chỉnh sửa thông số của sự kiện đó.
+  - **Đóng nhanh modal**: Nhấn phím **Escape** hoặc nhấp chuột vào vùng nền đen mờ bên ngoài. Form chỉnh sửa có các nút **💾 Lưu Sự Kiện** và **✕ Hủy form** lớn, rõ ràng và tự động cuộn vào giữa tầm nhìn.
+
+---
+
 ## 5. Khám Phá Các Tab Chức Năng Chuyên Sâu
 
 ### Tab 1: Dòng tiền & Tài sản (`tab-projections`)
@@ -82,7 +109,7 @@ Hệ thống cho phép bạn mô phỏng nhiều nguồn thu khác nhau có th�
 - Lựa chọn 1 trong 4 chiến lược: **Bengen 4%**, **Lan can Guyton-Klinger**, **VPW**, hoặc **Cố định**.
 - Bảng so sánh chỉ rõ số tiền rút năm đầu, mức sụt giảm tối đa (drawdown) và độ bền danh mục của từng phương án.
 
-### Tab 3: Tối ưu Thuế & Roth (`tab-taxes`)
+### Tab 3: Tối ưu Thuế (`tab-taxes`)
 - Khám phá cơ chế tối ưu thuế lũy tiến Pháp (IR 2024), tài khoản PEA, và chiến lược Roth Conversion Ladder.
 
 ### Tab 4: Monte Carlo & Rủi ro (`tab-insights`)
@@ -101,7 +128,7 @@ Hệ thống cho phép bạn mô phỏng nhiều nguồn thu khác nhau có th�
 - Đặt mục tiêu tài sản thừa kế để lại cho con cháu và xem thanh tiến độ hoàn thành.
 - **Kỹ thuật Chuyển nhượng Di sản (Démembrement / Nue-propriété)**: Xem hướng dẫn tối ưu hạn mức miễn thuế 100.000 €/bố mẹ/con mỗi 15 năm và định giá theo Điều 669 CGI.
 
-### Tab 7: Gestion de Patrimoine (`tab-patrimoine`)
+### Tab 7: Quản Lý Tài Sản (`tab-patrimoine`)
 - **Dashboard Tổng Quan Tài Sản Pháp**:
   - `Tổng giá trị BĐS Pháp`: Theo dõi tổng giá trị các bất động sản sở hữu (ví dụ 214,000 € ≈ 5.88 Tỷ ₫).
   - `Dư nợ vay ngân hàng`: Theo dõi số nợ thế chấp còn lại (ví dụ 220,618 €).

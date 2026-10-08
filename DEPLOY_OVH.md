@@ -51,14 +51,14 @@ docker compose up -d --build
 
 ### Bước 5: Mở cổng Firewall trên OVH (Nếu có UFW)
 ```bash
-sudo ufw allow 8000/tcp
+sudo ufw allow 8080/tcp
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
 ```
 
 🎉 **Xong!** Bạn và bạn bè có thể truy cập ứng dụng ngay tại:
 ```
-http://<IP_MAY_CHU_OVH>:8000
+http://<IP_MAY_CHU_OVH>:8080
 ```
 
 ---

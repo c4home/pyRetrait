@@ -245,7 +245,9 @@ window.RetirementEngine = (function() {
     const targetLegacy = Number(plan.targetLegacy) || 100_000;
     const baseRetireExpenses = Number(plan.retirementExpenses) || 12_000;
     const annualSavings = Number(plan.annualSavings) || 10_000;
-    const initialSavings = Number(plan.currentSavings) || 50_000;
+    const initialSavings = (plan.currentSavings !== undefined && plan.currentSavings !== null && !isNaN(Number(plan.currentSavings)))
+      ? Number(plan.currentSavings)
+      : 0;
     const withdrawalStrategy = plan.withdrawalStrategy || 'guyton_klinger';
     const initialSWR = (Number(plan.initialWithdrawalRate) || 4.0) / 100.0;
 
@@ -342,10 +344,13 @@ window.RetirementEngine = (function() {
       let annualIncome = 0;
       if (Array.isArray(plan.incomes)) {
         plan.incomes.forEach(stream => {
+          if (stream.enabled === false) return;
           const isSalary = stream.isSalary || (stream.name && (/lương|salary|impôt|impot/i).test(stream.name));
-          const effectiveEndAge = isSalary ? retireAge : (Number(stream.endAge) || retireAge);
+          const effectiveEndAge = isSalary ? (retireAge - 1) : (Number(stream.endAge) || retireAge);
           if (age >= stream.startAge && age <= effectiveEndAge) {
-            const streamGrowth = (Number(stream.growth) || 4.0) / 100.0;
+            const streamGrowth = (stream.growth !== undefined && stream.growth !== null && !isNaN(Number(stream.growth)))
+              ? Number(stream.growth) / 100.0
+              : 0.04;
             const streamYearsActive = age - stream.startAge;
             const streamVal = (Number(stream.amount) || 0) * Math.pow(1.0 + streamGrowth, streamYearsActive);
             annualIncome += streamVal;
@@ -411,9 +416,46 @@ window.RetirementEngine = (function() {
         seniorCareCost = (Number(plan.seniorCareMonthly) || 0) * 12;
       }
 
-      let currentExpenses = isRetired 
-        ? ((baseRetireExpenses * locationFactor * spendingFactor) + expExtraCost + seniorCareCost) * cumInflation 
-        : (Number(plan.annualExpenses) || 240_000_000) * cumInflation;
+      // Calculate Active Expense Streams for this year (if configured)
+      let activeExpenseStreamsSum = 0;
+      let hasExpenseStreams = Array.isArray(plan.expenses) && plan.expenses.length > 0;
+      let activeDebtsSum = 0;
+
+      if (hasExpenseStreams) {
+        plan.expenses.forEach(exp => {
+          if (exp.enabled === false) return;
+          const start = (exp.startAge !== undefined && exp.startAge !== null && !isNaN(Number(exp.startAge)))
+            ? Number(exp.startAge) : currentAge;
+          const end = (exp.endAge !== undefined && exp.endAge !== null && !isNaN(Number(exp.endAge)))
+            ? Number(exp.endAge) : 85;
+          if (age >= start && age <= end) {
+            const expGrowth = (exp.growth !== undefined && exp.growth !== null && !isNaN(Number(exp.growth)))
+              ? Number(exp.growth) / 100.0
+              : 0.0;
+            const yearsActive = age - start;
+            const expVal = (Number(exp.amount) || 0) * Math.pow(1.0 + expGrowth, yearsActive);
+            activeExpenseStreamsSum += expVal;
+            const isDebt = exp.isDebt === true || (/crédit|credit|vay|nợ|loan|prêt|pret|ngân hàng/i).test(exp.name || '');
+            if (isDebt) {
+              activeDebtsSum += expVal;
+            }
+          }
+        });
+      }
+
+      let currentExpenses = 0;
+      if (isRetired) {
+        // Base living expenses in retirement + any remaining ongoing debts/crédits until payoff
+        const baseRetire = ((baseRetireExpenses * locationFactor * spendingFactor) + expExtraCost + seniorCareCost) * cumInflation;
+        currentExpenses = baseRetire + activeDebtsSum;
+      } else {
+        // Accumulation phase: realistic sum of active expense streams or fallback to base
+        if (hasExpenseStreams && activeExpenseStreamsSum > 0) {
+          currentExpenses = activeExpenseStreamsSum;
+        } else {
+          currentExpenses = (Number(plan.annualExpenses) || 240_000_000) * cumInflation;
+        }
+      }
 
       // Healthcare cost adjustments
       if (plan.healthcare && plan.healthcare.enabled) {
@@ -473,10 +515,15 @@ window.RetirementEngine = (function() {
       let returnRate = isRetired ? returnPost : returnPre;
       returnRate += scenarioReturnModifier;
 
+      const displayPortfolio = portfolio;
+
       if (!isRetired) {
-        // Accumulation phase: Net Savings and Expenses dynamically proportional to Income
+        // Accumulation phase: Net Savings and Expenses
         const incomeAfterTax = Math.max(0, annualIncome - estimatedTax);
-        if (annualIncome > 0) {
+        if (hasExpenseStreams && activeExpenseStreamsSum > 0) {
+          // Realistic cashflow: Income After Tax minus Actual Expense Streams & Debts
+          netSavingsOrWithdrawal = incomeAfterTax - currentExpenses;
+        } else if (annualIncome > 0) {
           if (plan.savingsRate !== undefined && plan.savingsRate !== null && Number(plan.savingsRate) > 0) {
             const rate = Number(plan.savingsRate) / 100.0;
             netSavingsOrWithdrawal = incomeAfterTax * rate;
@@ -492,7 +539,7 @@ window.RetirementEngine = (function() {
       } else {
         // Retirement Withdrawal Phase
         if (age === retireAge) {
-          initialRetirePortfolio = portfolio;
+          initialRetirePortfolio = displayPortfolio;
           initialAnnualWithdrawal = initialRetirePortfolio * initialSWR;
           previousYearWithdrawal = initialAnnualWithdrawal;
         }
@@ -565,7 +612,7 @@ window.RetirementEngine = (function() {
         }
       }
 
-      const totalNetWorth = portfolio + homeEquity;
+      const totalNetWorth = displayPortfolio + homeEquity;
       if (totalNetWorth > peakNetWorth) {
         peakNetWorth = totalNetWorth;
         peakAge = age;
@@ -585,8 +632,8 @@ window.RetirementEngine = (function() {
         mortgagePayment: mortgagePaymentThisYear,
         netCashFlow: netSavingsOrWithdrawal,
         tax: estimatedTax,
-        portfolioEnd: portfolio,
-        realPortfolioEnd: portfolio / cumInflation,
+        portfolioEnd: displayPortfolio,
+        realPortfolioEnd: displayPortfolio / cumInflation,
         cumInflation,
         currentInflation,
         eurVndRate: currentEurVndRate,
@@ -605,15 +652,76 @@ window.RetirementEngine = (function() {
     const locExtra = (plan.retirementLocation === 'vietnam') ? (cur === 'EUR' ? 1800 : 45_000_000) : (plan.retirementLocation === 'hybrid' ? (cur === 'EUR' ? 2200 : 55_000_000) : 0);
     const effectiveRetireBase = (baseRetireExpenses * locFactor) + locExtra;
     const fireTargetNestEgg = Math.round(effectiveRetireBase * 25); // 25x rule tailored to retirement location
-    const safeAnnualSpend = initialRetirePortfolio > 0 ? initialRetirePortfolio * initialSWR : fireTargetNestEgg * 0.04;
+    const safeAnnualSpend = Math.max(0, (initialRetirePortfolio || 0) * initialSWR);
     const yearsToFIRE = Math.max(0, retireAge - currentAge);
 
-    // Detect when FIRE Nest Egg is reached (tính từ tuổi hiện tại trở đi)
+    // Detect when FIRE Nest Egg is reached (tính từ tuổi hiện tại trở đi trong kịch bản hiện tại)
     let fireAge = null;
     for (let i = 0; i < timeline.length; i++) {
       if (timeline[i].age >= currentAge && timeline[i].portfolioEnd >= fireTargetNestEgg && fireAge === null) {
         fireAge = timeline[i].age;
         break;
+      }
+    }
+
+    // Tính Tuổi Nghỉ Hưu Tối Ưu (Optimal FIRE Age):
+    // Nếu danh mục hiện tại đã đạt mốc trong timeline, optimalFireAge = fireAge.
+    // Nếu chưa đạt mốc (ví dụ: tài sản ban đầu âm/nợ, hoặc tuổi hưu quá sớm làm ngắt lương trước khi kịp tích lũy đủ 25x),
+    // mô phỏng quá trình tiếp tục làm việc tích lũy từ currentAge để tìm chính xác độ tuổi tối thiểu chạm mốc FIRE Nest Egg.
+    let optimalFireAge = fireAge;
+    if (!optimalFireAge) {
+      let simPortfolio = initialSavings;
+      let simCumInf = 1.0;
+      for (let simAge = currentAge; simAge <= lifeExpectancy; simAge++) {
+        if (simAge > currentAge) {
+          const infRate = (plan.inflationRate ? Number(plan.inflationRate) : 2.5) / 100.0;
+          simCumInf *= (1.0 + infRate);
+        }
+        let simIncome = 0;
+        if (Array.isArray(plan.incomes)) {
+          plan.incomes.forEach(stream => {
+            if (stream.enabled === false) return;
+            const sAge = Number(stream.startAge) || currentAge;
+            if (simAge >= sAge) {
+              const streamGrowth = (stream.growth !== undefined && stream.growth !== null && !isNaN(Number(stream.growth)))
+                ? Number(stream.growth) / 100.0
+                : 0.04;
+              simIncome += (Number(stream.amount) || 0) * Math.pow(1.0 + streamGrowth, simAge - sAge);
+            }
+          });
+        }
+        const effectiveTaxRate = (Number(plan.taxRate) || 12.0) / 100.0;
+        const simTax = simIncome * effectiveTaxRate * 0.7;
+        const simIncomeNet = Math.max(0, simIncome - simTax);
+        let simNetSavings = 0;
+        let simExpSum = 0;
+        if (Array.isArray(plan.expenses) && plan.expenses.length > 0) {
+          plan.expenses.forEach(exp => {
+            if (exp.enabled === false) return;
+            const start = (exp.startAge !== undefined && exp.startAge !== null && !isNaN(Number(exp.startAge)))
+              ? Number(exp.startAge) : currentAge;
+            const end = (exp.endAge !== undefined && exp.endAge !== null && !isNaN(Number(exp.endAge)))
+              ? Number(exp.endAge) : 85;
+            if (simAge >= start && simAge <= end) {
+              const expGrowth = (exp.growth !== undefined && exp.growth !== null && !isNaN(Number(exp.growth)))
+                ? Number(exp.growth) / 100.0 : 0.0;
+              simExpSum += (Number(exp.amount) || 0) * Math.pow(1.0 + expGrowth, simAge - start);
+            }
+          });
+        }
+        if (simExpSum > 0) {
+          simNetSavings = simIncomeNet - simExpSum;
+        } else if (simIncome > 0 && plan.savingsRate !== undefined && Number(plan.savingsRate) > 0) {
+          simNetSavings = simIncomeNet * (Number(plan.savingsRate) / 100.0);
+        } else {
+          simNetSavings = (Number(plan.annualSavings) || 10_000) * simCumInf;
+        }
+
+        if (simPortfolio >= fireTargetNestEgg) {
+          optimalFireAge = simAge;
+          break;
+        }
+        simPortfolio = (simPortfolio + simNetSavings) * (1.0 + returnPre);
       }
     }
 
@@ -731,24 +839,41 @@ window.RetirementEngine = (function() {
     }
 
     // If mortgage schedule active, add mortgage payoff celebration milestone
-    if (mortgageSchedule && mortgageSchedule.endAge <= lifeExpectancy) {
+    if (mortgageSchedule && Array.isArray(mortgageSchedule.parts) && mortgageSchedule.parts.length > 1) {
+      mortgageSchedule.parts.forEach((pt, pIdx) => {
+        if (pt.endAge <= lifeExpectancy) {
+          const loanName = (plan.mortgage && plan.mortgage.loans && plan.mortgage.loans[pIdx]?.name) || `Khoản vay ${pIdx + 1}`;
+          milestones.push({
+            id: `ms_mortgage_paid_${pIdx}`,
+            age: pt.endAge,
+            icon: '🏆',
+            name: `Tất toán ${loanName}`,
+            desc: `Tuổi ${pt.endAge}: Hoàn tất trả nợ vay ${loanName}! Sở hữu 100% BĐS (${formatCurrency(pt.schedule[pt.endAge]?.propertyValue || 0, cur)})`,
+            color: '#10b981',
+            isSystem: true
+          });
+        }
+      });
+    } else if (mortgageSchedule && mortgageSchedule.endAge <= lifeExpectancy) {
+      const loanName = (plan.mortgage && plan.mortgage.loans && plan.mortgage.loans[0]?.name) ? ` ${plan.mortgage.loans[0].name}` : ' nợ nhà';
       milestones.push({
         id: 'ms_mortgage_paid',
         age: mortgageSchedule.endAge,
-        icon: '🏡',
-        name: 'Tất toán nợ nhà',
+        icon: '🏆',
+        name: `Tất toán${loanName}`,
         desc: `Tuổi ${mortgageSchedule.endAge}: Hoàn tất trả nợ vay mua nhà! Sở hữu 100% BĐS (${formatCurrency(mortgageSchedule.schedule[mortgageSchedule.endAge]?.propertyValue || 0, cur)})`,
         color: '#10b981',
         isSystem: true
       });
     }
 
+    const finalEstate = timeline[timeline.length - 1]?.totalNetWorth ?? finalPortfolio;
     milestones.push({
       id: 'ms_end',
       age: lifeExpectancy,
       icon: '🏁',
       name: 'Di sản',
-      desc: `Tuổi ${lifeExpectancy}: Tài sản thừa kế để lại (${formatCurrency(finalPortfolio, cur)})`,
+      desc: `Tuổi ${lifeExpectancy}: Tài sản thừa kế để lại (${formatCurrency(finalEstate, cur)})`,
       color: '#94a3b8',
       isSystem: true
     });
@@ -771,7 +896,8 @@ window.RetirementEngine = (function() {
       lifeExpectancy,
       peakNetWorth,
       peakAge,
-      fireAge,
+      fireAge: fireAge || optimalFireAge,
+      optimalFireAge: optimalFireAge || fireAge,
       milestones,
       finalPortfolio,
       finalTotalNetWorth: timeline[timeline.length - 1].totalNetWorth,

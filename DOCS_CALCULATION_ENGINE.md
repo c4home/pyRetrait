@@ -206,4 +206,51 @@ pyRetrait tích hợp mô hình dòng tiền gia đình đa thế hệ dựa tr�
 5. **Hiển Thị Trên Biểu Đồ Family Trajectory**:
    Các đỉnh chi phí đại học được vẽ đè lên đường cong tài sản ròng, giúp cha mẹ chủ động chuẩn bị quỹ học vấn mà không làm gãy đổ lộ trình FIRE.
 
+---
+
+## 6. Thuật Toán Tích Hợp Cột Mốc Cuộc Đời (Life Milestones Engine)
+
+Nền tảng pyRetrait tích hợp các sự kiện cột mốc cuộc đời (`plan.milestones`) trực tiếp vào phương trình cân đối tài sản ròng tại từng bước thời gian $t$:
+
+### 6.1. Phương Trình Cân Đối Tài Sản Khi Xảy Ra Sự Kiện
+Tại độ tuổi $\text{age}_t$ xảy ra cột mốc $m \in \text{Milestones}$:
+1. **Khoản chi một lần ($\text{type} = \text{"expense"}$)** (ví dụ: mua nhà, đặt cọc BĐS, mua ô tô, học phí du học):
+   $$\text{Portfolio}_t = \max\Big(0, \, \text{Portfolio}_t - \text{Amount}_m\Big)$$
+2. **Khoản thu đột xuất ($\text{type} = \text{"income"}$)** (ví dụ: thừa kế tài sản, bán công ty, quà tặng):
+   $$\text{Portfolio}_t = \text{Portfolio}_t + \text{Amount}_m$$
+3. **Mốc kỷ niệm ($\text{type} = \text{"none"}$)** (ví dụ: kết hôn, sinh con, chuyển nhà):
+   $$\Delta \text{Portfolio}_t = 0$$
+
+### 6.2. Tác Động Dây Chuyền Đến Tuổi Đạt Chuẩn FIRE
+Khi một khoản chi phí lớn (như mua nhà 50,000 € ở tuổi 35) xảy ra:
+- Số dư danh mục giảm tức thì $\implies$ cơ sở vốn sinh lãi kép $r_{\text{pre}}$ trong các năm tiếp theo bị thu hẹp.
+- Hệ thống tự động tính toán lại điểm giao thoa giữa **Dòng tiền thụ động an toàn (Safe Passive Flow)** và **Chi phí sinh hoạt tối thiểu**, phản ánh trung thực sự trì hoãn tuổi đạt FIRE để người dùng cân nhắc bài toán đánh đổi tài chính.
+
+---
+
+## 7. Mô Phỏng Monte Carlo Xác Định (Deterministic Mulberry32 PRNG)
+
+Để đảm bảo tính nhất quán khoa học tuyệt đối, pyRetrait sử dụng thuật toán sinh số giả ngẫu nhiên xác định **Mulberry32** kết hợp phép biến đổi **Box-Muller** thay vì gọi hàm `Math.random()` không hạt giống của trình duyệt:
+
+### 7.1. Thuật Toán Sinh Số Giả Ngẫu Nhiên Mulberry32 (Seed = 42)
+Với hạt giống ban đầu $S_0 = 42$, tại mỗi bước lặp:
+$$S_{k} = (S_{k-1} + \text{0x6D2B79F5}) \pmod{2^{32}}$$
+$$T = \text{imul}\Big(S_k \oplus (S_k \gg 15), \, 1 \mid S_k\Big)$$
+$$T = \Big(T + \text{imul}\big(T \oplus (T \gg 7), \, 61 \mid T\big)\Big) \oplus T$$
+$$U = \frac{(T \oplus (T \gg 14)) \gg 0}{4,294,967,296} \in [0, 1)$$
+
+### 7.2. Phép Biến Đổi Chuẩn Box-Muller (Box-Muller Transformation)
+Từ hai số ngẫu nhiên đều độc lập $U_1, U_2 \sim \mathcal{U}(0, 1)$, sinh ra biến chuẩn ngẫu nhiên $Z \sim \mathcal{N}(0, 1)$:
+$$Z = \sqrt{-2 \ln U_1} \times \cos(2\pi U_2)$$
+
+Tỷ suất sinh lời mô phỏng của năm $t$ trong kịch bản $j$:
+$$r_{j, t} = \mu_{\text{expected}} + \sigma_{\text{historical}} \times Z_{j, t}$$
+Trong đó:
+- $\mu_{\text{expected}}$ là lợi nhuận kỳ vọng của danh mục (ví dụ 8.0%/năm).
+- $\sigma_{\text{historical}}$ là độ biến động chuẩn lịch sử của tài sản (ví dụ 16.0% cho cổ phiếu toàn cầu).
+
+### 7.3. Giá Trị Thực Tiễn: Triệt Tiêu Phân Kỳ Đa Nền Tảng
+- Khi chạy trên Google Chrome, Brave Browser, Safari hoặc Firefox, thuật toán `Mulberry32` luôn sinh ra **chính xác 100% cùng một chuỗi số ngẫu nhiên**.
+- Nhờ đó, xác suất thành công (Success Rate %) và các phân vị rủi ro P10, P50, P90 của một kế hoạch luôn trùng khớp hoàn toàn giữa các thiết bị và trình duyệt khác nhau.
+
 

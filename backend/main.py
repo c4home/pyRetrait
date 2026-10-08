@@ -3,7 +3,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Dict, Any, Optional
-from fastapi import FastAPI, HTTPException, Body, Header
+from fastapi import FastAPI, HTTPException, Body, Header, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
@@ -42,6 +42,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def add_no_cache_headers(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path == "/" or request.url.path.endswith(".html"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
@@ -129,6 +138,10 @@ DEFAULT_PLANS = {
                 {"name": "Lương tại Pháp (Net après impôt)", "amount": 42000, "startAge": 29, "endAge": 42, "growth": 3.5, "taxable": True},
                 {"name": "Cổ tức / Thu nhập thụ động", "amount": 2400, "startAge": 38, "endAge": 85, "growth": 4.0, "taxable": False}
             ],
+            "expenses": [
+                {"name": "🛒 Chi tiêu sinh hoạt & Tiện ích", "amount": 14400, "startAge": 29, "endAge": 85, "growth": 2.0, "isDebt": False, "enabled": True},
+                {"name": "🏦 Trả nợ Crédit: BĐS Cho thuê LMNP", "amount": 6840, "startAge": 26, "endAge": 46, "growth": 0.0, "isDebt": True, "enabled": True}
+            ],
             "spendingPhases": {
                 "enabled": True,
                 "gogoAge": 55,
@@ -167,6 +180,10 @@ DEFAULT_PLANS = {
             "incomes": [
                 {"name": "Lương chính & Thưởng", "amount": 600000000, "startAge": 32, "endAge": 45, "growth": 5.0, "taxable": True},
                 {"name": "BĐS Cho thuê / Cổ tức", "amount": 120000000, "startAge": 42, "endAge": 85, "growth": 4.0, "taxable": True}
+            ],
+            "expenses": [
+                {"name": "🛒 Chi tiêu gia đình & Tiện ích", "amount": 180000000, "startAge": 32, "endAge": 85, "growth": 4.0, "isDebt": False, "enabled": True},
+                {"name": "🏦 Trả góp Vay mua Nhà / Xe", "amount": 60000000, "startAge": 32, "endAge": 47, "growth": 0.0, "isDebt": True, "enabled": True}
             ],
             "spendingPhases": {
                 "enabled": True,
@@ -212,6 +229,9 @@ DEFAULT_PLANS = {
             "incomes": [
                 {"name": "Kinh doanh & Tư vấn", "amount": 800000000, "startAge": 32, "endAge": 40, "growth": 7.0, "taxable": True},
                 {"name": "Thu nhập Thụ động BĐS", "amount": 200000000, "startAge": 40, "endAge": 85, "growth": 4.5, "taxable": True}
+            ],
+            "expenses": [
+                {"name": "🛒 Chi tiêu tối giản (Lean FIRE)", "amount": 72000000, "startAge": 26, "endAge": 85, "growth": 3.5, "isDebt": False, "enabled": True}
             ],
             "spendingPhases": {
                 "enabled": True,
@@ -948,6 +968,11 @@ def generate_local_gemini_analysis(chart_id: str, chart_title: str, chart_summar
         fire_target = chart_summary.get("fireTarget", "N/A")
         has_mortgage = plan.get("mortgage", {}).get("enabled", False) or bool(plan.get("frenchMortgages"))
         
+        actual_tracking = chart_summary.get("actualTracking", "")
+        actual_text = ""
+        if actual_tracking and actual_tracking != "Chưa có mốc số dư thực tế":
+            actual_text = f"\n- **Tiến độ đối chiếu thực tế**: {actual_tracking}. Hãy duy trì thói quen ghi nhận số dư định kỳ để luôn chủ động điều chỉnh chiến lược."
+
         mortgage_text = (
             "- **Khoản vay mua nhà**: Khi bước vào tuổi nghỉ hưu, bạn có thể tiếp tục để tiền thuê tự nuôi khoản nợ vay hoặc cơ cấu lại danh mục để tối đa hóa dòng tiền ròng."
             if has_mortgage else
@@ -960,7 +985,7 @@ def generate_local_gemini_analysis(chart_id: str, chart_title: str, chart_summar
             f"Dựa trên thu nhập tổng {total_salary:,.0f} {cur_sym}/năm, tiền để dành đều đặn ~{ann_sav:,.0f} {cur_sym}/năm (~{round(ann_sav/12)} {cur_sym}/tháng) và mức chi tiêu hưu trí dự kiến là {ret_exp:,.0f} {cur_sym}/năm (~{monthly_exp_vnd} triệu ₫/tháng), **mốc {retire_age} tuổi là điểm cân bằng vàng** cho hành trình độc lập tài chính của bạn (điểm chạm mục tiêu FIRE rơi vào khoảng {fire_age} tuổi).\n\n"
             f"### 💡 1. Sức bền của Khối Tài sản & Tiền Lãi Nuôi Sống\n"
             f"- **Tiền tự đẻ ra tiền đủ trang trải**: Ở tuổi {retire_age}, danh mục đầu tư đạt mốc mục tiêu khoảng **{fire_target}**. Với tỷ lệ rút vốn an toàn 3.8%–4% mỗi năm ({round(ret_exp):,.0f} {cur_sym}/năm), dòng tiền sinh lời đủ bao phủ hoàn toàn chi phí sinh hoạt hàng tháng mà không làm hao mòn vốn gốc.\n"
-            f"- **Tiền gốc tiếp tục tăng trưởng**: Nhờ sức mạnh lãi kép, danh mục dự kiến đạt đỉnh **{peak}** ở tuổi {peak_age}, và đến tuổi {life_exp} bạn vẫn duy trì được khối tài sản khoảng **{final_nw}**.\n"
+            f"- **Tiền gốc tiếp tục tăng trưởng**: Nhờ sức mạnh lãi kép, danh mục dự kiến đạt đỉnh **{peak}** ở tuổi {peak_age}, và đến tuổi {life_exp} bạn vẫn duy trì được khối tài sản khoảng **{final_nw}**.{actual_text}\n"
             f"{mortgage_text}\n\n"
             f"### ⚖️ 2. So sánh 3 mốc tuổi nghỉ hưu linh hoạt\n"
             f"- **Mốc {early_age} tuổi (Nghỉ sớm hơn)**: Bạn có thể nghỉ sớm hơn dự kiến nếu chuẩn bị thêm một nguồn thu nhập phụ nhẹ nhàng khoảng 5–7 triệu ₫/tháng để giảm áp lực rút tiền những năm đầu.\n"
@@ -978,10 +1003,16 @@ def generate_local_gemini_analysis(chart_id: str, chart_title: str, chart_summar
             if gap_years > 0 else
             f"- **Dòng tiền hưu trí tức thì**: Do bạn nghỉ hưu ở mốc {retire_age} tuổi, bạn có thể kết hợp ngay các nguồn hưu trí và thu nhập thụ động để ổn định cuộc sống."
         )
+        income_periods = chart_summary.get("incomePeriods", "")
+        periods_text = ""
+        if income_periods and income_periods != "Chưa phân chia giai đoạn":
+            periods_text = f"- **Phân kỳ dòng thu nhập**: {income_periods}.\n"
+
         return (
             f"> 💡 **Tóm tắt cốt lõi (TL;DR)**: Dòng tiền của bạn chuyển dịch nhịp nhàng từ tích lũy chủ động sang rút vốn có kiểm soát; cần lưu ý bảo toàn dòng tiền trong những năm đầu sau khi ngừng đi làm.\n\n"
             f"### 💡 1. Nhìn nhanh dòng tiền vào và ra theo từng chặng đời\n"
             f"- **Giai đoạn đi làm (Tuổi {cur_age} – {retire_age})**: Thu nhập hàng tháng vượt chi phí sinh hoạt, phần thặng dư liên tục được tái đầu tư giúp tài sản tăng tốc.\n"
+            f"{periods_text}"
             f"- **Giai đoạn nghỉ hưu sớm (Sau tuổi {retire_age})**: Bạn ngừng nhận lương chủ động, chuyển sang dùng tiền lời và rút một phần nhỏ từ tài sản đầu tư để sinh sống.\n"
             f"- **Giai đoạn tuổi vàng**: Sau mốc 64–65 tuổi, các khoản trợ cấp hoặc lương hưu bổ sung sẽ giảm bớt gánh nặng rút tiền túi cá nhân.\n\n"
             f"### ⚠️ 2. Điểm cần lưu ý về dòng tiền\n"
@@ -1121,6 +1152,22 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
     late_age = retire_age + 3
     fire_age = chart_summary.get("fireAge", retire_age)
     
+    cur_savings = float(plan.get("currentSavings") or 0)
+    actual_records = plan.get("actualRecords") or []
+    actual_records_text = (
+        "; ".join([f"{r.get('date')}: {float(r.get('amount', 0)):,.0f} {cur_sym} ({r.get('note', '')})" for r in actual_records[-5:]])
+        if actual_records else "Chưa có"
+    )
+    incomes_summary_text = (
+        ", ".join([f"{s.get('name')}: {float(s.get('amount', 0)):,.0f} {cur_sym}/năm ({s.get('startAge')}–{s.get('endAge')}t)" for s in incomes if s.get("enabled", True)])
+        if incomes else "Chưa cấu hình"
+    )
+    expenses = plan.get("expenses", [])
+    expenses_summary_text = (
+        ", ".join([f"{s.get('name')}: {float(s.get('amount', 0)):,.0f} {cur_sym}/năm ({s.get('startAge')}–{s.get('endAge')}t)" for s in expenses if s.get("enabled", True)])
+        if expenses else "Chưa cấu hình"
+    )
+    
     if not api_key and SETTINGS_FILE.exists():
         try:
             with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
@@ -1144,19 +1191,22 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
                 "3. DIỄN ĐẠT ĐỜI THƯỜNG, DỄ HIỂU: Giọng văn ấm áp, khích lệ như một người bạn am hiểu tài chính. Tuyệt đối KHÔNG dùng thuật ngữ đao to búa lớn (KHÔNG dùng: geo-arbitrage, glidepath, sequence of returns risk, waterfall rút vốn, hệ số beta/sharpe...). Hãy giải thích bằng ngôn từ thực tế như 'bình oxy tiền mặt', 'chia tiền vào nhiều giỏ', 'tiền đẻ ra tiền'.\n"
                 "4. KHÔNG SINH BẢNG HOẶC KHỐI CODE: Giao diện hiển thị không hỗ trợ bảng (markdown table) hay khối code (```). CHỈ ĐƯỢC DÙNG tiêu đề H3 (###), danh sách gạch đầu dòng (-), danh sách số (1.) và chữ in đậm (**).\n"
                 "5. BÁM SÁT DỮ LIỆU ĐƯỢC CUNG CẤP: Tuyệt đối không bịa đặt số liệu mâu thuẫn với thông số của người dùng. Mọi ví dụ số tiền đều phải lấy tỷ lệ phù hợp với quy mô thu nhập và chi tiêu của họ.\n"
-                "6. ĐÚNG CHUYÊN ĐỀ BIỂU ĐỒ: Tập trung 100% vào nội dung của biểu đồ được yêu cầu, không lặp lại nội dung của biểu đồ khác."
+                "6. ĐÚNG CHUYÊN ĐỀ BIỂU ĐỒ: Tập trung 100% vào nội dung của biểu đồ được yêu cầu, không lặp lại nội dung của biểu đồ khác.\n"
+                "7. TẬN DỤNG CÁC DỮ LIỆU THỰC TẾ & PHÂN KỲ THU NHẬP MỚI: Nếu người dùng có ghi nhận số dư thực tế (Actual Net Worth), luôn đối chiếu trực tiếp với đường dự báo để chỉ ra độ lệch và tư vấn điều chỉnh. Nếu có các luồng thu nhập theo giai đoạn tuổi (Income Streams Periods), luôn nhận xét bước chuyển tiếp dòng tiền giữa các giai đoạn."
             )
 
             # Specialized prompt tailored dynamically for each specific chart topic
             if chart_id in ("chart-networth", "chart-net-worth"):
+                actual_track_info = chart_summary.get("actualTracking", "Chưa có mốc số dư thực tế")
                 chart_specific_instructions = (
                     f"CHỦ ĐỀ CHUYÊN BIỆT: TĂNG TRƯỞNG TÀI SẢN RÒNG & ĐIỂM CHẠM TỰ DO TÀI CHÍNH (FIRE)\n"
                     f"Dữ liệu biểu đồ: Điểm FIRE đạt ở tuổi {fire_age} với Nest Egg mục tiêu {chart_summary.get('fireTarget', 'N/A')}. "
                     f"Đỉnh tài sản đạt {chart_summary.get('peakNetWorth', 'N/A')} ở tuổi {chart_summary.get('peakAge', retire_age)}. "
-                    f"Tài sản cuối đời tuổi {life_exp} dự kiến còn {chart_summary.get('finalNetWorth', 'N/A')}.\n\n"
+                    f"Tài sản cuối đời tuổi {life_exp} dự kiến còn {chart_summary.get('finalNetWorth', 'N/A')}. "
+                    f"Đối chiếu Thực tế vs Dự báo (Actual vs Forecast): {actual_track_info}.\n\n"
                     f"YÊU CẦU CẤU TRÚC PHẢN HỒI (sau dòng TL;DR):\n"
-                    f"### 🎯 Đánh giá Mốc Tuổi Nghỉ Hưu {retire_age} tuổi\n"
-                    f"(So sánh tuổi mong muốn {retire_age} tuổi với tuổi đạt FIRE thực tế {fire_age} tuổi. Khẳng định xem kế hoạch khả thi hay cần điều chỉnh thời gian tích lũy)\n\n"
+                    f"### 🎯 Đánh giá Mốc Tuổi Nghỉ Hưu {retire_age} tuổi & Tiến độ Thực tế\n"
+                    f"(So sánh tuổi mong muốn {retire_age} tuổi với tuổi đạt FIRE thực tế {fire_age} tuổi. NẾU người dùng đã nhập số dư thực tế (khác 'Chưa có mốc số dư thực tế'), hãy đối chiếu trực tiếp số tiền thực tế với đường dự báo: phân tích chênh lệch sai số %, đánh giá đang vượt hay chậm tiến độ và đưa ra lời khuyên thu hẹp khoảng cách)\n\n"
                     f"### 💡 1. Sức bền của Khối Tài sản & Tiền Lãi Nuôi Sống\n"
                     f"(Giải thích dễ hiểu về mốc tài sản mục tiêu, dòng tiền sinh lời hàng năm so với mức chi tiêu {ret_exp:,.0f} {cur_sym}/năm, tiền gốc có bị vơi không)\n\n"
                     f"### ⚖️ 2. So sánh 3 mốc tuổi nghỉ hưu linh hoạt\n"
@@ -1165,21 +1215,23 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
                     f"- **Mốc {late_age} tuổi (Làm thêm vài năm)**: [Đánh giá độ dư dả và gia tăng di sản]\n\n"
                     f"### 🎯 3. Các bước hành động cụ thể làm theo ngay\n"
                     f"1. [Hành động tích lũy tự động hàng tháng kèm con số thực tế]\n"
-                    f"2. [Hành động chuẩn bị quỹ đệm an toàn trước thềm nghỉ hưu]"
+                    f"2. [Hành động điều chỉnh danh mục hoặc tối ưu hóa kỷ luật tài chính dựa trên sai số thực tế]"
                 )
             elif chart_id in ("chart-cashflow", "chart-cash-flow"):
+                income_periods_info = chart_summary.get("incomePeriods", "Chưa phân chia giai đoạn")
                 chart_specific_instructions = (
                     f"CHỦ ĐỀ CHUYÊN BIỆT: DÒNG TIỀN THEO TỪNG CHẶNG ĐỜI (THU NHẬP vs CHI TIÊU vs TÍCH LŨY/RÚT VỐN)\n"
                     f"Dữ liệu biểu đồ: Tuổi đi làm ({cur_age} – {retire_age} tuổi), Tuổi hưu trí ({retire_age} – {life_exp} tuổi). "
                     f"Tổng thu nhập cả đời: {chart_summary.get('totalLifetimeIncome', 'N/A')}, Tổng chi tiêu cả đời: {chart_summary.get('totalLifetimeExpenses', 'N/A')}. "
-                    f"Tích lũy hàng năm hiện tại: {ann_sav:,.0f} {cur_sym}/năm, Chi tiêu hưu trí dự kiến: {ret_exp:,.0f} {cur_sym}/năm.\n\n"
+                    f"Tích lũy hàng năm hiện tại: {ann_sav:,.0f} {cur_sym}/năm, Chi tiêu hưu trí dự kiến: {ret_exp:,.0f} {cur_sym}/năm. "
+                    f"Các giai đoạn thu nhập theo tuổi (Multiple Streams Periods): {income_periods_info}.\n\n"
                     f"YÊU CẦU CẤU TRÚC PHẢN HỒI (sau dòng TL;DR):\n"
-                    f"### 💡 1. Dòng tiền Vào & Ra qua 2 giai đoạn cuộc đời\n"
-                    f"(Phân tích giai đoạn tích lũy tuổi {cur_age}–{retire_age} và bước ngoặt chuyển sang giai đoạn rút tiền từ tuổi {retire_age})\n\n"
+                    f"### 💡 1. Phân tích Dòng thu nhập qua các Giai đoạn Tuổi\n"
+                    f"(Phân tích các giai đoạn thu nhập cụ thể từ dữ liệu trên: bước nhảy dòng tiền khi có thêm nguồn phụ như cổ tức/BĐS, thời điểm dừng lương chính khi nghỉ hưu ở tuổi {retire_age}, và khi có thêm lương hưu nhà nước; đánh giá tỷ lệ tích lũy của bạn)\n\n"
                     f"### ⚠️ 2. Lưu ý về Khoảng trống Dòng tiền những năm đầu nghỉ hưu\n"
                     f"(Chỉ rõ rủi ro khi thu nhập chủ động chấm dứt ở tuổi {retire_age} nhưng các nguồn lương hưu nhà nước hoặc dòng tiền thụ động khác chưa đạt đỉnh; cách quản lý chi tiêu tránh thâm hụt vốn sớm)\n\n"
                     f"### 🎯 3. Cách tối ưu dòng tiền hàng tháng để luôn thảnh thơi\n"
-                    f"1. [Chiến lược tạo thêm dòng thu nhập nhẹ nhàng hoặc phân bổ tiền mặt]\n"
+                    f"1. [Chiến lược tạo thêm dòng thu nhập nhẹ nhàng hoặc phân bổ tiền mặt theo từng giai đoạn]\n"
                     f"2. [Tối ưu hóa các khoản nợ vay hoặc chi phí cố định]"
                 )
             elif chart_id in ("chart-withdrawal-comparison", "chart-withdrawals"):
@@ -1300,8 +1352,12 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
                 f"- Tên kế hoạch: {plan.get('name', 'Franco-Viet FIRE')}\n"
                 f"- Tiền tệ: {plan.get('currency', 'EUR')}\n"
                 f"- Tuổi hiện tại: {cur_age}, Tuổi dự định nghỉ hưu sớm: {retire_age}, Tuổi thọ dự kiến: {life_exp}\n"
+                f"- Tài sản ròng đầu tư hiện có (Net Worth ban đầu): {cur_savings:,.0f} {cur_sym}\n"
+                f"- Các luồng thu nhập đang kích hoạt (theo độ tuổi): {incomes_summary_text}\n"
+                f"- Các luồng chi tiêu & nợ vay đang kích hoạt (theo độ tuổi): {expenses_summary_text}\n"
                 f"- Tổng thu nhập hàng năm: {total_annual_income:,.0f} {cur_sym}, Tiết kiệm hàng năm: {ann_sav:,.0f} {cur_sym} (tỷ lệ {plan.get('savingsRate', 33.3)}%)\n"
                 f"- Chi tiêu khi về hưu: {ret_exp:,.0f} {cur_sym}/năm (~{monthly_exp_vnd} triệu ₫/tháng)\n"
+                f"- Lịch sử số dư thực tế ghi nhận gần nhất (Actual Net Worth Records): {actual_records_text}\n"
                 f"- Tóm tắt số liệu mô phỏng: {json.dumps(chart_summary, ensure_ascii=False)}\n\n"
                 f"{chart_specific_instructions}"
             )

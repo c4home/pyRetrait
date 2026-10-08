@@ -64,6 +64,26 @@
           "taxable": false
         }
       ],
+      "expenses": [
+        {
+          "name": "🛒 Chi tiêu sinh hoạt & Tiện ích",
+          "amount": 13200,
+          "startAge": 29,
+          "endAge": 85,
+          "growth": 2.0,
+          "isDebt": false,
+          "enabled": true
+        },
+        {
+          "name": "🏦 Trả nợ Crédit: BĐS Cho thuê LMNP",
+          "amount": 4428,
+          "startAge": 26,
+          "endAge": 46,
+          "growth": 0.0,
+          "isDebt": true,
+          "enabled": true
+        }
+      ],
       "spendingPhases": {
         "enabled": true,
         "gogoAge": 55,

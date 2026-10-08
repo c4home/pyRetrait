@@ -144,7 +144,28 @@
         const headers = window.Auth.getAuthHeaders();
         const res = await fetch("/api/plans", { headers });
         if (res.ok) {
-          state.plansData = await res.json();
+          const cloudPlans = await res.json();
+          const localSaved = localStorage.getItem(STORAGE_KEY);
+          let useCloud = true;
+          if (localSaved) {
+            try {
+              const localParsed = JSON.parse(localSaved);
+              // If local edits were saved with a newer timestamp than cloud, preserve local edits and sync to cloud
+              if (localParsed && localParsed.updatedAt && cloudPlans && cloudPlans.updatedAt && localParsed.updatedAt > cloudPlans.updatedAt) {
+                state.plansData = localParsed;
+                useCloud = false;
+                fetch("/api/plans", {
+                  method: "POST",
+                  headers,
+                  body: JSON.stringify(localParsed),
+                  keepalive: true
+                }).catch(() => {});
+              }
+            } catch (err) {}
+          }
+          if (useCloud) {
+            state.plansData = cloudPlans;
+          }
           state.currency = getActivePlan()?.currency || 'EUR';
           localStorage.setItem(STORAGE_KEY, JSON.stringify(state.plansData));
           return;
@@ -270,6 +291,9 @@
   }
 
   function savePlansToStorage() {
+    if (state.plansData) {
+      state.plansData.updatedAt = Date.now();
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.plansData));
     // Only sync to backend cloud database if user is logged in!
     // Guest users keep their modifications 100% private to their own browser localStorage.
@@ -278,7 +302,8 @@
       fetch("/api/plans", {
         method: "POST",
         headers,
-        body: JSON.stringify(state.plansData)
+        body: JSON.stringify(state.plansData),
+        keepalive: true
       }).catch(() => {});
     }
   }
@@ -390,6 +415,48 @@
     document.getElementById("btn-cancel-income-modal").addEventListener("click", closeIncomeModal);
     document.getElementById("btn-save-income-modal").addEventListener("click", saveIncomeFromModal);
 
+    // Add / Edit Expense Stream & Crédits
+    const btnAddExp = document.getElementById("btn-add-expense");
+    if (btnAddExp) btnAddExp.addEventListener("click", () => openExpenseModal(-1));
+    const btnSyncMortExp = document.getElementById("btn-sync-mortgage-expenses");
+    if (btnSyncMortExp) btnSyncMortExp.addEventListener("click", () => {
+      const plan = getActivePlan();
+      syncMortgageToExpenseStreams(plan, true);
+    });
+    const btnCloseExpModal = document.getElementById("btn-close-expense-modal");
+    if (btnCloseExpModal) btnCloseExpModal.addEventListener("click", closeExpenseModal);
+    const btnCancelExpModal = document.getElementById("btn-cancel-expense-modal");
+    if (btnCancelExpModal) btnCancelExpModal.addEventListener("click", closeExpenseModal);
+    const btnSaveExpModal = document.getElementById("btn-save-expense-modal");
+    if (btnSaveExpModal) btnSaveExpModal.addEventListener("click", saveExpenseFromModal);
+
+    // 2-Way Sync between Monthly and Yearly Expense in modal
+    const inpModalExpMonthly = document.getElementById("inp-expense-amount-monthly");
+    const inpModalExpAnnual = document.getElementById("inp-expense-amount");
+    if (inpModalExpMonthly && inpModalExpAnnual) {
+      inpModalExpMonthly.addEventListener("input", () => {
+        const m = Number(inpModalExpMonthly.value) || 0;
+        inpModalExpAnnual.value = m * 12;
+      });
+      inpModalExpAnnual.addEventListener("input", () => {
+        const a = Number(inpModalExpAnnual.value) || 0;
+        inpModalExpMonthly.value = Math.round(a / 12);
+      });
+    }
+
+    // Quick preset buttons in expense modal
+    document.querySelectorAll(".btn-preset-expense").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const name = btn.getAttribute("data-name");
+        const growth = btn.getAttribute("data-growth");
+        const isDebt = btn.getAttribute("data-debt") === "true";
+        if (name) document.getElementById("inp-expense-name").value = name;
+        if (growth !== null) document.getElementById("inp-expense-growth").value = growth;
+        const chkDebt = document.getElementById("inp-expense-is-debt");
+        if (chkDebt) chkDebt.checked = isDebt;
+      });
+    });
+
     // Plan Modal Events
     document.getElementById("btn-close-modal").addEventListener("click", closeModal);
     document.getElementById("btn-cancel-modal").addEventListener("click", closeModal);
@@ -416,10 +483,32 @@
       });
     }
 
+    // Actual Net Worth Modal Events
+    const btnManageActual = document.getElementById("btn-manage-actual-networth");
+    if (btnManageActual) btnManageActual.addEventListener("click", openActualNetWorthModal);
+    const btnCloseActual = document.getElementById("btn-close-actual-modal");
+    if (btnCloseActual) btnCloseActual.addEventListener("click", closeActualNetWorthModal);
+    const btnCloseActualFooter = document.getElementById("btn-close-actual-modal-footer");
+    if (btnCloseActualFooter) btnCloseActualFooter.addEventListener("click", closeActualNetWorthModal);
+    const btnAddActual = document.getElementById("btn-add-actual-record");
+    if (btnAddActual) btnAddActual.addEventListener("click", addActualRecordFromForm);
+    const btnFetchPatrimoine = document.getElementById("btn-fetch-patrimoine-balance");
+    if (btnFetchPatrimoine) btnFetchPatrimoine.addEventListener("click", fetchPatrimoineBalanceForActual);
+
+    const modalActual = document.getElementById("actual-networth-modal");
+    if (modalActual) {
+      modalActual.addEventListener("click", (e) => {
+        if (e.target === modalActual) closeActualNetWorthModal();
+      });
+    }
+
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         if (modalMs && modalMs.style.display === "flex") {
           closeMilestoneModal();
+        }
+        if (modalActual && modalActual.style.display === "flex") {
+          closeActualNetWorthModal();
         }
       }
     });
@@ -554,6 +643,11 @@
 
     if (btnShowFormula) btnShowFormula.addEventListener("click", openFormulaModal);
     if (linkOpenFormulaAlloc) linkOpenFormulaAlloc.addEventListener("click", openFormulaModal);
+    const btnHeaderFormula = document.getElementById("btn-header-formula-guide");
+    if (btnHeaderFormula) btnHeaderFormula.addEventListener("click", openFormulaModal);
+    document.querySelectorAll(".btn-open-formula-modal").forEach(el => {
+      el.addEventListener("click", openFormulaModal);
+    });
     if (btnCloseFormula) btnCloseFormula.addEventListener("click", closeFormulaModal);
     if (btnCloseFormulaFooter) btnCloseFormulaFooter.addEventListener("click", closeFormulaModal);
     if (modalFormula) {
@@ -588,7 +682,12 @@
     bindInput("inp-retire-age", "retirementAge", Number);
     bindInput("inp-life-expectancy", "lifeExpectancy", Number);
     bindInput("inp-inflation", "inflationRate", Number);
-    bindInput("inp-current-savings", "currentSavings", Number);
+    bindInput("inp-current-savings", "currentSavings", val => {
+      if (typeof val === 'number') return isNaN(val) ? 0 : val;
+      const s = String(val).replace(/,/g, '').trim();
+      const n = parseFloat(s);
+      return isNaN(n) ? 0 : n;
+    });
     bindInput("inp-savings-rate", "savingsRate", Number);
 
     // Bidirectional sync: Năm sinh <-> Tuổi hiện tại
@@ -605,6 +704,13 @@
             plan.birthYear = bYear;
             const calculatedAge = currentCalYear - bYear;
             plan.currentAge = calculatedAge;
+            if (Array.isArray(plan.milestones)) {
+              plan.milestones.forEach(m => {
+                if (m.source === 'patrimoine' && m.startYear) {
+                  m.age = m.startYear - bYear;
+                }
+              });
+            }
             if (inpCurrentAge) inpCurrentAge.value = calculatedAge;
             syncSavingsAndExpensesFromRate(plan);
             savePlansToStorage();
@@ -623,6 +729,13 @@
             plan.currentAge = age;
             const calculatedBirthYear = currentCalYear - age;
             plan.birthYear = calculatedBirthYear;
+            if (Array.isArray(plan.milestones)) {
+              plan.milestones.forEach(m => {
+                if (m.source === 'patrimoine' && m.startYear) {
+                  m.age = m.startYear - calculatedBirthYear;
+                }
+              });
+            }
             if (inpBirthYear) inpBirthYear.value = calculatedBirthYear;
             syncSavingsAndExpensesFromRate(plan);
             savePlansToStorage();
@@ -660,15 +773,17 @@
       hintOptimalAge.addEventListener("click", () => {
         const plan = getActivePlan();
         const proj = window.RetirementEngine.runProjection(plan);
-        const optAge = proj.fireAge || 42;
-        plan.retirementAge = optAge;
-        syncSalaryStreamsWithRetireAge(plan);
-        const inp = document.getElementById("inp-retire-age");
-        if (inp) inp.value = optAge;
-        savePlansToStorage();
-        updateAll();
-        if (window.GeminiAdvisor) {
-          window.GeminiAdvisor.updateChartBox("chart-networth", "chart-networth", {}, true);
+        const optAge = proj.optimalFireAge || proj.fireAge;
+        if (optAge) {
+          plan.retirementAge = optAge;
+          syncSalaryStreamsWithRetireAge(plan);
+          const inp = document.getElementById("inp-retire-age");
+          if (inp) inp.value = optAge;
+          savePlansToStorage();
+          updateAll();
+          if (window.GeminiAdvisor) {
+            window.GeminiAdvisor.updateChartBox("chart-networth", "chart-networth", {}, true);
+          }
         }
       });
     }
@@ -752,6 +867,9 @@
     bindInput("inp-target-legacy", "targetLegacy", Number);
     bindInput("inp-effective-tax", "taxRate", Number);
     bindInput("inp-tax-regime", "taxRegime", String);
+    document.getElementById("inp-tax-regime")?.addEventListener("change", (e) => {
+      updateTaxRegimeUI(e.target.value);
+    });
     bindInput("inp-roth-bracket", "rothConversion.targetBracket", Number);
     bindInput("inp-roth-max-annual", "rothConversion.maxAnnualConversion", Number);
     bindInput("inp-gogo-age", "spendingPhases.gogoAge", Number);
@@ -1020,6 +1138,42 @@
       selYears.addEventListener("change", updateBhxhCalc);
       updateBhxhCalc();
     }
+
+
+    // PEA Ticker Copy Chips
+    document.querySelectorAll(".pea-ticker-chip").forEach(chip => {
+      chip.addEventListener("click", async () => {
+        const ticker = chip.getAttribute("data-ticker");
+        if (!ticker) return;
+        try {
+          await navigator.clipboard.writeText(ticker);
+          const oldText = chip.innerHTML;
+          chip.innerHTML = `${ticker} ✓ Đã chép!`;
+          chip.style.borderColor = "#10b981";
+          chip.style.color = "#34d399";
+          setTimeout(() => {
+            chip.innerHTML = oldText;
+            chip.style.borderColor = "";
+            chip.style.color = "";
+          }, 1500);
+        } catch (err) {
+          console.warn("Clipboard copy failed:", err);
+        }
+      });
+    });
+
+    // Quick Jump to PEA Masterclass from other tabs
+    document.querySelectorAll(".btn-goto-pea").forEach(btn => {
+      btn.addEventListener("click", () => {
+        switchTab("tab-taxes");
+        setTimeout(() => {
+          const card = document.getElementById("card-pea-masterclass");
+          if (card) {
+            card.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }, 100);
+      });
+    });
   }
 
   function syncSalaryStreamsWithRetireAge(plan) {
@@ -1103,6 +1257,7 @@
     setVal("inp-retire-age", p.retirementAge);
     syncSalaryStreamsWithRetireAge(p);
     setVal("inp-life-expectancy", p.lifeExpectancy);
+    setVal("inp-current-savings", p.currentSavings !== undefined ? p.currentSavings : 0);
     const annualExp = p.annualExpenses !== undefined ? p.annualExpenses : (state.currency === 'EUR' ? 15000 : state.currency === 'USD' ? 18000 : 240000000);
     const annualSav = Number(p.annualSavings) || 0;
     const annualRetire = Number(p.retirementExpenses) || 0;
@@ -1116,7 +1271,9 @@
     setVal("inp-return-post", p.investmentReturnPost);
     setVal("inp-target-legacy", p.targetLegacy);
     setVal("inp-effective-tax", p.taxRate || 10);
-    setVal("inp-tax-regime", p.taxRegime || "international");
+    const taxRegime = p.taxRegime || "france_vietnam";
+    setVal("inp-tax-regime", taxRegime);
+    updateTaxRegimeUI(taxRegime);
 
     // Location & Franco-Vietnamien PPP
     setVal("sel-retirement-location", p.retirementLocation || "vietnam");
@@ -1212,6 +1369,8 @@
     updateMortgageUI(p);
 
     renderIncomeStreamsList();
+    renderExpenseStreamsList();
+    updateCashflowBalanceUI(p);
   }
 
   function updateAssetAllocationUI(p) {
@@ -1309,6 +1468,30 @@
       badge.style.background = "rgba(255, 255, 255, 0.08)";
       badge.style.color = "#94a3b8";
       if (hint) hint.innerText = "100% tại Pháp: Giữ nguyên mức chi phí sinh hoạt tiêu chuẩn Châu Âu.";
+    }
+  }
+
+  function updateTaxRegimeUI(regime) {
+    const isUS = (regime === "us");
+
+    // Controls: Show US Roth/ACA only when US is selected; show French/VN info otherwise
+    const usControls = document.getElementById("group-us-tax-controls");
+    const frControls = document.getElementById("group-french-tax-controls");
+    if (usControls) usControls.style.display = isUS ? "block" : "none";
+    if (frControls) frControls.style.display = isUS ? "none" : "block";
+
+    // Visualization: Show US Roth Chart & KPIs only for US
+    const rothChart = document.getElementById("card-roth-chart");
+    const usKpis = document.getElementById("grid-us-tax-kpis");
+    const geminiRoth = document.getElementById("gemini-box-chart-tax-optimization");
+    const frAccountsCard = document.getElementById("card-french-accounts");
+
+    if (rothChart) rothChart.style.display = isUS ? "block" : "none";
+    if (usKpis) usKpis.style.display = isUS ? "grid" : "none";
+    if (geminiRoth) geminiRoth.style.display = isUS ? "block" : "none";
+
+    if (frAccountsCard) {
+      frAccountsCard.style.marginTop = isUS ? "1.25rem" : "0";
     }
   }
 
@@ -1494,8 +1677,17 @@
     // LMNP rental income (same rule as the former server-side sync)
     const reIdx = p.incomes.findIndex(inc => (inc.name || '').includes('LMNP') || (inc.name || '').includes('BĐS Cho thuê'));
     if ((summary.total_properties || 0) > 0) {
-      const item = { name: '🏠 BĐS Cho thuê LMNP Pháp', amount: round(summary.total_annual_post_loan_cashflow || 0), startAge: curAge, endAge: 85, growth: 1.5, taxable: false };
-      if (reIdx >= 0) p.incomes[reIdx] = { ...p.incomes[reIdx], ...item }; else p.incomes.push(item);
+      const cashflow = round(summary.total_annual_post_loan_cashflow || 0);
+      if (reIdx >= 0) {
+        // Update cashflow amount while strictly preserving user-configured startAge, endAge and growth
+        p.incomes[reIdx].amount = cashflow;
+        if (p.incomes[reIdx].startAge === undefined || p.incomes[reIdx].startAge === null) p.incomes[reIdx].startAge = curAge;
+        if (p.incomes[reIdx].endAge === undefined || p.incomes[reIdx].endAge === null) p.incomes[reIdx].endAge = 85;
+        if (p.incomes[reIdx].growth === undefined || p.incomes[reIdx].growth === null) p.incomes[reIdx].growth = 1.5;
+        p.incomes[reIdx].taxable = false;
+      } else {
+        p.incomes.push({ name: '🏠 BĐS Cho thuê LMNP Pháp', amount: cashflow, startAge: curAge, endAge: 85, growth: 1.5, taxable: false });
+      }
     } else if (reIdx >= 0) {
       p.incomes.splice(reIdx, 1);
     }
@@ -1504,15 +1696,73 @@
     const turoAnnual = Number(data.turo?.annual_net_cash_flow) || 0;
     const turoIdx = p.incomes.findIndex(inc => (inc.name || '').includes('Turo') || (inc.name || '').includes('Cho thuê xe'));
     if (turoAnnual > 0) {
-      const item = { name: '🚗 Đội xe Cho thuê Turo', amount: round(turoAnnual), startAge: curAge, endAge: Math.min(curAge + 10, retireAge), growth: 0.0, taxable: false };
-      if (turoIdx >= 0) p.incomes[turoIdx] = { ...p.incomes[turoIdx], ...item }; else p.incomes.push(item);
+      const cashflow = round(turoAnnual);
+      if (turoIdx >= 0) {
+        // Update cashflow amount while strictly preserving user-configured startAge, endAge and growth
+        p.incomes[turoIdx].amount = cashflow;
+        if (p.incomes[turoIdx].startAge === undefined || p.incomes[turoIdx].startAge === null) p.incomes[turoIdx].startAge = curAge;
+        if (p.incomes[turoIdx].endAge === undefined || p.incomes[turoIdx].endAge === null) p.incomes[turoIdx].endAge = Math.min(curAge + 10, retireAge);
+        if (p.incomes[turoIdx].growth === undefined || p.incomes[turoIdx].growth === null) p.incomes[turoIdx].growth = 0.0;
+        p.incomes[turoIdx].taxable = false;
+      } else {
+        p.incomes.push({ name: '🚗 Đội xe Cho thuê Turo', amount: cashflow, startAge: curAge, endAge: Math.min(curAge + 10, retireAge), growth: 0.0, taxable: false });
+      }
     } else if (turoIdx >= 0) {
       p.incomes.splice(turoIdx, 1);
+    }
+
+    // Synchronize Apartment Purchase Milestones from Patrimoine into plan.milestones
+    const apts = Array.isArray(data.apartments) ? data.apartments : [];
+    if (apts.length > 0) {
+      if (!Array.isArray(p.milestones)) p.milestones = [];
+      const curYear = new Date().getFullYear();
+      const bYear = Number(p.birthYear) || (curYear - curAge);
+
+      // Remove the old template placeholder 'ms_home' and any previously synced patrimoine milestones
+      p.milestones = p.milestones.filter(m => m.source !== 'patrimoine' && m.id !== 'ms_home');
+
+      apts.forEach((apt, idx) => {
+        const startYr = Number(apt.start_year) || curYear;
+        const buyAge = startYr - bYear;
+        const aptName = apt.name || apt.address || `Căn hộ ${idx + 1}`;
+        const downPaymentEur = Number(apt.down_payment) || Number(apt.down_payment_input) || 0;
+        const downPaymentAmt = round(downPaymentEur);
+        const isFuture = buyAge >= curAge;
+
+        p.milestones.push({
+          id: `ms_patrimoine_${idx}_${startYr}`,
+          name: `Mua ${aptName}`,
+          age: buyAge,
+          startYear: startYr,
+          icon: '🏡',
+          type: 'expense',
+          amount: isFuture ? downPaymentAmt : 0,
+          note: isFuture
+            ? `Vốn tự có: ${window.RetirementEngine.formatCurrency(downPaymentAmt, p.currency || 'EUR')} (Năm ${startYr})`
+            : `Đã mua năm ${startYr} (Vốn tự có ban đầu: ${window.RetirementEngine.formatCurrency(downPaymentAmt, p.currency || 'EUR')})`,
+          enabled: true,
+          color: '#ec4899',
+          source: 'patrimoine',
+          isCustom: true
+        });
+      });
+    }
+
+    // Auto-sync mortgage loans into Expense Streams
+    if (typeof syncMortgageToExpenseStreams === 'function') {
+      syncMortgageToExpenseStreams(p, false);
     }
   }
 
   async function fetchPatrimoineData() {
     try {
+      if (window.PatrimoineApp && typeof window.PatrimoineApp.loadData === "function") {
+        const d = await window.PatrimoineApp.loadData();
+        if (d && (d.apartments || d.summary)) {
+          state.patrimoineData = d;
+          return d;
+        }
+      }
       const headers = window.Auth ? window.Auth.getAuthHeaders() : { "Content-Type": "application/json" };
       const res = await fetch("/api/pylocation/data", { headers });
       if (res.ok) {
@@ -1610,9 +1860,9 @@
     if (hintSrc) {
       if (fromPat) {
         const totalLoan = patLoans.reduce((s, l) => s + l.loanAmount, 0);
-        hintSrc.innerHTML = `✓ Đã lấy <strong>${patLoans.length} khoản vay</strong> từ Gestion de Patrimoine (tổng vay gốc ${window.RetirementEngine.formatCurrency(totalLoan, state.currency)}). Sửa khoản vay ở tab Gestion de Patrimoine.`;
+        hintSrc.innerHTML = `✓ Đã lấy <strong>${patLoans.length} khoản vay</strong> từ Quản Lý Tài Sản (tổng vay gốc ${window.RetirementEngine.formatCurrency(totalLoan, state.currency)}). Sửa khoản vay ở tab Quản Lý Tài Sản.`;
       } else if (usePat) {
-        hintSrc.innerText = "Chưa có căn hộ nào có khoản vay trong Gestion de Patrimoine — đang dùng số liệu nhập tay bên dưới.";
+        hintSrc.innerText = "Chưa có căn hộ nào có khoản vay trong Quản Lý Tài Sản — đang dùng số liệu nhập tay bên dưới.";
       } else {
         hintSrc.innerText = "Đang dùng số liệu nhập tay.";
       }
@@ -1648,11 +1898,233 @@
   }
 
 
+  // -------------------------------------------------------------
+  // Income Streams By Age Periods (Multiple Streams Breakdown)
+  // -------------------------------------------------------------
+  function computeIncomePeriods(plan) {
+    if (!plan) return [];
+    const curAge = Number(plan.currentAge) || 29;
+    const retireAge = Number(plan.retirementAge) || 42;
+    const lifeExp = Number(plan.lifeExpectancy) || 85;
+    const curYear = new Date().getFullYear();
+    const bYear = Number(plan.birthYear) || (curYear - curAge);
+
+    // Filter active streams
+    const streams = [];
+    (plan.incomes || []).forEach(s => {
+      if (s.enabled === false) return;
+      const amt = Number(s.amount) || 0;
+      if (amt <= 0) return;
+      const sAge = Number(s.startAge) || curAge;
+      const isSalary = s.isSalary || (s.name && (/lương|salary|impôt|impot/i).test(s.name));
+      const rawEndAge = isSalary ? (retireAge - 1) : (Number(s.endAge) || retireAge);
+      const eAge = Math.min(lifeExp, rawEndAge);
+      if (sAge <= lifeExp && eAge >= curAge) {
+        streams.push({
+          name: s.name || "Nguồn thu",
+          amount: amt,
+          growth: (s.growth !== undefined && s.growth !== null && !isNaN(Number(s.growth))) ? Number(s.growth) : 0,
+          startAge: Math.max(curAge, sAge),
+          endAge: eAge,
+          isPension: false
+        });
+      }
+    });
+
+    // French Pension / BHXH if configured (matching engine.js Décote & Prorata)
+    const ssAge = Number(plan.socialSecurityAge) || 64;
+    const rawSS = Number(plan.socialSecurityAnnual) || 0;
+    if (rawSS > 0 && ssAge <= lifeExp) {
+      let ssAmt = rawSS;
+      if (plan.enableFrenchDecote !== false) {
+        const startWorkAge = Number(plan.startWorkAge) || 24;
+        const yearsWorked = Math.max(0, Math.min(retireAge, ssAge) - startWorkAge);
+        const quarters = yearsWorked * 4;
+        const targetQuarters = 172; // Standard 43 years in France (Taux Plein)
+        const missingQuarters = Math.max(0, targetQuarters - quarters);
+        const prorata = Math.min(1.0, quarters / targetQuarters);
+        const decotePenalty = (ssAge < 67 && missingQuarters > 0) ? Math.min(20, missingQuarters) * 0.0125 : 0;
+        ssAmt = Math.round(rawSS * prorata * (1.0 - decotePenalty));
+      }
+      streams.push({
+        name: "Lương hưu / BHXH",
+        amount: ssAmt,
+        growth: 0,
+        startAge: Math.max(curAge, ssAge),
+        endAge: lifeExp,
+        isPension: true
+      });
+    }
+
+    if (streams.length === 0) return [];
+
+    // Collect all boundary ages
+    const boundaries = new Set();
+    boundaries.add(curAge);
+    boundaries.add(lifeExp + 1);
+
+    streams.forEach(s => {
+      if (s.startAge >= curAge && s.startAge <= lifeExp) boundaries.add(s.startAge);
+      if (s.endAge + 1 >= curAge && s.endAge + 1 <= lifeExp + 1) boundaries.add(s.endAge + 1);
+    });
+
+    if (retireAge > curAge && retireAge <= lifeExp) {
+      boundaries.add(retireAge);
+    }
+
+    const sortedAges = Array.from(boundaries).sort((a, b) => a - b);
+    const rawPeriods = [];
+
+    for (let i = 0; i < sortedAges.length - 1; i++) {
+      const pStart = sortedAges[i];
+      const pEnd = sortedAges[i + 1] - 1;
+      if (pStart > pEnd) continue;
+
+      const activeStreams = streams.filter(s => s.startAge <= pStart && s.endAge >= pEnd);
+
+      let totalAnnualStart = 0;
+      let totalAnnualEnd = 0;
+      const streamBreakdown = [];
+
+      activeStreams.forEach(s => {
+        const streamGrowth = (s.growth || 0) / 100.0;
+        const yearsActiveStart = Math.max(0, pStart - s.startAge);
+        const yearsActiveEnd = Math.max(0, pEnd - s.startAge);
+        const annualValStart = Math.round(s.amount * Math.pow(1.0 + streamGrowth, yearsActiveStart));
+        const annualValEnd = Math.round(s.amount * Math.pow(1.0 + streamGrowth, yearsActiveEnd));
+        totalAnnualStart += annualValStart;
+        totalAnnualEnd += annualValEnd;
+        streamBreakdown.push({
+          name: s.name,
+          annual: annualValStart,
+          annualEnd: annualValEnd,
+          monthly: Math.round(annualValStart / 12),
+          monthlyEnd: Math.round(annualValEnd / 12)
+        });
+      });
+
+      const isRetirePeriod = pStart >= retireAge;
+      const phaseLabel = isRetirePeriod ? "Hưu trí (FIRE)" : "Tích lũy";
+
+      rawPeriods.push({
+        startAge: pStart,
+        endAge: pEnd,
+        startYear: bYear + pStart,
+        endYear: bYear + pEnd,
+        phaseLabel,
+        isRetirePeriod,
+        totalAnnual: totalAnnualStart,
+        totalAnnualEnd: totalAnnualEnd,
+        totalMonthly: Math.round(totalAnnualStart / 12),
+        totalMonthlyEnd: Math.round(totalAnnualEnd / 12),
+        streams: streamBreakdown
+      });
+    }
+
+    // Merge adjacent periods if identical streams and amounts
+    const merged = [];
+    rawPeriods.forEach(p => {
+      if (merged.length > 0) {
+        const prev = merged[merged.length - 1];
+        const prevStreamsKey = prev.streams.map(s => s.name).sort().join("|");
+        const currStreamsKey = p.streams.map(s => s.name).sort().join("|");
+        if (prevStreamsKey === currStreamsKey && prev.isRetirePeriod === p.isRetirePeriod && prev.totalMonthly === p.totalMonthly && prev.totalMonthlyEnd === p.totalMonthlyEnd) {
+          prev.endAge = p.endAge;
+          prev.endYear = p.endYear;
+          return;
+        }
+      }
+      merged.push(p);
+    });
+
+    return merged;
+  }
+
+  function renderIncomePeriodsSummary(plan) {
+    const container = document.getElementById("income-periods-container");
+    const countEl = document.getElementById("income-periods-count");
+    if (!container) return;
+
+    if (!plan) plan = getActivePlan();
+    const periods = computeIncomePeriods(plan);
+
+    if (countEl) countEl.innerText = `${periods.length} giai đoạn`;
+
+    if (periods.length === 0) {
+      container.innerHTML = `
+        <div style="font-size:0.75rem; color:var(--text-faint); padding:0.35rem 0; text-align:center;">
+          Chưa có nguồn thu nào để tổng hợp giai đoạn tuổi.
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = periods.map(p => {
+      const isZero = p.totalMonthly === 0;
+      const borderColor = p.isRetirePeriod ? '#a855f7' : '#10b981';
+      const badgeBg = p.isRetirePeriod ? 'rgba(168, 85, 247, 0.15)' : 'rgba(16, 185, 129, 0.15)';
+      const badgeColor = p.isRetirePeriod ? '#c084fc' : '#34d399';
+      const phaseIcon = p.isRetirePeriod ? '🏖️' : '💼';
+
+      const hasGrowth = p.totalAnnual !== p.totalAnnualEnd;
+      const monthlyStr = hasGrowth
+        ? `+${window.RetirementEngine.formatCurrency(p.totalMonthly, state.currency)} ➔ ${window.RetirementEngine.formatCurrency(p.totalMonthlyEnd, state.currency)}/tháng`
+        : `+${window.RetirementEngine.formatCurrency(p.totalMonthly, state.currency)}/tháng`;
+      const annualStr = hasGrowth
+        ? `≈ ${window.RetirementEngine.formatCurrency(p.totalAnnual, state.currency)} ➔ ${window.RetirementEngine.formatCurrency(p.totalAnnualEnd, state.currency)}/năm`
+        : `≈ ${window.RetirementEngine.formatCurrency(p.totalAnnual, state.currency)}/năm`;
+
+      const streamsHtml = p.streams.length > 0
+        ? p.streams.map(s => {
+            const sGrowth = s.annual !== s.annualEnd;
+            const sText = sGrowth
+              ? `+${window.RetirementEngine.formatCurrency(s.monthly, state.currency)} ➔ ${window.RetirementEngine.formatCurrency(s.monthlyEnd, state.currency)}/tháng`
+              : `+${window.RetirementEngine.formatCurrency(s.monthly, state.currency)}/tháng`;
+            return `
+              <span style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-subtle); padding: 1px 6px; border-radius: 4px; font-size: 0.72rem; color: var(--text-main);">
+                ${escapeHtml(s.name)}: <strong>${sText}</strong>
+              </span>
+            `;
+          }).join("")
+        : `<span style="font-size: 0.72rem; color: var(--text-faint); font-style: italic;">Chỉ chi tiêu từ tài sản tích lũy (Không có thu nhập chủ động)</span>`;
+
+      return `
+        <div class="income-period-card" style="background: rgba(15, 23, 42, 0.65); border: 1px solid var(--border-subtle); border-left: 3px solid ${borderColor}; border-radius: 6px; padding: 0.55rem 0.75rem; display: flex; flex-direction: column; gap: 0.4rem;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+              <span class="badge" style="background: ${badgeBg}; color: ${badgeColor}; font-weight: 700; font-size: 0.76rem; padding: 0.15rem 0.5rem; border-radius: 4px;">
+                ${p.startAge} – ${p.endAge} tuổi
+              </span>
+              <span style="font-size: 0.72rem; color: var(--text-muted);">
+                (${p.startYear} – ${p.endYear})
+              </span>
+              <span class="badge" style="background: rgba(255,255,255,0.06); color: var(--text-muted); font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 3px;">
+                ${phaseIcon} ${p.phaseLabel}
+              </span>
+            </div>
+            <div style="text-align: right; margin-left: auto;">
+              <span class="font-mono" style="font-size: 0.95rem; font-weight: 800; color: ${isZero ? 'var(--text-faint)' : '#10b981'};">
+                ${isZero ? '0' : monthlyStr}
+              </span>
+              <span style="font-size: 0.72rem; color: var(--text-faint); display: block;">
+                ${annualStr}
+              </span>
+            </div>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; border-top: 1px dashed rgba(255,255,255,0.07); padding-top: 0.35rem;">
+            ${streamsHtml}
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
   function renderIncomeStreamsList() {
     const container = document.getElementById("income-streams-container");
     container.innerHTML = "";
     const p = getActivePlan();
     if (!Array.isArray(p.incomes)) p.incomes = [];
+
+    renderIncomePeriodsSummary(p);
 
     if (p.incomes.length === 0) {
       container.innerHTML = `<div style="font-size:0.78rem;color:var(--text-faint);padding:0.5rem 0;">Chưa có nguồn thu nào. Bấm "+ Thêm nguồn thu" để thêm.</div>`;
@@ -1736,117 +2208,514 @@
     return total;
   }
 
-  function syncSavingsAndExpensesFromRate(plan) {
+  // -------------------------------------------------------------
+  // Live Cashflow Balance & Expense Streams Management
+  // -------------------------------------------------------------
+  function ensureDefaultExpenseStreams(plan) {
+    if (!plan) return;
+    if (Array.isArray(plan.expenses) && plan.expenses.length > 0) return;
+
+    plan.expenses = [];
+    const curAge = Number(plan.currentAge) || 29;
+    const cur = state.currency || plan.currency || 'EUR';
+
+    // 1. Check if we have mortgage loans from Patrimoine
+    let hasPatLoans = false;
+    try {
+      const patLoans = buildPatrimoineLoans(plan);
+      if (patLoans && patLoans.length > 0) {
+        hasPatLoans = true;
+        const sched = window.RetirementEngine.calculateMortgageSchedule({ source: 'patrimoine', loans: patLoans }, curAge, plan.lifeExpectancy || 85);
+        patLoans.forEach((loan, idx) => {
+          const part = sched?.parts ? sched.parts[idx] : null;
+          const row = part ? part.schedule[curAge] : null;
+          const mPmt = row && row.active ? row.monthlyPayment : Math.round(loan.loanAmount * 0.055 / 12);
+          const endAge = (Number(loan.startAge) || curAge) + (Number(loan.loanTermYears) || 20);
+          plan.expenses.push({
+            name: `🏦 Trả nợ Crédit: ${loan.name || 'Căn hộ LMNP'}`,
+            amount: mPmt * 12,
+            startAge: Number(loan.startAge) || curAge,
+            endAge: endAge,
+            growth: 0.0,
+            isDebt: true,
+            enabled: true
+          });
+        });
+      }
+    } catch (e) {
+      console.warn("Could not load default patrimoine loans for expenses:", e);
+    }
+
+    // If no patrimoine loans, add sample crédit if plan had significant expenses
+    if (!hasPatLoans) {
+      const defaultLoanAmt = cur === 'EUR' ? 570 : (cur === 'USD' ? 650 : 12000000);
+      plan.expenses.push({
+        name: '🏦 Trả góp Crédit Ngân Hàng',
+        amount: defaultLoanAmt * 12,
+        startAge: curAge,
+        endAge: curAge + 17, // 17 years left
+        growth: 0.0,
+        isDebt: true,
+        enabled: true
+      });
+    }
+
+    // 2. Add base living expenses
+    const defaultLiving = cur === 'EUR' ? 1200 : (cur === 'USD' ? 1350 : 25000000);
+    plan.expenses.unshift({
+      name: '🛒 Chi tiêu sinh hoạt & Tiện ích',
+      amount: defaultLiving * 12,
+      startAge: curAge,
+      endAge: Number(plan.lifeExpectancy) || 85,
+      growth: 2.0,
+      isDebt: false,
+      enabled: true
+    });
+  }
+
+  function getActiveExpensesAtAge(plan, age) {
+    if (!plan) return 0;
+    ensureDefaultExpenseStreams(plan);
+    if (!Array.isArray(plan.expenses)) return Number(plan.annualExpenses) || 0;
+    let total = 0;
+    plan.expenses.forEach(e => {
+      if (e.enabled === false) return;
+      const start = (e.startAge !== undefined && e.startAge !== null && !isNaN(Number(e.startAge))) ? Number(e.startAge) : (plan.currentAge || 29);
+      const end = (e.endAge !== undefined && e.endAge !== null && !isNaN(Number(e.endAge))) ? Number(e.endAge) : 85;
+      if (age >= start && age <= end) {
+        const growth = (Number(e.growth) || 0) / 100.0;
+        const years = age - start;
+        total += (Number(e.amount) || 0) * Math.pow(1.0 + growth, years);
+      }
+    });
+    return total;
+  }
+
+  function updateCashflowBalanceUI(plan) {
+    if (!plan) plan = getActivePlan();
     if (!plan) return;
     const currentAge = Number(plan.currentAge) || 29;
     const grossIncome = getActiveIncomeAtAge(plan, currentAge);
-    const rate = Number(plan.savingsRate) > 0 ? Number(plan.savingsRate) : 33.33;
-    plan.savingsRate = rate;
 
-    let availableIncome = grossIncome;
+    // Tax estimation
+    let estTax = 0;
     if (grossIncome > 0) {
-      let estTax = 0;
       if (window.TaxOptimizer && window.TaxOptimizer.calculateProgressiveTax) {
         estTax = window.TaxOptimizer.calculateProgressiveTax(grossIncome, plan.taxRegime || 'france_vietnam');
       } else {
         estTax = grossIncome * ((Number(plan.taxRate) || 12) / 100.0) * 0.7;
       }
-      availableIncome = Math.max(0, grossIncome - estTax);
-      
-      const newSavings = Math.round(availableIncome * (rate / 100.0));
-      const newExpenses = Math.round(availableIncome * (1.0 - (rate / 100.0)));
-      plan.annualSavings = newSavings;
-      plan.annualExpenses = newExpenses;
+    }
+    const netIncome = Math.max(0, grossIncome - estTax);
 
-      setVal("inp-monthly-savings", Math.round(newSavings / 12));
-      setVal("inp-monthly-expenses", Math.round(newExpenses / 12));
-      updateExpenseSavingsHints(plan);
-    } else {
-      plan.annualSavings = 0;
-      setVal("inp-monthly-savings", 0);
-      updateExpenseSavingsHints(plan);
+    ensureDefaultExpenseStreams(plan);
+    const activeExpenses = getActiveExpensesAtAge(plan, currentAge);
+    const netSavings = netIncome - activeExpenses;
+    const actualSavingsRate = netIncome > 0 ? Math.max(0, Math.min(100, (netSavings / netIncome) * 100)) : 0;
+    const expenseRate = netIncome > 0 ? Math.max(0, Math.min(100, (activeExpenses / netIncome) * 100)) : 100;
+
+    plan.annualExpenses = Math.round(activeExpenses);
+    plan.annualSavings = Math.round(Math.max(0, netSavings));
+    plan.savingsRate = Math.round(actualSavingsRate * 10) / 10;
+
+    // Format helper
+    const cur = state.currency;
+    const fmt = (v) => window.RetirementEngine.formatCurrency(v, cur);
+    const monthlyNetIncome = Math.round(netIncome / 12);
+    const monthlyExp = Math.round(activeExpenses / 12);
+    const monthlySav = Math.round(netSavings / 12);
+
+    // Update DOM
+    const valIncome = document.getElementById("cf-val-income");
+    const subIncome = document.getElementById("cf-sub-income");
+    const valExp = document.getElementById("cf-val-expense");
+    const subExp = document.getElementById("cf-sub-expense");
+    const valSav = document.getElementById("cf-val-savings");
+    const subSav = document.getElementById("cf-sub-savings");
+    const barExp = document.getElementById("cf-bar-expense");
+    const barSav = document.getElementById("cf-bar-savings");
+    const lblExpPct = document.getElementById("cf-lbl-expense-pct");
+    const lblSavPct = document.getElementById("cf-lbl-savings-pct");
+    const lblSavingsRate = document.getElementById("lbl-savings-rate");
+
+    if (valIncome) valIncome.innerText = fmt(monthlyNetIncome);
+    if (subIncome) subIncome.innerText = `≈ ${fmt(netIncome)}/năm`;
+    if (valExp) valExp.innerText = fmt(monthlyExp);
+    if (subExp) subExp.innerText = `≈ ${fmt(activeExpenses)}/năm`;
+
+    if (valSav) {
+      if (monthlySav >= 0) {
+        valSav.innerText = fmt(monthlySav);
+        valSav.style.color = "#10b981";
+      } else {
+        valSav.innerText = `-${fmt(Math.abs(monthlySav))}`;
+        valSav.style.color = "#ef4444";
+      }
+    }
+    if (subSav) {
+      subSav.innerText = monthlySav >= 0 
+        ? `≈ ${fmt(netSavings)}/năm • Tỷ lệ ${plan.savingsRate}%` 
+        : `Thâm hụt • -${fmt(Math.abs(netSavings))}/năm`;
     }
 
-    updateSavingsRateUI(rate);
+    if (barExp) barExp.style.width = `${Math.min(100, Math.max(0, expenseRate))}%`;
+    if (barSav) barSav.style.width = `${Math.min(100, Math.max(0, actualSavingsRate))}%`;
+    if (lblExpPct) lblExpPct.innerText = `Chi tiêu & Nợ: ${expenseRate.toFixed(1)}%`;
+    if (lblSavPct) lblSavPct.innerText = `Tiết kiệm ròng: ${actualSavingsRate.toFixed(1)}%`;
+
+    if (lblSavingsRate) {
+      if (monthlySav >= 0) {
+        lblSavingsRate.innerText = `Tích lũy: ${plan.savingsRate}%`;
+        lblSavingsRate.style.background = "rgba(16, 185, 129, 0.18)";
+        lblSavingsRate.style.color = "#34d399";
+      } else {
+        lblSavingsRate.innerText = `Thâm hụt: -${Math.abs(plan.savingsRate)}%`;
+        lblSavingsRate.style.background = "rgba(239, 68, 68, 0.18)";
+        lblSavingsRate.style.color = "#f87171";
+      }
+    }
+
+    // Sync hidden elements for legacy compat
+    setVal("inp-savings-rate", plan.savingsRate);
+    setVal("inp-monthly-expenses", monthlyExp);
+    setVal("inp-monthly-savings", Math.max(0, monthlySav));
+
+    // Update KPI Header Badge
+    const kpiRate = document.getElementById("kpi-savings-rate");
+    if (kpiRate) {
+      kpiRate.innerHTML = `Tỷ lệ tiết kiệm: <strong>${plan.savingsRate}%</strong> (${fmt(Math.max(0, monthlySav))}/tháng)`;
+    }
   }
 
-  function updateExpenseSavingsHints(plan) {
-    if (!plan) return;
-    const hintExp = document.getElementById("hint-annual-expenses");
-    const hintSav = document.getElementById("hint-annual-savings");
-    const hintRet = document.getElementById("hint-retire-expenses");
-
-    const rate = Number(plan.savingsRate) > 0 ? Number(plan.savingsRate) : 33.33;
-    let fracText = "";
-    let expFracText = "";
-    if (Math.abs(rate - 33.33) < 1 || Math.abs(rate - 33) < 1) {
-      fracText = "1/3 thu nhập";
-      expFracText = "2/3 thu nhập";
-    } else if (Math.abs(rate - 25) < 1) {
-      fracText = "1/4 thu nhập";
-      expFracText = "3/4 thu nhập";
-    } else if (Math.abs(rate - 50) < 1) {
-      fracText = "1/2 thu nhập";
-      expFracText = "1/2 thu nhập";
-    } else if (Math.abs(rate - 66.67) < 1 || Math.abs(rate - 67) < 1) {
-      fracText = "2/3 thu nhập";
-      expFracText = "1/3 thu nhập";
-    }
-
-    const annualExpFormatted = window.RetirementEngine.formatCurrency(plan.annualExpenses, state.currency);
-    const annualSavFormatted = window.RetirementEngine.formatCurrency(plan.annualSavings, state.currency);
-    const annualRetFormatted = window.RetirementEngine.formatCurrency(plan.retirementExpenses, state.currency);
-
-    if (hintExp) {
-      hintExp.innerText = `≈ ${annualExpFormatted}/năm` + (expFracText ? ` • ${expFracText}` : "");
-    }
-    if (hintSav) {
-      hintSav.innerText = `≈ ${annualSavFormatted}/năm` + (fracText ? ` • ${fracText}` : "");
-    }
-    if (hintRet) {
-      let geoNote = "";
-      if (state.currency === "EUR") {
-        const vndEquivalentMonth = Math.round((Number(plan.retirementExpenses) * 27500 / 12) / 1000000);
-        geoNote = ` • khoảng ${vndEquivalentMonth} triệu ₫/tháng tại VN`;
-      } else if (state.currency === "VND") {
-        const eurEquivalentMonth = Math.round((Number(plan.retirementExpenses) / 27500 / 12));
-        geoNote = ` • tương đương ~${eurEquivalentMonth} €/tháng`;
-      }
-      hintRet.innerText = `≈ ${annualRetFormatted}/năm${geoNote}`;
-    }
+  // Alias for backward compatibility
+  function syncSavingsAndExpensesFromRate(plan) {
+    updateCashflowBalanceUI(plan);
   }
 
   function updateSavingsRateUI(rate) {
-    const slider = document.getElementById("inp-savings-rate");
-    const lbl = document.getElementById("lbl-savings-rate");
-    const kpiRate = document.getElementById("kpi-savings-rate");
+    const plan = getActivePlan();
+    if (plan) updateCashflowBalanceUI(plan);
+  }
 
-    if (slider) slider.value = rate;
+  function updateExpenseSavingsHints(plan) {
+    // Left for backward compatibility; replaced by Live Cashflow Balance cards
+  }
 
-    let fracText = "";
-    if (Math.abs(rate - 33.33) < 1 || Math.abs(rate - 33) < 1) {
-      fracText = "1/3 Thu nhập";
-    } else if (Math.abs(rate - 25) < 1) {
-      fracText = "1/4 Thu nhập";
-    } else if (Math.abs(rate - 50) < 1) {
-      fracText = "1/2 Thu nhập";
-    } else if (Math.abs(rate - 66.67) < 1 || Math.abs(rate - 67) < 1) {
-      fracText = "2/3 Thu nhập";
+  function renderExpensePeriodsSummary(plan) {
+    const box = document.getElementById("expense-periods-box");
+    const container = document.getElementById("expense-periods-container");
+    const countEl = document.getElementById("expense-periods-count");
+    if (!container || !box) return;
+
+    if (!Array.isArray(plan.expenses) || plan.expenses.length === 0) {
+      box.style.display = "none";
+      return;
     }
 
-    if (lbl) {
-      lbl.innerText = `${rate.toFixed(1)}%` + (fracText ? ` (${fracText})` : "");
-    }
-    if (kpiRate) {
-      const plan = getActivePlan();
-      const monthlySav = Math.round((Number(plan.annualSavings) || 0) / 12);
-      kpiRate.innerHTML = `Tỷ lệ tiết kiệm: <strong>${rate.toFixed(1)}%</strong> (${window.RetirementEngine.formatCurrency(monthlySav, state.currency)}/tháng)`;
-    }
+    const curAge = Number(plan.currentAge) || 29;
+    const maxAge = Number(plan.lifeExpectancy) || 85;
 
-    document.querySelectorAll(".btn-ratio").forEach(btn => {
-      const btnRatio = Number(btn.getAttribute("data-ratio"));
-      btn.classList.toggle("active", Math.abs(btnRatio - rate) < 1);
+    // Collect all transition ages
+    const ageSet = new Set([curAge, maxAge]);
+    plan.expenses.forEach(e => {
+      if (e.enabled === false) return;
+      const s = Number(e.startAge) || curAge;
+      const end = Number(e.endAge) || maxAge;
+      if (s >= curAge && s <= maxAge) ageSet.add(s);
+      if (end >= curAge && end < maxAge) ageSet.add(end + 1);
     });
+
+    const ages = Array.from(ageSet).sort((a, b) => a - b);
+    if (ages.length <= 1) {
+      box.style.display = "none";
+      return;
+    }
+
+    box.style.display = "block";
+    container.innerHTML = "";
+    const cur = state.currency;
+    const fmt = (v) => window.RetirementEngine.formatCurrency(v, cur);
+
+    let periodCount = 0;
+    for (let i = 0; i < ages.length - 1; i++) {
+      const fromAge = ages[i];
+      const toAge = ages[i + 1] - 1;
+      if (fromAge > toAge) continue;
+
+      periodCount++;
+      const sampleAge = fromAge;
+      let livingTotal = 0;
+      let debtTotal = 0;
+
+      plan.expenses.forEach(e => {
+        if (e.enabled === false) return;
+        const s = Number(e.startAge) || curAge;
+        const end = Number(e.endAge) || maxAge;
+        if (sampleAge >= s && sampleAge <= end) {
+          const g = (Number(e.growth) || 0) / 100.0;
+          const val = (Number(e.amount) || 0) * Math.pow(1.0 + g, sampleAge - s);
+          const isDebt = e.isDebt === true || (/crédit|credit|vay|nợ|loan|prêt|pret|ngân hàng/i).test(e.name || '');
+          if (isDebt) debtTotal += val;
+          else livingTotal += val;
+        }
+      });
+
+      const totalVal = livingTotal + debtTotal;
+      const isCurrent = (curAge >= fromAge && curAge <= toAge);
+
+      const pEl = document.createElement("div");
+      pEl.className = "expense-period-row";
+      pEl.style.cssText = `
+        display: flex; justify-content: space-between; align-items: center;
+        background: ${isCurrent ? 'rgba(244, 63, 94, 0.12)' : 'rgba(255, 255, 255, 0.03)'};
+        border: 1px solid ${isCurrent ? 'rgba(244, 63, 94, 0.35)' : 'rgba(255, 255, 255, 0.06)'};
+        border-radius: 6px; padding: 0.45rem 0.65rem; font-size: 0.76rem;
+      `;
+
+      let note = "";
+      if (debtTotal > 0) {
+        note = `Gồm ${fmt(Math.round(debtTotal / 12))}/tháng nợ crédit`;
+      } else {
+        note = `✓ Đã tất toán sạch nợ ngân hàng`;
+      }
+
+      pEl.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.45rem;">
+          <span style="font-weight: 700; color: ${isCurrent ? '#fb7185' : 'var(--text-main)'};">
+            ${fromAge} – ${toAge} tuổi ${isCurrent ? '<span style="font-size:0.65rem; background:rgba(244, 63, 94, 0.2); color:#fb7185; padding:1px 5px; border-radius:3px; margin-left:3px;">Hiện tại</span>' : ''}
+          </span>
+          <span style="color: ${debtTotal > 0 ? 'var(--text-muted)' : '#34d399'}; font-size: 0.7rem;">(${note})</span>
+        </div>
+        <div style="text-align: right;">
+          <span style="font-weight: 700; color: #f43f5e; font-family: var(--font-mono);">${fmt(Math.round(totalVal / 12))}<small style="font-size:0.68rem; color:var(--text-muted);">/tháng</small></span>
+          <span style="display: block; font-size: 0.66rem; color: var(--text-faint);">≈ ${fmt(Math.round(totalVal))}/năm</span>
+        </div>
+      `;
+      container.appendChild(pEl);
+    }
+
+    if (countEl) countEl.innerText = `${periodCount} giai đoạn`;
+  }
+
+  function renderExpenseStreamsList() {
+    const container = document.getElementById("expense-streams-container");
+    if (!container) return;
+    container.innerHTML = "";
+    const p = getActivePlan();
+    ensureDefaultExpenseStreams(p);
+
+    renderExpensePeriodsSummary(p);
+
+    if (!Array.isArray(p.expenses) || p.expenses.length === 0) {
+      container.innerHTML = `<div style="font-size:0.78rem;color:var(--text-faint);padding:0.5rem 0;">Chưa có khoản chi nào. Bấm "+ Thêm khoản chi" hoặc "🔗 Lấy Nợ BĐS" để thêm.</div>`;
+      return;
+    }
+
+    const cur = state.currency;
+    const fmt = (v) => window.RetirementEngine.formatCurrency(v, cur);
+
+    p.expenses.forEach((stream, idx) => {
+      const item = document.createElement("div");
+      item.className = "expense-item";
+      const isDebt = stream.isDebt === true || (/crédit|credit|vay|nợ|loan|prêt|pret|ngân hàng/i).test(stream.name || '');
+      const badgeDebtHtml = isDebt ? `<span class="debt-badge">🏦 Nợ Vay / Crédit</span>` : '';
+      const monthlyAmt = Math.round(Number(stream.amount) / 12);
+
+      item.innerHTML = `
+        <div class="expense-item-header">
+          <div class="expense-item-name">
+            <span>${stream.name}</span>
+            ${badgeDebtHtml}
+          </div>
+          <div class="income-item-actions">
+            <button type="button" class="income-item-btn expense-item-edit" data-idx="${idx}" title="Chỉnh sửa khoản chi">✏️ Sửa</button>
+            <button type="button" class="income-item-btn income-item-del expense-item-del" data-idx="${idx}" title="Xóa khoản chi">🗑️</button>
+          </div>
+        </div>
+        <div class="expense-item-body">
+          <div class="income-item-amounts">
+            <span class="expense-amount-monthly">${fmt(monthlyAmt)}<small>/tháng</small></span>
+            <span class="expense-amount-annual">≈ ${fmt(stream.amount)}/năm</span>
+          </div>
+          <div class="expense-item-timing" style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem;">
+            <span class="income-age-range">${stream.startAge} - ${stream.endAge} tuổi</span>
+            <span class="expense-growth-badge">${Number(stream.growth) === 0 ? 'Lãi cố định 0%/năm' : `+${stream.growth}%/năm`}</span>
+          </div>
+        </div>
+      `;
+      container.appendChild(item);
+    });
+
+    container.querySelectorAll(".expense-item-edit").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const idx = Number(btn.getAttribute("data-idx"));
+        openExpenseModal(idx);
+      });
+    });
+
+    container.querySelectorAll(".expense-item-del").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const idx = Number(btn.getAttribute("data-idx"));
+        const plan = getActivePlan();
+        const stream = plan.expenses[idx];
+        const streamName = stream?.name || "khoản chi này";
+        const amtStr = fmt(stream?.amount || 0);
+
+        showConfirmDialog({
+          icon: "🗑️",
+          title: "Xác nhận xóa khoản chi",
+          message: `Bạn có chắc chắn muốn xóa <strong>"${streamName}"</strong> (${amtStr}/năm)?<br><span style="font-size:0.75rem; color:var(--text-faint); margin-top:6px; display:inline-block;">Các chỉ số chi tiêu, tiết kiệm ròng và FIRE sẽ được cập nhật tự động.</span>`,
+          confirmText: "🗑️ Xóa khoản chi",
+          onConfirm: () => {
+            plan.expenses.splice(idx, 1);
+            savePlansToStorage();
+            renderExpenseStreamsList();
+            updateCashflowBalanceUI(plan);
+            updateAll();
+          }
+        });
+      });
+    });
+  }
+
+  function openExpenseModal(idx = -1) {
+    const plan = getActivePlan();
+    const modal = document.getElementById("expense-modal");
+    const title = document.getElementById("expense-modal-title");
+    const curSymbol = window.RetirementEngine.getCurrencySymbol(state.currency);
+    const unit = document.getElementById("modal-expense-unit");
+    const unitMonthly = document.getElementById("modal-expense-unit-monthly");
+    if (unit) unit.innerText = curSymbol;
+    if (unitMonthly) unitMonthly.innerText = curSymbol;
+
+    document.getElementById("inp-expense-idx").value = idx;
+
+    if (idx >= 0 && plan.expenses && plan.expenses[idx]) {
+      const exp = plan.expenses[idx];
+      title.innerHTML = `<span>✏️</span> Chỉnh Sửa: ${exp.name}`;
+      document.getElementById("inp-expense-name").value = exp.name;
+      document.getElementById("inp-expense-amount").value = exp.amount;
+      document.getElementById("inp-expense-amount-monthly").value = Math.round(Number(exp.amount) / 12);
+      document.getElementById("inp-expense-start").value = exp.startAge;
+      document.getElementById("inp-expense-end").value = exp.endAge;
+      document.getElementById("inp-expense-growth").value = exp.growth !== undefined ? exp.growth : 0;
+      const chkDebt = document.getElementById("inp-expense-is-debt");
+      if (chkDebt) chkDebt.checked = exp.isDebt !== false;
+    } else {
+      title.innerHTML = `<span>➕</span> Thêm Khoản Chi / Nợ Vay Mới`;
+      document.getElementById("inp-expense-name").value = "";
+      const defaultMonthly = state.currency === 'EUR' ? 600 : (state.currency === 'USD' ? 700 : 15000000);
+      document.getElementById("inp-expense-amount-monthly").value = defaultMonthly;
+      document.getElementById("inp-expense-amount").value = defaultMonthly * 12;
+      document.getElementById("inp-expense-start").value = plan.currentAge || 29;
+      document.getElementById("inp-expense-end").value = (plan.currentAge || 29) + 20;
+      document.getElementById("inp-expense-growth").value = 0.0;
+      const chkDebt = document.getElementById("inp-expense-is-debt");
+      if (chkDebt) chkDebt.checked = true;
+    }
+
+    modal.style.display = "flex";
+  }
+
+  function closeExpenseModal() {
+    const modal = document.getElementById("expense-modal");
+    if (modal) modal.style.display = "none";
+  }
+
+  function saveExpenseFromModal() {
+    const idx = Number(document.getElementById("inp-expense-idx").value);
+    const name = document.getElementById("inp-expense-name").value.trim();
+    if (!name) {
+      alert("Vui lòng nhập tên khoản chi hoặc nợ vay!");
+      return;
+    }
+
+    const annualVal = Number(document.getElementById("inp-expense-amount").value);
+    const monthlyVal = Number(document.getElementById("inp-expense-amount-monthly").value);
+    const amount = annualVal || (monthlyVal * 12) || 0;
+    const plan = getActivePlan();
+    const rawStart = document.getElementById("inp-expense-start").value;
+    const startAge = (rawStart !== "" && !isNaN(Number(rawStart))) ? Number(rawStart) : (plan.currentAge || 29);
+    const endAge = Number(document.getElementById("inp-expense-end").value) || 85;
+    const growth = Number(document.getElementById("inp-expense-growth").value) || 0;
+    const isDebt = document.getElementById("inp-expense-is-debt")?.checked ?? false;
+
+    if (!Array.isArray(plan.expenses)) plan.expenses = [];
+
+    const expData = {
+      name,
+      amount,
+      startAge,
+      endAge,
+      growth,
+      isDebt,
+      enabled: true
+    };
+
+    if (idx >= 0 && idx < plan.expenses.length) {
+      plan.expenses[idx] = expData;
+    } else {
+      plan.expenses.push(expData);
+    }
+
+    savePlansToStorage();
+    closeExpenseModal();
+    renderExpenseStreamsList();
+    updateCashflowBalanceUI(plan);
+    updateAll();
+  }
+
+  function syncMortgageToExpenseStreams(plan, showToastMsg = true) {
+    if (!plan) plan = getActivePlan();
+    const patLoans = buildPatrimoineLoans(plan);
+    if (!patLoans || patLoans.length === 0) {
+      if (showToastMsg) alert("Không tìm thấy khoản vay BĐS nào trong Quản Lý Tài Sản để đồng bộ!");
+      return;
+    }
+
+    if (!Array.isArray(plan.expenses)) plan.expenses = [];
+    const curAge = Number(plan.currentAge) || 29;
+    const sched = window.RetirementEngine.calculateMortgageSchedule({ source: 'patrimoine', loans: patLoans }, curAge, plan.lifeExpectancy || 85);
+
+    let addedCount = 0;
+    patLoans.forEach((loan, idx) => {
+      const part = sched?.parts ? sched.parts[idx] : null;
+      const row = part ? part.schedule[curAge] : null;
+      const monthlyPmt = row && row.active ? row.monthlyPayment : Math.round(loan.loanAmount * 0.055 / 12);
+      const endAge = (Number(loan.startAge) || curAge) + (Number(loan.loanTermYears) || 20);
+      const cleanName = `🏦 Trả nợ Crédit: ${loan.name || 'BĐS'}`;
+
+      const existingIdx = plan.expenses.findIndex(e => e.name === cleanName || (loan.name && e.name.includes(loan.name)));
+      const expItem = {
+        name: cleanName,
+        amount: monthlyPmt * 12,
+        startAge: Number(loan.startAge) || curAge,
+        endAge: endAge,
+        growth: 0.0,
+        isDebt: true,
+        enabled: true
+      };
+
+      if (existingIdx >= 0) {
+        plan.expenses[existingIdx] = expItem;
+      } else {
+        plan.expenses.push(expItem);
+        addedCount++;
+      }
+    });
+
+    savePlansToStorage();
+    renderExpenseStreamsList();
+    updateCashflowBalanceUI(plan);
+    updateAll();
+
+    if (showToastMsg) {
+      alert(`Đã đồng bộ thành công ${patLoans.length} khoản nợ vay BĐS vào danh mục Luồng Chi Tiêu & Nợ Vay!`);
+    }
   }
 
   function openIncomeModal(idx = -1) {
@@ -1899,11 +2768,11 @@
     const annualVal = Number(document.getElementById("inp-income-amount").value);
     const monthlyVal = Number(document.getElementById("inp-income-amount-monthly").value);
     const amount = annualVal || (monthlyVal * 12) || 0;
-    const startAge = Number(document.getElementById("inp-income-start").value) || 29;
+    const plan = getActivePlan();
+    const rawStart = document.getElementById("inp-income-start").value;
+    const startAge = (rawStart !== "" && !isNaN(Number(rawStart))) ? Number(rawStart) : (plan.currentAge || 29);
     const endAge = Number(document.getElementById("inp-income-end").value) || 85;
     const growth = Number(document.getElementById("inp-income-growth").value) || 0;
-
-    const plan = getActivePlan();
     if (!Array.isArray(plan.incomes)) plan.incomes = [];
 
     const streamData = {
@@ -1993,11 +2862,12 @@
           const sign = ms.type === "income" ? "+" : ms.type === "none" ? "" : "-";
           const amtStr = ms.type === "none" ? "Không ảnh hưởng tiền" : `${sign}${window.RetirementEngine.formatCurrency(ms.amount, state.currency, false)}`;
           
+          const patBadge = ms.source === 'patrimoine' ? `<span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; font-size: 0.65rem; padding: 0.1rem 0.4rem; border-radius: 4px; margin-left: 0.4rem;">Đồng bộ BĐS</span>` : '';
           item.innerHTML = `
             <div class="custom-ms-left">
               <span class="custom-ms-icon">${ms.icon || '⭐'}</span>
               <div class="custom-ms-details">
-                <span class="custom-ms-title">${ms.age} tuổi • ${ms.name}</span>
+                <span class="custom-ms-title">${ms.age} tuổi • ${ms.name}${patBadge}</span>
                 <span class="custom-ms-sub">${amtStr}${ms.note ? ' • ' + ms.note : ''}</span>
               </div>
             </div>
@@ -2188,6 +3058,206 @@
   }
 
   // -------------------------------------------------------------
+  // Actual Net Worth Records Management
+  // -------------------------------------------------------------
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function openActualNetWorthModal() {
+    const modal = document.getElementById("actual-networth-modal");
+    if (!modal) return;
+    
+    // Update currency units in modal
+    const curSymbol = window.RetirementEngine.getCurrencySymbol(state.currency);
+    document.querySelectorAll(".unit-actual-currency").forEach(el => el.innerText = curSymbol);
+
+    // Default date to today (YYYY-MM-DD) if empty
+    const inpDate = document.getElementById("inp-actual-date");
+    if (inpDate && !inpDate.value) {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      inpDate.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    renderActualRecordsTable();
+    modal.style.display = "flex";
+  }
+
+  function closeActualNetWorthModal() {
+    const modal = document.getElementById("actual-networth-modal");
+    if (modal) modal.style.display = "none";
+  }
+
+  function renderActualRecordsTable() {
+    const tbody = document.getElementById("actual-records-table-body");
+    const countEl = document.getElementById("actual-records-count");
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+    const plan = getActivePlan();
+    if (!plan) return;
+
+    if (!Array.isArray(plan.actualRecords)) {
+      plan.actualRecords = [];
+    }
+
+    if (countEl) countEl.innerText = `${plan.actualRecords.length} mốc`;
+
+    if (plan.actualRecords.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:1.5rem 0;">Chưa có mốc số dư nào. Hãy thêm mốc mới bên trên hoặc bấm lấy nhanh từ Patrimoine!</td></tr>`;
+      return;
+    }
+
+    // Sort descending by date
+    const sorted = [...plan.actualRecords].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const curBirthYear = Number(plan.birthYear) || (new Date().getFullYear() - (Number(plan.currentAge) || 29));
+
+    sorted.forEach(rec => {
+      const tr = document.createElement("tr");
+      const d = new Date(rec.date);
+      const yr = !isNaN(d.getFullYear()) ? d.getFullYear() : '—';
+      const ageVal = !isNaN(d.getFullYear()) ? (yr - curBirthYear) : '—';
+      const formattedDate = rec.date ? rec.date.split("-").reverse().join("/") : "—";
+      const formattedAmt = window.RetirementEngine.formatCurrency(rec.amount, state.currency);
+
+      tr.innerHTML = `
+        <td style="font-weight:600; color:var(--text-main);">${formattedDate}</td>
+        <td><span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b; font-size:0.75rem;">Năm ${yr} (${ageVal}t)</span></td>
+        <td class="font-mono" style="color:#f59e0b; font-weight:700;">${formattedAmt}</td>
+        <td style="color:var(--text-muted); font-size:0.78rem;">${rec.note ? escapeHtml(rec.note) : '<em>Không có</em>'}</td>
+        <td style="text-align:right;">
+          <button type="button" class="btn btn-xs btn-ghost btn-delete-actual-rec" data-id="${rec.id}" style="color:#ef4444;" title="Xóa mốc này">🗑️</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // Attach delete listeners
+    tbody.querySelectorAll(".btn-delete-actual-rec").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const id = e.currentTarget.getAttribute("data-id");
+        if (id) deleteActualRecord(id);
+      });
+    });
+  }
+
+  function addActualRecordFromForm() {
+    const plan = getActivePlan();
+    if (!plan) return;
+
+    const inpDate = document.getElementById("inp-actual-date");
+    const inpAmount = document.getElementById("inp-actual-amount");
+    const inpNote = document.getElementById("inp-actual-note");
+
+    const date = inpDate ? inpDate.value : "";
+    const amountStr = inpAmount ? inpAmount.value.trim() : "";
+    const note = inpNote ? inpNote.value.trim() : "";
+
+    if (!date) {
+      alert("Vui lòng chọn ngày ghi nhận số dư!");
+      return;
+    }
+
+    const amount = Number(amountStr);
+    if (isNaN(amount) || amountStr === "") {
+      alert("Vui lòng nhập số tiền thực tế hợp lệ!");
+      return;
+    }
+
+    if (!Array.isArray(plan.actualRecords)) {
+      plan.actualRecords = [];
+    }
+
+    // Check if an entry with exact same date exists, ask or replace
+    const existingIdx = plan.actualRecords.findIndex(r => r.date === date);
+    if (existingIdx !== -1) {
+      if (confirm(`Đã có bản ghi cho ngày ${date}. Bạn có muốn cập nhật lại số tiền không?`)) {
+        plan.actualRecords[existingIdx].amount = amount;
+        plan.actualRecords[existingIdx].note = note;
+      } else {
+        return;
+      }
+    } else {
+      plan.actualRecords.push({
+        id: "act_" + Date.now(),
+        date,
+        amount,
+        note
+      });
+    }
+
+    savePlansToStorage();
+    renderActualRecordsTable();
+    updateAll();
+
+    // Clear amount & note input
+    if (inpAmount) inpAmount.value = "";
+    if (inpNote) inpNote.value = "";
+  }
+
+  function deleteActualRecord(id) {
+    const plan = getActivePlan();
+    if (!plan || !Array.isArray(plan.actualRecords)) return;
+
+    if (!confirm("Bạn có chắc chắn muốn xóa mốc số dư thực tế này?")) return;
+
+    plan.actualRecords = plan.actualRecords.filter(r => r.id !== id);
+    savePlansToStorage();
+    renderActualRecordsTable();
+    updateAll();
+  }
+
+  async function fetchPatrimoineBalanceForActual() {
+    const btn = document.getElementById("btn-fetch-patrimoine-balance");
+    if (btn) btn.innerText = "⏳ Đang tính toán...";
+
+    try {
+      const data = await fetchPatrimoineData();
+      const plan = getActivePlan();
+      if (!plan) throw new Error("Không tìm thấy kế hoạch đang kích hoạt");
+
+      let totalVal = 0;
+      if (data && data.summary) {
+        // Equity = Property Value - Loan Amount
+        const equity = Math.max(0, (data.summary.total_property_value || 0) - (data.summary.total_loan_amount || 0));
+        // Liquid savings from plan
+        const savingsEur = Number(plan.currentSavings) || 0;
+        const factor = eurToPlanFactor(plan);
+        totalVal = Math.round((equity + savingsEur) * factor);
+      } else {
+        totalVal = Number(plan.currentSavings) || 0;
+      }
+
+      const inpDate = document.getElementById("inp-actual-date");
+      const inpAmount = document.getElementById("inp-actual-amount");
+      const inpNote = document.getElementById("inp-actual-note");
+
+      const today = new Date().toISOString().split("T")[0];
+      if (inpDate) inpDate.value = today;
+      if (inpAmount) inpAmount.value = totalVal;
+      if (inpNote && !inpNote.value) inpNote.value = "Chốt từ Quản lý Tài sản (Patrimoine)";
+
+      if (btn) btn.innerText = "✓ Đã lấy thành công";
+      setTimeout(() => {
+        if (btn) btn.innerText = "⚡ Lấy số dư hiện tại từ Patrimoine";
+      }, 1800);
+    } catch (err) {
+      console.warn("Lỗi lấy số dư từ Patrimoine:", err);
+      alert("Không thể lấy số dư tự động: " + err.message);
+      if (btn) btn.innerText = "⚡ Lấy số dư hiện tại từ Patrimoine";
+    }
+  }
+
+  // -------------------------------------------------------------
   // Core Update Routine (Renders KPIs, Charts, Table)
   // -------------------------------------------------------------
   function updateAll() {
@@ -2199,10 +3269,64 @@
 
     // Update Top KPIs
     document.getElementById("kpi-current-networth").innerText = window.RetirementEngine.formatCurrency(plan.currentSavings, state.currency);
-    document.getElementById("kpi-peak-networth").innerText = window.RetirementEngine.formatCurrency(proj.peakNetWorth, state.currency);
-    document.getElementById("kpi-peak-age").innerText = proj.peakAge;
+
+    // KPI 2: Tài sản tại thời điểm Nghỉ hưu & Đỉnh cao nhất cuộc đời
+    const rAge = Number(plan.retirementAge) || 42;
+    const retirePoint = proj.timeline.find(t => t.age === rAge);
+    const netWorthAtRetire = retirePoint ? (retirePoint.totalNetWorth !== undefined ? retirePoint.totalNetWorth : retirePoint.portfolioEnd) : proj.peakNetWorth;
+    const peakTitleEl = document.getElementById("kpi-peak-title");
+    if (peakTitleEl) {
+      peakTitleEl.innerText = `Tài sản lúc Nghỉ hưu (${rAge}t)`;
+    }
+    document.getElementById("kpi-peak-networth").innerText = window.RetirementEngine.formatCurrency(netWorthAtRetire, state.currency);
+    const peakSubEl = document.getElementById("kpi-peak-subtitle");
+    if (peakSubEl) {
+      if (proj.peakAge === rAge || proj.peakNetWorth <= netWorthAtRetire) {
+        peakSubEl.innerHTML = `Đạt đỉnh cao nhất cuộc đời lúc hưu <strong>${rAge} tuổi</strong>`;
+      } else {
+        peakSubEl.innerHTML = `Đỉnh toàn đời: <strong>${window.RetirementEngine.formatCurrency(proj.peakNetWorth, state.currency)}</strong> (ở ${proj.peakAge}t)`;
+      }
+    }
+
+    // KPI 3: Chi tiêu an toàn/năm (SWR) tính trên tài sản hưu trí thực tế
     document.getElementById("kpi-safe-annual-spend").innerText = window.RetirementEngine.formatCurrency(proj.safeAnnualSpend, state.currency);
-    document.getElementById("kpi-estate-end").innerText = window.RetirementEngine.formatCurrency(proj.finalPortfolio, state.currency);
+    const swrSubEl = document.getElementById("kpi-safe-spend-subtitle");
+    if (swrSubEl) {
+      const swrRate = (Number(plan.initialWithdrawalRate) || 4.0).toFixed(1);
+      const monthlySpend = Math.round(proj.safeAnnualSpend / 12);
+      if (proj.safeAnnualSpend > 0) {
+        swrSubEl.innerHTML = `Tương đương <strong>${swrRate}%</strong> SWR (≈ <strong>${window.RetirementEngine.formatCurrency(monthlySpend, state.currency)}</strong>/tháng)`;
+      } else {
+        swrSubEl.innerHTML = `<span class="text-danger">⚠️ Danh mục âm/chưa đủ vốn rút an toàn</span>`;
+      }
+    }
+
+    // KPI 4: Estate / Inheritance (85t)
+    const estateVal = proj.finalTotalNetWorth !== undefined ? proj.finalTotalNetWorth : proj.finalPortfolio;
+    document.getElementById("kpi-estate-end").innerText = window.RetirementEngine.formatCurrency(estateVal, state.currency);
+    const estateSubEl = document.getElementById("kpi-estate-subtitle");
+    if (estateSubEl) {
+      const targetLegacy = Number(plan.targetLegacy) || 100000;
+      const legacyPct = targetLegacy > 0 ? Math.round((estateVal / targetLegacy) * 100) : 100;
+      const fmtTarget = window.RetirementEngine.formatCurrency(targetLegacy, state.currency);
+      if (proj.finalPortfolio <= 0 && estateVal > 0) {
+        estateSubEl.className = "kpi-subtitle text-warning";
+        estateSubEl.innerHTML = `⚠️ Tiền mặt cạn trước 85t (Còn lại BĐS: <strong>${window.RetirementEngine.formatCurrency(estateVal, state.currency)}</strong>)`;
+      } else if (estateVal >= targetLegacy) {
+        estateSubEl.className = "kpi-subtitle text-success";
+        estateSubEl.innerHTML = `Đạt <strong>${legacyPct}%</strong> mục tiêu thừa kế (${fmtTarget})`;
+      } else if (estateVal > 0) {
+        estateSubEl.className = "kpi-subtitle text-warning";
+        estateSubEl.innerHTML = `Đạt <strong>${legacyPct}%</strong> mục tiêu (${fmtTarget})`;
+      } else {
+        estateSubEl.className = "kpi-subtitle text-danger";
+        estateSubEl.innerHTML = `⚠️ Thâm hụt di sản (Mục tiêu: ${fmtTarget})`;
+      }
+    }
+
+    // Đồng bộ phân bổ tài sản hiện tại
+    updateAssetAllocationUI(plan);
+
     const fireScoreEl = document.getElementById("kpi-fire-score");
     if (fireScoreEl) fireScoreEl.innerText = proj.readinessScore + "%";
 
@@ -2218,13 +3342,14 @@
     // Update Sidebar
     document.getElementById("summary-retire-age").innerText = plan.retirementAge + " tuổi";
     const optimalSummaryEl = document.getElementById("summary-optimal-age");
-    const optAge = proj.fireAge || 42;
+    const optAge = proj.optimalFireAge || proj.fireAge;
     if (optimalSummaryEl) {
-      optimalSummaryEl.innerText = optAge + " tuổi";
+      optimalSummaryEl.innerText = optAge ? `${optAge} tuổi` : "Chưa khả thi";
+      optimalSummaryEl.className = "metric-value font-semibold " + (optAge && optAge <= plan.retirementAge ? "text-success" : "text-warning");
     }
     const lblOptimalAge = document.getElementById("lbl-optimal-age");
     if (lblOptimalAge) {
-      lblOptimalAge.innerText = optAge + " tuổi";
+      lblOptimalAge.innerText = optAge ? `${optAge}t` : "Chưa khả thi";
     }
     document.getElementById("summary-years-to-fire").innerText = proj.yearsToFIRE + " năm nữa";
     document.getElementById("summary-target-nest-egg").innerText = window.RetirementEngine.formatCurrency(proj.fireTargetNestEgg, state.currency);
@@ -2267,6 +3392,7 @@
     renderNetWorthChart(proj);
     renderCashFlowChart(proj);
     renderProjectionsTable(proj);
+    renderIncomePeriodsSummary(plan);
 
     // Also re-render current active tab if different from projections
     if (state.activeTab && state.activeTab !== "tab-projections") {
@@ -2280,7 +3406,6 @@
   function renderNetWorthChart(proj) {
     const ctx = document.getElementById("chart-networth").getContext("2d");
     const labels = proj.timeline.map(p => [`${p.age}t`, `${p.year}`]);
-    const data = proj.timeline.map(p => state.viewMode === "nominal" ? p.portfolioEnd : p.realPortfolioEnd);
 
     if (state.charts.networth) {
       state.charts.networth.destroy();
@@ -2299,17 +3424,21 @@
     const pointHoverRadii = proj.timeline.map(p => milestoneMap.has(p.age) ? 8.5 : 5);
     const pointBgColors = proj.timeline.map(p => {
       const m = milestoneMap.get(p.age);
-      return m ? m.color : '#10b981';
+      return m ? m.color : '#a855f7';
     });
     const pointBorderColors = proj.timeline.map(p => {
       const m = milestoneMap.get(p.age);
-      return m ? '#ffffff' : '#10b981';
+      return m ? '#ffffff' : '#a855f7';
     });
     const pointBorderWidths = proj.timeline.map(p => milestoneMap.has(p.age) ? 2 : 0);
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, 350);
-    gradient.addColorStop(0, 'rgba(16, 185, 129, 0.45)');
-    gradient.addColorStop(1, 'rgba(16, 185, 129, 0.02)');
+    const gradientPortfolio = ctx.createLinearGradient(0, 0, 0, 350);
+    gradientPortfolio.addColorStop(0, 'rgba(16, 185, 129, 0.40)');
+    gradientPortfolio.addColorStop(1, 'rgba(16, 185, 129, 0.02)');
+
+    const gradientNetWorth = ctx.createLinearGradient(0, 0, 0, 350);
+    gradientNetWorth.addColorStop(0, 'rgba(168, 85, 247, 0.28)');
+    gradientNetWorth.addColorStop(1, 'rgba(168, 85, 247, 0.02)');
 
     // Custom Plugin to Draw Milestone Vertical Guidelines & Floating Pins
     const milestoneMarkersPlugin = {
@@ -2370,31 +3499,135 @@
       }
     };
 
+    const activePlan = getActivePlan();
+    const actualRecords = (activePlan && Array.isArray(activePlan.actualRecords)) ? activePlan.actualRecords : [];
+    
+    // Group actual records by calendar year, taking the latest record for each year
+    const actualMapByYear = new Map();
+    const sortedActuals = [...actualRecords].sort((a, b) => new Date(a.date) - new Date(b.date));
+    sortedActuals.forEach(rec => {
+      if (!rec.date) return;
+      const yr = new Date(rec.date).getFullYear();
+      if (!isNaN(yr)) {
+        actualMapByYear.set(yr, rec);
+      }
+    });
+
+    let maxActualYear = -Infinity;
+    actualMapByYear.forEach((_, yr) => {
+      if (yr > maxActualYear) maxActualYear = yr;
+    });
+
+    const hasActualData = actualMapByYear.size > 0;
+    const actualData = proj.timeline.map(p => {
+      if (p.year > maxActualYear) return null; // do not draw future years
+      const rec = actualMapByYear.get(p.year);
+      return rec ? Number(rec.amount) : null;
+    });
+
+    const hasRealEstate = proj.timeline.some(p => (p.homeEquity || 0) > 0);
+    const sym = window.RetirementEngine.getCurrencySymbol(state.currency);
+
+    const datasets = [];
+
+    if (hasRealEstate) {
+      const dataNetWorth = proj.timeline.map(p => state.viewMode === "nominal" ? p.totalNetWorth : p.realTotalNetWorth);
+      const dataLiquid = proj.timeline.map(p => state.viewMode === "nominal" ? p.portfolioEnd : p.realPortfolioEnd);
+
+      // Dataset 1: Tổng Tài sản Ròng (Bao gồm BĐS) - Nét đứt
+      datasets.push({
+        label: `Tổng Tài sản Ròng (${sym})`,
+        data: dataNetWorth,
+        borderColor: '#a855f7',
+        borderWidth: 2.5,
+        borderDash: [6, 4],
+        backgroundColor: gradientNetWorth,
+        fill: true,
+        tension: 0.35,
+        pointRadius: pointRadii,
+        pointHoverRadius: pointHoverRadii,
+        pointBackgroundColor: pointBgColors,
+        pointBorderColor: pointBorderColors,
+        pointBorderWidth: pointBorderWidths
+      });
+
+      // Dataset 2: Danh mục Thanh khoản (Tiền & Đầu tư để rút hưu trí) - Nét liền
+      datasets.push({
+        label: `Danh mục Thanh khoản (${sym})`,
+        data: dataLiquid,
+        borderColor: '#10b981',
+        borderWidth: 3,
+        backgroundColor: gradientPortfolio,
+        fill: true,
+        tension: 0.35,
+        pointRadius: proj.timeline.map(p => (p.age === proj.retireAge) ? 4.5 : 0),
+        pointHoverRadius: 6,
+        pointBackgroundColor: '#10b981',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2
+      });
+    } else {
+      const dataLiquid = proj.timeline.map(p => state.viewMode === "nominal" ? p.portfolioEnd : p.realPortfolioEnd);
+      datasets.push({
+        label: `Dự báo Tài sản (${sym})`,
+        data: dataLiquid,
+        borderColor: '#10b981',
+        borderWidth: 3,
+        backgroundColor: gradientPortfolio,
+        fill: !hasActualData,
+        tension: 0.35,
+        pointRadius: pointRadii,
+        pointHoverRadius: pointHoverRadii,
+        pointBackgroundColor: pointBgColors,
+        pointBorderColor: pointBorderColors,
+        pointBorderWidth: pointBorderWidths
+      });
+    }
+
+    if (hasActualData) {
+      datasets.push({
+        label: `Thực tế (${sym})`,
+        data: actualData,
+        borderColor: '#f59e0b',
+        borderWidth: 3,
+        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+        fill: false,
+        tension: 0.25,
+        spanGaps: true,
+        pointRadius: proj.timeline.map(p => actualMapByYear.has(p.year) ? 6 : 0),
+        pointHoverRadius: 9,
+        pointBackgroundColor: '#f59e0b',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2
+      });
+    }
+
     state.charts.networth = new Chart(ctx, {
       type: 'line',
       data: {
         labels,
-        datasets: [{
-          label: `Tài sản Ròng (${window.RetirementEngine.getCurrencySymbol(state.currency)})`,
-          data,
-          borderColor: '#10b981',
-          borderWidth: 3,
-          backgroundColor: gradient,
-          fill: true,
-          tension: 0.35,
-          pointRadius: pointRadii,
-          pointHoverRadius: pointHoverRadii,
-          pointBackgroundColor: pointBgColors,
-          pointBorderColor: pointBorderColors,
-          pointBorderWidth: pointBorderWidths
-        }]
+        datasets
       },
       plugins: [milestoneMarkersPlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
         plugins: {
-          legend: { display: false },
+          legend: {
+            display: hasRealEstate || hasActualData,
+            position: 'top',
+            align: 'end',
+            labels: {
+              boxWidth: 12,
+              boxHeight: 12,
+              color: '#94a3b8',
+              font: { family: 'Inter, sans-serif', size: 11, weight: '600' }
+            }
+          },
           tooltip: {
             backgroundColor: 'rgba(15, 23, 42, 0.95)',
             titleColor: '#f8fafc',
@@ -2413,14 +3646,32 @@
                 return `Tuổi ${p.age} (Năm ${p.year})`;
               },
               label: (item) => {
-                const val = window.RetirementEngine.formatCurrency(item.raw, state.currency, false);
-                return ` Tài sản: ${val}`;
+                const val = item.raw;
+                if (val === null || val === undefined) return '';
+                const dsLabel = item.dataset.label || 'Tài sản';
+                const formattedVal = window.RetirementEngine.formatCurrency(val, state.currency, false);
+                return ` ${dsLabel}: ${formattedVal}`;
               },
               afterBody: (items) => {
                 const idx = items[0].dataIndex;
                 const p = proj.timeline[idx];
                 const m = milestoneMap.get(p.age);
                 const lines = [];
+
+                const actRec = actualMapByYear.get(p.year);
+                if (actRec) {
+                  const forecastVal = hasRealEstate
+                    ? (state.viewMode === "nominal" ? p.totalNetWorth : p.realTotalNetWorth)
+                    : (state.viewMode === "nominal" ? p.portfolioEnd : p.realPortfolioEnd);
+                  const diff = actRec.amount - forecastVal;
+                  const diffPct = forecastVal !== 0 ? ((diff / Math.abs(forecastVal)) * 100).toFixed(1) : '0';
+                  const sign = diff >= 0 ? '+' : '';
+                  lines.push(`🎯 Chênh lệch (Thực tế vs Dự báo): ${sign}${window.RetirementEngine.formatCurrency(diff, state.currency)} (${sign}${diffPct}%)`);
+                  if (actRec.note) {
+                    lines.push(`📝 Ghi chú: ${actRec.note}`);
+                  }
+                }
+
                 if (m && m.desc) {
                   lines.push(`🚩 ${m.desc}`);
                 }
@@ -2462,6 +3713,21 @@
     // Trigger Gemini Commentary for Net Worth Trajectory & Optimal Retirement Age
     if (window.GeminiAdvisor) {
       const plan = getActivePlan();
+      let actualTrackingStr = "Chưa có mốc số dư thực tế";
+      if (hasActualData && maxActualYear > -Infinity) {
+        const latestRec = actualMapByYear.get(maxActualYear);
+        const latestTimelineRow = proj.timeline.find(p => p.year === maxActualYear);
+        if (latestRec && latestTimelineRow) {
+          const forecastVal = hasRealEstate
+            ? (state.viewMode === "nominal" ? latestTimelineRow.totalNetWorth : latestTimelineRow.realTotalNetWorth)
+            : (state.viewMode === "nominal" ? latestTimelineRow.portfolioEnd : latestTimelineRow.realPortfolioEnd);
+          const diff = latestRec.amount - forecastVal;
+          const diffPct = forecastVal !== 0 ? ((diff / Math.abs(forecastVal)) * 100).toFixed(1) : '0';
+          const sign = diff >= 0 ? '+' : '';
+          actualTrackingStr = `Năm ${maxActualYear} (tuổi ${latestTimelineRow.age}): Thực tế ${window.RetirementEngine.formatCurrency(latestRec.amount, state.currency)}, Dự báo ${window.RetirementEngine.formatCurrency(forecastVal, state.currency)} (Chênh lệch ${sign}${window.RetirementEngine.formatCurrency(diff, state.currency)} / ${sign}${diffPct}%)`;
+        }
+      }
+
       window.GeminiAdvisor.updateChartBox("chart-networth", "Biểu đồ Tăng trưởng Tài sản Ròng & Đánh giá Tuổi Nghỉ Hưu Tối Ưu", {
         currentAge: Number(plan.currentAge) || 29,
         targetRetireAge: Number(plan.retirementAge) || 42,
@@ -2470,7 +3736,8 @@
         peakAge: proj.peakAge,
         finalNetWorth: window.RetirementEngine.formatCurrency(proj.finalTotalNetWorth, state.currency),
         fireTarget: window.RetirementEngine.formatCurrency(proj.fireTargetNestEgg, state.currency),
-        fireAge: proj.fireAge || (Number(plan.retirementAge) || 42)
+        fireAge: proj.optimalFireAge || proj.fireAge || (Number(plan.retirementAge) || 42),
+        actualTracking: actualTrackingStr
       });
     }
   }
@@ -2540,6 +3807,9 @@
     // Trigger Gemini Commentary for Cash Flow
     if (window.GeminiAdvisor) {
       const plan = getActivePlan();
+      const periods = (typeof computeIncomePeriods === 'function') ? computeIncomePeriods(plan) : [];
+      const periodsStr = periods.map(p => `${p.startAge}–${p.endAge}t (${p.phaseLabel}): +${window.RetirementEngine.formatCurrency(p.totalMonthly, state.currency)}/tháng [${p.streams.map(s => s.name).join(', ')}]`).join(" | ");
+
       window.GeminiAdvisor.updateChartBox("chart-cashflow", "Biểu đồ Dòng tiền Hàng năm (Cash-Flow Projections)", {
         currentAge: proj.currentAge,
         retireAge: proj.retireAge,
@@ -2547,7 +3817,8 @@
         totalLifetimeIncome: window.RetirementEngine.formatCurrency(proj.totalLifetimeIncome, state.currency),
         totalLifetimeExpenses: window.RetirementEngine.formatCurrency(proj.totalLifetimeExpenses, state.currency),
         annualSavings: window.RetirementEngine.formatCurrency(plan.annualSavings || 0, state.currency),
-        retirementExpenses: window.RetirementEngine.formatCurrency(plan.retirementExpenses || 0, state.currency)
+        retirementExpenses: window.RetirementEngine.formatCurrency(plan.retirementExpenses || 0, state.currency),
+        incomePeriods: periodsStr || "Chưa phân chia giai đoạn"
       });
     }
   }
@@ -2555,6 +3826,17 @@
   function renderProjectionsTable(proj) {
     const tbody = document.getElementById("projections-table-body");
     tbody.innerHTML = "";
+
+    const activePlan = getActivePlan();
+    const actualRecords = (activePlan && Array.isArray(activePlan.actualRecords)) ? activePlan.actualRecords : [];
+    const actualMapByYear = new Map();
+    [...actualRecords].sort((a, b) => new Date(a.date) - new Date(b.date)).forEach(rec => {
+      if (!rec.date) return;
+      const yr = new Date(rec.date).getFullYear();
+      if (!isNaN(yr)) {
+        actualMapByYear.set(yr, rec);
+      }
+    });
 
     proj.timeline.forEach(row => {
       const tr = document.createElement("tr");
@@ -2567,6 +3849,20 @@
         statusTag = '<span class="badge" style="font-size:0.68rem; padding:1px 5px; border-radius:4px; background:rgba(56,189,248,0.2); color:#38bdf8; font-weight:700;">Hiện tại</span>';
       }
 
+      const forecastVal = state.viewMode === "nominal" ? row.portfolioEnd : row.realPortfolioEnd;
+      const actRec = actualMapByYear.get(row.year);
+      let actTd = `<td style="color:var(--text-muted); text-align:center;">—</td>`;
+      let diffTd = `<td style="color:var(--text-muted); text-align:center;">—</td>`;
+
+      if (actRec) {
+        const diff = actRec.amount - forecastVal;
+        const diffPct = forecastVal !== 0 ? ((diff / Math.abs(forecastVal)) * 100).toFixed(1) : '0';
+        const sign = diff >= 0 ? '+' : '';
+        const colorClass = diff >= 0 ? 'text-success' : 'text-danger';
+        actTd = `<td class="font-mono" style="color:#f59e0b; font-weight:700;" title="${actRec.date}${actRec.note ? ' - ' + actRec.note : ''}">${window.RetirementEngine.formatCurrency(actRec.amount, state.currency)}</td>`;
+        diffTd = `<td class="font-mono ${colorClass}" style="font-weight:600;">${sign}${window.RetirementEngine.formatCurrency(diff, state.currency)} <span style="font-size:0.72rem;">(${sign}${diffPct}%)</span></td>`;
+      }
+
       tr.innerHTML = `
         <td><strong>${row.age} tuổi</strong> <span style="font-size:0.75rem; color:var(--text-muted);">(${row.year})</span> ${statusTag}</td>
         <td>${window.RetirementEngine.formatCurrency(row.income, state.currency)}</td>
@@ -2574,7 +3870,9 @@
         <td class="${row.netCashFlow >= 0 ? 'text-success' : 'text-warning'} font-mono">${window.RetirementEngine.formatCurrency(row.netCashFlow, state.currency)}</td>
         <td class="text-accent">+${(row.isRetired ? getActivePlan().investmentReturnPost : getActivePlan().investmentReturnPre)}%</td>
         <td class="text-faint">${window.RetirementEngine.formatCurrency(row.tax, state.currency)}</td>
-        <td class="font-mono"><strong>${window.RetirementEngine.formatCurrency(row.portfolioEnd, state.currency)}</strong></td>
+        <td class="font-mono"><strong>${window.RetirementEngine.formatCurrency(forecastVal, state.currency)}</strong></td>
+        ${actTd}
+        ${diffTd}
       `;
       tbody.appendChild(tr);
     });
@@ -2704,12 +4002,11 @@
   // -------------------------------------------------------------
   function renderTaxTab() {
     const plan = getActivePlan();
-    const proj = window.RetirementEngine.runProjection(plan);
-    const rothRes = window.TaxOptimizer.planRothConversions(plan, proj);
-    const acaRes = window.TaxOptimizer.estimateAcaSubsidies(plan, proj);
+    const taxRegime = plan.taxRegime || "france_vietnam";
+    const isUS = (taxRegime === "us");
+    updateTaxRegimeUI(taxRegime);
 
-    document.getElementById("kpi-tax-savings").innerText = window.RetirementEngine.formatCurrency(rothRes.cumulativeTaxSavings, state.currency);
-    document.getElementById("kpi-aca-savings").innerText = window.RetirementEngine.formatCurrency(acaRes.totalSubsidySaved, state.currency);
+    const proj = window.RetirementEngine.runProjection(plan);
 
     // Render French Accounts & Waterfall Savings
     const peaVal = document.getElementById("val-acc-pea");
@@ -2725,58 +4022,73 @@
       waterfallBadge.innerText = `Tiết kiệm: ${window.RetirementEngine.formatCurrency(saved, state.currency)} thuế`;
     }
 
-    const ctx = document.getElementById("chart-tax-optimization").getContext("2d");
     if (state.charts.tax) {
       state.charts.tax.destroy();
+      state.charts.tax = null;
     }
 
-    const curYear = new Date().getFullYear();
-    const bYear = Number(plan.birthYear) || (curYear - (Number(plan.currentAge) || 29));
-    const labels = rothRes.schedule.map(s => [`${s.age}t`, `${bYear + s.age}`]);
-    const conversionAmounts = rothRes.schedule.map(s => s.conversionAmount);
-    const taxSaved = rothRes.schedule.map(s => s.cumulativeSavings);
+    // Only render Roth Chart & ACA KPI data if US regime is selected
+    if (isUS) {
+      const rothRes = window.TaxOptimizer.planRothConversions(plan, proj);
+      const acaRes = window.TaxOptimizer.estimateAcaSubsidies(plan, proj);
 
-    state.charts.tax = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          {
-            type: 'bar',
-            label: 'Số tiền Chuyển đổi Roth Hàng năm',
-            data: conversionAmounts,
-            backgroundColor: 'rgba(99, 102, 241, 0.75)',
-            borderRadius: 4
+      const kpiTaxSavings = document.getElementById("kpi-tax-savings");
+      const kpiAcaSavings = document.getElementById("kpi-aca-savings");
+      if (kpiTaxSavings) kpiTaxSavings.innerText = window.RetirementEngine.formatCurrency(rothRes.cumulativeTaxSavings, state.currency);
+      if (kpiAcaSavings) kpiAcaSavings.innerText = window.RetirementEngine.formatCurrency(acaRes.totalSubsidySaved, state.currency);
+
+      const canvas = document.getElementById("chart-tax-optimization");
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        const curYear = new Date().getFullYear();
+        const bYear = Number(plan.birthYear) || (curYear - (Number(plan.currentAge) || 29));
+        const labels = rothRes.schedule.map(s => [`${s.age}t`, `${bYear + s.age}`]);
+        const conversionAmounts = rothRes.schedule.map(s => s.conversionAmount);
+        const taxSaved = rothRes.schedule.map(s => s.cumulativeSavings);
+
+        state.charts.tax = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              {
+                type: 'bar',
+                label: 'Số tiền Chuyển đổi Roth Hàng năm',
+                data: conversionAmounts,
+                backgroundColor: 'rgba(99, 102, 241, 0.75)',
+                borderRadius: 4
+              },
+              {
+                type: 'line',
+                label: 'Thuế Tiết kiệm Tích lũy (Cumulative Saved)',
+                data: taxSaved,
+                borderColor: '#10b981',
+                borderWidth: 3,
+                fill: false,
+                pointRadius: 4
+              }
+            ]
           },
-          {
-            type: 'line',
-            label: 'Thuế Tiết kiệm Tích lũy (Cumulative Saved)',
-            data: taxSaved,
-            borderColor: '#10b981',
-            borderWidth: 3,
-            fill: false,
-            pointRadius: 4
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { labels: { color: '#94a3b8' } }
-        },
-        scales: {
-          x: { grid: { display: false }, ticks: ageAxisTicks() },
-          y: {
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-            ticks: {
-              color: '#94a3b8',
-              callback: (val) => window.RetirementEngine.formatCurrency(val, state.currency, true)
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { labels: { color: '#94a3b8' } }
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: ageAxisTicks() },
+              y: {
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                ticks: {
+                  color: '#94a3b8',
+                  callback: (val) => window.RetirementEngine.formatCurrency(val, state.currency, true)
+                }
+              }
             }
           }
-        }
+        });
       }
-    });
+    }
 
     // Trigger Gemini Commentary for Tax Optimization
     if (window.GeminiAdvisor) {

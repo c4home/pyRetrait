@@ -874,7 +874,7 @@
         throw new Error("RetirementApp chưa sẵn sàng");
       }
       const ok = await window.RetirementApp.syncFromPatrimoine();
-      if (!ok) throw new Error("Không tải được dữ liệu Gestion de Patrimoine");
+      if (!ok) throw new Error("Không tải được dữ liệu Quản Lý Tài Sản");
       showAutoSyncToast();
     } catch (err) {
       console.warn("Auto-sync error:", err);
@@ -1280,7 +1280,8 @@
     syncToFire,
     openApartmentModal,
     saveApartment,
-    deleteApartment
+    deleteApartment,
+    loadData
   };
 
 })();
