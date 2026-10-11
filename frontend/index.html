@@ -20,7 +20,7 @@
   </script>
   
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=20261005k">
+  <link rel="stylesheet" href="css/styles.css?v=20261008_withdrawals_split_v3">
 </head>
 <body>
   <!-- Top Navigation Bar -->
@@ -246,100 +246,113 @@
               <h3 class="card-title">⚙️ Thông số Cơ bản & Dòng tiền</h3>
               
               <div class="form-row">
-                <div class="form-group col-4">
+                <div class="form-group col-1">
                   <label for="inp-birth-year">Năm sinh</label>
                   <input type="number" id="inp-birth-year" min="1940" max="2025" value="1997" class="form-input" placeholder="1997">
                 </div>
-                <div class="form-group col-4">
+                <div class="form-group col-1">
                   <label for="inp-current-age">Tuổi hiện tại</label>
                   <input type="number" id="inp-current-age" min="18" max="80" value="29" class="form-input">
                 </div>
-                <div class="form-group col-4">
-                  <div class="field-header">
-                    <label for="inp-retire-age">Tuổi nghỉ hưu</label>
-                  </div>
-                  <input type="number" id="inp-retire-age" min="25" max="80" value="42" class="form-input">
-                  <div class="input-hint text-accent" id="hint-optimal-retire-age" style="margin-top: 4px; font-size: 0.72rem; cursor: pointer; display: flex; align-items: center; gap: 2px;" title="Nhấp để áp dụng tuổi tối ưu">
-                    <span>✨ Gợi ý:</span> <strong id="lbl-optimal-age" style="text-decoration: underline;">42t</strong>
-                  </div>
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group col-6">
+                <div class="form-group col-1">
                   <label for="inp-life-expectancy">Kỳ vọng tuổi thọ</label>
                   <input type="number" id="inp-life-expectancy" min="50" max="110" value="85" class="form-input">
                 </div>
-                <div class="form-group col-6">
+                <div class="form-group col-1">
                   <label for="inp-inflation">Lạm phát bình quân (%)</label>
                   <input type="number" id="inp-inflation" step="0.1" min="0" max="20" value="4.0" class="form-input">
+                </div>
+                <div class="form-group col-1">
+                  <div class="field-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                    <label for="inp-retire-age" style="margin-bottom: 0;">Tuổi nghỉ hưu</label>
+                    <span class="input-hint text-accent" id="hint-optimal-retire-age" style="margin: 0; font-size: 0.72rem; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 4px; transition: all 0.2s ease;" title="Nhấp để áp dụng tuổi tối ưu">
+                      <span>✨ Gợi ý:</span> <strong id="lbl-optimal-age" style="text-decoration: underline;">42t</strong>
+                    </span>
+                  </div>
+                  <input type="number" id="inp-retire-age" min="25" max="80" value="42" class="form-input">
                 </div>
               </div>
 
               <div class="form-divider"></div>
               <h4 class="card-subtitle">💵 Tài sản & Dòng tiền hàng tháng</h4>
 
-              <div class="form-group">
-                <label for="inp-current-savings">Tài sản ròng đầu tư hiện có</label>
-                <div class="input-with-unit">
-                  <input type="number" id="inp-current-savings" value="10000" step="1000" class="form-input">
-                  <span class="unit-badge" id="unit-savings">€</span>
-                </div>
-              </div>
-
-              <!-- Bảng Cân Đối Dòng Tiền Thực Tế (Live Cashflow Balance Dashboard) -->
-              <div class="cashflow-balance-card" id="cashflow-balance-card">
-                <div class="field-header" style="margin-bottom: 0.6rem;">
-                  <span style="font-size: 0.8rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 0.35rem;">
-                    <span>⚖️</span> Cân Đối Dòng Tiền Thực Tế (Cashflow)
-                  </span>
-                  <span class="field-badge" id="lbl-savings-rate" style="background: rgba(16, 185, 129, 0.18); color: #34d399; font-weight: 700;">Tích lũy: 33.3%</span>
-                </div>
-
-                <div class="cashflow-metrics-grid">
-                  <!-- Thu nhập hàng tháng -->
-                  <div class="cashflow-metric-item">
-                    <div class="cashflow-metric-label">
-                      <span style="color: #38bdf8;">🟢</span> Thu nhập
+              <!-- Thẻ điều khiển Cân đối Tài chính & Dòng tiền chung một border -->
+              <div class="cashflow-balance-card" id="cashflow-balance-card" style="margin-top: 0.5rem; margin-bottom: 0.85rem;">
+                <div class="cashflow-composite-grid">
+                  <!-- Cột trái: Tài sản ròng đầu tư hiện có & Chi tiêu/tháng khi về hưu -->
+                  <div class="cashflow-left-inputs">
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label for="inp-current-savings">Tài sản ròng đầu tư hiện có</label>
+                      <div class="input-with-unit">
+                        <input type="number" id="inp-current-savings" value="10000" step="1000" class="form-input">
+                        <span class="unit-badge" id="unit-savings">€</span>
+                      </div>
                     </div>
-                    <div class="cashflow-metric-val" id="cf-val-income" style="color: #38bdf8;">€2,893</div>
-                    <div class="cashflow-metric-sub" id="cf-sub-income">≈ €34.7k/năm</div>
-                  </div>
 
-                  <!-- Chi tiêu & Trả nợ hàng tháng -->
-                  <div class="cashflow-metric-item">
-                    <div class="cashflow-metric-label">
-                      <span style="color: #f43f5e;">🔴</span> Chi tiêu & Nợ
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label for="inp-monthly-retire-expenses">Chi tiêu/tháng khi về hưu</label>
+                      <div class="input-with-sub">
+                        <input type="number" id="inp-monthly-retire-expenses" value="833" step="50" class="form-input">
+                        <div class="input-hint" id="hint-retire-expenses">≈ €10.0k/năm • chi tiêu tại Việt Nam</div>
+                      </div>
                     </div>
-                    <div class="cashflow-metric-val" id="cf-val-expense" style="color: #f43f5e;">€1,770</div>
-                    <div class="cashflow-metric-sub" id="cf-sub-expense">≈ €21.2k/năm</div>
                   </div>
 
-                  <!-- Tiết kiệm ròng hàng tháng -->
-                  <div class="cashflow-metric-item">
-                    <div class="cashflow-metric-label">
-                      <span style="color: #10b981;">💰</span> Tiết kiệm ròng
+                  <!-- Cột phải: Bảng Cân Đối Dòng Tiền Thực Tế (Live Cashflow Balance Dashboard) -->
+                  <div class="cashflow-right-metrics">
+                    <div class="field-header" style="margin-bottom: 0.5rem;">
+                      <span style="font-size: 0.8rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 0.35rem;">
+                        <span>⚖️</span> Cân Đối Dòng Tiền Thực Tế (Cashflow)
+                      </span>
+                      <span class="field-badge" id="lbl-savings-rate" style="background: rgba(16, 185, 129, 0.18); color: #34d399; font-weight: 700;">Tích lũy: 33.3%</span>
                     </div>
-                    <div class="cashflow-metric-val" id="cf-val-savings" style="color: #10b981;">€1,123</div>
-                    <div class="cashflow-metric-sub" id="cf-sub-savings">≈ €13.5k/năm</div>
-                  </div>
-                </div>
 
-                <!-- Thanh phân bổ tỷ lệ Chi tiêu vs Tiết kiệm -->
-                <div class="cashflow-split-bar-wrap">
-                  <div class="cashflow-split-bar">
-                    <div class="cashflow-split-expense" id="cf-bar-expense" style="width: 61.2%;" title="Tỷ lệ Chi tiêu & Nợ"></div>
-                    <div class="cashflow-split-savings" id="cf-bar-savings" style="width: 38.8%;" title="Tỷ lệ Tiết kiệm ròng"></div>
-                  </div>
-                  <div class="cashflow-split-labels">
-                    <span id="cf-lbl-expense-pct" style="color: #fb7185;">Chi tiêu: 61.2%</span>
-                    <span id="cf-lbl-savings-pct" style="color: #34d399; font-weight: 700;">Tiết kiệm: 38.8%</span>
-                  </div>
-                </div>
+                    <div class="cashflow-metrics-grid" style="margin-bottom: 0.55rem;">
+                      <!-- Thu nhập hàng tháng -->
+                      <div class="cashflow-metric-item">
+                        <div class="cashflow-metric-label">
+                          <span style="color: #38bdf8;">🟢</span> Thu nhập
+                        </div>
+                        <div class="cashflow-metric-val" id="cf-val-income" style="color: #38bdf8;">€2,893</div>
+                        <div class="cashflow-metric-sub" id="cf-sub-income">≈ €34.7k/năm</div>
+                      </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.45rem; font-size: 0.71rem; color: var(--text-muted);">
-                  <span>Chi tiêu & nợ trừ trực tiếp từ thu nhập ròng</span>
-                  <a href="#expense-streams-box" style="color: #38bdf8; text-decoration: none; font-weight: 600;">Quản lý nợ & chi tiêu ↓</a>
+                      <!-- Chi tiêu & Trả nợ hàng tháng -->
+                      <div class="cashflow-metric-item">
+                        <div class="cashflow-metric-label">
+                          <span style="color: #f43f5e;">🔴</span> Chi tiêu & Nợ
+                        </div>
+                        <div class="cashflow-metric-val" id="cf-val-expense" style="color: #f43f5e;">€1,770</div>
+                        <div class="cashflow-metric-sub" id="cf-sub-expense">≈ €21.2k/năm</div>
+                      </div>
+
+                      <!-- Tiết kiệm ròng hàng tháng -->
+                      <div class="cashflow-metric-item">
+                        <div class="cashflow-metric-label">
+                          <span style="color: #10b981;">💰</span> Tiết kiệm ròng
+                        </div>
+                        <div class="cashflow-metric-val" id="cf-val-savings" style="color: #10b981;">€1,123</div>
+                        <div class="cashflow-metric-sub" id="cf-sub-savings">≈ €13.5k/năm</div>
+                      </div>
+                    </div>
+
+                    <!-- Thanh phân bổ tỷ lệ Chi tiêu vs Tiết kiệm -->
+                    <div class="cashflow-split-bar-wrap">
+                      <div class="cashflow-split-bar">
+                        <div class="cashflow-split-expense" id="cf-bar-expense" style="width: 61.2%;" title="Tỷ lệ Chi tiêu & Nợ"></div>
+                        <div class="cashflow-split-savings" id="cf-bar-savings" style="width: 38.8%;" title="Tỷ lệ Tiết kiệm ròng"></div>
+                      </div>
+                      <div class="cashflow-split-labels">
+                        <span id="cf-lbl-expense-pct" style="color: #fb7185;">Chi tiêu: 61.2%</span>
+                        <span id="cf-lbl-savings-pct" style="color: #34d399; font-weight: 700;">Tiết kiệm: 38.8%</span>
+                      </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.4rem; font-size: 0.71rem; color: var(--text-muted);">
+                      <span>Chi tiêu & nợ trừ trực tiếp từ thu nhập ròng</span>
+                      <a href="#expense-streams-box" style="color: #38bdf8; text-decoration: none; font-weight: 600;">Quản lý nợ & chi tiêu ↓</a>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Hidden inputs for backward compatibility -->
@@ -350,180 +363,190 @@
                 <span id="hint-annual-savings" style="display: none;"></span>
               </div>
 
-              <div class="form-group" style="margin-top: 0.75rem;">
-                <label for="inp-monthly-retire-expenses">Chi tiêu/tháng khi về hưu</label>
-                <div class="input-with-sub">
-                  <input type="number" id="inp-monthly-retire-expenses" value="833" step="50" class="form-input">
-                  <div class="input-hint" id="hint-retire-expenses">≈ €10.0k/năm • chi tiêu tại Việt Nam</div>
-                </div>
-              </div>
-
-              <!-- Địa điểm & Phong cách Hưu trí (Franco-Vietnamien PPP) -->
-              <div class="form-group" style="margin-top: 0.5rem;">
-                <div class="field-header">
-                  <label for="sel-retirement-location">🌍 Địa điểm & Phong cách Hưu trí</label>
-                  <span class="field-badge" id="badge-retire-location" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">🇻🇳 Giảm ~55% chi phí (PPP)</span>
-                </div>
-                <select id="sel-retirement-location" class="form-select">
-                  <option value="france">🇫🇷 100% tại Pháp (Chi phí chuẩn Châu Âu)</option>
-                  <option value="hybrid">🇫🇷⇄🇻🇳 Song hành Pháp - Việt (6 tháng Pháp / 6 tháng VN, giảm ~30%)</option>
-                  <option value="vietnam" selected>🇻🇳 100% tại Việt Nam (Sức mua cao, giảm ~55% chi phí + CFE)</option>
-                </select>
-                <div class="input-hint" id="hint-location-desc" style="font-size: 0.72rem; color: #94a3b8; margin-top: 3px;">
-                  Sức mua tương đương (PPP): Cùng tiêu chuẩn sống cao, chi phí tại VN chỉ bằng ~45% tại Pháp (+ bảo hiểm CFE).
-                </div>
-                <!-- Inline Formula: PPP Location -->
-                <div class="formula-inline-box formula-success" style="margin-top: 0.45rem;">
-                  <div class="formula-tag">📐 Công thức Sức Mua Địa Điểm (PPP)</div>
-                  <code>Chi tiêu thực tế = Chi tiêu gốc × Hệ số địa điểm + Phí CFE</code><br>
-                  <span style="font-size: 0.71rem; color: #94a3b8;">• 🇫🇷 Pháp: 1.00x | ✈️ Song hành: 0.70x | 🇻🇳 Việt Nam: 0.45x + 150€/tháng CFE</span>
-                </div>
-              </div>
-
-              <!-- Lương Hưu Nhà Nước Pháp (Retraite de Base & Décote) -->
-              <div class="expandable-panel" id="panel-french-pension">
-                <div class="expandable-header" id="btn-toggle-french-pension">
-                  <span class="expandable-title">🏛️ Lương hưu Pháp & Kiểm tra Décote</span>
-                  <span class="expandable-badge font-mono" id="badge-pension-status">172 Quý</span>
-                  <span class="expandable-icon">▼</span>
-                </div>
-                <div class="expandable-content" id="content-french-pension" style="display: none;">
-                  <div class="form-row">
-                    <div class="form-group col-6">
-                      <label for="inp-start-work-age">Bắt đầu đi làm (tuổi)</label>
-                      <input type="number" id="inp-start-work-age" min="18" max="40" value="24" class="form-input">
+              <!-- Unified Border: Địa điểm & Phong cách Hưu trí vs Công thức Sức Mua Địa Điểm (PPP) -->
+              <div class="ppp-composite-card" id="ppp-composite-card">
+                <div class="ppp-composite-grid">
+                  <!-- Cột trái: Địa điểm & Phong cách Hưu trí -->
+                  <div class="ppp-left-select">
+                    <div class="field-header" style="margin-bottom: 0.35rem;">
+                      <label for="sel-retirement-location" style="margin-bottom: 0;">🌍 Địa điểm & Phong cách Hưu trí</label>
+                      <span class="field-badge" id="badge-retire-location" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">🇻🇳 Giảm ~55% chi phí (PPP)</span>
                     </div>
-                    <div class="form-group col-6">
-                      <label for="inp-pension-age">Tuổi bắt đầu nhận hưu</label>
-                      <input type="number" id="inp-pension-age" min="62" max="70" value="64" class="form-input">
+                    <select id="sel-retirement-location" class="form-select">
+                      <option value="france">🇫🇷 100% tại Pháp (Chi phí chuẩn Châu Âu)</option>
+                      <option value="hybrid">🇫🇷⇄🇻🇳 Song hành Pháp - Việt (6 tháng Pháp / 6 tháng VN, giảm ~30%)</option>
+                      <option value="vietnam" selected>🇻🇳 100% tại Việt Nam (Sức mua cao, giảm ~55% chi phí + CFE)</option>
+                    </select>
+                    <div class="input-hint" id="hint-location-desc" style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px;">
+                      Sức mua tương đương (PPP): Cùng tiêu chuẩn sống cao, chi phí tại VN chỉ bằng ~45% tại Pháp (+ bảo hiểm CFE).
                     </div>
                   </div>
-                  <div class="form-group">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-                      <label for="inp-pension-base-annual" style="margin-bottom: 0; font-weight: 500;">Lương hưu mục tiêu khi đủ 43 năm (<span id="unit-pension-base">€</span>/năm)</label>
-                      <button type="button" id="btn-auto-pension-base" class="btn btn-xs" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); cursor: pointer;" title="Tự động tính từ mức lương sự nghiệp (CNAV 50% + Agirc-Arrco)">
-                        ⚡ Tự động tính theo lương
-                      </button>
-                    </div>
-                    <input type="number" id="inp-pension-base-annual" value="18000" step="500" class="form-input">
-                    <div id="hint-pension-base-auto" style="font-size: 0.73rem; color: var(--text-faint); margin-top: 4px; display: flex; justify-content: space-between; align-items: center;">
-                      <span id="txt-pension-base-explanation">⚡ Ước tính từ lương: ~17.700 €/năm (Tỷ lệ thay thế ~62% lương CNAV + Agirc-Arrco)</span>
-                      <span id="badge-pension-base-mode" style="font-size: 0.68rem; padding: 1px 6px; border-radius: 3px; background: rgba(52, 211, 153, 0.15); color: #34d399;">Tự động</span>
-                    </div>
-                  </div>
-                  <div id="box-pension-decote-live" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.6rem 0.8rem; font-size: 0.78rem;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-                      <span>Số quý tích lũy khi nghỉ việc:</span>
-                      <strong id="lbl-pension-quarters" class="font-mono text-warning">76 / 172 quý</strong>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-                      <span>Mức phạt Décote (nghỉ trước 67t):</span>
-                      <strong id="lbl-pension-decote" class="font-mono text-danger">-25% (kịch khung)</strong>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                      <span>Lương hưu thực nhận tuổi 64:</span>
-                      <strong id="lbl-pension-effective" class="font-mono text-success">~5,965 €/năm (~497 €/tháng)</strong>
-                    </div>
-                    <!-- Inline Formula: French Pension & Décote -->
-                    <div class="formula-inline-box formula-warning" style="margin-top: 0.6rem;">
-                      <div class="formula-tag">📐 Công thức Hưu Trí Pháp (Réforme 2023)</div>
-                      <code>• Lương mục tiêu 43n (Taux Plein) = CNAV (50% lương ≤ PASS) + Agirc-Arrco (~15-25% lương) [Chuẩn sức mua hiện tại; engine tự động cộng dồn lạm phát tương lai]</code><br>
-                      <code>• Số quý = (min(Tuổi hưu FIRE, Tuổi nhận hưu) - Tuổi đi làm) × 4 (Chuẩn: 172 quý = 43 năm)</code><br>
-                      <code>• Tỷ lệ Prorata = min(172, Số quý) / 172</code><br>
-                      <code>• Phạt Décote = -1.25% × Quý thiếu (Tối đa -25% nếu < 67t; Đủ 67t tự động = 0%)</code><br>
-                      <code>• Lương thực nhận = Lương mục tiêu × Prorata × (1 - Décote)</code>
-                    </div>
+
+                  <!-- Cột phải: Quy Đổi Sức Mua Địa Điểm (PPP) -->
+                  <div class="ppp-right-formula">
+                    <div class="formula-tag" style="color: #34d399; margin-bottom: 0.25rem;">📐 Quy Đổi Sức Mua Địa Điểm (PPP)</div>
+                    <code style="display: block; margin: 3px 0; font-family: var(--font-sans); font-size: 0.78rem; color: #e2e8f0; background: rgba(0, 0, 0, 0.25); padding: 5px 8px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.05);">Chi tiêu hưu trí = Chi tiêu thực tế tại địa điểm đã chọn</code>
+                    <span style="font-size: 0.71rem; color: #94a3b8; line-height: 1.4;">• 🇫🇷 Pháp: 1.00x (Chuẩn Châu Âu) | ✈️ Song hành: 0.70x (Giảm 30%) | 🇻🇳 Việt Nam: 0.45x (Giảm 55%)</span>
                   </div>
                 </div>
               </div>
 
-              <!-- Dự phòng Chăm sóc Tuổi Già (Senior Care / Dépendance / EHPAD) -->
-              <div class="expandable-panel" id="panel-senior-care">
-                <div class="expandable-header" id="btn-toggle-senior-care">
-                  <span class="expandable-title">🩺 Dự phòng Chăm sóc Tuổi Già (78t+)</span>
-                  <span class="expandable-badge font-mono" id="badge-senior-care">EHPAD / Care</span>
-                  <span class="expandable-icon">▼</span>
-                </div>
-                <div class="expandable-content" id="content-senior-care" style="display: none;">
-                  <div class="form-row">
-                    <div class="form-group col-6">
-                      <label for="inp-senior-care-age">Bắt đầu từ tuổi</label>
-                      <input type="number" id="inp-senior-care-age" min="70" max="95" value="78" class="form-input">
+              <!-- Grid 2 cột: Bảo đảm hưu trí Pháp & Dự phòng chăm sóc tuổi già -->
+              <div class="panels-grid-2">
+                <!-- Lương Hưu Nhà Nước Pháp (Retraite de Base & Décote) -->
+                <div class="expandable-panel" id="panel-french-pension">
+                  <div class="expandable-header" id="btn-toggle-french-pension">
+                    <span class="expandable-title">🏛️ Lương hưu Pháp & Kiểm tra Décote</span>
+                    <span class="expandable-badge font-mono" id="badge-pension-status">172 Quý</span>
+                    <span class="expandable-icon">▼</span>
+                  </div>
+                  <div class="expandable-content" id="content-french-pension" style="display: none;">
+                    <div class="form-row">
+                      <div class="form-group col-6">
+                        <label for="inp-start-work-age">Bắt đầu đi làm (tuổi)</label>
+                        <input type="number" id="inp-start-work-age" min="18" max="40" value="24" class="form-input">
+                      </div>
+                      <div class="form-group col-6">
+                        <label for="inp-pension-age">Tuổi bắt đầu nhận hưu</label>
+                        <input type="number" id="inp-pension-age" min="62" max="70" value="64" class="form-input">
+                      </div>
                     </div>
-                    <div class="form-group col-6">
-                      <label for="inp-senior-care-monthly">Ngân sách y tế/tháng (€)</label>
-                      <input type="number" id="inp-senior-care-monthly" min="0" max="10000" step="100" value="0" class="form-input" placeholder="0 €">
+                    <div class="form-group">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                        <label for="inp-pension-base-annual" style="margin-bottom: 0; font-weight: 500;">Lương hưu mục tiêu khi đủ 43 năm (<span id="unit-pension-base">€</span>/năm)</label>
+                        <button type="button" id="btn-auto-pension-base" class="btn btn-xs" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); cursor: pointer;" title="Tự động tính từ mức lương sự nghiệp (CNAV 50% + Agirc-Arrco)">
+                          ⚡ Tự động tính theo lương
+                        </button>
+                      </div>
+                      <input type="number" id="inp-pension-base-annual" value="18000" step="500" class="form-input">
+                      <div id="hint-pension-base-auto" style="font-size: 0.73rem; color: var(--text-faint); margin-top: 4px; display: flex; justify-content: space-between; align-items: center;">
+                        <span id="txt-pension-base-explanation">⚡ Ước tính từ lương: ~17.700 €/năm (Tỷ lệ thay thế ~62% lương CNAV + Agirc-Arrco)</span>
+                        <span id="badge-pension-base-mode" style="font-size: 0.68rem; padding: 1px 6px; border-radius: 3px; background: rgba(52, 211, 153, 0.15); color: #34d399;">Tự động</span>
+                      </div>
+                    </div>
+                    <div id="box-pension-decote-live" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.6rem 0.8rem; font-size: 0.78rem;">
+                      <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                        <span>Số quý tích lũy khi nghỉ việc:</span>
+                        <strong id="lbl-pension-quarters" class="font-mono text-warning">76 / 172 quý</strong>
+                      </div>
+                      <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                        <span>Mức phạt Décote (nghỉ trước 67t):</span>
+                        <strong id="lbl-pension-decote" class="font-mono text-danger">-25% (kịch khung)</strong>
+                      </div>
+                      <div style="display: flex; justify-content: space-between;">
+                        <span>Lương hưu thực nhận tuổi 64:</span>
+                        <strong id="lbl-pension-effective" class="font-mono text-success">~5,965 €/năm (~497 €/tháng)</strong>
+                      </div>
+                      <!-- Inline Formula: French Pension & Décote -->
+                      <div class="formula-inline-box formula-warning" style="margin-top: 0.6rem;">
+                        <div class="formula-tag">📐 Công thức Hưu Trí Pháp (Réforme 2023)</div>
+                        <code>• Lương mục tiêu 43n (Taux Plein) = CNAV (50% lương ≤ PASS) + Agirc-Arrco (~15-25% lương) [Chuẩn sức mua hiện tại; engine tự động cộng dồn lạm phát tương lai]</code><br>
+                        <code>• Số quý = (min(Tuổi hưu FIRE, Tuổi nhận hưu) - Tuổi đi làm) × 4 (Chuẩn: 172 quý = 43 năm)</code><br>
+                        <code>• Tỷ lệ Prorata = min(172, Số quý) / 172</code><br>
+                        <code>• Phạt Décote = -1.25% × Quý thiếu (Tối đa -25% nếu < 67t; Đủ 67t tự động = 0%)</code><br>
+                        <code>• Lương thực nhận = Lương mục tiêu × Prorata × (1 - Décote)</code>
+                      </div>
                     </div>
                   </div>
-                  <div class="input-hint" style="font-size: 0.72rem; color: #94a3b8;">
-                    Dự trù chi phí người giúp việc tại nhà (~1.200 €/tháng) hoặc Viện dưỡng lão EHPAD (~2.500 € - 3.500 €/tháng) để tránh thâm hụt tài sản thừa kế.
-                  </div>
-                  <!-- Inline Formula: Senior Care -->
-                  <div class="formula-inline-box formula-purple" style="margin-top: 0.5rem;">
-                    <div class="formula-tag">📐 Công thức Quỹ Chăm Sóc Cao Niên</div>
-                    <code>Chi phí năm = Ngân sách/tháng × 12 (Tự động kích hoạt khi Tuổi ≥ 78)</code>
-                  </div>
                 </div>
-              </div>
 
-              <div class="form-row">
-                <div class="form-group col-6">
-                  <label for="inp-return-pre">Lợi nhuận tích lũy (%/năm)</label>
-                  <input type="number" id="inp-return-pre" step="0.1" value="10.0" class="form-input">
-                </div>
-                <div class="form-group col-6">
-                  <label for="inp-return-post">Lợi nhuận hưu trí (%/năm)</label>
-                  <input type="number" id="inp-return-post" step="0.1" value="8.0" class="form-input">
-                </div>
-              </div>
-              <!-- Inline Formula: Compounding Accumulation -->
-              <div class="formula-inline-box" style="margin-top: 0.35rem;">
-                <div class="formula-tag">📐 Công thức Tích Lũy Lãi Kép Trước Hưu Trí</div>
-                <code>Tài sản(t+1) = [Tài sản(t) + Tiết kiệm ròng(t)] × (1 + R_tích_lũy)</code>
-              </div>
-
-              <!-- 1. Phân bổ Danh mục & Tái cân bằng (Asset Allocation) -->
-              <div class="expandable-panel" id="panel-asset-allocation">
-                <div class="expandable-header" id="btn-toggle-asset-allocation">
-                  <span class="expandable-title">🥧 Phân bổ Danh mục & Tái cân bằng</span>
-                  <span class="expandable-badge" id="badge-weighted-return">8.3%/năm</span>
-                  <span class="expandable-icon">▼</span>
-                </div>
-                <div class="expandable-content" id="content-asset-allocation" style="display: none;">
-                  <div class="form-group">
-                    <div class="field-header">
-                      <label for="inp-alloc-stocks">Cổ phiếu / ETF Quốc tế (PEA, CW8, S&P 500)</label>
-                      <span class="field-badge font-mono" id="lbl-alloc-stocks">60% (9.5%/năm)</span>
-                    </div>
-                    <input type="range" id="inp-alloc-stocks" min="0" max="100" step="5" value="60" class="form-range">
+                <!-- Dự phòng Chăm sóc Tuổi Già (Senior Care / Dépendance / EHPAD) -->
+                <div class="expandable-panel" id="panel-senior-care">
+                  <div class="expandable-header" id="btn-toggle-senior-care">
+                    <span class="expandable-title">🩺 Dự phòng Chăm sóc Tuổi Già (78t+)</span>
+                    <span class="expandable-badge font-mono" id="badge-senior-care">EHPAD / Care</span>
+                    <span class="expandable-icon">▼</span>
                   </div>
-                  <div class="form-group">
-                    <div class="field-header">
-                      <label for="inp-alloc-bonds">Trái phiếu / Tiền gửi an toàn (Livret A, LDDS, Tiết kiệm)</label>
-                      <span class="field-badge font-mono" id="lbl-alloc-bonds">20% (3.5%/năm)</span>
+                  <div class="expandable-content" id="content-senior-care" style="display: none;">
+                    <div class="form-row">
+                      <div class="form-group col-6">
+                        <label for="inp-senior-care-age">Bắt đầu từ tuổi</label>
+                        <input type="number" id="inp-senior-care-age" min="70" max="95" value="78" class="form-input">
+                      </div>
+                      <div class="form-group col-6">
+                        <label for="inp-senior-care-monthly">Ngân sách y tế/tháng (€)</label>
+                        <input type="number" id="inp-senior-care-monthly" min="0" max="10000" step="100" value="0" class="form-input" placeholder="0 €">
+                      </div>
                     </div>
-                    <input type="range" id="inp-alloc-bonds" min="0" max="100" step="5" value="20" class="form-range">
-                  </div>
-                  <div class="form-group">
-                    <div class="field-header">
-                      <label for="inp-alloc-re">Bất động sản & Vàng (BĐS Việt Nam / SCPI)</label>
-                      <span class="field-badge font-mono" id="lbl-alloc-re">20% (6.5%/năm)</span>
+                    <div class="input-hint" style="font-size: 0.72rem; color: #94a3b8;">
+                      Dự trù chi phí người giúp việc tại nhà (~1.200 €/tháng) hoặc Viện dưỡng lão EHPAD (~2.500 € - 3.500 €/tháng) để tránh thâm hụt tài sản thừa kế.
                     </div>
-                    <input type="range" id="inp-alloc-re" min="0" max="100" step="5" value="20" class="form-range">
-                  </div>
-                  <div class="input-hint" id="hint-asset-allocation">
-                    Lợi nhuận theo trọng số: <strong id="lbl-weighted-calc">8.0%/năm</strong> (đã gồm +0.3% thưởng kỷ luật tái cân bằng).
-                    <!-- Inline Formula: Weighted Return -->
-                    <div class="formula-inline-box" style="margin-top: 0.45rem;">
-                      <div class="formula-tag">📐 Công thức Lợi Nhuận Trọng Số Danh Mục</div>
-                      <code>R_danh_mục = (% Cổ phiếu × 9.5%) + (% Trái phiếu × 3.5%) + (% BĐS × 6.5%) + 0.3% (Tái cân bằng)</code>
+                    <!-- Inline Formula: Senior Care -->
+                    <div class="formula-inline-box formula-purple" style="margin-top: 0.5rem;">
+                      <div class="formula-tag">📐 Công thức Quỹ Chăm Sóc Cao Niên</div>
+                      <code>Chi phí năm = Ngân sách/tháng × 12 (Tự động kích hoạt khi Tuổi ≥ 78)</code>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- 2. Lạm phát 2 Chặng & Tỷ giá EUR/VND (Dual Inflation & Forex) -->
-              <div class="expandable-panel" id="panel-dual-inflation">
+              <!-- Unified Card: Lợi nhuận tích lũy, Lợi nhuận hưu trí & Phân bổ danh mục chung một border -->
+              <div class="returns-composite-card" id="returns-composite-card">
+                <div class="returns-composite-grid">
+                  <!-- Cột trái: Lợi nhuận tích lũy & Lợi nhuận hưu trí (xếp chồng dọc) + Công thức Lãi kép -->
+                  <div class="returns-left-inputs">
+                    <div class="form-group" style="margin-bottom: 0.5rem;">
+                      <label for="inp-return-pre">Lợi nhuận tích lũy (%/năm)</label>
+                      <input type="number" id="inp-return-pre" step="0.1" value="10.0" class="form-input">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0.5rem;">
+                      <label for="inp-return-post">Lợi nhuận hưu trí (%/năm)</label>
+                      <input type="number" id="inp-return-post" step="0.1" value="8.0" class="form-input">
+                    </div>
+                    <!-- Inline Formula: Compounding Accumulation -->
+                    <div class="formula-inline-box" style="margin-top: 0.25rem; margin-bottom: 0;">
+                      <div class="formula-tag">📐 Công thức Tích Lũy Lãi Kép Trước Hưu Trí</div>
+                      <code style="font-size: 0.74rem;">Tài sản(t+1) = [Tài sản(t) + Tiết kiệm ròng(t)] × (1 + R_tích_lũy)</code>
+                    </div>
+                  </div>
+
+                  <!-- Cột phải: Phân bổ Danh mục & Tái cân bằng (Hiển thị trực tiếp) -->
+                  <div class="returns-right-allocation" id="panel-asset-allocation">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+                      <span style="font-weight: 700; font-size: 0.82rem; color: #f59e0b; display: flex; align-items: center; gap: 0.4rem; text-transform: uppercase; letter-spacing: 0.02em;">
+                        <span>🥧</span> Phân bổ Danh mục & Tái cân bằng
+                      </span>
+                      <span class="field-badge font-mono" id="badge-weighted-return" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">8.3%/năm</span>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0.55rem;">
+                      <div class="field-header">
+                        <label for="inp-alloc-stocks">Cổ phiếu / ETF Quốc tế (PEA, CW8, S&P 500)</label>
+                        <span class="field-badge font-mono" id="lbl-alloc-stocks">60% (9.5%/năm)</span>
+                      </div>
+                      <input type="range" id="inp-alloc-stocks" min="0" max="100" step="5" value="60" class="form-range">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0.55rem;">
+                      <div class="field-header">
+                        <label for="inp-alloc-bonds">Trái phiếu / Tiền gửi an toàn (Livret A, LDDS, Tiết kiệm)</label>
+                        <span class="field-badge font-mono" id="lbl-alloc-bonds">20% (3.5%/năm)</span>
+                      </div>
+                      <input type="range" id="inp-alloc-bonds" min="0" max="100" step="5" value="20" class="form-range">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0.55rem;">
+                      <div class="field-header">
+                        <label for="inp-alloc-re">Bất động sản & Vàng (BĐS Việt Nam / SCPI)</label>
+                        <span class="field-badge font-mono" id="lbl-alloc-re">20% (6.5%/năm)</span>
+                      </div>
+                      <input type="range" id="inp-alloc-re" min="0" max="100" step="5" value="20" class="form-range">
+                    </div>
+
+                    <div class="input-hint" id="hint-asset-allocation" style="font-size: 0.72rem; color: #94a3b8;">
+                      Lợi nhuận theo trọng số: <strong id="lbl-weighted-calc">8.0%/năm</strong> (đã gồm +0.3% thưởng kỷ luật tái cân bằng).
+                      <!-- Inline Formula: Weighted Return -->
+                      <div class="formula-inline-box" style="margin-top: 0.35rem; margin-bottom: 0;">
+                        <div class="formula-tag">📐 Công thức Lợi Nhuận Trọng Số Danh Mục</div>
+                        <code>R_danh_mục = (% Cổ phiếu × 9.5%) + (% Trái phiếu × 3.5%) + (% BĐS × 6.5%) + 0.3% (Tái cân bằng)</code>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Lạm phát 2 Chặng & Tỷ giá EUR/VND (Dual Inflation & Forex) -->
+              <div class="expandable-panel" id="panel-dual-inflation" style="margin-top: 0.85rem;">
                 <div class="expandable-header" id="btn-toggle-dual-inflation">
                   <span class="expandable-title">🌍 Lạm phát 2 Chặng & Tỷ giá EUR/VND</span>
                   <span class="expandable-badge">PPP Model</span>
@@ -568,117 +591,66 @@
                 </div>
               </div>
 
-              <!-- 3. Quản lý Nợ & Vay Mua Nhà (Mortgage & Crédit Immo) -->
-              <div class="expandable-panel" id="panel-mortgage">
-                <div class="expandable-header" id="btn-toggle-mortgage">
-                  <span class="expandable-title">🏡 Khoản vay Mua nhà (Crédit Immo)</span>
-                  <span class="expandable-badge" id="badge-mortgage-status">€824/tháng</span>
-                  <span class="expandable-icon">▼</span>
-                </div>
-                <div class="expandable-content" id="content-mortgage" style="display: none;">
-                  <div class="form-group">
-                    <label class="checkbox-label">
-                      <input type="checkbox" id="chk-mortgage-enabled" checked>
-                      <span>Có khoản vay mua BĐS (Crédit Immobilier)</span>
-                    </label>
+              <div class="form-divider" style="column-span: all; -webkit-column-span: all; margin-top: 1.25rem; margin-bottom: 0.75rem;"></div>
+              
+              <!-- ============================================================ -->
+              <!-- Side by Side: Các Luồng Thu Nhập & Các Luồng Chi Tiêu & Nợ Vay -->
+              <!-- ============================================================ -->
+              <div class="streams-side-by-side">
+                <!-- Cột 1: Các Luồng Thu nhập -->
+                <div class="stream-column stream-column-income">
+                  <div class="income-streams-header">
+                    <h4 class="card-subtitle" style="margin: 0;">🌱 Các Luồng Thu nhập</h4>
+                    <button type="button" id="btn-add-income" class="btn btn-xs btn-outline">+ Thêm nguồn thu</button>
                   </div>
-                  <div class="form-group">
-                    <label class="checkbox-label">
-                      <input type="checkbox" id="chk-mortgage-from-patrimoine" checked>
-                      <span>🔗 Tự động lấy từ Quản Lý Tài Sản</span>
-                    </label>
-                    <div class="input-hint" id="hint-mortgage-source" style="margin-top: 0.25rem;"></div>
-                  </div>
-                  <div id="mortgage-patrimoine-loans" style="display: none; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem;"></div>
-                  <div id="mortgage-manual-fields">
-                  <div class="form-row">
-                    <div class="form-group col-6">
-                      <label for="inp-mortgage-prop-val">Giá trị BĐS hiện tại (<span id="unit-mortgage-prop">€</span>)</label>
-                      <input type="number" id="inp-mortgage-prop-val" value="200000" step="5000" class="form-input">
+
+                  <!-- Tổng thu nhập theo các giai đoạn tuổi -->
+                  <div class="income-periods-box" id="income-periods-box" style="margin-bottom: 0.85rem; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 0.75rem 0.85rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                      <span style="font-size: 0.78rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 0.35rem;">
+                        <span>📊</span> Tổng thu nhập theo giai đoạn tuổi
+                      </span>
+                      <span id="income-periods-count" style="font-size: 0.72rem; color: var(--text-muted);"></span>
                     </div>
-                    <div class="form-group col-6">
-                      <label for="inp-mortgage-loan">Số tiền vay gốc (<span id="unit-mortgage-loan">€</span>)</label>
-                      <input type="number" id="inp-mortgage-loan" value="160000" step="5000" class="form-input">
+                    <div class="income-periods-list" id="income-periods-container" style="display: flex; flex-direction: column; gap: 0.45rem;">
+                      <!-- Dynamically rendered income periods -->
                     </div>
                   </div>
-                  <div class="form-row">
-                    <div class="form-group col-4">
-                      <label for="inp-mortgage-rate">Lãi suất (%/năm)</label>
-                      <input type="number" id="inp-mortgage-rate" value="2.2" step="0.1" class="form-input">
+
+                  <div class="income-list" id="income-streams-container">
+                    <!-- Dynamically rendered income streams -->
+                  </div>
+                </div>
+
+                <!-- Cột 2: Các Luồng Chi Tiêu & Nợ Vay -->
+                <div class="stream-column stream-column-expense">
+                  <div class="income-streams-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h4 class="card-subtitle" style="color: #f43f5e; display: flex; align-items: center; gap: 0.4rem; margin: 0;">
+                      <span>💸</span> Các Luồng Chi Tiêu & Nợ Vay
+                    </h4>
+                    <div style="display: flex; gap: 0.4rem;">
+                      <button type="button" id="btn-sync-mortgage-expenses" class="btn btn-xs btn-outline" style="border-color: rgba(244, 63, 94, 0.4); color: #fb7185;" title="Lấy tự động các khoản trả góp crédit từ danh mục Quản Lý BĐS">🔗 Lấy Nợ BĐS</button>
+                      <button type="button" id="btn-add-expense" class="btn btn-xs btn-primary" style="background: rgba(244, 63, 94, 0.25); border: 1px solid rgba(244, 63, 94, 0.5); color: #fff;">+ Thêm khoản chi</button>
                     </div>
-                    <div class="form-group col-4">
-                      <label for="inp-mortgage-term">Thời hạn (năm)</label>
-                      <input type="number" id="inp-mortgage-term" value="20" min="5" max="30" class="form-input">
+                  </div>
+
+                  <!-- Tổng chi tiêu theo các giai đoạn tuổi -->
+                  <div class="expense-periods-box" id="expense-periods-box" style="margin-bottom: 0.85rem; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(244, 63, 94, 0.25); border-radius: 8px; padding: 0.75rem 0.85rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                      <span style="font-size: 0.78rem; font-weight: 700; color: #fb7185; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 0.35rem;">
+                        <span>📉</span> Tổng chi tiêu theo giai đoạn tuổi
+                      </span>
+                      <span id="expense-periods-count" style="font-size: 0.72rem; color: var(--text-muted);"></span>
                     </div>
-                    <div class="form-group col-4">
-                      <label for="inp-mortgage-start">Bắt đầu ở tuổi</label>
-                      <input type="number" id="inp-mortgage-start" value="29" min="18" max="70" class="form-input">
+                    <div class="expense-periods-list" id="expense-periods-container" style="display: flex; flex-direction: column; gap: 0.45rem;">
+                      <!-- Dynamically rendered expense periods -->
                     </div>
                   </div>
-                  </div>
-                  <div class="input-hint" id="hint-mortgage-summary">
-                    Góp: <strong id="lbl-mortgage-monthly">€824/tháng</strong> • Vốn sở hữu hiện tại: <strong id="lbl-mortgage-equity">€40.0k</strong> • Tất toán tuổi <strong id="lbl-mortgage-payoff">49</strong>.
-                  </div>
-                  <!-- Inline Formula: Mortgage Mensualité -->
-                  <div class="formula-inline-box" style="margin-top: 0.5rem;">
-                    <div class="formula-tag">📐 Công thức Trả Góp Thế Chấp (Mensualité)</div>
-                    <code>M = Vốn vay × [r(1+r)^n] / [(1+r)^n - 1] (r = Lãi suất/12, n = Số tháng)</code>
+
+                  <div class="expense-list" id="expense-streams-container" style="display: flex; flex-direction: column; gap: 0.6rem;">
+                    <!-- Dynamically rendered expense streams -->
                   </div>
                 </div>
-              </div>
-
-              <div class="form-divider"></div>
-              <div class="income-streams-header">
-                <h4 class="card-subtitle">🌱 Các Luồng Thu nhập (Multiple Streams)</h4>
-                <button type="button" id="btn-add-income" class="btn btn-xs btn-outline">+ Thêm nguồn thu</button>
-              </div>
-
-              <!-- Tổng thu nhập theo các giai đoạn tuổi -->
-              <div class="income-periods-box" id="income-periods-box" style="margin-bottom: 0.85rem; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 0.75rem 0.85rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                  <span style="font-size: 0.78rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 0.35rem;">
-                    <span>📊</span> Tổng thu nhập theo giai đoạn tuổi
-                  </span>
-                  <span id="income-periods-count" style="font-size: 0.72rem; color: var(--text-muted);"></span>
-                </div>
-                <div class="income-periods-list" id="income-periods-container" style="display: flex; flex-direction: column; gap: 0.45rem;">
-                  <!-- Dynamically rendered income periods -->
-                </div>
-              </div>
-
-              <div class="income-list" id="income-streams-container">
-                <!-- Dynamically rendered income streams -->
-              </div>
-
-              <!-- ========================================== -->
-              <!-- Expense Streams & Crédits (Khoản Chi & Nợ) -->
-              <!-- ========================================== -->
-              <div class="form-divider" id="expense-streams-box" style="margin-top: 1.25rem;"></div>
-              <div class="income-streams-header" style="margin-top: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
-                <h4 class="card-subtitle" style="color: #f43f5e; display: flex; align-items: center; gap: 0.4rem; margin: 0;">
-                  <span>💸</span> Các Luồng Chi Tiêu & Nợ Vay (Expense Streams & Crédits)
-                </h4>
-                <div style="display: flex; gap: 0.4rem;">
-                  <button type="button" id="btn-sync-mortgage-expenses" class="btn btn-xs btn-outline" style="border-color: rgba(244, 63, 94, 0.4); color: #fb7185;" title="Lấy tự động các khoản trả góp crédit từ danh mục Quản Lý BĐS">🔗 Lấy Nợ BĐS</button>
-                  <button type="button" id="btn-add-expense" class="btn btn-xs btn-primary" style="background: rgba(244, 63, 94, 0.25); border: 1px solid rgba(244, 63, 94, 0.5); color: #fff;">+ Thêm khoản chi</button>
-                </div>
-              </div>
-
-              <!-- Tổng chi tiêu theo các giai đoạn tuổi -->
-              <div class="expense-periods-box" id="expense-periods-box" style="margin-top: 0.75rem; margin-bottom: 0.85rem; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(244, 63, 94, 0.25); border-radius: 8px; padding: 0.75rem 0.85rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                  <span style="font-size: 0.78rem; font-weight: 700; color: #fb7185; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 0.35rem;">
-                    <span>📉</span> Tổng chi tiêu theo giai đoạn tuổi
-                  </span>
-                  <span id="expense-periods-count" style="font-size: 0.72rem; color: var(--text-muted);"></span>
-                </div>
-                <div class="expense-periods-list" id="expense-periods-container" style="display: flex; flex-direction: column; gap: 0.45rem;">
-                  <!-- Dynamically rendered expense periods -->
-                </div>
-              </div>
-
-              <div class="expense-list" id="expense-streams-container" style="display: flex; flex-direction: column; gap: 0.6rem;">
-                <!-- Dynamically rendered expense streams -->
               </div>
             </div>
           </div>
@@ -798,8 +770,31 @@
       <!-- TAB 2: WITHDRAWAL STRATEGIES -->
       <section class="tab-pane" id="tab-withdrawals">
         <div class="panel-layout">
-          <div class="panel-controls">
+          <div class="panel-visualization">
+            <div class="card chart-card">
+              <div class="chart-header">
+                <div>
+                  <h3 class="card-title">So sánh 4 Chiến lược Rút tiền trên Cùng Kịch bản</h3>
+                  <p class="chart-desc">Đánh giá tính ổn định dòng tiền và số dư tài sản còn lại ở tuổi 85 giữa 4 chiến lược.</p>
+                </div>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chart-withdrawal-comparison"></canvas>
+              </div>
+            </div>
+
             <div class="card">
+              <h3 class="card-title">💡 Phân tích Hiệu quả Chiến lược</h3>
+              <div class="strategy-matrix" id="withdrawal-strategy-matrix">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+
+          <!-- 2-COLUMN SPLIT: Strategy Selection (Left) & Gemini AI Commentary (Right) -->
+          <div class="withdrawals-split-grid">
+            <!-- BÊN TRÁI: Lựa chọn Chiến lược Rút tiền -->
+            <div class="card withdrawals-strategy-card">
               <h3 class="card-title">🛡️ Lựa chọn Chiến lược Rút tiền</h3>
               <p class="card-desc">Cách bạn rút tiền khi nghỉ hưu quyết định trực tiếp khả năng sống sót của danh mục trước biến động thị trường.</p>
 
@@ -821,8 +816,8 @@
                     <div class="strategy-name">Chiến lược Lan can Guyton-Klinger (Khuyên dùng)</div>
                     <div class="strategy-detail">Tự động tăng chi tiêu khi thị trường thắng lớn và thắt lưng buộc bụng 10% khi thị trường giảm sút mạnh. Tăng tỷ lệ sống sót lên 99%.</div>
                     <div class="formula-inline-box formula-success" style="margin-top: 0.4rem; padding: 0.35rem 0.55rem; font-size: 0.72rem;">
-                      <code>• Rút thực tế > 1.2 × SWR ➔ Cắt giảm 10% chi tiêu</code><br>
-                      <code>• Rút thực tế < 0.8 × SWR ➔ Thưởng tăng 10% chi tiêu</code>
+                      <code>• Rút thực tế &gt; 1.2 × SWR ➔ Cắt giảm 10% chi tiêu</code><br>
+                      <code>• Rút thực tế &lt; 0.8 × SWR ➔ Thưởng tăng 10% chi tiêu</code>
                     </div>
                   </div>
                 </label>
@@ -856,42 +851,21 @@
                 <div class="range-value-display"><span id="val-initial-swr">4.0</span>%</div>
               </div>
             </div>
-          </div>
 
-          <div class="panel-visualization">
-            <div class="card chart-card">
-              <div class="chart-header">
-                <div>
-                  <h3 class="card-title">So sánh 4 Chiến lược Rút tiền trên Cùng Kịch bản</h3>
-                  <p class="chart-desc">Đánh giá tính ổn định dòng tiền và số dư tài sản còn lại ở tuổi 85 giữa 4 chiến lược.</p>
+            <!-- BÊN PHẢI: Gemini AI So sánh & Đánh giá Rút tiền -->
+            <div class="gemini-insight-box withdrawals-gemini-card" id="gemini-box-chart-withdrawal-comparison">
+              <div class="gemini-insight-header">
+                <div class="gemini-header-left">
+                  <span class="gemini-sparkle">✨</span>
+                  <span class="gemini-title">Gemini AI So sánh & Đánh giá Rút tiền</span>
+                  <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-withdrawal-comparison">Gemini Intelligence</span>
                 </div>
+                <button type="button" class="btn-gemini-refresh" data-chart="chart-withdrawal-comparison" title="Phân tích lại với Gemini">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Phân tích lại
+                </button>
               </div>
-              <div class="chart-wrapper">
-                <canvas id="chart-withdrawal-comparison"></canvas>
-              </div>
-
-              <!-- Gemini AI Chart Commentary: Withdrawals -->
-              <div class="gemini-insight-box" id="gemini-box-chart-withdrawal-comparison">
-                <div class="gemini-insight-header">
-                  <div class="gemini-header-left">
-                    <span class="gemini-sparkle">✨</span>
-                    <span class="gemini-title">Gemini AI So sánh & Đánh giá Rút tiền</span>
-                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-withdrawal-comparison">Gemini Intelligence</span>
-                  </div>
-                  <button type="button" class="btn-gemini-refresh" data-chart="chart-withdrawal-comparison" title="Phân tích lại với Gemini">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Phân tích lại
-                  </button>
-                </div>
-                <div class="gemini-insight-content" id="gemini-content-chart-withdrawal-comparison">
-                  <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu từ Gemini...</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="card">
-              <h3 class="card-title">💡 Phân tích Hiệu quả Chiến lược</h3>
-              <div class="strategy-matrix" id="withdrawal-strategy-matrix">
-                <!-- Populated dynamically -->
+              <div class="gemini-insight-content" id="gemini-content-chart-withdrawal-comparison">
+                <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu từ Gemini...</div>
               </div>
             </div>
           </div>
@@ -1514,8 +1488,56 @@
       <!-- TAB 4: DEEPER INSIGHTS & MONTE CARLO -->
       <section class="tab-pane" id="tab-insights">
         <div class="panel-layout">
-          <div class="panel-controls">
-            <div class="card">
+          <div class="panel-visualization">
+            <div class="card chart-card">
+              <div class="chart-header">
+                <div>
+                  <h3 class="card-title">Quạt Phân vị Monte Carlo (Fan Chart 10th - 90th Percentiles)</h3>
+                  <p class="chart-desc">Đường trung vị (50th percentile), kịch bản xấu nhất (10th percentile - thị trường gấu) và kịch bản tốt nhất (90th percentile).</p>
+                </div>
+                <div class="mc-success-badge">
+                  <span>Tỷ lệ Thành công:</span>
+                  <strong id="mc-display-success">95.2%</strong>
+                </div>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chart-monte-carlo"></canvas>
+              </div>
+
+              <!-- Gộp 3 Kịch bản Phân vị vào chân biểu đồ để tiết kiệm diện tích -->
+              <div class="mc-stats-grid">
+                <div class="stat-box stat-box-p10">
+                  <div class="stat-header">
+                    <span class="stat-dot dot-danger"></span>
+                    <span class="stat-label">Kịch bản Xấu nhất (10th Percentile)</span>
+                  </div>
+                  <div class="stat-value font-mono text-danger" id="mc-stat-p10">4.12 Tỷ ₫</div>
+                  <div class="stat-desc">Vẫn còn tài sản ở tuổi 85</div>
+                </div>
+                <div class="stat-box stat-box-p50">
+                  <div class="stat-header">
+                    <span class="stat-dot dot-accent"></span>
+                    <span class="stat-label">Kịch bản Trung vị (50th Percentile)</span>
+                  </div>
+                  <div class="stat-value font-mono text-accent" id="mc-stat-p50">18.45 Tỷ ₫</div>
+                  <div class="stat-desc">Dư dả vượt mục tiêu</div>
+                </div>
+                <div class="stat-box stat-box-p90">
+                  <div class="stat-header">
+                    <span class="stat-dot dot-success"></span>
+                    <span class="stat-label">Kịch bản Tốt nhất (90th Percentile)</span>
+                  </div>
+                  <div class="stat-value font-mono text-success" id="mc-stat-p90">48.90 Tỷ ₫</div>
+                  <div class="stat-desc">Thị trường bùng nổ</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2-COLUMN SPLIT: Monte Carlo Setup (Left) & Gemini AI Commentary (Right) -->
+          <div class="tab-split-grid">
+            <!-- BÊN TRÁI: Khối Thiết lập Mô phỏng Monte Carlo -->
+            <div class="card tab-split-left-card">
               <h3 class="card-title">📈 Thiết lập Mô phỏng Monte Carlo (1,000 Lần)</h3>
               <p class="card-desc">Thực tế thị trường không tăng trưởng đều 8%/năm. Monte Carlo kiểm nghiệm 1,000 chu kỳ thị trường ngẫu nhiên để tìm ra rủi ro suy thoái sớm (Sequence of Returns Risk).</p>
 
@@ -1547,57 +1569,21 @@
                 <p>Khuyến nghị duy trì quỹ dự phòng tiền mặt 2 năm chi tiêu để không phải bán tháo tài sản khi thị trường điều chỉnh.</p>
               </div>
             </div>
-          </div>
 
-          <div class="panel-visualization">
-            <div class="card chart-card">
-              <div class="chart-header">
-                <div>
-                  <h3 class="card-title">Quạt Phân vị Monte Carlo (Fan Chart 10th - 90th Percentiles)</h3>
-                  <p class="chart-desc">Đường trung vị (50th percentile), kịch bản xấu nhất (10th percentile - thị trường gấu) và kịch bản tốt nhất (90th percentile).</p>
+            <!-- BÊN PHẢI: Khối Gemini AI Đánh giá Monte Carlo -->
+            <div class="gemini-insight-box tab-split-gemini-card" id="gemini-box-chart-monte-carlo">
+              <div class="gemini-insight-header">
+                <div class="gemini-header-left">
+                  <span class="gemini-sparkle">✨</span>
+                  <span class="gemini-title">Gemini AI Đánh giá Rủi ro & Xác suất Monte Carlo</span>
+                  <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-monte-carlo">Gemini Intelligence</span>
                 </div>
-                <div class="mc-success-badge">
-                  <span>Tỷ lệ Thành công:</span>
-                  <strong id="mc-display-success">95.2%</strong>
-                </div>
+                <button type="button" class="btn-gemini-refresh" data-chart="chart-monte-carlo" title="Phân tích lại với Gemini">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Phân tích lại
+                </button>
               </div>
-              <div class="chart-wrapper">
-                <canvas id="chart-monte-carlo"></canvas>
-              </div>
-
-              <!-- Gemini AI Chart Commentary: Monte Carlo -->
-              <div class="gemini-insight-box" id="gemini-box-chart-monte-carlo">
-                <div class="gemini-insight-header">
-                  <div class="gemini-header-left">
-                    <span class="gemini-sparkle">✨</span>
-                    <span class="gemini-title">Gemini AI Đánh giá Rủi ro & Xác suất Monte Carlo</span>
-                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-monte-carlo">Gemini Intelligence</span>
-                  </div>
-                  <button type="button" class="btn-gemini-refresh" data-chart="chart-monte-carlo" title="Phân tích lại với Gemini">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Phân tích lại
-                  </button>
-                </div>
-                <div class="gemini-insight-content" id="gemini-content-chart-monte-carlo">
-                  <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu từ Gemini...</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="mc-stats-grid">
-              <div class="stat-box">
-                <div class="stat-label">Kịch bản Xấu nhất (10th Percentile)</div>
-                <div class="stat-value font-mono" id="mc-stat-p10">4.12 Tỷ ₫</div>
-                <div class="stat-desc">Vẫn còn tài sản ở tuổi 85</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-label">Kịch bản Trung vị (50th Percentile)</div>
-                <div class="stat-value font-mono text-accent" id="mc-stat-p50">18.45 Tỷ ₫</div>
-                <div class="stat-desc">Dư dả vượt mục tiêu</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-label">Kịch bản Tốt nhất (90th Percentile)</div>
-                <div class="stat-value font-mono text-success" id="mc-stat-p90">48.90 Tỷ ₫</div>
-                <div class="stat-desc">Thị trường bùng nổ</div>
+              <div class="gemini-insight-content" id="gemini-content-chart-monte-carlo">
+                <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu từ Gemini...</div>
               </div>
             </div>
           </div>
@@ -1607,8 +1593,31 @@
       <!-- TAB 5: WHAT-IF SCENARIOS -->
       <section class="tab-pane" id="tab-scenarios">
         <div class="panel-layout">
-          <div class="panel-controls">
+          <div class="panel-visualization">
+            <div class="card chart-card">
+              <div class="chart-header">
+                <div>
+                  <h3 class="card-title" id="scenario-chart-title">Tác động của Kịch bản lên Tài sản Ròng</h3>
+                  <p class="chart-desc" id="scenario-chart-desc">So sánh đường tài sản cơ sở với đường tài sản khi gặp biến cố.</p>
+                </div>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chart-scenarios"></canvas>
+              </div>
+            </div>
+
             <div class="card">
+              <h3 class="card-title">Kết luận Khả năng Chịu đựng (Resilience Assessment)</h3>
+              <div class="resilience-report" id="scenario-report-content">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+
+          <!-- 2-COLUMN SPLIT: Stress Testing Scenarios (Left) & Gemini AI Commentary (Right) -->
+          <div class="tab-split-grid">
+            <!-- BÊN TRÁI: Khối Các Kịch bản Thử thách (Stress Testing) -->
+            <div class="card tab-split-left-card">
               <h3 class="card-title">🧬 Các Kịch bản Thử thách (Stress Testing)</h3>
               <p class="card-desc">Thử nghiệm xem kế hoạch hưu trí của bạn có vượt qua được các cú sốc tài chính không ngờ tới.</p>
 
@@ -1639,42 +1648,21 @@
                 </button>
               </div>
             </div>
-          </div>
 
-          <div class="panel-visualization">
-            <div class="card chart-card">
-              <div class="chart-header">
-                <div>
-                  <h3 class="card-title" id="scenario-chart-title">Tác động của Kịch bản lên Tài sản Ròng</h3>
-                  <p class="chart-desc" id="scenario-chart-desc">So sánh đường tài sản cơ sở với đường tài sản khi gặp biến cố.</p>
+            <!-- BÊN PHẢI: Khối Gemini AI Đánh giá What-If -->
+            <div class="gemini-insight-box tab-split-gemini-card" id="gemini-box-chart-scenarios">
+              <div class="gemini-insight-header">
+                <div class="gemini-header-left">
+                  <span class="gemini-sparkle">✨</span>
+                  <span class="gemini-title">Gemini AI Đánh giá Khả năng Chịu đựng Biến cố</span>
+                  <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-scenarios">Gemini Intelligence</span>
                 </div>
+                <button type="button" class="btn-gemini-refresh" data-chart="chart-scenarios" title="Phân tích lại với Gemini">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Phân tích lại
+                </button>
               </div>
-              <div class="chart-wrapper">
-                <canvas id="chart-scenarios"></canvas>
-              </div>
-
-              <!-- Gemini AI Chart Commentary: Scenarios -->
-              <div class="gemini-insight-box" id="gemini-box-chart-scenarios">
-                <div class="gemini-insight-header">
-                  <div class="gemini-header-left">
-                    <span class="gemini-sparkle">✨</span>
-                    <span class="gemini-title">Gemini AI Đánh giá Khả năng Chịu đựng Biến cố</span>
-                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-scenarios">Gemini Intelligence</span>
-                  </div>
-                  <button type="button" class="btn-gemini-refresh" data-chart="chart-scenarios" title="Phân tích lại với Gemini">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Phân tích lại
-                  </button>
-                </div>
-                <div class="gemini-insight-content" id="gemini-content-chart-scenarios">
-                  <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu từ Gemini...</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="card">
-              <h3 class="card-title">Kết luận Khả năng Chịu đựng (Resilience Assessment)</h3>
-              <div class="resilience-report" id="scenario-report-content">
-                <!-- Populated dynamically -->
+              <div class="gemini-insight-content" id="gemini-content-chart-scenarios">
+                <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu từ Gemini...</div>
               </div>
             </div>
           </div>
@@ -2657,7 +2645,7 @@
 
   <!-- Modal for Adding / Editing Apartment (pyLocation) -->
   <div class="modal-overlay" id="apartment-modal" style="display: none;">
-    <div class="modal-card" style="max-width: 680px; max-height: 90vh; overflow-y: auto;">
+    <div class="modal-card modal-xl" style="max-width: 960px; width: 94%; max-height: 92vh;">
       <div class="modal-header">
         <h3 id="apartment-modal-title">Thêm / Chỉnh Sửa Căn Hộ LMNP</h3>
         <button class="modal-close" id="btn-close-apt-modal">✕</button>
@@ -2747,41 +2735,96 @@
           <div>💰 <strong>Tổng dự án:</strong> <span id="lbl-apt-total-project" style="color: var(--primary); font-weight: 700;">97,125 €</span></div>
           <div>🏦 <strong>Số tiền vay:</strong> <span id="lbl-apt-loan-amount" style="color: #38bdf8; font-weight: 700;">89,125 €</span></div>
           <div>💳 <strong>Vốn tự có:</strong> <span id="lbl-apt-down-payment" style="color: #f59e0b; font-weight: 700;">8,000 €</span></div>
-          <div>📊 <strong>Dòng tiền Ròng:</strong> <span id="lbl-apt-net-cashflow" style="color: #10b981; font-weight: 700;">+45 €/tháng</span> <span style="font-size: 0.72rem; color: var(--text-muted);">(sau trừ TF & Trống nhà)</span></div>
+          <div>📊 <strong>Dòng tiền Ròng:</strong> <span id="lbl-apt-net-cashflow" style="color: #10b981; font-weight: 700;">+45 €/tháng</span> <span style="font-size: 0.72rem; color: var(--text-muted);">(sau trừ Trả nợ & Phí vận hành)</span></div>
         </div>
 
         <!-- Inline Formula: Realistic Real Estate Economics -->
         <div class="formula-inline-box" style="margin-top: 0.65rem;">
-          <div class="formula-tag">📐 Công thức Vốn Vay & Dòng Tiền Ròng BĐS Pháp</div>
-          <code>• Tổng dự án = Giá mua + Phí công chứng (~7.5%) + Nội thất</code><br>
-          <code>• Số tiền vay ngân hàng = Tổng dự án - Vốn tự có</code><br>
-          <code>• Tiền thuê thực nhận = Tiền thuê × (1 - Phòng trống %)</code><br>
-          <code>• Dòng tiền ròng = Tiền thuê thực nhận - Trả góp ngân hàng - (Phí Coop + TF + PNO)/12</code>
+          <div class="formula-tag">📐 Công thức Dòng Tiền Ròng BĐS Thực Tế (Cashflow Net)</div>
+          <code>• Tiền thuê thực nhận = Tiền thuê niêm yết × (1 - Tỷ lệ phòng trống Vacance %)</code><br>
+          <code>• Chi phí vận hành = (Phí Coop + Thuế TF + Bảo hiểm PNO + Bảo trì)/12 + Phí quản lý agency</code><br>
+          <code>• Dòng tiền Ròng = Tiền thuê thực nhận - Trả nợ Crédit ngân hàng - Chi phí vận hành</code>
         </div>
 
-        <h5 style="margin: 0.75rem 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; color: var(--primary);">📈 Doanh thu & Chi phí vận hành thực tế</h5>
-        <div class="form-row">
-          <div class="form-group col-4">
-            <label for="inp-apt-rent">Tiền thuê (€/tháng)</label>
-            <input type="number" id="inp-apt-rent" class="form-input" value="650">
+        <!-- Section 1 & 2: Doanh Thu & Chi Phí Vận Hành Side-by-Side -->
+        <div class="apt-financial-split">
+          <!-- Section 1: Doanh Thu Cho Thuê (Revenues) -->
+          <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 10px; padding: 0.85rem 1rem; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+              <h5 style="margin: 0; font-size: 0.85rem; text-transform: uppercase; color: #10b981; font-weight: 700; display: flex; align-items: center; gap: 0.4rem;">
+                <span>🟢</span> Doanh Thu Cho Thuê (Revenues Locatifs)
+              </h5>
+              <span id="badge-apt-effective-rent" style="font-size: 0.78rem; font-weight: 700; color: #34d399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.2rem 0.55rem; border-radius: 6px;">
+                Thực thu: 618 €/tháng
+              </span>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-12">
+                <label for="inp-apt-rent">Tiền thuê niêm yết (€/tháng)</label>
+                <input type="number" id="inp-apt-rent" class="form-input" value="650" step="10">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-12">
+                <label for="inp-apt-vacance">Dự phòng phòng trống Vacance (%)</label>
+                <input type="number" id="inp-apt-vacance" min="0" max="25" step="0.5" value="5.0" class="form-input" placeholder="5.0%">
+              </div>
+            </div>
+            <div style="margin-top: auto; font-size: 0.74rem; color: var(--text-muted); background: rgba(255,255,255,0.02); border: 1px dashed rgba(16, 185, 129, 0.2); padding: 0.55rem 0.75rem; border-radius: 6px;">
+              💡 Tiền thuê thực nhận tính sau khi khấu trừ tỷ lệ trống phòng (Vacance locative).
+            </div>
           </div>
-          <div class="form-group col-4">
-            <label for="inp-apt-vacance">Phòng trống Vacance (%)</label>
-            <input type="number" id="inp-apt-vacance" min="0" max="25" step="0.5" value="5.0" class="form-input" placeholder="5.0%">
-          </div>
-          <div class="form-group col-4">
-            <label for="inp-apt-tf">Thuế tài sản TF (€/năm)</label>
-            <input type="number" id="inp-apt-tf" class="form-input" value="800">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group col-6">
-            <label for="inp-apt-coop">Phí quản lý tòa nhà Coop (€/năm)</label>
-            <input type="number" id="inp-apt-coop" class="form-input" value="900">
-          </div>
-          <div class="form-group col-6">
-            <label for="inp-apt-pno">Bảo hiểm chủ nhà PNO (€/năm)</label>
-            <input type="number" id="inp-apt-pno" class="form-input" value="150">
+
+          <!-- Section 2: Chi Phí Vận Hành Thực Tế & Nợ Vay (Expenses & Crédit) -->
+          <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 10px; padding: 0.85rem 1rem; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+              <h5 style="margin: 0; font-size: 0.85rem; text-transform: uppercase; color: #f87171; font-weight: 700; display: flex; align-items: center; gap: 0.4rem;">
+                <span>🔴</span> Chi Phí Vận Hành & Trả Nợ Crédit
+              </h5>
+              <span id="badge-apt-total-expenses" style="font-size: 0.78rem; font-weight: 700; color: #f87171; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.2rem 0.55rem; border-radius: 6px;">
+                Tổng chi: ~573 €/tháng
+              </span>
+            </div>
+
+            <!-- Row 1: Trả nợ Crédit ngân hàng & Phí Agency (Styled identical to other inputs) -->
+            <div class="form-row">
+              <div class="form-group col-6">
+                <label for="inp-apt-monthly-credit">Trả nợ Crédit ngân hàng (€/tháng)</label>
+                <input type="number" id="inp-apt-monthly-credit" class="form-input" value="490" step="1" placeholder="Ví dụ: 645">
+              </div>
+              <div class="form-group col-6">
+                <label for="inp-apt-mgmt-pct">Phí quản lý Agency (%)</label>
+                <input type="number" id="inp-apt-mgmt-pct" class="form-input" value="0.0" min="0" max="25" step="0.5" placeholder="0% (Tự quản lý)">
+              </div>
+            </div>
+
+            <!-- Row 2: TF & Coop -->
+            <div class="form-row">
+              <div class="form-group col-6">
+                <label for="inp-apt-tf">Thuế tài sản TF (€/năm)</label>
+                <input type="number" id="inp-apt-tf" class="form-input" value="800" step="50">
+              </div>
+              <div class="form-group col-6">
+                <label for="inp-apt-coop">Phí quản lý tòa nhà Coop (€/năm)</label>
+                <input type="number" id="inp-apt-coop" class="form-input" value="900" step="50">
+              </div>
+            </div>
+
+            <!-- Row 3: PNO & Bảo trì -->
+            <div class="form-row">
+              <div class="form-group col-6">
+                <label for="inp-apt-pno">Bảo hiểm chủ nhà PNO (€/năm)</label>
+                <input type="number" id="inp-apt-pno" class="form-input" value="150" step="10">
+              </div>
+              <div class="form-group col-6">
+                <label for="inp-apt-maintenance">Bảo trì / Sửa chữa (€/năm)</label>
+                <input type="number" id="inp-apt-maintenance" class="form-input" value="300" step="50">
+              </div>
+            </div>
+
+            <div style="margin-top: auto; font-size: 0.74rem; color: var(--text-muted); background: rgba(255,255,255,0.02); border: 1px dashed rgba(239, 68, 68, 0.2); padding: 0.5rem 0.75rem; border-radius: 6px;">
+              💡 Chi phí vận hành, bảo trì & trả nợ được khấu trừ khi tính thuế LMNP Réel.
+            </div>
           </div>
         </div>
       </div>
@@ -3016,14 +3059,14 @@
   </div>
 
   <!-- Application Logic Modules -->
-  <script src="js/engine.js?v=20261008f"></script>
+  <script src="js/engine.js?v=20261008_manual_credit_v1"></script>
   <script src="js/taxOptimizer.js?v=20261008f"></script>
   <script src="js/monteCarlo.js?v=20261008f"></script>
   <script src="js/scenarios.js?v=20261008f"></script>
   <script src="js/geminiAdvisor.js?v=20261008f"></script>
-  <script src="js/patrimoine.js?v=20261008f"></script>
+  <script src="js/patrimoine.js?v=20261008_manual_credit_v1"></script>
   <script src="js/export.js?v=20261008f"></script>
   <script src="js/auth.js?v=20261008f"></script>
-  <script src="js/ui.js?v=20261008_expense_streams_v2"></script>
+  <script src="js/ui.js?v=20261008_retire_hint_fix_v3"></script>
 </body>
 </html>

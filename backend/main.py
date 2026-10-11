@@ -378,17 +378,27 @@ def _compute_apartment_metrics(name: str, apt: Dict[str, Any]) -> Dict[str, Any]
     ins = float(apt.get("annual_insurance_rate", 0.3))
     
     m_res = calculate_mortgage(loan_amount, rate, dur, ins)
-    monthly_loan_pmt = float(m_res.get("total_monthly_payment", 0))
-    
+    computed_loan_pmt = float(m_res.get("total_monthly_payment", 0))
+
+    # STRICTLY prioritize user's manual monthly loan payment input!
+    custom_monthly_loan = apt.get("monthly_loan_payment")
+    if custom_monthly_loan is not None:
+        try:
+            monthly_loan_pmt = float(custom_monthly_loan)
+        except (ValueError, TypeError):
+            monthly_loan_pmt = computed_loan_pmt
+    else:
+        monthly_loan_pmt = computed_loan_pmt
+
     monthly_rent = float(apt.get("monthly_rent", 600))
     vac = float(apt.get("vacancy_pct", 5.0)) / 100.0
     effective_rent = monthly_rent * (1.0 - vac)
-    
+
     annual_charges = (
         float(apt.get("annual_coop", 0)) +
         float(apt.get("annual_tf", 0)) +
         float(apt.get("annual_pno", 0)) +
-        float(apt.get("annual_maintenance", 0))
+        float(apt.get("annual_maintenance", 300))
     )
     mgmt_pct = float(apt.get("annual_mgmt_pct", 0)) / 100.0
     annual_charges += (effective_rent * 12.0) * mgmt_pct

@@ -711,56 +711,32 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .panel-controls > .card {
-  columns: 340px;
-  column-gap: 1.75rem;
+  width: 100%;
 }
 
-.panel-controls > .card > * {
-  break-inside: avoid;
-  -webkit-column-break-inside: avoid;
-}
-
-.panel-controls > .card > .card-title {
-  column-span: all;
-  -webkit-column-span: all;
-}
-
-/* Row below the charts: Parameters (left) | Gemini AI commentaries (right) */
-.panel-bottom {
+/* Gemini AI Commentaries: Horizontal row positioned after Schedule Table */
+.gemini-insights-horizontal {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 1.5rem;
-  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+  width: 100%;
 }
 
-.panel-ai-column {
+.gemini-insights-horizontal > .gemini-insight-box {
+  margin-top: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  min-width: 0;
 }
 
-.panel-ai-column > .gemini-insight-box {
-  margin: 0;
+.gemini-insights-horizontal > .gemini-insight-box > .gemini-insight-content {
+  flex: 1;
 }
 
-/* Parameters stay in view (with their own scroll) while reading long AI text */
-.panel-bottom > .panel-controls {
-  position: sticky;
-  top: 1rem;
-  max-height: calc(100vh - 2rem);
-  overflow-y: auto;
-  scrollbar-width: thin;
-}
-
-@media (max-width: 1100px) {
-  .panel-bottom {
+@media (max-width: 900px) {
+  .gemini-insights-horizontal {
     grid-template-columns: 1fr;
-  }
-  .panel-bottom > .panel-controls {
-    position: static;
-    max-height: none;
-    overflow: visible;
   }
 }
 
@@ -851,9 +827,32 @@ h1, h2, h3, h4, h5, h6 {
   gap: 0.75rem;
 }
 
-.col-4 { flex: 1; min-width: 0; }
-.col-6 { flex: 1; }
-.col-12 { flex: 1; width: 100%; }
+.col-1 { flex: 1; min-width: 0; }
+.col-2 { flex: 2; min-width: 0; }
+.col-3 { flex: 3; min-width: 0; }
+.col-4 { flex: 4; min-width: 0; }
+.col-5 { flex: 5; min-width: 0; }
+.col-6 { flex: 6; min-width: 0; }
+.col-7 { flex: 7; min-width: 0; }
+.col-8 { flex: 8; min-width: 0; }
+.col-9 { flex: 9; min-width: 0; }
+.col-10 { flex: 10; min-width: 0; }
+.col-11 { flex: 11; min-width: 0; }
+.col-12 { flex: 12; width: 100%; min-width: 0; }
+
+.apt-financial-split {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 1rem;
+  margin-top: 1rem;
+  align-items: stretch;
+}
+
+@media (max-width: 820px) {
+  .apt-financial-split {
+    grid-template-columns: 1fr;
+  }
+}
 
 .form-input {
   background: var(--bg-input);
@@ -883,6 +882,36 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: var(--radius-md);
   overflow: hidden;
   transition: border-color var(--transition-fast);
+}
+
+.panels-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  align-items: start;
+}
+
+.panels-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  align-items: start;
+}
+
+.panels-grid-2 > .expandable-panel,
+.panels-grid-3 > .expandable-panel {
+  margin-top: 0;
+  width: 100%;
+}
+
+.panels-grid-3 .form-row {
+  flex-wrap: wrap;
+}
+
+.panels-grid-3 .form-group label {
+  font-size: 0.74rem;
 }
 
 .expandable-panel:hover {
@@ -973,6 +1002,12 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 4px;
 }
 
+#hint-optimal-retire-age:hover {
+  background: rgba(56, 189, 248, 0.22) !important;
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  color: #38bdf8 !important;
+}
+
 .ratio-presets {
   display: flex;
   gap: 0.35rem;
@@ -1030,8 +1065,31 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ==========================================================================
-   Income Streams Dynamic List
+   Income & Expense Streams Side-by-Side Layout
    ========================================================================== */
+.streams-side-by-side {
+  column-span: all;
+  -webkit-column-span: all;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+  align-items: start;
+}
+
+.stream-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+@media (max-width: 960px) {
+  .streams-side-by-side {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+}
+
 .income-streams-header {
   display: flex;
   justify-content: space-between;
@@ -1253,6 +1311,162 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
+.cashflow-composite-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .cashflow-composite-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+.cashflow-left-inputs {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.cashflow-right-metrics {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  padding-left: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .cashflow-right-metrics {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 1rem;
+  }
+}
+
+/* Unified Card: Địa điểm & Phong cách Hưu trí + Công thức PPP dùng chung một border */
+.ppp-composite-card {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-left: 3px solid #10b981;
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1.15rem;
+  margin-top: 0.85rem;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.ppp-composite-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 1.25rem;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .ppp-composite-grid {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+}
+
+.ppp-left-select {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.ppp-right-formula {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  padding-left: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .ppp-right-formula {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 0.85rem;
+  }
+}
+
+[data-theme="light"] .ppp-composite-card {
+  background: rgba(240, 253, 244, 0.7);
+  border-color: rgba(16, 185, 129, 0.35);
+  border-left-color: #059669;
+}
+
+[data-theme="light"] .ppp-right-formula {
+  border-left-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Unified Card: Lợi nhuận tích lũy, Lợi nhuận hưu trí & Phân bổ danh mục chung một border */
+.returns-composite-card {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-left: 3px solid #f59e0b;
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1.15rem;
+  margin-top: 0.85rem;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.returns-composite-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .returns-composite-grid {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+}
+
+.returns-left-inputs {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.returns-right-allocation {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  padding-left: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .returns-right-allocation {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 0.85rem;
+  }
+}
+
+[data-theme="light"] .returns-composite-card {
+  background: rgba(254, 243, 199, 0.5);
+  border-color: rgba(245, 158, 11, 0.4);
+  border-left-color: #d97706;
+}
+
+[data-theme="light"] .returns-right-allocation {
+  border-left-color: rgba(0, 0, 0, 0.08);
+}
+
 .cashflow-metrics-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1399,6 +1613,150 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-muted);
   margin-bottom: 0.25rem;
 }
+
+/* 2-Column Split Grid for Tabs (Withdrawals, Monte Carlo, What-If Scenarios): Left = Controls, Right = Gemini AI Commentary */
+.withdrawals-split-grid,
+.tab-split-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  align-items: stretch;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.withdrawals-strategy-card,
+.tab-split-left-card {
+  margin: 0 !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.withdrawals-gemini-card,
+.tab-split-gemini-card {
+  margin: 0 !important;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.withdrawals-gemini-card .gemini-insight-content,
+.tab-split-gemini-card .gemini-insight-content {
+  flex: 1;
+}
+
+@media (max-width: 900px) {
+  .withdrawals-split-grid,
+  .tab-split-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   Monte Carlo Stats Integrated in Chart Card
+   ========================================================================== */
+.mc-success-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-full);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.mc-success-badge strong {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #10b981;
+}
+
+.mc-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.85rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.mc-stats-grid .stat-box {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.95rem;
+  display: flex;
+  flex-direction: column;
+  transition: var(--transition-fast);
+}
+
+.mc-stats-grid .stat-box:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.mc-stats-grid .stat-header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.25rem;
+}
+
+.mc-stats-grid .stat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.mc-stats-grid .dot-danger {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+}
+
+.mc-stats-grid .dot-accent {
+  background: #38bdf8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
+}
+
+.mc-stats-grid .dot-success {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.mc-stats-grid .stat-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.mc-stats-grid .stat-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0.15rem 0;
+  line-height: 1.25;
+}
+
+.mc-stats-grid .stat-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+@media (max-width: 768px) {
+  .mc-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+}
+
+
+
 
 /* ==========================================================================
    What-If Scenarios List

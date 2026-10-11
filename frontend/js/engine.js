@@ -126,7 +126,10 @@ window.RetirementEngine = (function() {
     }
     // French borrower insurance is charged on the initial capital, constant every month
     const monthlyInsurance = (loanAmount * insuranceRate) / 12;
-    const monthlyPayment = principalInterestPayment + monthlyInsurance;
+    // Prioritize user's manual monthly credit repayment input (monthlyLoanPaymentEur, or pure loan excluding operating charges)
+    const manualMonthlyPmt = Number(mortgage.monthlyLoanPaymentEur || (mortgage.monthlyChargesEur ? Math.max(0, mortgage.monthlyPaymentEur - mortgage.monthlyChargesEur) : 0) || mortgage.monthlyPaymentEur || mortgage.monthlyPayment || 0);
+    const monthlyPayment = manualMonthlyPmt > 0 ? manualMonthlyPmt : (principalInterestPayment + monthlyInsurance);
+    const effectivePiPayment = manualMonthlyPmt > 0 ? Math.max(0, manualMonthlyPmt - monthlyInsurance) : principalInterestPayment;
     const annualPayment = monthlyPayment * 12;
 
     const schedule = {};
@@ -139,7 +142,7 @@ window.RetirementEngine = (function() {
       if (age < endAge) {
         for (let m = 0; m < 12; m++) {
           const interestMonth = balance * rMonthly;
-          const principalMonth = Math.min(balance, principalInterestPayment - interestMonth);
+          const principalMonth = Math.min(balance, Math.max(0, effectivePiPayment - interestMonth));
           balance = Math.max(0, balance - principalMonth);
         }
       } else {
@@ -154,7 +157,7 @@ window.RetirementEngine = (function() {
         let principalPaidYear = 0;
         for (let m = 0; m < 12; m++) {
           const interestMonth = balance * rMonthly;
-          const principalMonth = Math.min(balance, principalInterestPayment - interestMonth);
+          const principalMonth = Math.min(balance, Math.max(0, effectivePiPayment - interestMonth));
           interestPaidYear += interestMonth;
           principalPaidYear += principalMonth;
           balance = Math.max(0, balance - principalMonth);
@@ -395,20 +398,6 @@ window.RetirementEngine = (function() {
         }
       }
 
-      // Purchasing Power Parity (PPP) Location Adjustment (France vs Vietnam)
-      const retireLoc = plan.retirementLocation || 'france'; // 'france' | 'hybrid' | 'vietnam'
-      let locationFactor = 1.0;
-      let expExtraCost = 0;
-      if (isRetired) {
-        if (retireLoc === 'vietnam') {
-          locationFactor = 0.45; // ~55% reduction in living expenses in Vietnam for equivalent comfort
-          expExtraCost += (Number(plan.vietnamCfeAnnual) || (cur === 'EUR' ? 1800 : 45_000_000));
-        } else if (retireLoc === 'hybrid') {
-          locationFactor = 0.70; // 6 months France / 6 months Vietnam
-          expExtraCost += (Number(plan.hybridTravelAnnual) || (cur === 'EUR' ? 2200 : 55_000_000));
-        }
-      }
-
       // Senior Care / Dépendance / EHPAD reserve in late retirement (age 78+)
       let seniorCareCost = 0;
       const careAge = Number(plan.seniorCareAge) || 78;
@@ -445,8 +434,8 @@ window.RetirementEngine = (function() {
 
       let currentExpenses = 0;
       if (isRetired) {
-        // Base living expenses in retirement + any remaining ongoing debts/crédits until payoff
-        const baseRetire = ((baseRetireExpenses * locationFactor * spendingFactor) + expExtraCost + seniorCareCost) * cumInflation;
+        // Base living expenses in retirement (Phương án 1: Số tiền nhập vào đã là chi tiêu thực tế tại địa điểm đã chọn)
+        const baseRetire = ((baseRetireExpenses * spendingFactor) + seniorCareCost) * cumInflation;
         currentExpenses = baseRetire + activeDebtsSum;
       } else {
         // Accumulation phase: realistic sum of active expense streams or fallback to base
@@ -648,10 +637,8 @@ window.RetirementEngine = (function() {
 
     // Key metrics calculations
     const finalPortfolio = timeline[timeline.length - 1].portfolioEnd;
-    const locFactor = (plan.retirementLocation === 'vietnam') ? 0.45 : (plan.retirementLocation === 'hybrid' ? 0.70 : 1.0);
-    const locExtra = (plan.retirementLocation === 'vietnam') ? (cur === 'EUR' ? 1800 : 45_000_000) : (plan.retirementLocation === 'hybrid' ? (cur === 'EUR' ? 2200 : 55_000_000) : 0);
-    const effectiveRetireBase = (baseRetireExpenses * locFactor) + locExtra;
-    const fireTargetNestEgg = Math.round(effectiveRetireBase * 25); // 25x rule tailored to retirement location
+    const effectiveRetireBase = baseRetireExpenses;
+    const fireTargetNestEgg = Math.round(effectiveRetireBase * 25); // 25x rule based directly on actual retirement expenses
     const safeAnnualSpend = Math.max(0, (initialRetirePortfolio || 0) * initialSWR);
     const yearsToFIRE = Math.max(0, retireAge - currentAge);
 

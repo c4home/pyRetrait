@@ -108,27 +108,27 @@
     }
   }
 
-  // Layout per tab: charts full width on top, then a 2-column row below with
-  // the Gemini AI commentaries (left) next to the parameter card (right).
-  // Boxes are only moved in the DOM; GeminiAdvisor finds them by id, so updates keep working.
+  // Layout per tab: Charts & schedule table on top, then Gemini AI commentary boxes
+  // grouped in a horizontal row right after the schedule table, leaving the parameter
+  // controls card full width below for spacious and unconstrained stream columns.
   function arrangeAiAndControlsColumns() {
     document.querySelectorAll(".panel-layout").forEach(layout => {
-      if (layout.querySelector(":scope > .panel-bottom")) return; // already arranged
       const vis = layout.querySelector(":scope > .panel-visualization");
-      const ctrl = layout.querySelector(":scope > .panel-controls");
-      if (!vis || !ctrl) return;
+      if (!vis) return;
       const boxes = vis.querySelectorAll(".gemini-insight-box");
       if (!boxes.length) return;
 
-      const bottom = document.createElement("div");
-      bottom.className = "panel-bottom";
-      const aiCol = document.createElement("div");
-      aiCol.className = "panel-ai-column";
-      boxes.forEach(box => aiCol.appendChild(box));
-
-      bottom.appendChild(ctrl);
-      bottom.appendChild(aiCol);
-      layout.appendChild(bottom);
+      let row = vis.querySelector(".gemini-insights-horizontal");
+      if (!row) {
+        row = document.createElement("div");
+        row.className = "gemini-insights-horizontal";
+        vis.appendChild(row);
+      }
+      boxes.forEach(box => {
+        if (box.parentElement !== row) {
+          row.appendChild(box);
+        }
+      });
     });
   }
 
@@ -927,7 +927,7 @@
     });
 
     // Expandable Panel Toggles
-    ['panel-asset-allocation', 'panel-dual-inflation', 'panel-mortgage', 'panel-french-pension', 'panel-senior-care'].forEach(id => {
+    ['panel-dual-inflation', 'panel-mortgage', 'panel-french-pension', 'panel-senior-care'].forEach(id => {
       const panel = document.getElementById(id);
       const header = panel?.querySelector('.expandable-header');
       const content = panel?.querySelector('.expandable-content');
@@ -945,8 +945,27 @@
     if (selLocation) {
       selLocation.addEventListener("change", (e) => {
         const plan = getActivePlan();
-        plan.retirementLocation = e.target.value;
-        updateRetirementLocationUI(e.target.value);
+        const oldLoc = plan.retirementLocation || 'vietnam';
+        const newLoc = e.target.value;
+
+        // Tự động quy đổi mức sống tương đương PPP giữa 2 địa điểm
+        const pppFactors = { 'france': 1.0, 'hybrid': 0.70, 'vietnam': 0.45 };
+        const oldFactor = pppFactors[oldLoc] || 1.0;
+        const newFactor = pppFactors[newLoc] || 1.0;
+
+        if (oldFactor > 0 && newFactor > 0 && oldLoc !== newLoc) {
+          const inpRetireMonthly = document.getElementById("inp-monthly-retire-expenses");
+          const curMonthly = inpRetireMonthly ? (Number(inpRetireMonthly.value) || Math.round((Number(plan.retirementExpenses) || 12000) / 12)) : Math.round((Number(plan.retirementExpenses) || 12000) / 12);
+          const convertedMonthly = Math.round((curMonthly * (newFactor / oldFactor)) / 10) * 10;
+          if (inpRetireMonthly) {
+            inpRetireMonthly.value = convertedMonthly;
+          }
+          plan.retirementExpenses = convertedMonthly * 12;
+        }
+
+        plan.retirementLocation = newLoc;
+        updateRetirementLocationUI(newLoc);
+        updateExpenseSavingsHints(plan);
         savePlansToStorage();
         updateAll();
       });
@@ -1629,18 +1648,26 @@
     const curYear = new Date().getFullYear();
     const bYear = Number(p.birthYear) || (curYear - (Number(p.currentAge) || 29));
     return data.apartments
-      .filter(a => Number(a.loan_amount) > 0)
-      .map(a => ({
-        name: a.name || a.address || 'Căn hộ',
-        loanAmount: Number(a.loan_amount) || 0,
-        interestRate: Number(a.annual_interest_rate) || 0,
-        insuranceRate: Number(a.annual_insurance_rate) || 0,
-        loanTermYears: Number(a.loan_duration) || 20,
-        startYear: Number(a.start_year) || curYear,
-        startAge: (Number(a.start_year) || curYear) - bYear,
-        propertyValue: Number(a.property_price) || 0,
-        monthlyPaymentEur: Number(a.monthly_loan_payment) || 0
-      }));
+      .filter(a => Number(a.loan_amount) > 0 || Number(a.monthly_loan_payment) > 0 || Number(a.monthly_charges) > 0)
+      .map(a => {
+        const loanPmt = Number(a.monthly_loan_payment) || 0;
+        const charges = Number(a.monthly_charges) || 0;
+        const totalExpenses = loanPmt + charges;
+        return {
+          name: a.name || a.address || 'Căn hộ',
+          loanAmount: Number(a.loan_amount) || 0,
+          interestRate: Number(a.annual_interest_rate) || 0,
+          insuranceRate: Number(a.annual_insurance_rate) || 0,
+          loanTermYears: Number(a.loan_duration) || 20,
+          startYear: Number(a.start_year) || curYear,
+          startAge: (Number(a.start_year) || curYear) - bYear,
+          propertyValue: Number(a.property_price) || 0,
+          monthlyPaymentEur: totalExpenses > 0 ? totalExpenses : loanPmt,
+          monthlyLoanPaymentEur: loanPmt,
+          monthlyChargesEur: charges,
+          effectiveRentEur: Number(a.effective_monthly_rent) || (Number(a.monthly_rent) || 0)
+        };
+      });
   }
 
   function buildPatrimoineLoans(p) {
@@ -1654,7 +1681,11 @@
       startAge: (Number(l.startYear) || curYear) - bYear,
       loanAmount: Math.round(l.loanAmount * f),
       propertyValue: Math.round(l.propertyValue * f),
-      propertyAppreciation: 2.5
+      propertyAppreciation: 2.5,
+      monthlyPaymentEur: l.monthlyPaymentEur ? Math.round(l.monthlyPaymentEur * f) : 0,
+      monthlyLoanPaymentEur: l.monthlyLoanPaymentEur ? Math.round(l.monthlyLoanPaymentEur * f) : (l.monthlyPaymentEur ? Math.round(l.monthlyPaymentEur * f) : 0),
+      monthlyChargesEur: l.monthlyChargesEur ? Math.round(l.monthlyChargesEur * f) : 0,
+      effectiveRentEur: l.effectiveRentEur ? Math.round(l.effectiveRentEur * f) : 0
     }));
   }
 
@@ -1674,19 +1705,26 @@
     const retireAge = Number(p.retirementAge) || 42;
     if (!Array.isArray(p.incomes)) p.incomes = [];
 
-    // LMNP rental income (same rule as the former server-side sync)
-    const reIdx = p.incomes.findIndex(inc => (inc.name || '').includes('LMNP') || (inc.name || '').includes('BĐS Cho thuê'));
+    // LMNP rental income: since expenses now include total outlays (loan + operating charges),
+    // income takes the full effective rent so net cashflow remains perfectly accurate.
+    const reIdx = p.incomes.findIndex(inc => (inc.name || '').includes('LMNP') || (inc.name || '').includes('BĐS Cho thuê') || (inc.name || '').includes('Doanh thu'));
     if ((summary.total_properties || 0) > 0) {
-      const cashflow = round(summary.total_annual_post_loan_cashflow || 0);
+      const totalEffectiveRent = (data.apartments || []).reduce((acc, a) => {
+        const rent = Number(a.effective_monthly_rent) || (Number(a.monthly_rent) * (1 - (Number(a.vacancy_pct) || 0) / 100.0)) || 0;
+        return acc + rent;
+      }, 0);
+      const annualRent = totalEffectiveRent > 0 ? totalEffectiveRent * 12 : (summary.total_annual_post_loan_cashflow || 0);
+      const cashflow = round(annualRent);
       if (reIdx >= 0) {
-        // Update cashflow amount while strictly preserving user-configured startAge, endAge and growth
+        // Update rental income amount while preserving user-configured startAge, endAge and growth
+        p.incomes[reIdx].name = '🏠 Doanh thu BĐS LMNP Pháp';
         p.incomes[reIdx].amount = cashflow;
         if (p.incomes[reIdx].startAge === undefined || p.incomes[reIdx].startAge === null) p.incomes[reIdx].startAge = curAge;
         if (p.incomes[reIdx].endAge === undefined || p.incomes[reIdx].endAge === null) p.incomes[reIdx].endAge = 85;
         if (p.incomes[reIdx].growth === undefined || p.incomes[reIdx].growth === null) p.incomes[reIdx].growth = 1.5;
         p.incomes[reIdx].taxable = false;
       } else {
-        p.incomes.push({ name: '🏠 BĐS Cho thuê LMNP Pháp', amount: cashflow, startAge: curAge, endAge: 85, growth: 1.5, taxable: false });
+        p.incomes.push({ name: '🏠 Doanh thu BĐS LMNP Pháp', amount: cashflow, startAge: curAge, endAge: 85, growth: 1.5, taxable: false });
       }
     } else if (reIdx >= 0) {
       p.incomes.splice(reIdx, 1);
@@ -1816,14 +1854,14 @@
     if (!p) p = getActivePlan();
     const chk = document.getElementById("chk-mortgage-enabled");
     const chkPat = document.getElementById("chk-mortgage-from-patrimoine");
-    const usePat = chkPat ? chkPat.checked : (p.mortgageFromPatrimoine !== false);
+    const usePat = chkPat ? chkPat.checked : true;
     p.mortgageFromPatrimoine = usePat;
 
-    const propVal = Number(document.getElementById("inp-mortgage-prop-val")?.value) || 200000;
-    const loanAmt = Number(document.getElementById("inp-mortgage-loan")?.value) || 160000;
-    const rate = Number(document.getElementById("inp-mortgage-rate")?.value) || 2.2;
-    const term = Number(document.getElementById("inp-mortgage-term")?.value) || 20;
-    const startAge = Number(document.getElementById("inp-mortgage-start")?.value) || (p.currentAge || 29);
+    const propVal = Number(document.getElementById("inp-mortgage-prop-val")?.value) || (p.mortgage?.propertyValue || 200000);
+    const loanAmt = Number(document.getElementById("inp-mortgage-loan")?.value) || (p.mortgage?.loanAmount || 160000);
+    const rate = Number(document.getElementById("inp-mortgage-rate")?.value) || (p.mortgage?.interestRate || 2.2);
+    const term = Number(document.getElementById("inp-mortgage-term")?.value) || (p.mortgage?.loanTermYears || 20);
+    const startAge = Number(document.getElementById("inp-mortgage-start")?.value) || (p.mortgage?.startAge || p.currentAge || 29);
 
     const curSymbol = window.RetirementEngine.getCurrencySymbol(state.currency);
     const unitProp = document.getElementById("unit-mortgage-prop");
@@ -1831,9 +1869,12 @@
     if (unitProp) unitProp.innerText = curSymbol;
     if (unitLoan) unitLoan.innerText = curSymbol;
 
+    const patLoans = usePat ? buildPatrimoineLoans(p) : [];
+    const fromPat = patLoans.length > 0;
+
     const patrimoineLoansEur = p.mortgage?.patrimoineLoansEur || [];
     const mortConfig = {
-      enabled: chk ? chk.checked : true,
+      enabled: chk ? chk.checked : (fromPat || p.mortgage?.enabled !== false),
       propertyValue: propVal,
       loanAmount: loanAmt,
       interestRate: rate,
@@ -1842,14 +1883,12 @@
       propertyAppreciation: 2.5,
       patrimoineLoansEur
     };
-    p.mortgage = mortConfig;
 
-    const patLoans = usePat ? buildPatrimoineLoans(p) : [];
-    const fromPat = patLoans.length > 0;
     if (fromPat) {
       mortConfig.source = 'patrimoine';
       mortConfig.loans = patLoans;
     }
+    p.mortgage = mortConfig;
 
     // Toggle manual inputs vs. synced list
     const manualBox = document.getElementById("mortgage-manual-fields");
@@ -2229,15 +2268,21 @@
         patLoans.forEach((loan, idx) => {
           const part = sched?.parts ? sched.parts[idx] : null;
           const row = part ? part.schedule[curAge] : null;
-          const mPmt = row && row.active ? row.monthlyPayment : Math.round(loan.loanAmount * 0.055 / 12);
+          const mPmt = (loan.monthlyPaymentEur && loan.monthlyPaymentEur > 0)
+            ? loan.monthlyPaymentEur
+            : (row && row.active ? row.monthlyPayment : Math.round(loan.loanAmount * 0.055 / 12));
           const endAge = (Number(loan.startAge) || curAge) + (Number(loan.loanTermYears) || 20);
+          const loanOnly = loan.monthlyLoanPaymentEur || loan.monthlyPaymentEur || 0;
+          const chargesOnly = loan.monthlyChargesEur || 0;
+          const noteText = chargesOnly > 0 ? `Crédit ${loanOnly} € + Phí ${chargesOnly} €` : undefined;
           plan.expenses.push({
-            name: `🏦 Trả nợ Crédit: ${loan.name || 'Căn hộ LMNP'}`,
+            name: `🏢 Chi phí BĐS & Crédit: ${loan.name || 'Căn hộ LMNP'}`,
             amount: mPmt * 12,
             startAge: Number(loan.startAge) || curAge,
             endAge: endAge,
             growth: 0.0,
             isDebt: true,
+            note: noteText,
             enabled: true
           });
         });
@@ -2398,7 +2443,22 @@
   }
 
   function updateExpenseSavingsHints(plan) {
-    // Left for backward compatibility; replaced by Live Cashflow Balance cards
+    if (!plan) plan = getActivePlan();
+    const hint = document.getElementById("hint-retire-expenses");
+    const inp = document.getElementById("inp-monthly-retire-expenses");
+    if (!hint) return;
+
+    const monthly = inp ? (Number(inp.value) || 0) : Math.round((Number(plan.retirementExpenses) || 0) / 12);
+    const annual = monthly * 12;
+    const cur = state.currency || 'EUR';
+    const loc = plan.retirementLocation || 'vietnam';
+
+    let locLabel = "chi tiêu tại Việt Nam";
+    if (loc === "france") locLabel = "chi tiêu tại Pháp";
+    else if (loc === "hybrid") locLabel = "Song hành Pháp - Việt";
+
+    const annualFormatted = window.RetirementEngine.formatCurrency(annual, cur);
+    hint.innerText = `≈ ${annualFormatted}/năm • ${locLabel}`;
   }
 
   function renderExpensePeriodsSummary(plan) {
@@ -2414,6 +2474,8 @@
 
     const curAge = Number(plan.currentAge) || 29;
     const maxAge = Number(plan.lifeExpectancy) || 85;
+    const curYear = new Date().getFullYear();
+    const bYear = Number(plan.birthYear) || (curYear - curAge);
 
     // Collect all transition ages
     const ageSet = new Set([curAge, maxAge]);
@@ -2436,65 +2498,113 @@
     const cur = state.currency;
     const fmt = (v) => window.RetirementEngine.formatCurrency(v, cur);
 
-    let periodCount = 0;
+    const periodsData = [];
     for (let i = 0; i < ages.length - 1; i++) {
       const fromAge = ages[i];
       const toAge = ages[i + 1] - 1;
       if (fromAge > toAge) continue;
 
-      periodCount++;
-      const sampleAge = fromAge;
-      let livingTotal = 0;
-      let debtTotal = 0;
+      let totalAnnualStart = 0;
+      let totalAnnualEnd = 0;
+      const expenseBreakdown = [];
 
       plan.expenses.forEach(e => {
         if (e.enabled === false) return;
         const s = Number(e.startAge) || curAge;
         const end = Number(e.endAge) || maxAge;
-        if (sampleAge >= s && sampleAge <= end) {
+        if (fromAge <= end && toAge >= s) {
           const g = (Number(e.growth) || 0) / 100.0;
-          const val = (Number(e.amount) || 0) * Math.pow(1.0 + g, sampleAge - s);
-          const isDebt = e.isDebt === true || (/crédit|credit|vay|nợ|loan|prêt|pret|ngân hàng/i).test(e.name || '');
-          if (isDebt) debtTotal += val;
-          else livingTotal += val;
+          const yearsStart = Math.max(0, fromAge - s);
+          const yearsEnd = Math.max(0, toAge - s);
+          const annualStart = Math.round((Number(e.amount) || 0) * Math.pow(1.0 + g, yearsStart));
+          const annualEnd = Math.round((Number(e.amount) || 0) * Math.pow(1.0 + g, yearsEnd));
+
+          totalAnnualStart += annualStart;
+          totalAnnualEnd += annualEnd;
+
+          expenseBreakdown.push({
+            name: e.name,
+            annualStart,
+            annualEnd,
+            monthlyStart: Math.round(annualStart / 12),
+            monthlyEnd: Math.round(annualEnd / 12)
+          });
         }
       });
 
-      const totalVal = livingTotal + debtTotal;
       const isCurrent = (curAge >= fromAge && curAge <= toAge);
 
-      const pEl = document.createElement("div");
-      pEl.className = "expense-period-row";
-      pEl.style.cssText = `
-        display: flex; justify-content: space-between; align-items: center;
-        background: ${isCurrent ? 'rgba(244, 63, 94, 0.12)' : 'rgba(255, 255, 255, 0.03)'};
-        border: 1px solid ${isCurrent ? 'rgba(244, 63, 94, 0.35)' : 'rgba(255, 255, 255, 0.06)'};
-        border-radius: 6px; padding: 0.45rem 0.65rem; font-size: 0.76rem;
-      `;
-
-      let note = "";
-      if (debtTotal > 0) {
-        note = `Gồm ${fmt(Math.round(debtTotal / 12))}/tháng nợ crédit`;
-      } else {
-        note = `✓ Đã tất toán sạch nợ ngân hàng`;
-      }
-
-      pEl.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 0.45rem;">
-          <span style="font-weight: 700; color: ${isCurrent ? '#fb7185' : 'var(--text-main)'};">
-            ${fromAge} – ${toAge} tuổi ${isCurrent ? '<span style="font-size:0.65rem; background:rgba(244, 63, 94, 0.2); color:#fb7185; padding:1px 5px; border-radius:3px; margin-left:3px;">Hiện tại</span>' : ''}
-          </span>
-          <span style="color: ${debtTotal > 0 ? 'var(--text-muted)' : '#34d399'}; font-size: 0.7rem;">(${note})</span>
-        </div>
-        <div style="text-align: right;">
-          <span style="font-weight: 700; color: #f43f5e; font-family: var(--font-mono);">${fmt(Math.round(totalVal / 12))}<small style="font-size:0.68rem; color:var(--text-muted);">/tháng</small></span>
-          <span style="display: block; font-size: 0.66rem; color: var(--text-faint);">≈ ${fmt(Math.round(totalVal))}/năm</span>
-        </div>
-      `;
-      container.appendChild(pEl);
+      periodsData.push({
+        fromAge,
+        toAge,
+        startYear: bYear + fromAge,
+        endYear: bYear + toAge,
+        isCurrent,
+        totalAnnualStart,
+        totalAnnualEnd,
+        totalMonthlyStart: Math.round(totalAnnualStart / 12),
+        totalMonthlyEnd: Math.round(totalAnnualEnd / 12),
+        expenses: expenseBreakdown
+      });
     }
 
-    if (countEl) countEl.innerText = `${periodCount} giai đoạn`;
+    if (countEl) countEl.innerText = `${periodsData.length} giai đoạn`;
+
+    container.innerHTML = periodsData.map(p => {
+      const isZero = p.totalMonthlyStart === 0;
+      const borderColor = p.isCurrent ? '#f43f5e' : 'rgba(244, 63, 94, 0.4)';
+      const badgeBg = p.isCurrent ? 'rgba(244, 63, 94, 0.18)' : 'rgba(255, 255, 255, 0.05)';
+      const badgeColor = p.isCurrent ? '#fb7185' : 'var(--text-main)';
+
+      const hasGrowth = p.totalAnnualStart !== p.totalAnnualEnd;
+      const monthlyStr = hasGrowth
+        ? `${fmt(p.totalMonthlyStart)} ➔ ${fmt(p.totalMonthlyEnd)}/tháng`
+        : `${fmt(p.totalMonthlyStart)}/tháng`;
+      const annualStr = hasGrowth
+        ? `≈ ${fmt(p.totalAnnualStart)} ➔ ${fmt(p.totalAnnualEnd)}/năm`
+        : `≈ ${fmt(p.totalAnnualStart)}/năm`;
+
+      const expensesHtml = p.expenses.length > 0
+        ? p.expenses.map(e => {
+            const eGrowth = e.annualStart !== e.annualEnd;
+            const eText = eGrowth
+              ? `${fmt(e.monthlyStart)} ➔ ${fmt(e.monthlyEnd)}/tháng`
+              : `${fmt(e.monthlyStart)}/tháng`;
+            return `
+              <span style="background: rgba(244, 63, 94, 0.08); border: 1px solid rgba(244, 63, 94, 0.2); padding: 1px 6px; border-radius: 4px; font-size: 0.72rem; color: var(--text-main);">
+                ${escapeHtml(e.name)}: <strong style="color: #fb7185;">${eText}</strong>
+              </span>
+            `;
+          }).join("")
+        : `<span style="font-size: 0.72rem; color: var(--text-faint); font-style: italic;">Không có khoản chi phát sinh</span>`;
+
+      return `
+        <div class="expense-period-card" style="background: rgba(15, 23, 42, 0.65); border: 1px solid var(--border-subtle); border-left: 3px solid ${borderColor}; border-radius: 6px; padding: 0.55rem 0.75rem; display: flex; flex-direction: column; gap: 0.4rem;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+              <span class="badge" style="background: ${badgeBg}; color: ${badgeColor}; font-weight: 700; font-size: 0.76rem; padding: 0.15rem 0.5rem; border-radius: 4px;">
+                ${p.fromAge} – ${p.toAge} tuổi
+              </span>
+              <span style="font-size: 0.72rem; color: var(--text-muted);">
+                (${p.startYear} – ${p.endYear})
+              </span>
+              ${p.isCurrent ? '<span class="badge" style="font-size:0.68rem; background:rgba(244, 63, 94, 0.22); color:#fb7185; padding:0.1rem 0.45rem; border-radius:3px; font-weight:600;">Hiện tại</span>' : ''}
+            </div>
+            <div style="text-align: right; margin-left: auto;">
+              <span class="font-mono" style="font-size: 0.95rem; font-weight: 800; color: ${isZero ? 'var(--text-faint)' : '#f43f5e'};">
+                ${isZero ? '0' : monthlyStr}
+              </span>
+              <span style="font-size: 0.72rem; color: var(--text-faint); display: block;">
+                ${annualStr}
+              </span>
+            </div>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; border-top: 1px dashed rgba(255,255,255,0.07); padding-top: 0.35rem;">
+            ${expensesHtml}
+          </div>
+        </div>
+      `;
+    }).join("");
   }
 
   function renderExpenseStreamsList() {
@@ -2516,16 +2626,12 @@
 
     p.expenses.forEach((stream, idx) => {
       const item = document.createElement("div");
-      item.className = "expense-item";
-      const isDebt = stream.isDebt === true || (/crédit|credit|vay|nợ|loan|prêt|pret|ngân hàng/i).test(stream.name || '');
-      const badgeDebtHtml = isDebt ? `<span class="debt-badge">🏦 Nợ Vay / Crédit</span>` : '';
       const monthlyAmt = Math.round(Number(stream.amount) / 12);
 
       item.innerHTML = `
         <div class="expense-item-header">
           <div class="expense-item-name">
             <span>${stream.name}</span>
-            ${badgeDebtHtml}
           </div>
           <div class="income-item-actions">
             <button type="button" class="income-item-btn expense-item-edit" data-idx="${idx}" title="Chỉnh sửa khoản chi">✏️ Sửa</button>
@@ -2536,6 +2642,7 @@
           <div class="income-item-amounts">
             <span class="expense-amount-monthly">${fmt(monthlyAmt)}<small>/tháng</small></span>
             <span class="expense-amount-annual">≈ ${fmt(stream.amount)}/năm</span>
+            ${stream.note ? `<span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 0.2rem; font-weight: 500;">(${stream.note})</span>` : ''}
           </div>
           <div class="expense-item-timing" style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem;">
             <span class="income-age-range">${stream.startAge} - ${stream.endAge} tuổi</span>
@@ -2685,11 +2792,17 @@
     patLoans.forEach((loan, idx) => {
       const part = sched?.parts ? sched.parts[idx] : null;
       const row = part ? part.schedule[curAge] : null;
-      const monthlyPmt = row && row.active ? row.monthlyPayment : Math.round(loan.loanAmount * 0.055 / 12);
+      const monthlyPmt = (loan.monthlyPaymentEur && loan.monthlyPaymentEur > 0)
+        ? loan.monthlyPaymentEur
+        : (row && row.active ? row.monthlyPayment : Math.round(loan.loanAmount * 0.055 / 12));
       const endAge = (Number(loan.startAge) || curAge) + (Number(loan.loanTermYears) || 20);
-      const cleanName = `🏦 Trả nợ Crédit: ${loan.name || 'BĐS'}`;
+      const cleanName = `🏢 Chi phí BĐS & Crédit: ${loan.name || 'BĐS'}`;
 
       const existingIdx = plan.expenses.findIndex(e => e.name === cleanName || (loan.name && e.name.includes(loan.name)));
+      const loanOnly = loan.monthlyLoanPaymentEur || loan.monthlyPaymentEur || 0;
+      const chargesOnly = loan.monthlyChargesEur || 0;
+      const noteText = chargesOnly > 0 ? `Crédit ${loanOnly} € + Phí ${chargesOnly} €` : undefined;
+
       const expItem = {
         name: cleanName,
         amount: monthlyPmt * 12,
@@ -2697,6 +2810,7 @@
         endAge: endAge,
         growth: 0.0,
         isDebt: true,
+        note: noteText,
         enabled: true
       };
 

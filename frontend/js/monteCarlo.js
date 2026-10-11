@@ -45,11 +45,9 @@ window.MonteCarloSimulator = (function() {
 
     const annualSavings = Number(plan.annualSavings) || 0;
 
-    // 2. Effective location-adjusted retirement expenses (matches engine.js)
+    // 2. Actual retirement expenses at chosen location (matches engine.js Option 1)
     const baseRetireExpenses = Number(plan.retirementExpenses) || 12000;
-    const locFactor = (plan.retirementLocation === 'vietnam') ? 0.45 : (plan.retirementLocation === 'hybrid' ? 0.70 : 1.0);
-    const locExtra = (plan.retirementLocation === 'vietnam') ? (plan.currency === 'EUR' ? 1800 : 45_000_000) : (plan.retirementLocation === 'hybrid' ? (plan.currency === 'EUR' ? 2200 : 55_000_000) : 0);
-    const effectiveRetireExpenses = (plan.retirementLocation ? ((baseRetireExpenses * locFactor) + locExtra) : baseRetireExpenses);
+    const effectiveRetireExpenses = baseRetireExpenses;
 
     const meanReturnPre = (Number(plan.investmentReturnPre) || 6.0) / 100.0;
     const meanReturnPost = (Number(plan.investmentReturnPost) || 7.5) / 100.0;

@@ -958,10 +958,20 @@
       setVal("inp-apt-coop", r.annual_coop || 900);
       setVal("inp-apt-tf", r.annual_tf || 800);
       setVal("inp-apt-pno", r.annual_pno || 150);
+      setVal("inp-apt-maintenance", r.annual_maintenance !== undefined ? r.annual_maintenance : 300);
+      setVal("inp-apt-mgmt-pct", r.annual_mgmt_pct !== undefined ? r.annual_mgmt_pct : 0.0);
       setVal("inp-apt-down-payment", r.down_payment_input || 8000);
       setVal("inp-apt-duration", aptData.loan_duration || r.loan_duration || 20);
       setVal("inp-apt-rate", aptData.annual_interest_rate || r.annual_interest_rate || 3.6);
       setVal("inp-apt-ins-rate", aptData.annual_insurance_rate || r.annual_insurance_rate || 0.3);
+
+      const savedLoanPmt = aptData.monthly_loan_payment || r.monthly_loan_payment;
+      const inpCredit = document.getElementById("inp-apt-monthly-credit");
+      if (inpCredit) {
+        inpCredit.value = (savedLoanPmt !== undefined && savedLoanPmt !== null && Number(savedLoanPmt) > 0)
+          ? Math.round(savedLoanPmt)
+          : "";
+      }
     } else {
       if (titleEl) titleEl.innerText = "Thêm Căn hộ Cho thuê Mới";
       if (nameInp) nameInp.value = "";
@@ -981,10 +991,18 @@
       setVal("inp-apt-coop", 900);
       setVal("inp-apt-tf", 800);
       setVal("inp-apt-pno", 150);
+      setVal("inp-apt-maintenance", 300);
+      setVal("inp-apt-mgmt-pct", 0.0);
       setVal("inp-apt-down-payment", 8000);
       setVal("inp-apt-duration", 20);
       setVal("inp-apt-rate", 3.6);
       setVal("inp-apt-ins-rate", 0.3);
+
+      const inpCredit = document.getElementById("inp-apt-monthly-credit");
+      if (inpCredit) {
+        inpCredit.value = "";
+        inpCredit.dataset.autoCalc = "true";
+      }
     }
 
     updateAptLiveSummary();
@@ -1026,8 +1044,9 @@
       annual_coop: Number(getVal("inp-apt-coop")) || 900,
       annual_tf: Number(getVal("inp-apt-tf")) || 800,
       annual_pno: Number(getVal("inp-apt-pno")) || 150,
-      annual_mgmt_pct: 0.0,
-      annual_maintenance: 300,
+      annual_maintenance: Number(getVal("inp-apt-maintenance")) || 300,
+      annual_mgmt_pct: Number(getVal("inp-apt-mgmt-pct")) || 0.0,
+      monthly_loan_payment: Number(getVal("inp-apt-monthly-credit")) || 0,
       auto_calc_bank: true,
       down_payment_input: Number(getVal("inp-apt-down-payment")) || 8000,
       loan_duration: Number(getVal("inp-apt-duration")) || 20,
@@ -1182,7 +1201,7 @@
     return el ? el.value : "";
   }
 
-  function updateAptLiveSummary() {
+  function updateAptLiveSummary(triggeredByCreditInput = false) {
     const price = parseFloat(getVal("inp-apt-price")) || 0;
     const notary = parseFloat(getVal("inp-apt-notary")) || 0;
     const furn = parseFloat(getVal("inp-apt-furniture")) || 0;
@@ -1193,6 +1212,8 @@
     const tf = parseFloat(getVal("inp-apt-tf")) || 0;
     const coop = parseFloat(getVal("inp-apt-coop")) || 0;
     const pno = parseFloat(getVal("inp-apt-pno")) || 0;
+    const maint = parseFloat(getVal("inp-apt-maintenance")) || 300;
+    const mgmtPct = (parseFloat(getVal("inp-apt-mgmt-pct")) || 0.0) / 100.0;
     const dur = parseInt(getVal("inp-apt-duration")) || 20;
     const rate = (parseFloat(getVal("inp-apt-rate")) || 3.6) / 100.0;
     const insRate = (parseFloat(getVal("inp-apt-ins-rate")) || 0.3) / 100.0;
@@ -1201,17 +1222,40 @@
     const total = price + notary + bank + reno + furn;
     const loan = Math.max(0, total - down);
 
-    // Monthly mortgage payment
+    // Calculated monthly mortgage payment
     const r = rate / 12.0;
     const n = dur * 12;
     const loanPmt = (loan > 0 && r > 0) ? loan * (r / (1.0 - Math.pow(1.0 + r, -n))) : (loan / Math.max(1, n));
     const insPmt = (loan * insRate) / 12.0;
-    const totalMonthlyPmt = loanPmt + insPmt;
+    const calcMonthlyPmt = Math.round(loanPmt + insPmt);
 
-    // Effective rent minus vacance
+    // User's manual credit repayment input is the PRIMARY source of truth:
+    const inpCredit = document.getElementById("inp-apt-monthly-credit");
+    let actualCreditPmt = 0;
+    if (inpCredit) {
+      const typed = parseFloat(inpCredit.value);
+      if (!isNaN(typed) && typed >= 0) {
+        actualCreditPmt = Math.round(typed);
+      }
+    }
+
+    // Effective rent after vacancy
     const effectiveRent = rent * (1.0 - vac);
-    const monthlyCharges = (coop + tf + pno + 300) / 12.0; // including 300€ maintenance
-    const netCashflow = effectiveRent - totalMonthlyPmt - monthlyCharges;
+    const monthlyMgmtFee = (effectiveRent * 12.0 * mgmtPct) / 12.0;
+    const monthlyOperatingCharges = (coop + tf + pno + maint) / 12.0 + monthlyMgmtFee;
+    const totalMonthlyOutflow = actualCreditPmt + monthlyOperatingCharges;
+    const netCashflow = effectiveRent - totalMonthlyOutflow;
+
+    // Badges update
+    const badgeRent = document.getElementById("badge-apt-effective-rent");
+    if (badgeRent) {
+      badgeRent.innerText = `Thực thu: ${formatMoneyEUR(Math.round(effectiveRent))}/tháng`;
+    }
+
+    const badgeExp = document.getElementById("badge-apt-total-expenses");
+    if (badgeExp) {
+      badgeExp.innerText = `Tổng chi: ~${formatMoneyEUR(Math.round(totalMonthlyOutflow))}/tháng (Crédit: ${formatMoneyEUR(actualCreditPmt)} + Phí: ${formatMoneyEUR(Math.round(monthlyOperatingCharges))})`;
+    }
 
     const lblTotal = document.getElementById("lbl-apt-total-project");
     const lblLoan = document.getElementById("lbl-apt-loan-amount");
@@ -1258,14 +1302,51 @@
       });
     }
 
-    // Live update apartment modal summary on cost & revenue inputs
+    // Monthly Credit recalculate button (Only on manual user request)
+    const btnRecalcCredit = document.getElementById("btn-recalc-apt-credit");
+    if (btnRecalcCredit) {
+      btnRecalcCredit.addEventListener("click", () => {
+        const inpCredit = document.getElementById("inp-apt-monthly-credit");
+        if (inpCredit) {
+          const price = parseFloat(getVal("inp-apt-price")) || 0;
+          const notary = parseFloat(getVal("inp-apt-notary")) || 0;
+          const furn = parseFloat(getVal("inp-apt-furniture")) || 0;
+          const reno = parseFloat(getVal("inp-apt-reno")) || 0;
+          const down = parseFloat(getVal("inp-apt-down-payment")) || 0;
+          const dur = parseInt(getVal("inp-apt-duration")) || 20;
+          const rate = (parseFloat(getVal("inp-apt-rate")) || 3.6) / 100.0;
+          const insRate = (parseFloat(getVal("inp-apt-ins-rate")) || 0.3) / 100.0;
+          const bank = 1500;
+          const total = price + notary + bank + reno + furn;
+          const loan = Math.max(0, total - down);
+          const r = rate / 12.0;
+          const n = dur * 12;
+          const loanPmt = (loan > 0 && r > 0) ? loan * (r / (1.0 - Math.pow(1.0 + r, -n))) : (loan / Math.max(1, n));
+          const insPmt = (loan * insRate) / 12.0;
+          const estPmt = Math.round(loanPmt + insPmt);
+          inpCredit.value = estPmt;
+          updateAptLiveSummary();
+        }
+      });
+    }
+
+    // Direct input on Monthly Credit
+    const inpCredit = document.getElementById("inp-apt-monthly-credit");
+    if (inpCredit) {
+      inpCredit.addEventListener("input", () => {
+        updateAptLiveSummary();
+      });
+    }
+
+    // Live update apartment modal summary on cost & revenue inputs (without modifying monthly credit!)
     [
       "inp-apt-price", "inp-apt-notary", "inp-apt-furniture", "inp-apt-reno",
       "inp-apt-down-payment", "inp-apt-rent", "inp-apt-vacance", "inp-apt-tf",
-      "inp-apt-coop", "inp-apt-pno", "inp-apt-duration", "inp-apt-rate", "inp-apt-ins-rate"
+      "inp-apt-coop", "inp-apt-pno", "inp-apt-maintenance", "inp-apt-mgmt-pct",
+      "inp-apt-duration", "inp-apt-rate", "inp-apt-ins-rate"
     ].forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.addEventListener("input", updateAptLiveSummary);
+      if (el) el.addEventListener("input", () => updateAptLiveSummary());
     });
   }
 
