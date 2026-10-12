@@ -463,9 +463,11 @@ window.RetirementEngine = (function() {
         } else if (overrideScenario === 'high_inflation' && (age >= retireAge && age < retireAge + 5)) {
           currentExpenses *= 1.30; // 30% jump in expenses
         } else if (overrideScenario === 'medical_shock' && age === 65) {
-          currentExpenses += 500_000_000; // 500tr shock
+          const fx = currentEurVndRate || 27500;
+          currentExpenses += (500_000_000 / fx); // 500tr VND (~18k EUR)
         } else if (overrideScenario === 'downsizing' && age === 60) {
-          portfolio += 2_000_000_000; // 2 tỷ lump sum cash infusion
+          const fx = currentEurVndRate || 27500;
+          portfolio += (2_000_000_000 / fx); // 2 tỷ VND (~73k EUR)
         }
       }
 

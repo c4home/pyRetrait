@@ -327,8 +327,9 @@
 
     try {
       initFamilyChildrenSimulation();
+      initSpendingSmileSimulation();
     } catch (e) {
-      console.warn("initFamilyChildrenSimulation failed:", e);
+      console.warn("initFamilyChildrenSimulation or initSpendingSmileSimulation failed:", e);
     }
 
     // Plan Selector
@@ -840,14 +841,49 @@
       ['input', 'change'].forEach(evt => {
         inpRetireMonthly.addEventListener(evt, () => {
           const p = getActivePlan();
-          const monthly = Number(inpRetireMonthly.value) || 0;
-          p.retirementExpenses = monthly * 12;
+          const baseMonthly = Number(inpRetireMonthly.value) || 0;
+          p.baseRetireMonthly = baseMonthly;
+          const loc = p.retirementLocation || 'vietnam';
+          const pppFactors = { 'france': 1.0, 'hybrid': 0.70, 'vietnam': 0.45 };
+          const factor = pppFactors[loc] || 1.0;
+          p.retirementExpenses = Math.round(baseMonthly * 12 * factor);
+          updateRetirementLocationRadiosUI(p);
           updateExpenseSavingsHints(p);
           savePlansToStorage();
           updateAll();
         });
       });
     }
+
+    // Radio Buttons: Lựa chọn địa điểm hưu trí & quy đổi trực tiếp theo PPP
+    document.querySelectorAll("input[name='rad-retire-location']").forEach(radio => {
+      radio.addEventListener("change", (e) => {
+        const p = getActivePlan();
+        const newLoc = e.target.value;
+        p.retirementLocation = newLoc;
+
+        const selLocation = document.getElementById("sel-retirement-location");
+        if (selLocation) selLocation.value = newLoc;
+
+        const pppFactors = { 'france': 1.0, 'hybrid': 0.70, 'vietnam': 0.45 };
+        const factor = pppFactors[newLoc] || 1.0;
+
+        const inp = document.getElementById("inp-monthly-retire-expenses");
+        let baseMonthly = inp ? Number(inp.value) : p.baseRetireMonthly;
+        if (!baseMonthly || isNaN(baseMonthly) || baseMonthly <= 0) {
+          baseMonthly = 2444;
+          if (inp) inp.value = baseMonthly;
+        }
+        p.baseRetireMonthly = baseMonthly;
+        p.retirementExpenses = Math.round(baseMonthly * 12 * factor);
+
+        updateRetirementLocationUI(newLoc);
+        updateRetirementLocationRadiosUI(p);
+        updateExpenseSavingsHints(p);
+        savePlansToStorage();
+        updateAll();
+      });
+    });
 
     // Modal 2-Way Sync between Monthly and Yearly Income
     const inpIncomeMonthly = document.getElementById("inp-income-amount-monthly");
@@ -896,20 +932,27 @@
     // Withdrawal Strategy Radio Buttons
     document.querySelectorAll("input[name='withdrawal-strategy']").forEach(radio => {
       radio.addEventListener("change", (e) => {
-        getActivePlan().withdrawalStrategy = e.target.value;
+        const newStrat = e.target.value;
+        const p = getActivePlan();
+        p.withdrawalStrategy = newStrat;
         savePlansToStorage();
         updateAll();
+        renderWithdrawalComparison();
       });
     });
 
     // Initial SWR Range Slider
     const swrSlider = document.getElementById("inp-initial-swr");
-    swrSlider.addEventListener("input", (e) => {
-      document.getElementById("val-initial-swr").innerText = e.target.value;
-      getActivePlan().initialWithdrawalRate = Number(e.target.value);
-      savePlansToStorage();
-      updateAll();
-    });
+    if (swrSlider) {
+      swrSlider.addEventListener("input", (e) => {
+        document.getElementById("val-initial-swr").innerText = e.target.value;
+        const p = getActivePlan();
+        p.initialWithdrawalRate = Number(e.target.value);
+        savePlansToStorage();
+        updateAll();
+        renderWithdrawalComparison();
+      });
+    }
 
     // Scenario Stress Test Buttons
     document.querySelectorAll(".scenario-btn").forEach(btn => {
@@ -927,7 +970,7 @@
     });
 
     // Expandable Panel Toggles
-    ['panel-dual-inflation', 'panel-mortgage', 'panel-french-pension', 'panel-senior-care'].forEach(id => {
+    ['panel-mortgage'].forEach(id => {
       const panel = document.getElementById(id);
       const header = panel?.querySelector('.expandable-header');
       const content = panel?.querySelector('.expandable-content');
@@ -945,26 +988,27 @@
     if (selLocation) {
       selLocation.addEventListener("change", (e) => {
         const plan = getActivePlan();
-        const oldLoc = plan.retirementLocation || 'vietnam';
         const newLoc = e.target.value;
-
-        // Tự động quy đổi mức sống tương đương PPP giữa 2 địa điểm
-        const pppFactors = { 'france': 1.0, 'hybrid': 0.70, 'vietnam': 0.45 };
-        const oldFactor = pppFactors[oldLoc] || 1.0;
-        const newFactor = pppFactors[newLoc] || 1.0;
-
-        if (oldFactor > 0 && newFactor > 0 && oldLoc !== newLoc) {
-          const inpRetireMonthly = document.getElementById("inp-monthly-retire-expenses");
-          const curMonthly = inpRetireMonthly ? (Number(inpRetireMonthly.value) || Math.round((Number(plan.retirementExpenses) || 12000) / 12)) : Math.round((Number(plan.retirementExpenses) || 12000) / 12);
-          const convertedMonthly = Math.round((curMonthly * (newFactor / oldFactor)) / 10) * 10;
-          if (inpRetireMonthly) {
-            inpRetireMonthly.value = convertedMonthly;
-          }
-          plan.retirementExpenses = convertedMonthly * 12;
-        }
-
         plan.retirementLocation = newLoc;
+
+        // Đồng bộ với radio buttons
+        const rad = document.querySelector(`input[name='rad-retire-location'][value='${newLoc}']`);
+        if (rad) rad.checked = true;
+
+        const pppFactors = { 'france': 1.0, 'hybrid': 0.70, 'vietnam': 0.45 };
+        const factor = pppFactors[newLoc] || 1.0;
+
+        const inpRetireMonthly = document.getElementById("inp-monthly-retire-expenses");
+        let baseMonthly = inpRetireMonthly ? Number(inpRetireMonthly.value) : plan.baseRetireMonthly;
+        if (!baseMonthly || isNaN(baseMonthly) || baseMonthly <= 0) {
+          baseMonthly = 2444;
+          if (inpRetireMonthly) inpRetireMonthly.value = baseMonthly;
+        }
+        plan.baseRetireMonthly = baseMonthly;
+        plan.retirementExpenses = Math.round(baseMonthly * 12 * factor);
+
         updateRetirementLocationUI(newLoc);
+        updateRetirementLocationRadiosUI(plan);
         updateExpenseSavingsHints(plan);
         savePlansToStorage();
         updateAll();
@@ -1283,7 +1327,22 @@
 
     setVal("inp-monthly-expenses", Math.round(annualExp / 12));
     setVal("inp-monthly-savings", Math.round(annualSav / 12));
-    setVal("inp-monthly-retire-expenses", Math.round(annualRetire / 12));
+
+    // Base Monthly là mức chi tiêu tại nơi đắt nhất (Pháp - factor 1.00)
+    const loc = p.retirementLocation || "vietnam";
+    const pppFactors = { 'france': 1.0, 'hybrid': 0.70, 'vietnam': 0.45 };
+    const factor = pppFactors[loc] || 1.0;
+    let baseMonthly = p.baseRetireMonthly;
+    if (!baseMonthly || isNaN(baseMonthly) || baseMonthly <= 0) {
+      baseMonthly = Math.round(((annualRetire || 13200) / factor) / 12);
+      p.baseRetireMonthly = baseMonthly;
+    }
+    setVal("inp-monthly-retire-expenses", baseMonthly);
+
+    const radLoc = document.querySelector(`input[name='rad-retire-location'][value='${loc}']`);
+    if (radLoc) radLoc.checked = true;
+
+    updateRetirementLocationRadiosUI(p);
     updateExpenseSavingsHints(p);
 
     setVal("inp-return-pre", p.investmentReturnPre);
@@ -2442,23 +2501,71 @@
     if (plan) updateCashflowBalanceUI(plan);
   }
 
+  function updateRetirementLocationRadiosUI(plan) {
+    if (!plan) plan = getActivePlan();
+    if (!plan) return;
+    const inpRetireMonthly = document.getElementById("inp-monthly-retire-expenses");
+    const loc = plan.retirementLocation || 'vietnam';
+    const pppFactors = { 'france': 1.0, 'hybrid': 0.70, 'vietnam': 0.45 };
+    const curFactor = pppFactors[loc] || 1.0;
+
+    let baseMonthly = plan.baseRetireMonthly;
+    if (!baseMonthly || isNaN(baseMonthly) || baseMonthly <= 0) {
+      if (inpRetireMonthly && Number(inpRetireMonthly.value) > 0) {
+        baseMonthly = Number(inpRetireMonthly.value);
+      } else {
+        const ann = Number(plan.retirementExpenses) || 13200;
+        baseMonthly = Math.round((ann / curFactor) / 12);
+      }
+      plan.baseRetireMonthly = baseMonthly;
+    } else if (inpRetireMonthly && Number(inpRetireMonthly.value) > 0) {
+      baseMonthly = Number(inpRetireMonthly.value);
+      plan.baseRetireMonthly = baseMonthly;
+    }
+
+    const cur = state.currency || 'EUR';
+    const fmt = (v) => window.RetirementEngine.formatCurrency(v, cur);
+
+    const monthlyFrance = Math.round(baseMonthly * 1.0);
+    const annualFrance = Math.round(baseMonthly * 12 * 1.0);
+
+    const monthlyVietnam = Math.round(baseMonthly * 0.45);
+    const annualVietnam = Math.round(baseMonthly * 12 * 0.45);
+
+    const monthlyHybrid = Math.round(baseMonthly * 0.70);
+    const annualHybrid = Math.round(baseMonthly * 12 * 0.70);
+
+    const lblFrance = document.getElementById("label-loc-france");
+    const lblVietnam = document.getElementById("label-loc-vietnam");
+    const lblHybrid = document.getElementById("label-loc-hybrid");
+
+    if (lblFrance) lblFrance.innerText = `≈ ${fmt(monthlyFrance)}/tháng ≈ ${fmt(annualFrance)}/năm`;
+    if (lblVietnam) lblVietnam.innerText = `≈ ${fmt(monthlyVietnam)}/tháng ≈ ${fmt(annualVietnam)}/năm`;
+    if (lblHybrid) lblHybrid.innerText = `≈ ${fmt(monthlyHybrid)}/tháng ≈ ${fmt(annualHybrid)}/năm`;
+
+    document.querySelectorAll(".location-radio-item").forEach(item => {
+      const radio = item.querySelector("input[type='radio']");
+      if (radio && radio.value === loc) {
+        radio.checked = true;
+        item.classList.add("active");
+      } else {
+        item.classList.remove("active");
+      }
+    });
+
+    const hint = document.getElementById("hint-retire-expenses");
+    if (hint) {
+      let activeAnnual = annualVietnam;
+      let activeDesc = "chi tiêu tại Việt Nam";
+      if (loc === 'france') { activeAnnual = annualFrance; activeDesc = "chi tiêu tại Pháp"; }
+      else if (loc === 'hybrid') { activeAnnual = annualHybrid; activeDesc = "Song hành Pháp - Việt"; }
+      hint.innerText = `≈ ${fmt(activeAnnual)}/năm • ${activeDesc}`;
+    }
+  }
+
   function updateExpenseSavingsHints(plan) {
     if (!plan) plan = getActivePlan();
-    const hint = document.getElementById("hint-retire-expenses");
-    const inp = document.getElementById("inp-monthly-retire-expenses");
-    if (!hint) return;
-
-    const monthly = inp ? (Number(inp.value) || 0) : Math.round((Number(plan.retirementExpenses) || 0) / 12);
-    const annual = monthly * 12;
-    const cur = state.currency || 'EUR';
-    const loc = plan.retirementLocation || 'vietnam';
-
-    let locLabel = "chi tiêu tại Việt Nam";
-    if (loc === "france") locLabel = "chi tiêu tại Pháp";
-    else if (loc === "hybrid") locLabel = "Song hành Pháp - Việt";
-
-    const annualFormatted = window.RetirementEngine.formatCurrency(annual, cur);
-    hint.innerText = `≈ ${annualFormatted}/năm • ${locLabel}`;
+    updateRetirementLocationRadiosUI(plan);
   }
 
   function renderExpensePeriodsSummary(plan) {
@@ -4002,24 +4109,38 @@
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
 
+      const chosenStrat = plan.withdrawalStrategy || 'guyton_klinger';
+
       const strategies = [
         { key: "bengen_4pct", name: "Quy tắc 4% Cố định (Bengen)", color: "#3b82f6" },
-        { key: "guyton_klinger", name: "Lan can Guyton-Klinger", color: "#10b981" },
+        { key: "guyton_klinger", name: "Lan can Guyton-Klinger (Khuyên dùng)", color: "#10b981" },
         { key: "vpw", name: "Tỷ lệ Thay đổi (VPW)", color: "#8b5cf6" },
-        { key: "fixed_pct", name: "Tỷ lệ Cố định (Fixed 4%)", color: "#f59e0b" }
+        { key: "fixed_pct", name: "Tỷ lệ Cố định (Fixed %)", color: "#f59e0b" }
       ];
+
+      function hexToRgba(hex, alpha) {
+        const h = hex.replace('#', '');
+        const r = parseInt(h.substring(0, 2), 16);
+        const g = parseInt(h.substring(2, 4), 16);
+        const b = parseInt(h.substring(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      }
 
       const datasets = strategies.map(strat => {
         const tempPlan = { ...plan, withdrawalStrategy: strat.key };
         const res = window.RetirementEngine.runProjection(tempPlan);
+        const isChosen = (strat.key === chosenStrat);
+
         return {
-          label: strat.name,
+          label: isChosen ? `★ ${strat.name} (Đang chọn)` : strat.name,
           data: res.timeline.map(p => p.portfolioEnd),
           borderColor: strat.color,
-          borderWidth: 2.5,
+          borderWidth: isChosen ? 3.2 : 2.2,
+          borderDash: [],
           fill: false,
           pointRadius: 0,
-          tension: 0.2
+          tension: 0.2,
+          order: isChosen ? 0 : 1
         };
       });
 
@@ -4048,7 +4169,12 @@
             legend: { 
               display: true,
               position: 'top',
-              labels: { color: '#94a3b8', font: { size: 11 }, boxWidth: 16 } 
+              labels: { 
+                color: '#94a3b8', 
+                font: { size: 11 }, 
+                boxWidth: 16,
+                usePointStyle: true
+              } 
             },
             tooltip: {
               callbacks: {
@@ -4069,27 +4195,75 @@
         }
       });
 
-      // Populate Matrix Cards
-      const matrix = document.getElementById("withdrawal-strategy-matrix");
-      if (matrix) {
-        matrix.innerHTML = strategies.map(s => {
-          const p = { ...plan, withdrawalStrategy: s.key };
-          const r = window.RetirementEngine.runProjection(p);
-          return `
-            <div class="strategy-matrix-card">
-              <div class="matrix-title" style="color: ${s.color}">${s.name}</div>
-              <div class="matrix-stat">Số dư tuổi ${plan.lifeExpectancy || 85}: <strong>${window.RetirementEngine.formatCurrency(r.finalPortfolio, state.currency)}</strong></div>
-              <div class="matrix-stat">Độ ổn định dòng tiền: <strong>${s.key === 'bengen_4pct' ? 'Cao' : s.key === 'guyton_klinger' ? 'Rất Cao' : 'Linh hoạt'}</strong></div>
-              <div class="matrix-stat">Tỷ lệ sống sót: <strong class="text-success">${r.survived ? '100%' : 'Có rủi ro'}</strong></div>
-            </div>
-          `;
-        }).join("");
+      // Update embedded KPIs in each Strategy Card directly
+      const lifeExp = plan.lifeExpectancy || 85;
+      document.querySelectorAll(".lbl-life-exp-target").forEach(el => el.innerText = lifeExp);
+
+      strategies.forEach(s => {
+        const p = { ...plan, withdrawalStrategy: s.key };
+        const r = window.RetirementEngine.runProjection(p);
+        const isChosen = (s.key === chosenStrat);
+
+        // Update KPIs
+        const balEl = document.getElementById(`stat-bal-${s.key}`);
+        const survEl = document.getElementById(`stat-surv-${s.key}`);
+        const stabEl = document.getElementById(`stat-stab-${s.key}`);
+        if (balEl) balEl.innerText = window.RetirementEngine.formatCurrency(r.finalPortfolio, state.currency);
+        if (survEl) {
+          survEl.innerText = r.survived ? "100% Sống sót" : "Có rủi ro cạn vốn";
+          survEl.className = r.survived ? "text-success font-semibold" : "text-danger font-semibold";
+        }
+        if (stabEl) {
+          stabEl.innerText = s.key === 'bengen_4pct' ? 'Cao' : s.key === 'guyton_klinger' ? 'Rất Cao' : s.key === 'vpw' ? 'Linh hoạt' : 'Biến động';
+        }
+
+        // Active state on card
+        const cardEl = document.getElementById(`card-strat-${s.key}`);
+        if (cardEl) {
+          cardEl.classList.toggle('selected', isChosen);
+        }
+        const badgeEl = document.getElementById(`status-strat-${s.key}`);
+        if (badgeEl) {
+          if (isChosen) {
+            badgeEl.innerText = "✓ Đang chọn";
+            badgeEl.style.background = "rgba(56, 189, 248, 0.2)";
+            badgeEl.style.color = "#38bdf8";
+            badgeEl.style.borderColor = "rgba(56, 189, 248, 0.4)";
+          } else {
+            badgeEl.innerText = s.key === "guyton_klinger" ? "Khuyên dùng" : s.key === "bengen_4pct" ? "Cố định" : s.key === "vpw" ? "Linh hoạt" : "Bảo toàn";
+            badgeEl.style.background = "";
+            badgeEl.style.color = "";
+            badgeEl.style.borderColor = "";
+          }
+        }
+      });
+
+      // Update Radio Checked state
+      const targetRadio = document.querySelector(`input[name='withdrawal-strategy'][value='${chosenStrat}']`);
+      if (targetRadio) targetRadio.checked = true;
+
+      // Update Top Badge
+      const topBadge = document.getElementById("badge-chosen-strategy");
+      const chosenObj = strategies.find(s => s.key === chosenStrat) || strategies[1];
+      if (topBadge) {
+        topBadge.innerText = chosenObj.name;
+        topBadge.style.color = chosenObj.color;
+        topBadge.style.borderColor = hexToRgba(chosenObj.color, 0.4);
+        topBadge.style.background = hexToRgba(chosenObj.color, 0.15);
       }
+
+      // Update SWR slider
+      const swrVal = (plan.initialWithdrawalRate || 4.0).toFixed(1);
+      const swrSlider = document.getElementById("inp-initial-swr");
+      if (swrSlider) swrSlider.value = swrVal;
+      const swrDisp = document.getElementById("val-initial-swr");
+      if (swrDisp) swrDisp.innerText = swrVal;
 
       const strategySummary = strategies.map(s => {
         const p = { ...plan, withdrawalStrategy: s.key };
         const r = window.RetirementEngine.runProjection(p);
         return {
+          key: s.key,
           name: s.name,
           finalPortfolio: window.RetirementEngine.formatCurrency(r.finalPortfolio, state.currency),
           survived: r.survived ? "100% Đạt mục tiêu" : "Có rủi ro cạn vốn",
@@ -4097,11 +4271,11 @@
         };
       });
 
-      // Trigger Gemini Commentary for Withdrawal Comparison
+      // Trigger Gemini Commentary analyzing ALL 4 strategies simultaneously
       if (window.GeminiAdvisor) {
         window.GeminiAdvisor.updateChartBox("chart-withdrawal-comparison", "So sánh 4 Chiến lược Rút tiền trên Cùng Kịch bản", {
+          mode: "all_strategies",
           initialSWR: (plan.initialWithdrawalRate || 4.0) + "%",
-          chosenStrategy: plan.withdrawalStrategy || 'guyton_klinger',
           lifeExpectancy: plan.lifeExpectancy || 85,
           strategies: strategySummary
         });
@@ -4347,50 +4521,147 @@
   // -------------------------------------------------------------
   function renderScenarioTab() {
     const plan = getActivePlan();
-    const evaluation = window.ScenarioManager.evaluateScenario(plan, state.activeScenario);
+    const lifeExp = Number(plan.lifeExpectancy) || 85;
 
-    document.getElementById("scenario-chart-title").innerText = evaluation.meta.title;
-    document.getElementById("scenario-chart-desc").innerText = evaluation.meta.desc;
-    document.getElementById("scenario-report-content").innerHTML = `
-      <div style="margin-bottom: 0.75rem;">${evaluation.meta.assessment}</div>
-      <div style="font-size: 0.82rem; color: #94a3b8;">
-        Chênh lệch tài sản cuối kỳ so với cơ sở: 
-        <strong class="${evaluation.netWorthDiff >= 0 ? 'text-success' : 'text-danger'} font-mono">
-          ${evaluation.netWorthDiff >= 0 ? '+' : ''}${window.RetirementEngine.formatCurrency(evaluation.netWorthDiff, state.currency)}
-        </strong>
-      </div>
-    `;
+    const titleEl = document.getElementById("scenario-chart-title");
+    const descEl = document.getElementById("scenario-chart-desc");
+    if (titleEl) titleEl.innerText = "So sánh Tất cả Kịch bản Thử thách & Biến cố Tài chính";
+    if (descEl) descEl.innerText = "Đánh giá sức chịu đựng của danh mục trước 5 kịch bản biến cố kinh tế và cuộc đời (tất cả đường nét liền so sánh trực quan).";
 
-    const ctx = document.getElementById("chart-scenarios").getContext("2d");
+    const canvas = document.getElementById("chart-scenarios");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+
     if (state.charts.scenarios) {
       state.charts.scenarios.destroy();
+      state.charts.scenarios = null;
     }
+
+    const scenariosList = [
+      { 
+        key: "baseline", 
+        name: "1. Cơ sở (Baseline)", 
+        color: "#38bdf8", 
+        desc: "Điều kiện kinh tế bình thường, lạm phát và lợi nhuận ổn định." 
+      },
+      { 
+        key: "market_crash", 
+        name: "2. Khủng hoảng Sớm (-35%)", 
+        color: "#ef4444", 
+        desc: "Thị trường sụt giảm -35% ngay 2 năm đầu nghỉ hưu (Rủi ro Sequence of Returns)." 
+      },
+      { 
+        key: "high_inflation", 
+        name: "3. Lạm phát Phi mã (7%/năm)", 
+        color: "#f59e0b", 
+        desc: "Bão giá đẩy chi phí sinh hoạt tăng vọt 30% liên tục trong 5 năm đầu." 
+      },
+      { 
+        key: "medical_shock", 
+        name: "4. Cú sốc Y tế (Tuổi 65)", 
+        color: "#ec4899", 
+        desc: "Chi phí y tế phát sinh đột xuất 500 triệu (~18k €) ngoài bảo hiểm cơ bản." 
+      },
+      { 
+        key: "downsizing", 
+        name: "5. Bán bớt Nhà (Tuổi 60)", 
+        color: "#10b981", 
+        desc: "Bán nhà lớn đổi căn hộ nhỏ, giải phóng 2 tỷ VND (~73k €) tái đầu tư sinh lời." 
+      }
+    ];
+
+    const baselineProj = window.RetirementEngine.runProjection(plan, null);
+    const baseFinalNW = baselineProj.finalPortfolio;
+
+    // Run projections for all 5 scenarios and collect summary metrics
+    const scenarioSummaries = scenariosList.map(sc => {
+      const proj = window.RetirementEngine.runProjection(plan, sc.key === 'baseline' ? null : sc.key);
+      const finalNW = proj.finalPortfolio;
+      const diff = finalNW - baseFinalNW;
+      return {
+        key: sc.key,
+        name: sc.name,
+        color: sc.color,
+        desc: sc.desc,
+        timeline: proj.timeline,
+        finalPortfolio: finalNW,
+        finalPortfolioFormatted: window.RetirementEngine.formatCurrency(finalNW, state.currency),
+        netWorthDiff: diff,
+        netWorthDiffFormatted: (diff === 0 ? '±€0' : (diff > 0 ? '+' : '') + window.RetirementEngine.formatCurrency(diff, state.currency)),
+        survived: proj.survived
+      };
+    });
+
+    // Populate the scenario lines explanation matching Tab 2 strategy-card UI
+    const explanationContainer = document.getElementById("scenario-lines-explanation");
+    if (explanationContainer) {
+      explanationContainer.innerHTML = scenarioSummaries.map(sc => {
+        const statusBadge = sc.survived 
+          ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; font-weight: 600;">✓ 100% Sống sót</span>`
+          : `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; font-weight: 600;">⚠ Có rủi ro cạn vốn</span>`;
+        
+        const diffColor = sc.netWorthDiff > 0 ? '#34d399' : (sc.netWorthDiff < 0 ? '#f87171' : '#94a3b8');
+
+        return `
+          <div class="strategy-card" style="border-left: 3px solid ${sc.color}; cursor: default; margin-bottom: 0;">
+            <div class="strategy-content">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem; flex-wrap: wrap; gap: 0.4rem;">
+                <div class="strategy-name" style="color: ${sc.color}; display: flex; align-items: center; gap: 6px; margin: 0; font-size: 0.88rem;">
+                  <span class="scenario-color-dot" style="background: ${sc.color}; width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0;"></span>
+                  <span>${sc.name}</span>
+                </div>
+                ${statusBadge}
+              </div>
+              <div class="strategy-detail" style="font-size: 0.76rem; color: var(--text-muted); line-height: 1.45; margin-bottom: 0.45rem;">
+                ${sc.desc}
+              </div>
+              <div class="strategy-kpis-mini" style="margin: 0;">
+                <div class="kpi-mini-item">Số dư tuổi ${lifeExp}: <strong class="font-mono" style="color: #f8fafc;">${sc.finalPortfolioFormatted}</strong></div>
+                <div class="kpi-mini-item">Độ lệch: <strong class="font-mono" style="color: ${diffColor};">${sc.netWorthDiffFormatted}</strong></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    const datasets = scenarioSummaries.map(sc => ({
+      label: sc.name,
+      data: sc.timeline.map(p => p.portfolioEnd),
+      borderColor: sc.color,
+      borderWidth: 2.5,
+      borderDash: [],
+      fill: false,
+      pointRadius: 0,
+      tension: 0.2
+    }));
 
     state.charts.scenarios = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: evaluation.baselineProjection.timeline.map(p => [`${p.age}t`, `${p.year}`]),
-        datasets: [
-          {
-            label: 'Kịch bản Cơ sở (Baseline)',
-            data: evaluation.baselineProjection.timeline.map(p => p.portfolioEnd),
-            borderColor: '#94a3b8',
-            borderWidth: 2,
-            borderDash: [5, 5],
-            pointRadius: 0
-          },
-          {
-            label: evaluation.meta.title,
-            data: evaluation.stressProjection.timeline.map(p => p.portfolioEnd),
-            borderColor: evaluation.netWorthDiff >= 0 ? '#10b981' : '#f43f5e',
-            borderWidth: 3,
-            pointRadius: 0
-          }
-        ]
+        labels: baselineProj.timeline.map(p => [`${p.age}t`, `${p.year}`]),
+        datasets
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        plugins: {
+          legend: { 
+            display: true,
+            position: 'top',
+            labels: { 
+              color: '#94a3b8', 
+              font: { size: 11 }, 
+              boxWidth: 16,
+              usePointStyle: true
+            } 
+          },
+          tooltip: {
+            callbacks: {
+              label: (item) => ` ${item.dataset.label}: ${window.RetirementEngine.formatCurrency(item.raw, state.currency, false)}`
+            }
+          }
+        },
         scales: {
           x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: ageAxisTicks() },
           y: {
@@ -4404,17 +4675,21 @@
       }
     });
 
-    // Trigger Gemini Commentary for Scenarios
+    // Trigger Gemini Commentary analyzing ALL scenarios simultaneously
     if (window.GeminiAdvisor) {
-      window.GeminiAdvisor.updateChartBox("chart-scenarios", "So sánh Kịch bản What-If: " + evaluation.meta.title, {
-        activeScenario: state.activeScenario,
-        title: evaluation.meta.title,
-        assessment: evaluation.meta.assessment,
-        netWorthDiff: window.RetirementEngine.formatCurrency(evaluation.netWorthDiff, state.currency),
-        survived: evaluation.scenarioRes?.survived ? "Đảm bảo tài sản" : "Có rủi ro thiếu hụt",
-        baseFinalNW: window.RetirementEngine.formatCurrency(evaluation.baseRes?.finalPortfolio || 0, state.currency),
-        scenarioFinalNW: window.RetirementEngine.formatCurrency(evaluation.scenarioRes?.finalPortfolio || 0, state.currency)
-      });
+      window.GeminiAdvisor.updateChartBox("chart-scenarios", "So sánh Tổng thể Cả 5 Kịch bản Thử thách & Biến cố", {
+        mode: "all_scenarios",
+        lifeExpectancy: lifeExp,
+        retireAge: Number(plan.retirementAge) || 42,
+        baseFinalNW: window.RetirementEngine.formatCurrency(baseFinalNW, state.currency),
+        scenarios: scenarioSummaries.map(s => ({
+          key: s.key,
+          name: s.name,
+          finalPortfolio: s.finalPortfolioFormatted,
+          netWorthDiff: s.netWorthDiffFormatted,
+          survived: s.survived ? "100% Sống sót" : "Có rủi ro cạn vốn"
+        }))
+      }, true);
     }
   }
 
@@ -4713,11 +4988,76 @@
     }
   }
 
+  function updateSpendingSmileSummary() {
+    try {
+      const plan = getActivePlan();
+      const isSmileEnabled = document.getElementById("chk-smile-enabled") ? document.getElementById("chk-smile-enabled").checked : (plan.spendingPhases?.enabled !== false);
+      const baseAnnual = Number(plan.annualExpenses) || 240000000;
+      const baseMonthly = baseAnnual / 12;
+
+      const gogoAge = Number(document.getElementById("inp-gogo-age")?.value) || plan.spendingPhases?.gogoAge || 60;
+      const gogoFactor = Number(document.getElementById("inp-gogo-factor")?.value) || plan.spendingPhases?.gogoFactor || 1.15;
+      
+      const slowgoAge = Number(document.getElementById("inp-slowgo-age")?.value) || plan.spendingPhases?.slowgoAge || 75;
+      const slowgoFactor = Number(document.getElementById("inp-slowgo-factor")?.value) || plan.spendingPhases?.slowgoFactor || 0.90;
+      
+      const nogoFactor = Number(document.getElementById("inp-nogo-factor")?.value) || plan.spendingPhases?.nogoFactor || 0.80;
+      const retireAge = plan.retirementAge || 42;
+      const lifeExp = plan.lifeExpectancy || 85;
+
+      const gogoMonthly = isSmileEnabled ? baseMonthly * gogoFactor : baseMonthly;
+      const slowgoMonthly = isSmileEnabled ? baseMonthly * slowgoFactor : baseMonthly;
+      const nogoMonthly = isSmileEnabled ? baseMonthly * nogoFactor : baseMonthly;
+
+      const setTxt = (id, txt) => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = txt;
+      };
+
+      setTxt("lbl-smile-base-monthly", window.RetirementEngine.formatCurrency(baseMonthly, state.currency));
+      setTxt("lbl-smile-gogo-range", `${retireAge} – ${gogoAge} tuổi`);
+      setTxt("lbl-smile-gogo-monthly", window.RetirementEngine.formatCurrency(gogoMonthly, state.currency));
+      setTxt("lbl-smile-gogo-delta", isSmileEnabled ? `${Math.round((gogoFactor - 1) * 100) >= 0 ? '+' : ''}${Math.round((gogoFactor - 1) * 100)}% so với cơ bản` : 'Cố định 100%');
+
+      setTxt("lbl-smile-slowgo-range", `${gogoAge} – ${slowgoAge} tuổi`);
+      setTxt("lbl-smile-slowgo-monthly", window.RetirementEngine.formatCurrency(slowgoMonthly, state.currency));
+      setTxt("lbl-smile-slowgo-delta", isSmileEnabled ? `${Math.round((slowgoFactor - 1) * 100) >= 0 ? '+' : ''}${Math.round((slowgoFactor - 1) * 100)}% so với cơ bản` : 'Cố định 100%');
+
+      setTxt("lbl-smile-nogo-range", `${slowgoAge} – ${lifeExp} tuổi`);
+      setTxt("lbl-smile-nogo-monthly", window.RetirementEngine.formatCurrency(nogoMonthly, state.currency));
+      setTxt("lbl-smile-nogo-delta", isSmileEnabled ? `${Math.round((nogoFactor - 1) * 100) >= 0 ? '+' : ''}${Math.round((nogoFactor - 1) * 100)}% so với cơ bản` : 'Cố định 100%');
+    } catch (e) {
+      console.warn("updateSpendingSmileSummary error:", e);
+    }
+  }
+
+  function initSpendingSmileSimulation() {
+    try {
+      const chk = document.getElementById("chk-smile-enabled");
+      const gogoAge = document.getElementById("inp-gogo-age");
+      const gogoFactor = document.getElementById("inp-gogo-factor");
+      const slowgoAge = document.getElementById("inp-slowgo-age");
+      const slowgoFactor = document.getElementById("inp-slowgo-factor");
+      const nogoFactor = document.getElementById("inp-nogo-factor");
+
+      [chk, gogoAge, gogoFactor, slowgoAge, slowgoFactor, nogoFactor].forEach(el => {
+        if (el) {
+          el.addEventListener("input", updateSpendingSmileSummary);
+          el.addEventListener("change", updateSpendingSmileSummary);
+        }
+      });
+      updateSpendingSmileSummary();
+    } catch (e) {
+      console.warn("initSpendingSmileSimulation error:", e);
+    }
+  }
+
   function renderEstateTab() {
     const plan = getActivePlan();
     const proj = window.RetirementEngine.runProjection(plan);
 
     updateFamilyChildrenSimulation();
+    updateSpendingSmileSummary();
 
     const ctx = document.getElementById("chart-spending-smile").getContext("2d");
     if (state.charts.smile) {
@@ -4772,17 +5112,42 @@
       });
     }
 
+    if (!milestoneBox) return;
+
+    const isSurplus = finalVal >= target;
+    const diff = Math.abs(finalVal - target);
+    const barColor = pct >= 100 ? '#10b981' : pct >= 70 ? '#f59e0b' : '#ef4444';
+    const statusText = pct >= 100 ? 'Đạt & Vượt Mục Tiêu' : pct >= 70 ? 'Tiệm Cận Mục Tiêu' : 'Chưa Đạt Mục Tiêu';
+
     milestoneBox.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-        <span>Tiến độ Di sản / Thừa kế:</span>
-        <strong class="${pct >= 100 ? 'text-success' : 'text-warning'} font-mono">${pct}% Mục tiêu</strong>
+      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 0.85rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.4rem;">
+          <span style="font-size: 0.82rem; color: #94a3b8; font-weight: 600;">Tiến Độ Tích Lũy Di Sản:</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px;">
+            <span style="font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700; background: ${isSurplus ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)'}; color: ${isSurplus ? '#34d399' : '#fbbf24'}; border: 1px solid ${isSurplus ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'};">${statusText}</span>
+            <strong class="${pct >= 100 ? 'text-success' : 'text-warning'} font-mono" style="font-size: 1.05rem;">${pct}%</strong>
+          </span>
+        </div>
+        <div style="background: rgba(255,255,255,0.06); height: 9px; border-radius: 5px; overflow: hidden; margin-bottom: 0.75rem; border: 1px solid rgba(255,255,255,0.05);">
+          <div style="width: ${Math.min(100, pct)}%; height: 100%; background: ${barColor}; transition: width 0.3s ease;"></div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.65rem;">
+          <div style="background: rgba(0,0,0,0.25); padding: 0.5rem 0.65rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.04);">
+            <div style="font-size: 0.7rem; color: #94a3b8;">Dự kiến ở tuổi ${plan.lifeExpectancy || 85}</div>
+            <div style="font-weight: 700; color: #38bdf8; font-size: 0.88rem; font-family: var(--font-mono, monospace);">${window.RetirementEngine.formatCurrency(finalVal, state.currency)}</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.25); padding: 0.5rem 0.65rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.04);">
+            <div style="font-size: 0.7rem; color: #94a3b8;">${isSurplus ? 'Thặng dư thừa kế (+)' : 'Khoảng thiếu hụt (-)'}</div>
+            <div style="font-weight: 700; color: ${isSurplus ? '#34d399' : '#f87171'}; font-size: 0.88rem; font-family: var(--font-mono, monospace);">${isSurplus ? '+' : '-'}${window.RetirementEngine.formatCurrency(diff, state.currency)}</div>
+          </div>
+        </div>
+        <p style="font-size: 0.76rem; color: #cbd5e1; margin: 0; line-height: 1.45;">
+          ${isSurplus 
+            ? `✨ Bạn có đủ thặng dư di sản vượt mức mục tiêu <strong>${window.RetirementEngine.formatCurrency(target, state.currency)}</strong>. Tài sản này có thể tự do chuyển giao cho con cái hoặc hiến tặng từ thiện qua di chúc.`
+            : `⚠️ Dự kiến danh mục ở tuổi ${plan.lifeExpectancy || 85} đạt <strong>${window.RetirementEngine.formatCurrency(finalVal, state.currency)}</strong>, còn thiếu <strong>${window.RetirementEngine.formatCurrency(diff, state.currency)}</strong> so với mục tiêu. Cân nhắc giảm tỷ lệ rút vốn hàng năm (SWR) hoặc tăng tích lũy trước hưu.`
+          }
+        </p>
       </div>
-      <div style="background: rgba(255,255,255,0.06); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 0.75rem;">
-        <div style="width: ${Math.min(100, pct)}%; height: 100%; background: var(--primary);"></div>
-      </div>
-      <p style="font-size: 0.8rem; color: #94a3b8;">
-        Dự kiến tài sản để lại ở tuổi ${plan.lifeExpectancy}: <strong>${window.RetirementEngine.formatCurrency(finalVal, state.currency)}</strong> (Mục tiêu: ${window.RetirementEngine.formatCurrency(target, state.currency)}).
-      </p>
     `;
   }
 

@@ -921,7 +921,7 @@ async def get_available_models(api_key: Optional[str] = None):
         except Exception:
             pass
 
-    default_models = ["gemini-flash-lite-latest", "gemini-2.5-flash", "gemini-3.8-flash", "gemini-3.7-flash"]
+    default_models = ["gemini-3.5-flash-lite", "gemini-2.5-flash", "gemini-3.8-flash", "gemini-3.7-flash"]
     if not key or len(key.strip()) < 10:
         return {"models": default_models, "source": "static"}
 
@@ -1033,18 +1033,43 @@ def generate_local_gemini_analysis(chart_id: str, chart_title: str, chart_summar
         )
 
     elif chart_id in ("chart-withdrawal-comparison", "chart-withdrawals"):
+        initial_swr = chart_summary.get("initialSWR", "4.0%")
+        strat_list = chart_summary.get("strategies", [])
+        
+        bengen_info = next((s for s in strat_list if "Bengen" in s.get("name", "") or s.get("key") == "bengen_4pct"), {})
+        gk_info = next((s for s in strat_list if "Guyton" in s.get("name", "") or s.get("key") == "guyton_klinger"), {})
+        vpw_info = next((s for s in strat_list if "VPW" in s.get("name", "") or s.get("key") == "vpw"), {})
+        fp_info = next((s for s in strat_list if "Cố định" in s.get("name", "") or s.get("key") == "fixed_pct"), {})
+        
+        bal_bengen = bengen_info.get("finalPortfolio", "0 €")
+        bal_gk = gk_info.get("finalPortfolio", "1.15M €")
+        bal_vpw = vpw_info.get("finalPortfolio", "283.6k €")
+        bal_fp = fp_info.get("finalPortfolio", "1.31M €")
+
         return (
-            f"> 💡 **Tóm tắt cốt lõi (TL;DR)**: Chiến lược Lan can Guyton-Klinger mang lại sự cân bằng hoàn hảo nhất giữa mức chi tiêu ổn định và khả năng chống cạn kiệt tài sản đến tuổi {life_exp}.\n\n"
-            f"### 💡 1. So sánh 4 cách rút tiền khi về hưu\n"
-            f"- **Cách linh hoạt theo tình hình (Lan can Guyton-Klinger - Khuyên dùng)**: Khi thị trường tăng tốt bạn được tiêu nhiều hơn một chút; khi năm nào kinh tế khó khăn thì tự động thắt lưng buộc bụng bớt 10%. Cách này giúp bạn không bao giờ sợ hết tiền.\n"
-            f"- **Cách rút số tiền cố định mỗi năm (Quy tắc 4% Bengen)**: Năm nào cũng rút một số tiền như nhau cộng trượt giá. Cách này dễ dự toán nhưng nếu gặp năm thị trường giảm sâu thì tiền hao hụt rất nhanh.\n"
-            f"- **Cách rút theo phần trăm cố định**: Mỗi năm rút một tỷ lệ cố định trên số dư còn lại. Tiền không bao giờ cạn, nhưng số tiền tiêu mỗi năm sẽ trồi sụt theo thị trường.\n"
-            f"- **Cách rút theo tuổi thọ (VPW)**: Tối đa hóa số tiền được tiêu theo từng độ tuổi, nhưng đòi hỏi tính kỷ luật cao.\n\n"
-            f"### ⚠️ 2. Điều cần tránh\n"
-            f"- Tuyệt đối tránh rút quá 4%–4.5% tổng tài sản mỗi năm trong những năm thị trường suy thoái, vì bán tài sản ở đáy sẽ triệt tiêu cơ hội phục hồi.\n\n"
-            f"### 🎯 3. Các bước cụ thể làm theo ngay\n"
-            f"1. **Áp dụng tỷ lệ khởi điểm 3.8%**: Đặt mức chi tiêu năm đầu tiên bằng khoảng 3.8% tổng tài sản để tạo biên an toàn dự phòng.\n"
-            f"2. **Điều chỉnh linh hoạt từng năm**: Năm nào danh mục tăng trưởng vượt kỳ vọng thì tự thưởng chuyến du lịch; năm nào thị trường ảm đạm thì cắt giảm các chi tiêu xa xỉ."
+            f"> 💡 **Tóm tắt cốt lõi (TL;DR)**: Đặt cả 4 chiến lược rút tiền lên bàn cân với tỷ lệ rút khởi điểm {initial_swr}, **Lan can Guyton-Klinger** nổi bật là giải pháp cân bằng tối ưu nhất (vừa an toàn sinh hoạt vừa bảo toàn tài sản cuối đời đạt {bal_gk}), trong khi **Quy tắc 4% Cố định (Bengen)** đối mặt nguy cơ cạn vốn sớm ({bal_bengen}) nếu gặp suy thoái kinh tế ngay đầu chu kỳ hưu trí.\n\n"
+            f"### 💡 1. Bảng So sánh & Đánh giá Toàn cảnh 4 Chiến lược Rút tiền\n"
+            f"1. **Quy tắc 4% Cố định (Bengen Rule) — Số dư tuổi {life_exp}: {bal_bengen}**:\n"
+            f"   - *Cơ chế*: Rút {initial_swr} năm đầu, sau đó chỉ tăng đều đặn theo lạm phát bất kể thị trường lên hay xuống.\n"
+            f"   - *Ưu/Nhược điểm*: Dự toán chi tiêu dễ dàng, nhưng cực kỳ cứng nhắc. Nếu thị trường sụt giảm 25%–35% trong 2–3 năm đầu (Sequence of Returns Risk), danh mục sẽ bị bào mòn vĩnh viễn và cạn sạch tiền trước tuổi {life_exp}.\n\n"
+            f"2. **Chiến lược Lan can Guyton-Klinger (Khuyên dùng) — Số dư tuổi {life_exp}: {bal_gk}**:\n"
+            f"   - *Cơ chế*: Vừa điều chỉnh theo lạm phát, vừa thiết lập 2 'lan can bảo vệ': tự động cắt giảm 10% chi tiêu khi thị trường lao dốc, và tăng thưởng 10% khi danh mục tăng trưởng vượt bậc.\n"
+            f"   - *Ưu/Nhược điểm*: Tỷ lệ sống sót đạt gần 100%, bảo toàn tài sản thừa kế dồi dào, dung hòa tuyệt vời giữa nhu cầu sinh hoạt ổn định và tính an toàn của quỹ hưu trí.\n\n"
+            f"3. **Tỷ lệ Thay đổi theo Tuổi (VPW - Variable Percentage) — Số dư tuổi {life_exp}: {bal_vpw}**:\n"
+            f"   - *Cơ chế*: Tỷ lệ rút tăng dần theo tuổi thọ (khi 45–50 tuổi rút ~3.5%–4%, khi 75–80 tuổi tăng lên 6%–8% vì quãng thời gian còn lại ngắn hơn).\n"
+            f"   - *Ưu/Nhược điểm*: Cam kết 100% không bao giờ cạn vốn trước tuổi {life_exp}, giải quyết triệt để nỗi lo 'qua đời khi tiền vẫn còn quá nhiều'; tuy nhiên số tiền rút hàng năm trồi sụt theo thị trường.\n\n"
+            f"4. **Tỷ lệ Cố định trên Danh mục (Fixed %) — Số dư tuổi {life_exp}: {bal_fp}**:\n"
+            f"   - *Cơ chế*: Luôn rút đúng {initial_swr} trên tổng giá trị danh mục thực tế vào ngày cuối năm.\n"
+            f"   - *Ưu/Nhược điểm*: Quỹ đầu tư trường tồn vĩnh viễn không bao giờ về 0; nhưng chi tiêu năm suy thoái sẽ giảm sâu đúng bằng tỷ lệ giảm của thị trường.\n\n"
+            f"### 📊 2. Ví dụ Minh họa Thực tế: Khi Thị trường Sụt giảm -30% (Case Study)\n"
+            f"Giả sử danh mục hưu trí khởi điểm là **500.000 €**, tỷ lệ rút ban đầu **4% (20.000 €/năm)**. Năm thứ 2 nghỉ hưu, thị trường bất ngờ sụp đổ -30%, giá trị danh mục chỉ còn **350.000 €**:\n"
+            f"- **Áp dụng Bengen 4%**: Bạn vẫn cố rút 20.600 € (tính thêm lạm phát 3%). Khoản rút này chiếm tới **5.9%** số vốn còn lại. Bạn đang bán tháo chứng chỉ quỹ ở đáy, khiến số lượng cổ phiếu giảm mạnh và mất cơ hội phục hồi khi thị trường hồi sinh.\n"
+            f"- **Áp dụng Guyton-Klinger**: Tỷ lệ rút thực tế (5.9%) vượt qua trần lan can an toàn (> 1.2 × 4% = 4.8%). Hệ thống kích hoạt quy tắc **cắt giảm 10%**, bạn rút 18.540 € thay vì 20.600 €. Mức thắt lưng buộc bụng nhỏ này chặn đứng đà bán tháo và cứu sống danh mục đến tuổi {life_exp}.\n"
+            f"- **Áp dụng Fixed % / VPW**: Bạn rút đúng 4% của 350.000 € = 14.000 €. Danh mục an toàn tuyệt đối nhưng ngân sách sinh hoạt bị giảm 30%, đòi hỏi bạn phải có khoản đệm tiền mặt bù đắp.\n\n"
+            f"### 🎯 3. Lời khuyên Cải thiện & Chiến lược Tối ưu Hóa cho Bạn\n"
+            f"1. **Ưu tiên áp dụng Lan can Guyton-Klinger kết hợp Bộ đệm tiền mặt 2 năm (Cash Buffer)**: Luôn giữ sẵn 1.5–2 năm chi tiêu sinh hoạt trong tài khoản tiết kiệm an toàn thanh khoản cao. Khi thị trường khủng hoảng, hãy tiêu từ quỹ tiền mặt này để danh mục cổ phiếu không bị đụng tới.\n"
+            f"2. **Tách đôi ngân sách: Cố định vs Linh hoạt**: Đảm bảo các chi phí sinh hoạt thiết yếu (ăn uống, hóa đơn, bảo hiểm) được chi trả bằng dòng tiền sàn (lương hưu, tiền thuê nhà). Các khoản rút linh hoạt từ danh mục đầu tư sẽ dùng cho du lịch, hưởng thụ để dễ dàng co giãn 10% theo quy tắc Guyton-Klinger.\n"
+            f"3. **Nếu muốn bảo toàn tuyệt đối để nghỉ hưu trước 50 tuổi**: Cân nhắc hạ SWR khởi điểm từ 4.0% xuống **3.5%–3.8%**. Việc giảm nhẹ mức rút ban đầu kết hợp cơ chế lan can sẽ gia tăng xác suất thành công lên 100% cho chặng đường hưu trí dài hơn 40 năm."
         )
 
     elif chart_id in ("chart-tax-optimization", "chart-taxes"):
@@ -1075,17 +1100,31 @@ def generate_local_gemini_analysis(chart_id: str, chart_title: str, chart_summar
         )
 
     elif chart_id in ("chart-scenarios", "chart-stress-test"):
-        sc_title = chart_summary.get("title", "Biến cố thị trường")
+        scs = chart_summary.get("scenarios", [])
+        sc_map = {s.get("key", ""): s for s in scs} if isinstance(scs, list) else {}
+        
+        base_nw = chart_summary.get("baseFinalNW", "1.15M €")
+        crash_diff = sc_map.get("market_crash", {}).get("netWorthDiff", "-1.15M €")
+        crash_surv = sc_map.get("market_crash", {}).get("survived", "Có rủi ro cạn vốn")
+        infl_diff = sc_map.get("high_inflation", {}).get("netWorthDiff", "-438k €")
+        med_diff = sc_map.get("medical_shock", {}).get("netWorthDiff", "-22k €")
+        down_diff = sc_map.get("downsizing", {}).get("netWorthDiff", "+111.7k €")
+
         return (
-            f"> 💡 **Tóm tắt cốt lõi (TL;DR)**: Danh mục của bạn có độ dẻo dai tốt trước các cú sốc lớn; việc chủ động mua bảo hiểm sức khỏe và giữ lối sống linh hoạt là chìa khóa phòng thủ vững chắc nhất.\n\n"
-            f"### 💡 1. Thử sức tài chính trước biến cố: {sc_title}\n"
-            f"- **Thị trường giảm sâu (-35%)**: Tài sản của bạn giảm tạm thời trên màn hình, nhưng tiền sinh hoạt hàng ngày vẫn được bảo đảm nếu bạn không bán tháo tài sản lúc giá rẻ.\n"
-            f"- **Lạm phát giá cả sinh hoạt**: Nhờ phần lớn tài sản được đầu tư vào các quỹ doanh nghiệp và tài sản thực, giá trị tài sản sẽ tự động tăng theo thời gian để bù đắp sự mất giá của đồng tiền.\n\n"
-            f"### ⚠️ 2. Biến cố tốn kém nhất: Chi phí Sức khỏe\n"
-            f"- Những chi phí y tế đột xuất lúc lớn tuổi là nguyên nhân lớn nhất làm hao hụt tài sản hưu trí nếu không có phương án che chắn từ trước.\n\n"
-            f"### 🎯 3. Việc cụ thể bạn nên làm theo ngay\n"
-            f"1. **Mua bảo hiểm sức khỏe chu đáo trước khi nghỉ việc**: Đảm bảo bạn và gia đình có thẻ bảo hiểm sức khỏe toàn diện để nếu có ốm đau thì bảo hiểm chi trả, không phải đụng vào tiền tiết kiệm nghỉ hưu.\n"
-            f"2. **Cắt giảm 10% các khoản chi tiêu không thiết yếu khi có biến cố**: Tạm hoãn mua sắm đồ đắt tiền hoặc giảm bớt các chuyến du lịch xa trong năm thị trường khó khăn."
+            f"> 💡 **Tóm tắt cốt lõi (TL;DR)**: Danh mục có sức bền vững chắc trước 4/5 thử thách; cú sốc duy nhất đe dọa sinh mệnh danh mục là **Khủng hoảng Sớm (-35% Năm 1 & 2)** ({crash_diff}), trong khi **Bán bớt nhà tuổi 60** ({down_diff}) mang lại thặng dư lớn nhất.\n\n"
+            f"### 💡 1. Bảng Đánh giá & Xếp hạng Cả 5 Kịch bản Biến cố\n"
+            f"- **1. Kịch bản Cơ sở (Baseline)**: Vận hành trơn tru trong điều kiện bình thường, tài sản tích lũy an toàn đạt **{base_nw}** ở tuổi {life_exp}.\n"
+            f"- **2. Khủng hoảng Sớm (-35% Năm 1 & 2)**: ⚠️ *Khốc liệt nhất* (Chênh lệch: **{crash_diff}** | Trạng thái: {crash_surv}). Rủi ro Sequence of Returns khiến việc rút tiền trong bão làm hao tổn nghiêm trọng vốn gốc nếu thiếu quỹ tiền mặt dự phòng.\n"
+            f"- **3. Lạm phát Phi mã (7%/năm trong 5 năm)**: ⚡ *Thử thách sức mua* (Chênh lệch: **{infl_diff}**). Bão giá làm giảm thặng dư cuối đời nhưng danh mục vẫn trụ vững nhờ tài sản sinh lời bù đắp.\n"
+            f"- **4. Cú sốc Y tế Đột xuất (Tuổi 65)**: 🛡️ *Hấp thụ êm ái* (Chênh lệch: **{med_diff}**). Khoản chi 500 triệu (~18k €) chỉ làm giảm nhẹ tài sản thừa kế, hoàn toàn không làm gián đoạn dòng tiền sinh hoạt.\n"
+            f"- **5. Bán bớt Nhà / Thu gọn BĐS (Tuổi 60)**: 💎 *Đột phá thặng dư* (Chênh lệch: **{down_diff}**). Đổi sang nhà nhỏ giải phóng 2 tỷ VND (~73k €) tiền mặt tái đầu tư, đẩy mức độ an toàn lên tuyệt đối.\n\n"
+            f"### ⚠️ 2. Trọng tâm Phòng thủ: Vô hiệu hóa 'Khủng hoảng Sớm'\n"
+            f"- Khi bước vào giai đoạn hưu trí lúc {retire_age} tuổi, hiểm họa lớn nhất không phải là lạm phát hay viện phí, mà là **bán tháo tài sản ở đáy thị trường**.\n"
+            f"- Nếu bạn buộc phải rút tiền sinh hoạt giữa lúc thị trường sụt giảm -35%, bạn sẽ mất vĩnh viễn số cổ phần giá trị đó và không thể đón đầu sóng phục hồi sau này.\n\n"
+            f"### 🎯 3. Bộ Giải pháp Hành động Toàn diện Cho Cả 5 Kịch bản\n"
+            f"1. **Tạo 'Bình oxy tiền mặt' 2–3 năm chi tiêu**: Trước tuổi {retire_age}, trích riêng khoản tiền mặt hoặc tiền gửi ngắn hạn đủ sinh hoạt 2–3 năm. Nếu năm đầu thị trường rơi vào khủng hoảng (-35%), chỉ tiêu tiền trong bình oxy này, tuyệt đối không bán một cổ phiếu/chứng chỉ quỹ nào.\n"
+            f"2. **Duy trì bảo hiểm sức khỏe Mutuelle (Pháp) & BHYT quốc tế**: Đảm bảo 100% rủi ro phẫu thuật và viện phí tuổi 65 được bên thứ ba chi trả để bảo vệ nguyên vẹn khoản {med_diff}.\n"
+            f"3. **Kích hoạt phương án Downsizing linh hoạt sau tuổi 60**: Giữ phương án bán nhà lớn đổi nhà nhỏ như một 'quân bài tẩy' chiến lược nhằm tăng thanh khoản và gia tăng di sản thừa kế cho thế hệ sau."
         )
 
     elif chart_id in ("chart-spending-smile", "chart-estate"):
@@ -1246,18 +1285,25 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
                 )
             elif chart_id in ("chart-withdrawal-comparison", "chart-withdrawals"):
                 strat_info = json.dumps(chart_summary.get("strategies", []), ensure_ascii=False)
+                initial_swr = chart_summary.get("initialSWR", "4%")
                 chart_specific_instructions = (
-                    f"CHỦ ĐỀ CHUYÊN BIỆT: SO SÁNH 4 CHIẾN LƯỢC RÚT TIỀN HƯU TRÍ TRÊN CÙNG KỊCH BẢN\n"
-                    f"Dữ liệu mô phỏng thực tế của 4 chiến lược: {strat_info}. Tỷ lệ rút ban đầu (SWR): {chart_summary.get('initialSWR', '4%')}. "
-                    f"Chiến lược người dùng đang chọn: {chart_summary.get('chosenStrategy', 'guyton_klinger')}.\n\n"
+                    f"CHỦ ĐỀ CHUYÊN BIỆT: SO SÁNH VÀ ĐÁNH GIÁ ĐỒNG THỜI CẢ 4 CHIẾN LƯỢC RÚT TIỀN HƯU TRÍ\n"
+                    f"DỮ LIỆU MÔ PHỎNG 4 CHIẾN LƯỢC TỪ HỆ THỐNG: {strat_info}. Tỷ lệ rút ban đầu (SWR): {initial_swr}. Tuổi thọ dự tính: {life_exp}.\n\n"
+                    f"LƯU Ý CỐT TỬ: KHÔNG ĐƯỢC CHỈ PHÂN TÍCH 1 CHIẾN LƯỢC ĐƠN LẺ. Hãy phân tích, đối chiếu CẢ 4 CHIẾN LƯỢC CÙNG MỘT LÚC (Quy tắc 4% Bengen, Lan can Guyton-Klinger, Tỷ lệ Thay đổi VPW, Tỷ lệ Cố định Fixed %).\n\n"
                     f"YÊU CẦU CẤU TRÚC PHẢN HỒI (sau dòng TL;DR):\n"
-                    f"### 💡 1. Đánh giá số dư thực tế của 4 chiến lược ở tuổi {life_exp}\n"
-                    f"(Trích dẫn trực tiếp số dư cuối đời và tính ổn định của 4 phương pháp từ dữ liệu mô phỏng: Quy tắc 4% cố định Bengen, Lan can Guyton-Klinger, Tỷ lệ thay đổi VPW, và Rút % cố định)\n\n"
-                    f"### 🛡️ 2. Vì sao Chiến lược Lan can (Guyton-Klinger) là lá chắn an toàn nhất?\n"
-                    f"(Giải thích cơ chế tự điều chỉnh: giảm 10% chi tiêu khi thị trường khó khăn và tự thưởng khi danh mục tăng trưởng vượt trội)\n\n"
-                    f"### 🎯 3. Quy tắc rút tiền thực tế từng năm bạn nên áp dụng\n"
-                    f"1. [Hướng dẫn mức rút năm đầu tiên kèm số tiền cụ thể]\n"
-                    f"2. [Nguyên tắc ứng phó khi thị trường giảm điểm]"
+                    f"> 💡 **Tóm tắt cốt lõi (TL;DR)**: Đưa ra nhận xét tổng quan so sánh sức bền, tỷ lệ cạn vốn và bảo toàn tài sản cuối đời (tuổi {life_exp}) giữa 4 chiến lược đối với hồ sơ tài chính của người dùng.\n\n"
+                    f"### 💡 1. Bảng So sánh & Đánh giá Toàn cảnh 4 Chiến lược Rút tiền\n"
+                    f"(Phân tích từng chiến lược trong 4 chiến lược: cơ chế vận hành, số dư tuổi {life_exp} trích từ dữ liệu mô phỏng, tỷ lệ sống sót, ưu điểm và nhược điểm cốt lõi)\n"
+                    f"- Quy tắc 4% Cố định (Bengen Rule)\n"
+                    f"- Chiến lược Lan can Guyton-Klinger (Khuyên dùng)\n"
+                    f"- Tỷ lệ Thay đổi theo Tuổi (VPW - Variable Percentage)\n"
+                    f"- Tỷ lệ Cố định trên Danh mục (Fixed %)\n\n"
+                    f"### 📊 2. Ví dụ Minh họa Dòng tiền Thực tế khi Gặp Biến động Thị trường (Case Study)\n"
+                    f"(Đưa ra ví dụ bằng con số cụ thể, giả định danh mục nghỉ hưu với mức rút ban đầu theo tỷ lệ {initial_swr}. Minh họa chi tiết: Khi thị trường năm thứ 2 bất ngờ sụt giảm -25% đến -30% (Sequence of Returns Risk), số tiền rút và sự bào mòn tài sản của từng chiến lược sẽ diễn ra như thế nào? Chiến lược nào bảo vệ danh mục, chiến lược nào dễ làm cạn vốn?)\n\n"
+                    f"### 🎯 3. Lời khuyên Cải thiện & Chiến lược Rút tiền Khuyên nghị cho Bạn\n"
+                    f"1. [Chiến lược bộ đệm tiền mặt 1.5–2 năm (Cash Buffer) và cơ chế phân tầng ngân sách thiết yếu vs linh hoạt]\n"
+                    f"2. [Khuyến nghị điều chỉnh tỷ lệ rút khởi điểm SWR (ví dụ 3.5%–3.8%) nếu nghỉ hưu sớm trước 50 tuổi]\n"
+                    f"3. [Gợi ý chiến lược phù hợp nhất với kế hoạch cụ thể của người dùng để an tâm sống khỏe đến tuổi {life_exp}]"
                 )
             elif chart_id in ("chart-tax-optimization", "chart-taxes"):
                 chart_specific_instructions = (
@@ -1291,21 +1337,20 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
                     f"2. [Nguyên tắc bất di bất dịch: Khi thị trường gấu thì chỉ tiêu tiền trong bình oxy, chờ thị trường hồi phục]"
                 )
             elif chart_id in ("chart-scenarios", "chart-stress-test"):
+                scs_json = json.dumps(chart_summary.get('scenarios', []), ensure_ascii=False)
                 chart_specific_instructions = (
-                    f"CHỦ ĐỀ CHUYÊN BIỆT: THỬ SỨC TÀI CHÍNH TRƯỚC CÁC BIẾN CỐ LỚN (WHAT-IF STRESS TEST)\n"
-                    f"Kịch bản đang kiểm tra: '{chart_summary.get('title', 'What-If')}' (Mã: {chart_summary.get('activeScenario', '')}).\n"
-                    f"Đánh giá hệ thống: {chart_summary.get('assessment', '')}. "
-                    f"Chênh lệch tài sản cuối đời so với cơ sở: {chart_summary.get('netWorthDiff', '0')}. "
-                    f"Khả năng tồn tại tài sản: {chart_summary.get('survived', 'An toàn')}. "
-                    f"Tài sản kịch bản: {chart_summary.get('scenarioFinalNW', 'N/A')} (so với cơ sở {chart_summary.get('baseFinalNW', 'N/A')}).\n\n"
+                    f"CHỦ ĐỀ CHUYÊN BIỆT: ĐÁNH GIÁ TỔNG THỂ TẤT CẢ 5 KỊCH BẢN THỬ THÁCH (WHAT-IF STRESS TESTING) CÙNG MỘT LÚC\n"
+                    f"Dữ liệu tổng hợp cả 5 kịch bản:\n{scs_json}\n"
+                    f"Tài sản cơ sở cuối đời ({life_exp} tuổi): {chart_summary.get('baseFinalNW', 'N/A')}. Tuổi nghỉ hưu: {chart_summary.get('retireAge', retire_age)} tuổi.\n\n"
                     f"YÊU CẦU CẤU TRÚC PHẢN HỒI (sau dòng TL;DR):\n"
-                    f"### 💡 1. Tác động thực tế của Cú sốc này lên Kế hoạch FIRE\n"
-                    f"(Phân tích mức độ suy giảm tài sản và khả năng chống chịu của danh mục trước biến cố)\n\n"
-                    f"### ⚠️ 2. Điểm yếu dễ bị tổn thương nhất\n"
-                    f"(Chỉ ra nguyên nhân khiến tài sản bị suy giảm và hậu quả nếu không có phương án ứng phó)\n\n"
-                    f"### 🎯 3. Biện pháp phòng thủ chủ động\n"
-                    f"1. [Hành động phòng ngừa trước khi biến cố xảy ra]\n"
-                    f"2. [Hành động thích ứng nếu biến cố thực sự diễn ra (cắt giảm chi tiêu linh hoạt, điều chỉnh lối sống)]"
+                    f"### 💡 1. Bảng So sánh & Đánh giá Sức chịu đựng Cả 5 Kịch bản Biến cố\n"
+                    f"(Đánh giá và so sánh toàn diện cả 5 kịch bản: 1. Cơ sở, 2. Khủng hoảng sớm -35%, 3. Lạm phát phi mã 7%, 4. Cú sốc y tế tuổi 65, 5. Thu gọn BĐS tuổi 60. Chỉ rõ kịch bản nào gây tổn thương nặng nhất và kịch bản nào tạo thặng dư tốt nhất)\n\n"
+                    f"### ⚠️ 2. Kịch bản Nguy hiểm Nhất & Cơ chế Bào mòn Tài sản\n"
+                    f"(Giải thích sâu rủi ro Sequence of Returns Risk ở kịch bản khủng hoảng sớm và vì sao rút tiền trong khủng hoảng sẽ hủy hoại danh mục)\n\n"
+                    f"### 🎯 3. Bộ Chiến lược Phòng thủ Toàn diện Cho Người Nghỉ Hưu\n"
+                    f"1. [Chiến lược Quỹ tiền mặt bình oxy 2 năm để hóa giải khủng hoảng thị trường sớm]\n"
+                    f"2. [Chiến lược bảo hiểm y tế Mutuelle / quốc tế để chặn đứng cú sốc viện phí tuổi 65]\n"
+                    f"3. [Chiến lược Downsizing thu gọn BĐS sau 60 tuổi để bơm dòng tiền và tối ưu di sản]"
                 )
             elif chart_id in ("chart-spending-smile", "chart-estate"):
                 chart_specific_instructions = (
@@ -1385,7 +1430,7 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
             candidate_models = []
             if user_model and user_model.strip():
                 candidate_models.append(user_model.strip())
-            for m in ["gemini-flash-lite-latest", "gemini-2.5-flash", "gemini-3.8-flash", "gemini-3.7-flash"]:
+            for m in ["gemini-3.5-flash-lite", "gemini-2.5-flash", "gemini-3.8-flash", "gemini-3.7-flash"]:
                 if m not in candidate_models:
                     candidate_models.append(m)
 
@@ -1428,10 +1473,19 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
                             # Extract textual content, filtering out thought parts
                             text = "".join(p.get("text", "") for p in parts if "text" in p and not p.get("thought", False))
                             if text:
+                                # Resolve explicit model version (e.g. gemini-3.5-flash-lite instead of generic alias like -latest)
+                                resolved_model = data.get("modelVersion") or model_name
+                                resolved_model = resolved_model.replace("models/", "").strip()
+                                if resolved_model == "gemini-flash-lite-latest":
+                                    resolved_model = "gemini-3.5-flash-lite"
+                                elif resolved_model == "gemini-flash-latest":
+                                    resolved_model = "gemini-2.5-flash"
+                                elif resolved_model.endswith("-latest"):
+                                    resolved_model = resolved_model.replace("-latest", "")
                                 return {
                                     "success": True,
                                     "source": "gemini_api",
-                                    "model": model_name,
+                                    "model": resolved_model,
                                     "analysis": text
                                 }
                     else:

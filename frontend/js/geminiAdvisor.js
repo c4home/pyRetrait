@@ -56,7 +56,12 @@ window.GeminiAdvisor = (function () {
    */
   async function fetchChartInsight(chartId, chartTitle, chartSummary, forceRefresh = false) {
     const plan = window.RetirementApp ? window.RetirementApp.getActivePlan() : {};
-    const cacheKey = `${chartId}_${plan.id || "default"}_${window.RetirementApp?.getCurrency() || "EUR"}`;
+    const stratKey = (chartId === "chart-withdrawal-comparison") 
+      ? `_all_strategies_swr${chartSummary?.initialSWR || "4"}` 
+      : (chartId === "chart-scenarios")
+        ? `_all_scenarios`
+        : "";
+    const cacheKey = `${chartId}_${plan.id || "default"}_${window.RetirementApp?.getCurrency() || "EUR"}${stratKey}`;
 
     if (!forceRefresh && cache[cacheKey]) {
       return cache[cacheKey];
@@ -120,14 +125,45 @@ window.GeminiAdvisor = (function () {
 
     const data = await fetchChartInsight(chartId, chartTitle, chartSummary, forceRefresh);
 
+    function resolveModelLabel(modelStr, source) {
+      if (source !== "gemini_api") {
+        return modelStr || "Ngoại tuyến";
+      }
+      if (!modelStr) return "gemini-3.5-flash-lite";
+      let m = modelStr.trim().replace(/^models\//, "");
+      const map = {
+        "gemini-flash-lite-latest": "gemini-3.5-flash-lite",
+        "gemini-flash-latest": "gemini-2.5-flash",
+        "gemini-pro-latest": "gemini-2.5-pro"
+      };
+      if (map[m]) return map[m];
+      if (m.endsWith("-latest")) return m.replace("-latest", "");
+      return m;
+    }
+
+    const modelLabel = resolveModelLabel(data.model, data.source);
+
     if (badgeEl) {
       if (data.source === "gemini_api") {
-        badgeEl.innerHTML = `✨ ${data.model || "gemini-2.5-flash"}`;
+        badgeEl.innerHTML = `✨ ${modelLabel}`;
         badgeEl.className = "gemini-engine-badge badge-api";
       } else {
-        badgeEl.innerHTML = `ℹ️ ${data.model || "Ngoại tuyến"}`;
+        badgeEl.innerHTML = `ℹ️ ${modelLabel}`;
         badgeEl.className = "gemini-engine-badge badge-engine";
       }
+    }
+
+    // Place timestamp right next to title / badge in header
+    let timeEl = document.getElementById(`gemini-time-${chartId}`);
+    if (!timeEl && badgeEl && badgeEl.parentElement) {
+      timeEl = document.createElement("span");
+      timeEl.id = `gemini-time-${chartId}`;
+      timeEl.className = "gemini-header-time";
+      badgeEl.parentElement.appendChild(timeEl);
+    }
+    if (timeEl) {
+      const nowStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+      timeEl.innerHTML = `🕒 Cập nhật lúc: ${nowStr}`;
     }
 
     if (contentEl) {
