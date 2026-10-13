@@ -118,14 +118,14 @@ const Auth = (function() {
 
     if (user && user.name) {
       if (label) label.textContent = user.name;
-      if (icon) icon.textContent = "👤";
+      if (icon) icon.textContent = "";
       btn.classList.add("btn-user-logged");
       btn.title = `Đã đăng nhập: ${user.email}`;
       if (nameEl) nameEl.textContent = user.name;
       if (emailEl) emailEl.textContent = user.email;
     } else {
       if (label) label.textContent = "Đăng Nhập / Đăng Ký";
-      if (icon) icon.textContent = "🔑";
+      if (icon) icon.textContent = "";
       btn.classList.remove("btn-user-logged");
       btn.title = "Đăng nhập để đồng bộ kế hoạch lên đám mây";
       if (dropdown) dropdown.classList.remove("show");
@@ -191,12 +191,13 @@ const Auth = (function() {
     const guestPat = localStorage.getItem("pyRetrait_guest_patrimoine_v2");
     if (guestPat) {
       try {
-        const checkPat = await fetch("/api/pylocation/data", { headers });
+        const checkPat = await fetch("/api/patrimoine", { headers });
         if (checkPat.ok) {
           const cloudPat = await checkPat.json();
-          const hasCloudApts = cloudPat && Array.isArray(cloudPat.apartments) && cloudPat.apartments.length > 0;
+          const cloudApts = (cloudPat && cloudPat.apartments) || {};
+          const hasCloudApts = Object.keys(cloudApts).length > 0;
           if (!hasCloudApts) {
-            await fetch("/api/pylocation/sync-cloud", {
+            await fetch("/api/patrimoine", {
               method: "POST",
               headers,
               body: guestPat

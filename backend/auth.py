@@ -13,7 +13,8 @@ DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 DB_PATH = DATA_DIR / "pyretrait.db"
 
-SECRET_KEY = os.environ.get("PYRETRAIT_SECRET_KEY", "pyretrait_secret_key_super_secure_jwt_2026_xyz").encode('utf-8')
+# SECRET_KEY lấy từ backend/config.py (PYRETRAIT_SECRET_KEY trong .env, hoặc khóa ngẫu nhiên tạm thời)
+from backend.config import SECRET_KEY
 TOKEN_EXPIRY_SECONDS = 30 * 24 * 3600  # 30 days
 
 def get_db_connection() -> sqlite3.Connection:

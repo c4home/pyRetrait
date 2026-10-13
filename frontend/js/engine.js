@@ -309,7 +309,7 @@ window.RetirementEngine = (function() {
           propertyValue: 0,
           totalNetWorth: pastPortfolio,
           realTotalNetWorth: pastPortfolio,
-          milestones: (age === startAge) ? ['🌱 18 tuổi'] : []
+          milestones: (age === startAge) ? ['18 tuổi'] : []
         });
       }
     }
@@ -722,7 +722,7 @@ window.RetirementEngine = (function() {
       milestones.push({
         id: 'ms_age18',
         age: 18,
-        icon: '🌱',
+        icon: '',
         name: '18 tuổi',
         desc: `Tuổi 18 (${birthYear + 18}): Khởi đầu tuổi trưởng thành`,
         color: '#94a3b8',
@@ -733,7 +733,7 @@ window.RetirementEngine = (function() {
     milestones.push({
       id: 'ms_current',
       age: currentAge,
-      icon: '📍',
+      icon: '',
       name: 'Hiện tại',
       desc: `Tuổi ${currentAge} (${birthYear + currentAge}): Điểm xuất phát hiện tại (${formatCurrency(initialSavings, cur)})`,
       color: '#38bdf8',
@@ -744,7 +744,7 @@ window.RetirementEngine = (function() {
       milestones.push({
         id: 'ms_fire',
         age: fireAge,
-        icon: '🔥',
+        icon: '',
         name: 'Đạt FIRE',
         desc: `Tuổi ${fireAge}: Danh mục chạm mốc Tự do tài chính (${formatCurrency(fireTargetNestEgg, cur)})`,
         color: '#f97316',
@@ -755,7 +755,7 @@ window.RetirementEngine = (function() {
     milestones.push({
       id: 'ms_retire',
       age: retireAge,
-      icon: '🏖️',
+      icon: '',
       name: 'Nghỉ hưu',
       desc: `Tuổi ${retireAge}: Bắt đầu Nghỉ hưu & Rút vốn (${formatCurrency(initialRetirePortfolio || portfolio, cur)})`,
       color: '#fbbf24',
@@ -766,7 +766,7 @@ window.RetirementEngine = (function() {
       milestones.push({
         id: 'ms_peak',
         age: peakAge,
-        icon: '👑',
+        icon: '',
         name: 'Đỉnh tài sản',
         desc: `Tuổi ${peakAge}: Danh mục đạt giá trị cao nhất cuộc đời (${formatCurrency(peakNetWorth, cur)})`,
         color: '#a855f7',
@@ -785,7 +785,7 @@ window.RetirementEngine = (function() {
       milestones.push({
         id: 'ms_pension',
         age: ssAge,
-        icon: '🏛️',
+        icon: '',
         name: 'Lương hưu',
         desc: descPension,
         color: '#34d399',
@@ -798,7 +798,7 @@ window.RetirementEngine = (function() {
       milestones.push({
         id: 'ms_senior_care',
         age: careAge,
-        icon: '🩺',
+        icon: '',
         name: 'Chăm sóc Tuổi Già (Dépendance)',
         desc: `Tuổi ${careAge}: Kích hoạt quỹ y tế & viện dưỡng lão (${formatCurrency(Number(plan.seniorCareMonthly) * 12, cur)}/năm)`,
         color: '#ec4899',
@@ -815,7 +815,7 @@ window.RetirementEngine = (function() {
           milestones.push({
             id: ms.id || ('ms_' + Math.random().toString(36).substr(2, 6)),
             age: Number(ms.age),
-            icon: ms.icon || '⭐',
+            icon: '',
             name: ms.name,
             desc: `Tuổi ${ms.age} • ${ms.name}: ${sign}${formatCurrency(amt, cur)}${ms.note ? ' (' + ms.note + ')' : ''}`,
             amount: amt,
@@ -835,7 +835,7 @@ window.RetirementEngine = (function() {
           milestones.push({
             id: `ms_mortgage_paid_${pIdx}`,
             age: pt.endAge,
-            icon: '🏆',
+            icon: '',
             name: `Tất toán ${loanName}`,
             desc: `Tuổi ${pt.endAge}: Hoàn tất trả nợ vay ${loanName}! Sở hữu 100% BĐS (${formatCurrency(pt.schedule[pt.endAge]?.propertyValue || 0, cur)})`,
             color: '#10b981',
@@ -848,7 +848,7 @@ window.RetirementEngine = (function() {
       milestones.push({
         id: 'ms_mortgage_paid',
         age: mortgageSchedule.endAge,
-        icon: '🏆',
+        icon: '',
         name: `Tất toán${loanName}`,
         desc: `Tuổi ${mortgageSchedule.endAge}: Hoàn tất trả nợ vay mua nhà! Sở hữu 100% BĐS (${formatCurrency(mortgageSchedule.schedule[mortgageSchedule.endAge]?.propertyValue || 0, cur)})`,
         color: '#10b981',
@@ -860,7 +860,7 @@ window.RetirementEngine = (function() {
     milestones.push({
       id: 'ms_end',
       age: lifeExpectancy,
-      icon: '🏁',
+      icon: '',
       name: 'Di sản',
       desc: `Tuổi ${lifeExpectancy}: Tài sản thừa kế để lại (${formatCurrency(finalEstate, cur)})`,
       color: '#94a3b8',

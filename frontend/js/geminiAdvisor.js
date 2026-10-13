@@ -16,7 +16,7 @@ window.GeminiAdvisor = (function () {
       .replace(/>/g, "&gt;");
 
     // Horizontal rules
-    html = html.replace(/^---$/gim, '<hr class="gemini-divider" style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:0.8rem 0;">');
+    html = html.replace(/^---$/gim, '<hr class="gemini-divider">');
 
     // Headers (supports #, ##, ###, ####)
     html = html.replace(/^#### (.*$)/gim, '<h4 class="gemini-subheading">$1</h4>');
@@ -92,7 +92,7 @@ window.GeminiAdvisor = (function () {
         success: false,
         source: "fallback",
         model: "Gemini Intelligence",
-        analysis: `### 💡 Đánh giá từ Gemini AI\n- Đang hiển thị dữ liệu mô phỏng dựa trên cấu hình hiện tại của bạn.\n- Hãy đảm bảo các thông số đầu vào được cập nhật đầy đủ để nhận được phân tích tối ưu.`
+        analysis: `### Đánh giá từ Gemini AI\n- Đang hiển thị dữ liệu mô phỏng dựa trên cấu hình hiện tại của bạn.\n- Hãy đảm bảo các thông số đầu vào được cập nhật đầy đủ để nhận được phân tích tối ưu.`
       };
     }
   }
@@ -145,10 +145,10 @@ window.GeminiAdvisor = (function () {
 
     if (badgeEl) {
       if (data.source === "gemini_api") {
-        badgeEl.innerHTML = `✨ ${modelLabel}`;
+        badgeEl.innerHTML = `${modelLabel}`;
         badgeEl.className = "gemini-engine-badge badge-api";
       } else {
-        badgeEl.innerHTML = `ℹ️ ${modelLabel}`;
+        badgeEl.innerHTML = `${modelLabel}`;
         badgeEl.className = "gemini-engine-badge badge-engine";
       }
     }
@@ -163,7 +163,7 @@ window.GeminiAdvisor = (function () {
     }
     if (timeEl) {
       const nowStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-      timeEl.innerHTML = `🕒 Cập nhật lúc: ${nowStr}`;
+      timeEl.innerHTML = `Cập nhật lúc: ${nowStr}`;
     }
 
     if (contentEl) {

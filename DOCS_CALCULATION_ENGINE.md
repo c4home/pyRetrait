@@ -186,6 +186,16 @@ Dòng tiền ròng được chia thành hai pha rõ rệt:
 4. **Dòng Tiền Ròng Trực Tiếp (Live Net Cash Flow)**:
    $$\text{NetCashFlow} = \text{EffectiveMonthlyRent} - M - \text{MonthlyCharges}$$
 
+### 4.5. Triển Khai Client-Side (`frontend/js/patrimoine.js`)
+Từ nay toàn bộ phần 4.1 – 4.4 chạy 100% trên trình duyệt (`computeApartmentMetrics`, `computeTuroMetrics`, `computeFullPatrimoine`); backend chỉ lưu/đọc dữ liệu thô qua `GET/POST /api/patrimoine`. Chi tiết công thức đang dùng:
+- **Công chứng**: `ancien` = 7.5%, `neuf` = 2.5% giá mua (nếu người dùng không nhập tay). Phí ngân hàng mặc định 1.500 € nếu bỏ trống.
+- **Trả góp**: $M = P \times \frac{r}{1-(1+r)^{-n}}$ cộng bảo hiểm $\frac{P \times \text{insRate}}{12}$ (tính trên vốn gốc ban đầu). Nếu người dùng nhập tay `monthly_loan_payment` thì dùng giá trị đó thay cho $M$.
+  *Ví dụ*: vay 90.000 €, 3.6%/năm, 20 năm, BH 0.3% → PMT ≈ 526,2 € + BH 22,5 € ≈ 548,7 €/tháng.
+- **Phí quản lý**: `annual_mgmt_pct` tính trên tiền thuê thực nhận (đã trừ vacance) × 12.
+- **Turo**: thuế micro-BIC 15% trên (doanh thu − bảo hiểm − sửa chữa); giá bán lại mỗi xe $= \text{price} \times (1-\text{décote})^{\text{years}}$, sàn 1.500 € khi giá xe ≥ 3.000 €.
+  *Ví dụ*: 3 xe, 1.800 €/xe, BH 350, sửa 350 → (1.800−350−350) × 3 = 3.300 → thuế 495 → ròng 2.805 €/năm ≈ 234 €/tháng.
+- Làm tròn chỉ ở giá trị đầu ra; các tổng (`summary`) cộng từ giá trị đã làm tròn của từng căn hộ.
+
 ---
 
 ## 5. Mô Hình Vòng Đời Gia Đình & Con Cái (Family Lifecycle & Education Engine)

@@ -100,14 +100,11 @@ pyRetrait/
 │       ├── auth.js         # Quản lý đăng nhập/đăng ký Cloud, đồng bộ Guest mode
 │       ├── export.js       # Xuất CSV, in PDF tóm tắt, sao lưu JSON
 │       └── ui.js           # Xử lý tương tác, modal quản lý sự kiện, reactive Chart.js
-├── pyLocation/            # Bộ công cụ chuyên sâu phân tích BĐS Pháp & LMNP (Streamlit / Core Engine)
-│   ├── app.py             # Ứng dụng Streamlit độc lập
-│   ├── calculations.py    # Thuật toán tính thuế LMNP Réel, khấu hao, lãi vay & dòng tiền
-│   ├── README.md          # Tài liệu chi tiết pyLocation
-│   └── USER_GUIDE.md      # Cẩm nang đầu tư BĐS LMNP Pháp
 └── data/
     ├── pyretrait.db       # Cơ sở dữ liệu SQLite lưu trữ người dùng & kế hoạch đám mây
-    └── plans.json         # Dữ liệu mẫu / kế hoạch mặc định cục bộ
+    ├── plans.json         # Dữ liệu mẫu / kế hoạch mặc định cục bộ
+    ├── default_plans.json # Kế hoạch mẫu cho tài khoản mới / khách
+    └── default_patrimoine.json # Dữ liệu thô BĐS & Turo mẫu (tính toán chạy client-side trong patrimoine.js)
 ```
 
 ---

@@ -111,8 +111,8 @@ Backend được viết bằng **Python 3.10+** với framework **FastAPI**, gi�
    - Lưu trữ các kế hoạch độc lập theo từng `user_id`. Đảm bảo an toàn, không rò rỉ dữ liệu giữa các người dùng khi dùng chung đường link web.
 3. **Gemini AI Strategy Advisor Proxy (`/api/advisor/gemini`)**:
    - Kết nối trực tiếp với Google Gemini 2.5 / Flash API, hỗ trợ tự động dò tìm model mới nhất từ Google và chế độ Heuristic Fallback khi offline.
-4. **pyLocation Engine Integration**:
-   - Kế thừa thuật toán khấu hao tài sản LMNP, tính lãi vay ngân hàng Pháp và đội xe Turo.
+4. **Lưu trữ Patrimoine (BĐS / Turo)**:
+   - Backend chỉ lưu/đọc dữ liệu thô theo `user_id`. Toàn bộ công thức (trả góp, cashflow, yield, Turo) chạy client-side trong `frontend/js/patrimoine.js`.
 
 ### Các Endpoint API chính:
 - `POST /api/auth/register`: Đăng ký tài khoản mới.
@@ -121,8 +121,8 @@ Backend được viết bằng **Python 3.10+** với framework **FastAPI**, gi�
 - `GET /api/plans`: Trả về toàn bộ danh sách kế hoạch của tài khoản.
 - `POST /api/plans`: Lưu toàn bộ trạng thái kế hoạch vào SQLite database.
 - `POST /api/advisor/gemini`: Nhận xét và đánh giá kế hoạch FIRE từ Gemini AI.
-- `GET /api/patrimoine/apartments`: Lấy danh sách căn hộ BĐS Pháp và thông số vay nợ.
-- `POST /api/patrimoine/apartments`: Cập nhật / lưu danh mục căn hộ.
+- `GET /api/patrimoine`: Lấy dữ liệu thô `{apartments, turo, wealth}` (khách nhận dữ liệu mẫu).
+- `POST /api/patrimoine`: Lưu dữ liệu thô BĐS/Turo (yêu cầu đăng nhập).
 
 ---
 
@@ -185,9 +185,8 @@ Cấu trúc đối tượng kế hoạch bao gồm đầy đủ các luồng thu
 }
 ```ả về toàn bộ danh sách kế hoạch đã lưu.
 - `POST /api/plans`: Lưu toàn bộ trạng thái kế hoạch xuống đĩa cứng.
-- `POST /api/simulate/monte-carlo`: Chạy mô phỏng Monte Carlo 1,000 kịch bản và trả về các phân vị P10, P25, P50 (Trung vị), P75, P90 cùng xác suất thành công.
-- `GET /api/patrimoine/apartments`: Lấy danh sách căn hộ BĐS Pháp và thông số vay nợ.
-- `POST /api/patrimoine/apartments`: Cập nhật / lưu danh mục căn hộ vào `data/patrimoine.json`.
+- `GET /api/patrimoine`: Lấy dữ liệu thô BĐS/Turo (khách nhận dữ liệu mẫu).
+- `POST /api/patrimoine`: Lưu dữ liệu thô BĐS/Turo vào tài khoản (cần đăng nhập).
 - `POST /api/advisor/gemini`: Nhận xét và đánh giá kế hoạch FIRE từ Gemini AI.
 
 ---

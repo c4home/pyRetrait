@@ -44,12 +44,28 @@ cd pyRetrait
 ```
 *(Hoặc dùng lệnh `scp -r /Users/canhhung/Documents/pyRetrait root@<IP_OVH>:/opt/` từ máy tính nếu chưa đẩy lên GitHub).*
 
-### Bước 4: Khởi chạy container
+### Bước 4: Tạo file cấu hình `.env` (bắt buộc đặt khóa bảo mật)
+`docker-compose.yml` đọc biến môi trường từ file `.env`, nên cần tạo file này trước khi chạy:
+```bash
+cp .env.example .env
+
+# Sinh khóa ký JWT ngẫu nhiên và ghi vào .env
+SECRET=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
+sed -i "s|^PYRETRAIT_SECRET_KEY=.*|PYRETRAIT_SECRET_KEY=$SECRET|" .env
+```
+- **`PYRETRAIT_SECRET_KEY`** (tối thiểu 32 ký tự): khóa ký token đăng nhập. Nếu để trống, backend tự sinh khóa ngẫu nhiên và in cảnh báo; khi đó **mọi người dùng phải đăng nhập lại sau mỗi lần restart container**. Nếu đổi khóa, token cũ cũng mất hiệu lực. Tuyệt đối không commit file `.env`.
+- **`CORS_ORIGINS`** (tùy chọn): mặc định chỉ cho phép `localhost`/`127.0.0.1`. Giao diện web và API cùng một origin nên chạy qua Docker hoặc Nginx **không cần đặt**. Chỉ khai báo khi có frontend ở domain khác, ví dụ `CORS_ORIGINS=https://fire.yourdomain.com`.
+- Điền thêm `GEMINI_API_KEY` nếu muốn dùng Gemini AI mặc định cho mọi người dùng.
+
+### Bước 5: Khởi chạy container
 ```bash
 docker compose up -d --build
+
+# Kiểm tra không còn cảnh báo thiếu khóa bảo mật
+docker compose logs | grep -i SECRET_KEY || echo "OK: khóa bảo mật đã được cấu hình"
 ```
 
-### Bước 5: Mở cổng Firewall trên OVH (Nếu có UFW)
+### Bước 6: Mở cổng Firewall trên OVH (Nếu có UFW)
 ```bash
 sudo ufw allow 8080/tcp
 sudo ufw allow 80/tcp

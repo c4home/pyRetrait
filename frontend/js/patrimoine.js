@@ -43,65 +43,235 @@
     }
   }
 
-  async function loadData() {
+  // ---------------------------------------------------------------------------
+  // Tính toán BĐS (LMNP) & Turo — hàm thuần, chạy 100% client-side.
+  // Port từ backend/main.py + pyLocation/calculator (mortgage.py, turo.py).
+  // Chỉ làm tròn ở giá trị đầu ra (giữ nguyên hành vi cũ của backend).
+  // ---------------------------------------------------------------------------
+  const DEFAULT_TURO = { num_cars: 3, price: 5000, gross_gain: 1800, decote: 6.0, insurance: 350, repairs: 350, holding_years: 10 };
+
+  /** Đọc số từ object: chỉ dùng giá trị mặc định khi thiếu (undefined/null). */
+  function numOr(v, def) {
+    return (v === undefined || v === null) ? def : Number(v);
+  }
+
+  /** Python `a or b`: dùng b khi a là falsy (0, null, undefined, NaN). */
+  function truthyOr(v, def) {
+    const n = Number(v);
+    return n ? n : def;
+  }
+
+  /**
+   * Phí công chứng ước tính tại Pháp.
+   * @param {number} price - Giá BĐS (EUR)
+   * @param {string} type - "ancien" (7.5%) hoặc "neuf" (2.5%)
+   * @returns {number} Phí công chứng (EUR)
+   * Ví dụ: 90.000 € ancien → 6.750 €
+   */
+  function calcNotaryFees(price, type) {
+    return String(type || "ancien").toLowerCase() === "neuf" ? price * 0.025 : price * 0.075;
+  }
+
+  /**
+   * Trả góp hàng tháng kiểu Pháp (PMT + bảo hiểm trên vốn gốc ban đầu).
+   * @param {number} loan - Số tiền vay (EUR)
+   * @param {number} ratePct - Lãi suất năm (%)
+   * @param {number} years - Thời hạn vay (năm)
+   * @param {number} insPct - Bảo hiểm năm (% vốn vay)
+   * @returns {number} Tổng trả góp/tháng gồm bảo hiểm (EUR)
+   * Ví dụ: 90.000 €, 3.6%, 20 năm, 0.3% → PMT ≈ 526,2 + BH 22,5 ≈ 548,7 €
+   */
+  function calcMonthlyPayment(loan, ratePct, years, insPct) {
+    if (loan <= 0 || years <= 0) return 0;
+    const n = years * 12;
+    const r = (ratePct / 100) / 12;
+    const pmt = r > 0 ? loan * r / (1 - Math.pow(1 + r, -n)) : loan / n;
+    return pmt + (loan * (insPct / 100)) / 12;
+  }
+
+  /**
+   * Chỉ số một căn hộ cho thuê: cashflow, yield, trả góp.
+   * @param {string} name - Tên căn hộ
+   * @param {Object} apt - Dữ liệu thô căn hộ
+   * @returns {Object} Chỉ số đã tính (kèm `raw`)
+   */
+  function computeApartmentMetrics(name, apt) {
+    const price = numOr(apt.property_price, 100000);
+    const notary = truthyOr(apt.notary_fees, calcNotaryFees(price, apt.property_type));
+    const bank = truthyOr(apt.bank_fees, 1500);
+    const renov = numOr(apt.renovation_cost, 0);
+    const furn = numOr(apt.furniture_cost, 0);
+    const downPayment = numOr(apt.down_payment_input, 10000);
+
+    const totalProjectCost = price + notary + bank + renov + furn;
+    const loanAmount = Math.max(0, totalProjectCost - downPayment);
+    const dur = Math.trunc(numOr(apt.loan_duration, 20));
+    const rate = numOr(apt.annual_interest_rate, 3.6);
+    const ins = numOr(apt.annual_insurance_rate, 0.3);
+
+    const computedLoanPmt = calcMonthlyPayment(loanAmount, rate, dur, ins);
+    // Ưu tiên khoản trả góp người dùng nhập tay nếu có
+    let monthlyLoanPmt = computedLoanPmt;
+    if (apt.monthly_loan_payment !== undefined && apt.monthly_loan_payment !== null) {
+      const custom = Number(apt.monthly_loan_payment);
+      if (Number.isFinite(custom)) monthlyLoanPmt = custom;
+    }
+
+    const monthlyRent = numOr(apt.monthly_rent, 600);
+    const vac = numOr(apt.vacancy_pct, 5.0) / 100;
+    const effectiveRent = monthlyRent * (1 - vac);
+
+    let annualCharges = numOr(apt.annual_coop, 0) + numOr(apt.annual_tf, 0) +
+      numOr(apt.annual_pno, 0) + numOr(apt.annual_maintenance, 300);
+    annualCharges += (effectiveRent * 12) * (numOr(apt.annual_mgmt_pct, 0) / 100);
+    const monthlyCharges = annualCharges / 12;
+
+    const monthlyCashflow = effectiveRent - monthlyLoanPmt - monthlyCharges;
+    const monthlyPostLoanCashflow = effectiveRent - monthlyCharges;
+
+    const grossYield = price > 0 ? (monthlyRent * 12 / price * 100) : 0;
+    const netYield = totalProjectCost > 0 ? ((effectiveRent * 12 - annualCharges) / totalProjectCost * 100) : 0;
+
+    const surface = numOr(apt.surface, 30);
+    const startYear = truthyOr(apt.start_year, 2023);
+    const round2 = (x) => Math.round(x * 100) / 100;
+
+    return {
+      name: name, address: apt.address || name, surface: surface,
+      typology: apt.typology || "T2", dpe_rating: apt.dpe_rating || "C",
+      start_year: startYear, payoff_year: startYear + dur,
+      property_price: Math.round(price), price_per_m2: surface > 0 ? Math.round(price / surface) : 0,
+      notary_fees: Math.round(notary), bank_fees: Math.round(bank),
+      renovation_cost: Math.round(renov), furniture_cost: Math.round(furn),
+      total_project_cost: Math.round(totalProjectCost), down_payment: Math.round(downPayment),
+      loan_amount: Math.round(loanAmount), loan_duration: dur,
+      annual_interest_rate: rate, annual_insurance_rate: ins,
+      monthly_rent: Math.round(monthlyRent), effective_monthly_rent: Math.round(effectiveRent),
+      monthly_loan_payment: Math.round(monthlyLoanPmt), monthly_charges: Math.round(monthlyCharges),
+      monthly_cashflow: Math.round(monthlyCashflow), annual_cashflow: Math.round(monthlyCashflow * 12),
+      monthly_post_loan_cashflow: Math.round(monthlyPostLoanCashflow),
+      annual_post_loan_cashflow: Math.round(monthlyPostLoanCashflow * 12),
+      gross_yield: round2(grossYield), net_yield: round2(netYield), raw: apt
+    };
+  }
+
+  /**
+   * Lợi nhuận đội xe Turo (thuế micro-BIC 15%, décote theo năm).
+   * @param {Object} s - Cài đặt Turo thô
+   * @returns {Object} Chỉ số Turo đã tính (kèm `raw`)
+   * Ví dụ: 3 xe, 1800 gộp, BH 350, sửa 350 → net/xe 1100 × 0,85 = 935 → 2.805 €/năm
+   */
+  function computeTuroMetrics(s) {
+    s = s || {};
+    const price = numOr(s.price, 5000);
+    const gain = numOr(s.gross_gain, 1800);
+    const cars = Math.trunc(numOr(s.num_cars, 3));
+    const years = Math.trunc(numOr(s.holding_years, 10));
+    const decote = numOr(s.decote, 6.0);
+    const insurance = numOr(s.insurance, 350);
+    const repairs = numOr(s.repairs, 350);
+    const taxRate = 15.0;
+
+    const initialInvestment = price * cars;
+    const netBeforeTax = gain * cars - insurance * cars - repairs * cars;
+    const annualNet = netBeforeTax - Math.max(0, netBeforeTax * (taxRate / 100));
+
+    let resalePerCar = price * Math.pow(1 - decote / 100, years);
+    if (price >= 3000) resalePerCar = Math.max(1500, resalePerCar);
+    const resaleValue = resalePerCar * cars;
+
+    const netProfit = annualNet * years + resaleValue - initialInvestment;
+    const roi = initialInvestment > 0 ? (netProfit / initialInvestment * 100) : 0;
+
+    return {
+      num_cars: cars, initial_investment: Math.round(initialInvestment),
+      annual_gross_gain: Math.round(gain * cars),
+      annual_net_cash_flow: Math.round(annualNet),
+      monthly_net_cash_flow: Math.round(annualNet / 12),
+      roi_pct: Math.round(roi * 10) / 10, resale_value: Math.round(resaleValue),
+      holding_years: years, raw: s
+    };
+  }
+
+  /**
+   * Tổng hợp toàn bộ danh mục BĐS + Turo.
+   * @param {Object} apartmentsRaw - { tênCănHộ: dữLiệuThô }
+   * @param {Object} turoRaw - Cài đặt Turo thô
+   * @param {Object} [wealthRaw] - Cài đặt tài sản (chỉ truyền qua)
+   * @returns {{apartments:Array, turo:Object, wealth:Object, summary:Object}}
+   */
+  function computeFullPatrimoine(apartmentsRaw, turoRaw, wealthRaw) {
+    const apartments = Object.entries(apartmentsRaw || {}).map(([n, a]) => computeApartmentMetrics(n, a || {}));
+    const sum = (key) => apartments.reduce((acc, a) => acc + a[key], 0);
+    const turo = computeTuroMetrics(turoRaw || {});
+    const postLoan = sum("monthly_post_loan_cashflow");
+    return {
+      apartments: apartments,
+      turo: turo,
+      wealth: wealthRaw || {},
+      summary: {
+        total_properties: apartments.length,
+        total_property_value: sum("property_price"),
+        total_loan_amount: sum("loan_amount"),
+        total_monthly_rent: sum("monthly_rent"),
+        total_monthly_loan_payment: sum("monthly_loan_payment"),
+        total_monthly_cashflow: sum("monthly_cashflow"),
+        total_monthly_post_loan_cashflow: postLoan,
+        total_annual_post_loan_cashflow: postLoan * 12,
+        total_down_payment: sum("down_payment"),
+        total_turo_monthly_cashflow: turo.monthly_net_cash_flow,
+        total_turo_annual_cashflow: turo.annual_net_cash_flow
+      }
+    };
+  }
+
+  /**
+   * Tải dữ liệu thô { apartments, turo, wealth }.
+   * Đã đăng nhập: từ đám mây. Khách: từ localStorage (seed mẫu từ server lần đầu).
+   * @returns {Promise<{apartments:Object, turo:Object, wealth:Object}>}
+   */
+  async function loadRawData() {
     const isLogged = window.Auth && window.Auth.isLoggedIn();
 
-    // 1. If user is logged in: fetch their personal cloud data from backend API
     if (isLogged) {
       try {
-        const headers = window.Auth.getAuthHeaders();
-        const res = await fetch("/api/pylocation/data", { headers });
-        if (res.ok) {
-          patrimoineData = await res.json();
-          return patrimoineData;
-        }
+        const res = await fetch("/api/patrimoine", { headers: window.Auth.getAuthHeaders() });
+        if (res.ok) return await res.json();
       } catch (e) {
         console.error("Failed to fetch cloud patrimoine data:", e);
       }
     }
 
-    // 2. Guest Mode: strictly read from this browser's own localStorage (independent per visitor)
     let guestData = getGuestPatrimoine();
     if (!guestData) {
-      // First time visitor: seed default template from server
+      // Khách lần đầu: lấy dữ liệu mẫu từ server rồi lưu độc lập trong trình duyệt
       try {
-        const res = await fetch("/api/pylocation/data");
+        const res = await fetch("/api/patrimoine");
         if (res.ok) {
-          const serverSeed = await res.json();
-          const rawApts = {};
-          if (serverSeed && Array.isArray(serverSeed.apartments)) {
-            serverSeed.apartments.forEach(apt => {
-              if (apt && apt.name) {
-                rawApts[apt.name] = apt.raw || apt;
-              }
-            });
-          }
-          guestData = {
-            apartments: rawApts,
-            turo: (serverSeed && serverSeed.turo && serverSeed.turo.raw) || (serverSeed && serverSeed.turo) || { num_cars: 3, price: 5000, gross_gain: 1800, decote: 6.0, insurance: 350, repairs: 350, holding_years: 10 }
-          };
+          const seed = await res.json();
+          guestData = { apartments: seed.apartments || {}, turo: seed.turo || DEFAULT_TURO, wealth: seed.wealth || {} };
           saveGuestPatrimoine(guestData);
         }
       } catch (e) {
         console.warn("Could not fetch template for guest:", e);
       }
     }
+    return guestData || { apartments: {}, turo: DEFAULT_TURO, wealth: {} };
+  }
 
-    if (guestData) {
-      try {
-        const res = await fetch("/api/pylocation/compute", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(guestData)
-        });
-        if (res.ok) {
-          patrimoineData = await res.json();
-          return patrimoineData;
-        }
-      } catch (e) {
-        console.error("Compute error for guest data:", e);
-      }
-    }
+  /** Lưu dữ liệu thô lên đám mây (chỉ khi đã đăng nhập). */
+  async function saveRawToCloud(raw) {
+    const res = await fetch("/api/patrimoine", {
+      method: "POST",
+      headers: window.Auth.getAuthHeaders(),
+      body: JSON.stringify(raw)
+    });
+    if (!res.ok) throw new Error("Lỗi khi lưu dữ liệu lên đám mây");
+  }
+
+  async function loadData() {
+    const raw = await loadRawData();
+    patrimoineData = computeFullPatrimoine(raw.apartments, raw.turo, raw.wealth);
     return patrimoineData;
   }
 
@@ -188,7 +358,7 @@
           <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div>
               <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                <h4 style="margin: 0; font-size: 1.05rem; font-weight: 700;">🏠 ${apt.name}</h4>
+                <h4 style="margin: 0; font-size: 1.05rem; font-weight: 700;">${apt.name}</h4>
                 <span class="badge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px;">
                   ${apt.typology || 'T2'} • ${apt.surface || 0} m²
                 </span>
@@ -196,14 +366,14 @@
                   DPE ${apt.dpe_rating || 'C'}
                 </span>
                 <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px;">
-                  📅 Mua: ${apt.start_year || 2023} ➔ Tất toán: ${apt.payoff_year || ((apt.start_year || 2023) + (apt.loan_duration || 20))}
+                  Mua: ${apt.start_year || 2023} - Tất toán: ${apt.payoff_year || ((apt.start_year || 2023) + (apt.loan_duration || 20))}
                 </span>
               </div>
               <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">${apt.address || 'Toulouse, France'}</p>
             </div>
             <div style="display: flex; gap: 0.35rem;">
-              <button class="btn btn-sm btn-ghost btn-edit-apt" data-name="${encodeURIComponent(apt.name)}" title="Chỉnh sửa">✏️</button>
-              <button class="btn btn-sm btn-ghost btn-delete-apt" data-name="${encodeURIComponent(apt.name)}" style="color: #ef4444;" title="Xóa">🗑️</button>
+              <button class="btn btn-sm btn-ghost btn-edit-apt" data-name="${encodeURIComponent(apt.name)}" title="Chỉnh sửa">Sửa</button>
+              <button class="btn btn-sm btn-ghost btn-delete-apt" data-name="${encodeURIComponent(apt.name)}" style="color: #ef4444;" title="Xóa">Xóa</button>
             </div>
           </div>
 
@@ -242,8 +412,8 @@
               </strong>
             </div>
           </div>
-          <div style="font-size: 0.73rem; color: var(--text-muted); background: rgba(0,0,0,0.22); padding: 0.35rem 0.55rem; border-radius: 6px; font-family: var(--font-sans); line-height: 1.4;">
-            📐 Dòng tiền = [Thuê (${formatMoneyEUR(apt.monthly_rent)}) × (1 - ${apt.vacancy_rate || 5}%)] - Trả nợ (${formatMoneyEUR(apt.monthly_loan_payment)}) - Phí vận hành = <strong style="color: ${isNegative ? '#f59e0b' : '#34d399'};">${isNegative ? '' : '+'}${formatMoneyEUR(netMonthly)}/tháng</strong>
+          <div style="font-size: 0.73rem; color: var(--text-muted); background: var(--bg-card); border: 1px solid var(--border-subtle); padding: 0.35rem 0.55rem; border-radius: 6px; font-family: var(--font-sans); line-height: 1.4;">
+             Dòng tiền = [Thuê (${formatMoneyEUR(apt.monthly_rent)}) × (1 - ${apt.vacancy_rate || 5}%)] - Trả nợ (${formatMoneyEUR(apt.monthly_loan_payment)}) - Phí vận hành = <strong style="color: ${isNegative ? '#f59e0b' : '#34d399'};">${isNegative ? '' : '+'}${formatMoneyEUR(netMonthly)}/tháng</strong>
           </div>
         </div>
       `;
@@ -301,7 +471,7 @@
 
     const apts = data.apartments || [];
     const labels = apts.map(a => a.name.length > 18 ? a.name.substring(0, 18) + '...' : a.name);
-    labels.push("🚗 Đội xe Turo");
+    labels.push("Đội xe Turo");
 
     const grossRents = apts.map(a => a.monthly_rent || 0);
     grossRents.push(Math.round((data.turo?.annual_gross_gain || 5400) / 12));
@@ -427,9 +597,9 @@
 
     selEl.innerHTML = apts.map(a => `
       <option value="${encodeURIComponent(a.name)}" ${a.name === selectedBreakEvenAptName ? 'selected' : ''}>
-        🏠 ${a.name} (Mua ${a.start_year || 2023})
+        ${a.name} (Mua ${a.start_year || 2023})
       </option>
-    `).join("") + `<option value="__all__" ${selectedBreakEvenAptName === '__all__' ? 'selected' : ''}>📊 So sánh tất cả căn hộ</option>`;
+    `).join("") + `<option value="__all__" ${selectedBreakEvenAptName === '__all__' ? 'selected' : ''}>So sánh tất cả căn hộ</option>`;
 
     selEl.onchange = (e) => {
       selectedBreakEvenAptName = decodeURIComponent(e.target.value);
@@ -540,17 +710,17 @@
     // Render 4 Milestone KPI Cards
     if (cardsEl) {
       cardsEl.innerHTML = `
-        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); border-radius: 8px; padding: 0.75rem 1rem;">
+        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.75rem 1rem;">
           <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.35rem;">
-            <span>📅</span> Năm Bắt Đầu Mua
+            Năm Bắt Đầu Mua
           </div>
-          <div style="font-size: 1.25rem; font-weight: 800; color: #f8fafc; margin: 0.25rem 0;">${startYear}</div>
+          <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main); margin: 0.25rem 0;">${startYear}</div>
           <div style="font-size: 0.75rem; color: var(--text-muted);">Vay ${dur} năm @ ${rate}% • Vốn bỏ ra: <strong>${formatMoneyEUR(initialOutlay)}</strong></div>
         </div>
 
         <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 0.75rem 1rem;">
           <div style="font-size: 0.75rem; color: #34d399; display: flex; align-items: center; gap: 0.35rem;">
-            <span>🎯</span> Hòa Vốn Tài Sản Ròng
+            Hòa Vốn Tài Sản Ròng
           </div>
           <div style="font-size: 1.25rem; font-weight: 800; color: #10b981; margin: 0.25rem 0;">Năm ${equityBreakEvenYear}</div>
           <div style="font-size: 0.75rem; color: var(--text-muted);">Sau <strong>${equityBreakEvenYear - startYear} năm</strong> (Giá trị BĐS - Nợ vay bù đắp 100% vốn đầu tư)</div>
@@ -558,7 +728,7 @@
 
         <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 0.75rem 1rem;">
           <div style="font-size: 0.75rem; color: #fbbf24; display: flex; align-items: center; gap: 0.35rem;">
-            <span>💵</span> Hòa Vốn Dòng Tiền Mặt
+            Hòa Vốn Dòng Tiền Mặt
           </div>
           <div style="font-size: 1.25rem; font-weight: 800; color: #f59e0b; margin: 0.25rem 0;">
             ${cashBreakEvenYear ? `Năm ${cashBreakEvenYear}` : `Năm ${payoffYear + 3}`}
@@ -570,7 +740,7 @@
 
         <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 0.75rem 1rem;">
           <div style="font-size: 0.75rem; color: #38bdf8; display: flex; align-items: center; gap: 0.35rem;">
-            <span>🏆</span> Tất Toán Nợ & Dòng Tiền FIRE
+            Tất Toán Nợ & Dòng Tiền FIRE
           </div>
           <div style="font-size: 1.25rem; font-weight: 800; color: #38bdf8; margin: 0.25rem 0;">Năm ${payoffYear}</div>
           <div style="font-size: 0.75rem; color: var(--text-muted);">Nợ về <strong>0 €</strong>, dòng tiền ròng bùng nổ <strong>+${formatMoneyEUR(apt.monthly_post_loan_cashflow)}/tháng</strong></div>
@@ -664,8 +834,8 @@
                 const idx = items[0]?.dataIndex || 0;
                 const yr = startYear + idx;
                 let milestoneNotice = "";
-                if (yr === equityBreakEvenYear) milestoneNotice = " 🎯 [ĐIỂM HÒA VỐN TÀI SẢN RÒNG]";
-                if (yr === payoffYear) milestoneNotice = " 🏆 [TẤT TOÁN NỢ NGÂN HÀNG]";
+                if (yr === equityBreakEvenYear) milestoneNotice = " [ĐIỂM HÒA VỐN TÀI SẢN RÒNG]";
+                if (yr === payoffYear) milestoneNotice = " [TẤT TOÁN NỢ NGÂN HÀNG]";
                 return `Năm ${yr} (Năm thứ ${idx})${milestoneNotice}`;
               },
               label: (ctx) => `${ctx.dataset.label}: ${formatMoneyEUR(ctx.raw)}`
@@ -710,11 +880,11 @@
         const equityBreakEvenYear = startYear + 3;
 
         return `
-          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); border-radius: 8px; padding: 0.75rem 1rem;">
-            <div style="font-size: 0.85rem; font-weight: 700; color: #f8fafc; margin-bottom: 0.25rem;">🏠 ${apt.name}</div>
+          <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.75rem 1rem;">
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem;">${apt.name}</div>
             <div style="font-size: 0.75rem; color: var(--text-muted);">Mua: <strong>${startYear}</strong> • Vốn: <strong>${formatMoneyEUR(initialOutlay)}</strong></div>
-            <div style="font-size: 0.8rem; color: #10b981; margin: 0.25rem 0;">🎯 Hòa vốn: <strong>Năm ${equityBreakEvenYear}</strong></div>
-            <div style="font-size: 0.75rem; color: #38bdf8;">🏆 Tất toán: <strong>Năm ${payoffYear}</strong> (+${formatMoneyEUR(apt.monthly_post_loan_cashflow)}/tháng)</div>
+            <div style="font-size: 0.8rem; color: #10b981; margin: 0.25rem 0;">Hòa vốn: <strong>Năm ${equityBreakEvenYear}</strong></div>
+            <div style="font-size: 0.75rem; color: #38bdf8;">Tất toán: <strong>Năm ${payoffYear}</strong> (+${formatMoneyEUR(apt.monthly_post_loan_cashflow)}/tháng)</div>
           </div>
         `;
       }).join("");
@@ -909,7 +1079,7 @@
       `;
       document.body.appendChild(toast);
     }
-    toast.innerHTML = `<span>⚡</span> Đã tự động cập nhật dòng tiền BĐS vào Kế hoạch Hưu trí FIRE!`;
+    toast.innerHTML = `Đã tự động cập nhật dòng tiền BĐS vào Kế hoạch Hưu trí FIRE!`;
     toast.style.opacity = "1";
     toast.style.transform = "translateY(0)";
     setTimeout(() => {
@@ -1065,14 +1235,11 @@
     const isLogged = window.Auth && window.Auth.isLoggedIn();
     if (isLogged) {
       try {
-        const headers = window.Auth.getAuthHeaders();
-        const res = await fetch("/api/pylocation/apartment", {
-          method: "POST",
-          headers,
-          body: JSON.stringify(payload)
-        });
-
-        if (!res.ok) throw new Error("Lỗi khi lưu căn hộ lên đám mây");
+        const raw = await loadRawData();
+        raw.apartments = raw.apartments || {};
+        if (originalName && originalName !== name) delete raw.apartments[originalName];
+        raw.apartments[name] = aptParams;
+        await saveRawToCloud(raw);
 
         closeApartmentModal();
         await render();
@@ -1103,12 +1270,9 @@
     const isLogged = window.Auth && window.Auth.isLoggedIn();
     if (isLogged) {
       try {
-        const headers = window.Auth.getAuthHeaders();
-        const res = await fetch(`/api/pylocation/apartment/${encodeURIComponent(name)}`, {
-          method: "DELETE",
-          headers
-        });
-        if (!res.ok) throw new Error("Lỗi khi xóa căn hộ trên đám mây");
+        const raw = await loadRawData();
+        if (raw.apartments) delete raw.apartments[name];
+        await saveRawToCloud(raw);
 
         await render();
         await autoSyncToFire();
@@ -1132,7 +1296,7 @@
     const btn = document.getElementById("btn-save-turo");
     if (btn) {
       btn.disabled = true;
-      btn.innerText = "⏳ Đang lưu...";
+      btn.innerText = "Đang lưu...";
     }
 
     const payload = {
@@ -1148,19 +1312,15 @@
     const isLogged = window.Auth && window.Auth.isLoggedIn();
     if (isLogged) {
       try {
-        const headers = window.Auth.getAuthHeaders();
-        const res = await fetch("/api/pylocation/turo", {
-          method: "POST",
-          headers,
-          body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error("Lỗi lưu Turo lên đám mây");
+        const raw = await loadRawData();
+        raw.turo = payload;
+        await saveRawToCloud(raw);
 
         if (btn) {
-          btn.innerText = "✅ Đã lưu đám mây!";
+          btn.innerText = "Đã lưu đám mây!";
           setTimeout(() => {
             btn.disabled = false;
-            btn.innerText = "💾 Lưu Cấu hình Turo";
+            btn.innerText = "Lưu Cấu hình Turo";
           }, 1500);
         }
         await render();
@@ -1169,7 +1329,7 @@
         alert(e.message);
         if (btn) {
           btn.disabled = false;
-          btn.innerText = "💾 Lưu Cấu hình Turo";
+          btn.innerText = "Lưu Cấu hình Turo";
         }
       }
       return;
@@ -1181,10 +1341,10 @@
     saveGuestPatrimoine(guestData);
 
     if (btn) {
-      btn.innerText = "✅ Đã lưu vào trình duyệt!";
+      btn.innerText = "Đã lưu vào trình duyệt!";
       setTimeout(() => {
         btn.disabled = false;
-        btn.innerText = "💾 Lưu Cấu hình Turo";
+        btn.innerText = "Lưu Cấu hình Turo";
       }, 1500);
     }
     await render();
@@ -1362,7 +1522,8 @@
     openApartmentModal,
     saveApartment,
     deleteApartment,
-    loadData
+    loadData,
+    computeFullPatrimoine
   };
 
 })();

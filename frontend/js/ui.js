@@ -41,7 +41,7 @@
 
   let confirmCallback = null;
 
-  function showConfirmDialog({ icon = "🗑️", title = "Xác nhận thao tác", message = "Bạn có chắc chắn muốn thực hiện?", confirmText = "Xác nhận", onConfirm }) {
+  function showConfirmDialog({ icon = "", title = "Xác nhận thao tác", message = "Bạn có chắc chắn muốn thực hiện?", confirmText = "Xác nhận", onConfirm }) {
     const modal = document.getElementById("confirm-modal");
     if (!modal) {
       if (window.confirm(message.replace(/<[^>]*>?/gm, ''))) {
@@ -71,14 +71,17 @@
 
   // Shared x-axis ticks for age/year axes: horizontal two-line labels ("35t" / "2032")
   // take far less room than 45° rotated ones, so many more ages fit on the axis.
-  const ageAxisTicks = () => ({
-    color: '#94a3b8',
-    font: { size: 9 },
-    maxRotation: 0,
-    minRotation: 0,
-    autoSkip: true,
-    autoSkipPadding: 4
-  });
+  const ageAxisTicks = () => {
+    const isLight = document.documentElement.getAttribute("data-theme") === "light";
+    return {
+      color: isLight ? '#475569' : '#94a3b8',
+      font: { size: 9, family: 'Inter, sans-serif' },
+      maxRotation: 0,
+      minRotation: 0,
+      autoSkip: true,
+      autoSkipPadding: 4
+    };
+  };
 
   // Document Ready
   document.addEventListener("DOMContentLoaded", () => {
@@ -537,7 +540,7 @@
     if (btnFetchModels) {
       btnFetchModels.addEventListener("click", async () => {
         const key = inpGeminiKey ? inpGeminiKey.value.trim() : "";
-        btnFetchModels.innerText = "⏳ Đang dò tìm...";
+        btnFetchModels.innerText = "Đang dò tìm...";
         try {
           const res = await fetch(`/api/ai/models?api_key=${encodeURIComponent(key)}`);
           if (res.ok) {
@@ -546,17 +549,17 @@
               const currentVal = selGeminiModel.value;
               selGeminiModel.innerHTML = data.models.map(m => `
                 <option value="${m}">${m} ${m.includes('3.8') ? '(Mới nhất)' : ''}</option>
-              `).join("") + '<option value="custom">✏️ Nhập model tùy chỉnh (Future Model)...</option>';
+              `).join("") + '<option value="custom">Nhập model tùy chỉnh (Future Model)...</option>';
               if (data.models.includes(currentVal)) {
                 selGeminiModel.value = currentVal;
               }
-              btnFetchModels.innerText = `✓ Đã tìm thấy ${data.models.length} model`;
+              btnFetchModels.innerText = `Đã tìm thấy ${data.models.length} model`;
             }
           }
         } catch (err) {
           btnFetchModels.innerText = "Lỗi dò tìm";
         }
-        setTimeout(() => { if (btnFetchModels) btnFetchModels.innerText = "🔄 Dò tìm model mới từ Google"; }, 2500);
+        setTimeout(() => { if (btnFetchModels) btnFetchModels.innerText = "Dò tìm model mới từ Google"; }, 2500);
       });
     }
 
@@ -841,7 +844,10 @@
       ['input', 'change'].forEach(evt => {
         inpRetireMonthly.addEventListener(evt, () => {
           const p = getActivePlan();
-          const baseMonthly = Number(inpRetireMonthly.value) || 0;
+          const rawVal = inpRetireMonthly.value;
+          if (rawVal === "" || rawVal === undefined) return;
+          const baseMonthly = Number(rawVal);
+          if (isNaN(baseMonthly) || baseMonthly < 0) return;
           p.baseRetireMonthly = baseMonthly;
           const loc = p.retirementLocation || 'vietnam';
           const pppFactors = { 'france': 1.0, 'hybrid': 0.70, 'vietnam': 0.45 };
@@ -869,13 +875,17 @@
         const factor = pppFactors[newLoc] || 1.0;
 
         const inp = document.getElementById("inp-monthly-retire-expenses");
-        let baseMonthly = inp ? Number(inp.value) : p.baseRetireMonthly;
+        let baseMonthly = Number(p.baseRetireMonthly);
+        if ((!baseMonthly || isNaN(baseMonthly) || baseMonthly <= 0) && inp && Number(inp.value) > 0) {
+          baseMonthly = Number(inp.value);
+        }
         if (!baseMonthly || isNaN(baseMonthly) || baseMonthly <= 0) {
-          baseMonthly = 2444;
-          if (inp) inp.value = baseMonthly;
+          const ann = Number(p.retirementExpenses);
+          baseMonthly = ann > 0 ? Math.round((ann / factor) / 12) : 1000;
         }
         p.baseRetireMonthly = baseMonthly;
         p.retirementExpenses = Math.round(baseMonthly * 12 * factor);
+        if (inp) inp.value = baseMonthly;
 
         updateRetirementLocationUI(newLoc);
         updateRetirementLocationRadiosUI(p);
@@ -999,13 +1009,17 @@
         const factor = pppFactors[newLoc] || 1.0;
 
         const inpRetireMonthly = document.getElementById("inp-monthly-retire-expenses");
-        let baseMonthly = inpRetireMonthly ? Number(inpRetireMonthly.value) : plan.baseRetireMonthly;
+        let baseMonthly = Number(plan.baseRetireMonthly);
+        if ((!baseMonthly || isNaN(baseMonthly) || baseMonthly <= 0) && inpRetireMonthly && Number(inpRetireMonthly.value) > 0) {
+          baseMonthly = Number(inpRetireMonthly.value);
+        }
         if (!baseMonthly || isNaN(baseMonthly) || baseMonthly <= 0) {
-          baseMonthly = 2444;
-          if (inpRetireMonthly) inpRetireMonthly.value = baseMonthly;
+          const ann = Number(plan.retirementExpenses);
+          baseMonthly = ann > 0 ? Math.round((ann / factor) / 12) : 1000;
         }
         plan.baseRetireMonthly = baseMonthly;
         plan.retirementExpenses = Math.round(baseMonthly * 12 * factor);
+        if (inpRetireMonthly) inpRetireMonthly.value = baseMonthly;
 
         updateRetirementLocationUI(newLoc);
         updateRetirementLocationRadiosUI(plan);
@@ -1211,7 +1225,7 @@
         try {
           await navigator.clipboard.writeText(ticker);
           const oldText = chip.innerHTML;
-          chip.innerHTML = `${ticker} ✓ Đã chép!`;
+          chip.innerHTML = `${ticker} Đã chép!`;
           chip.style.borderColor = "#10b981";
           chip.style.color = "#34d399";
           setTimeout(() => {
@@ -1332,9 +1346,13 @@
     const loc = p.retirementLocation || "vietnam";
     const pppFactors = { 'france': 1.0, 'hybrid': 0.70, 'vietnam': 0.45 };
     const factor = pppFactors[loc] || 1.0;
-    let baseMonthly = p.baseRetireMonthly;
+    let baseMonthly = Number(p.baseRetireMonthly);
     if (!baseMonthly || isNaN(baseMonthly) || baseMonthly <= 0) {
-      baseMonthly = Math.round(((annualRetire || 13200) / factor) / 12);
+      if (annualRetire > 0) {
+        baseMonthly = Math.round((annualRetire / factor) / 12);
+      } else {
+        baseMonthly = 1000;
+      }
       p.baseRetireMonthly = baseMonthly;
     }
     setVal("inp-monthly-retire-expenses", baseMonthly);
@@ -1494,7 +1512,7 @@
 
     if (badgeWeighted) badgeWeighted.innerText = `${weighted}%/năm`;
     if (lblWeightedCalc) {
-      lblWeightedCalc.innerHTML = `<strong>${weighted}%/năm</strong> (đã gồm +0.3% thưởng kỷ luật tái cân bằng)${totalWarning}<div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem; font-family: var(--font-sans);">📐 Công thức: (${stocks}% × 9.5%) + (${bonds}% × 3.5%) + (${re}% × 6.5%) + 0.3% = ${weighted}%</div>`;
+      lblWeightedCalc.innerHTML = `<strong>${weighted}%/năm</strong> (đã gồm +0.3% thưởng kỷ luật tái cân bằng)${totalWarning}<div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem; font-family: var(--font-sans);">Công thức: (${stocks}% × 9.5%) + (${bonds}% × 3.5%) + (${re}% × 6.5%) + 0.3% = ${weighted}%</div>`;
     }
 
     p.assetAllocation = { stocks, bonds, realEstate: re };
@@ -1532,17 +1550,17 @@
     if (!badge) return;
 
     if (loc === "vietnam") {
-      badge.innerText = "🇻🇳 Giảm ~55% chi phí (PPP)";
+      badge.innerText = "Giảm ~55% chi phí (PPP)";
       badge.style.background = "rgba(16, 185, 129, 0.15)";
       badge.style.color = "#34d399";
       if (hint) hint.innerText = "Sức mua tương đương (PPP): Cùng tiêu chuẩn sống cao, chi phí tại VN chỉ bằng ~45% tại Pháp (+ bảo hiểm CFE).";
     } else if (loc === "hybrid") {
-      badge.innerText = "🇫🇷⇄🇻🇳 Giảm ~30% chi phí";
+      badge.innerText = "Giảm ~30% chi phí";
       badge.style.background = "rgba(56, 189, 248, 0.15)";
       badge.style.color = "#38bdf8";
       if (hint) hint.innerText = "Song hành Pháp - Việt: 6 tháng sống tại Pháp & 6 tháng tại VN, tối ưu chi phí sinh hoạt kèm quỹ vé máy bay di chuyển.";
     } else {
-      badge.innerText = "🇫🇷 Chi phí Chuẩn Pháp";
+      badge.innerText = "Chi phí Chuẩn Pháp";
       badge.style.background = "rgba(255, 255, 255, 0.08)";
       badge.style.color = "#94a3b8";
       if (hint) hint.innerText = "100% tại Pháp: Giữ nguyên mức chi phí sinh hoạt tiêu chuẩn Châu Âu.";
@@ -1633,7 +1651,7 @@
         badgeMode.style.color = "#34d399";
       }
       if (txtExp) {
-        txtExp.innerHTML = `⚡ Chuẩn sức mua hiện tại từ lương (<strong>${window.RetirementEngine.formatCurrency(salary, state.currency)}/năm</strong>): ~<strong>${window.RetirementEngine.formatCurrency(estimated, state.currency)}/năm</strong> (CNAV + Agirc-Arrco)`;
+        txtExp.innerHTML = `Chuẩn sức mua hiện tại từ lương (<strong>${window.RetirementEngine.formatCurrency(salary, state.currency)}/năm</strong>): ~<strong>${window.RetirementEngine.formatCurrency(estimated, state.currency)}/năm</strong> (CNAV + Agirc-Arrco)`;
       }
     } else {
       if (badgeMode) {
@@ -1642,7 +1660,7 @@
         badgeMode.style.color = "#fbbf24";
       }
       if (txtExp) {
-        txtExp.innerHTML = `⚡ Chuẩn theo lương: ~${window.RetirementEngine.formatCurrency(estimated, state.currency)}/năm • Đang dùng số tự nhập`;
+        txtExp.innerHTML = `Chuẩn theo lương: ~${window.RetirementEngine.formatCurrency(estimated, state.currency)}/năm • Đang dùng số tự nhập`;
       }
     }
   }
@@ -1776,14 +1794,14 @@
       const cashflow = round(annualRent);
       if (reIdx >= 0) {
         // Update rental income amount while preserving user-configured startAge, endAge and growth
-        p.incomes[reIdx].name = '🏠 Doanh thu BĐS LMNP Pháp';
+        p.incomes[reIdx].name = 'Doanh thu BĐS LMNP Pháp';
         p.incomes[reIdx].amount = cashflow;
         if (p.incomes[reIdx].startAge === undefined || p.incomes[reIdx].startAge === null) p.incomes[reIdx].startAge = curAge;
         if (p.incomes[reIdx].endAge === undefined || p.incomes[reIdx].endAge === null) p.incomes[reIdx].endAge = 85;
         if (p.incomes[reIdx].growth === undefined || p.incomes[reIdx].growth === null) p.incomes[reIdx].growth = 1.5;
         p.incomes[reIdx].taxable = false;
       } else {
-        p.incomes.push({ name: '🏠 Doanh thu BĐS LMNP Pháp', amount: cashflow, startAge: curAge, endAge: 85, growth: 1.5, taxable: false });
+        p.incomes.push({ name: 'Doanh thu BĐS LMNP Pháp', amount: cashflow, startAge: curAge, endAge: 85, growth: 1.5, taxable: false });
       }
     } else if (reIdx >= 0) {
       p.incomes.splice(reIdx, 1);
@@ -1802,7 +1820,7 @@
         if (p.incomes[turoIdx].growth === undefined || p.incomes[turoIdx].growth === null) p.incomes[turoIdx].growth = 0.0;
         p.incomes[turoIdx].taxable = false;
       } else {
-        p.incomes.push({ name: '🚗 Đội xe Cho thuê Turo', amount: cashflow, startAge: curAge, endAge: Math.min(curAge + 10, retireAge), growth: 0.0, taxable: false });
+        p.incomes.push({ name: 'Đội xe Cho thuê Turo', amount: cashflow, startAge: curAge, endAge: Math.min(curAge + 10, retireAge), growth: 0.0, taxable: false });
       }
     } else if (turoIdx >= 0) {
       p.incomes.splice(turoIdx, 1);
@@ -1831,7 +1849,7 @@
           name: `Mua ${aptName}`,
           age: buyAge,
           startYear: startYr,
-          icon: '🏡',
+          icon: '',
           type: 'expense',
           amount: isFuture ? downPaymentAmt : 0,
           note: isFuture
@@ -1859,12 +1877,6 @@
           state.patrimoineData = d;
           return d;
         }
-      }
-      const headers = window.Auth ? window.Auth.getAuthHeaders() : { "Content-Type": "application/json" };
-      const res = await fetch("/api/pylocation/data", { headers });
-      if (res.ok) {
-        state.patrimoineData = await res.json();
-        return state.patrimoineData;
       }
     } catch (e) {
       console.warn("Không tải được dữ liệu Gestion de Patrimoine:", e);
@@ -1899,10 +1911,10 @@
       const payoffAge = l.startAge + l.loanTermYears;
       const status = row && row.active
         ? `Góp <strong>${fmt(row.monthlyPayment)}/tháng</strong> • Còn nợ ${fmt(row.remainingDebt)}`
-        : (curAge < l.startAge ? `Bắt đầu năm ${l.startYear}` : `✓ Đã tất toán`);
+        : (curAge < l.startAge ? `Bắt đầu năm ${l.startYear}` : `Đã tất toán`);
       return `
-        <div style="background: rgba(30, 41, 59, 0.55); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.5rem 0.65rem; font-size: 0.76rem; line-height: 1.45;">
-          <div style="font-weight: 700; color: var(--text-main);">🏢 ${l.name}</div>
+        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.5rem 0.65rem; font-size: 0.76rem; line-height: 1.45;">
+          <div style="font-weight: 700; color: var(--text-main);">${l.name}</div>
           <div style="color: var(--text-muted);">Vay gốc ${fmt(l.loanAmount)} • ${l.interestRate}% + BH ${l.insuranceRate}% • ${l.loanTermYears} năm (${l.startYear} → ${l.startYear + l.loanTermYears}, tuổi ${l.startAge} → ${payoffAge})</div>
           <div style="color: var(--text-muted);">${status}</div>
         </div>`;
@@ -1958,7 +1970,7 @@
     if (hintSrc) {
       if (fromPat) {
         const totalLoan = patLoans.reduce((s, l) => s + l.loanAmount, 0);
-        hintSrc.innerHTML = `✓ Đã lấy <strong>${patLoans.length} khoản vay</strong> từ Quản Lý Tài Sản (tổng vay gốc ${window.RetirementEngine.formatCurrency(totalLoan, state.currency)}). Sửa khoản vay ở tab Quản Lý Tài Sản.`;
+        hintSrc.innerHTML = `Đã lấy <strong>${patLoans.length} khoản vay</strong> từ Quản Lý Tài Sản (tổng vay gốc ${window.RetirementEngine.formatCurrency(totalLoan, state.currency)}). Sửa khoản vay ở tab Quản Lý Tài Sản.`;
       } else if (usePat) {
         hintSrc.innerText = "Chưa có căn hộ nào có khoản vay trong Quản Lý Tài Sản — đang dùng số liệu nhập tay bên dưới.";
       } else {
@@ -2161,24 +2173,24 @@
       const borderColor = p.isRetirePeriod ? '#a855f7' : '#10b981';
       const badgeBg = p.isRetirePeriod ? 'rgba(168, 85, 247, 0.15)' : 'rgba(16, 185, 129, 0.15)';
       const badgeColor = p.isRetirePeriod ? '#c084fc' : '#34d399';
-      const phaseIcon = p.isRetirePeriod ? '🏖️' : '💼';
+      const phaseIcon = '';
 
       const hasGrowth = p.totalAnnual !== p.totalAnnualEnd;
       const monthlyStr = hasGrowth
-        ? `+${window.RetirementEngine.formatCurrency(p.totalMonthly, state.currency)} ➔ ${window.RetirementEngine.formatCurrency(p.totalMonthlyEnd, state.currency)}/tháng`
+        ? `+${window.RetirementEngine.formatCurrency(p.totalMonthly, state.currency)} - ${window.RetirementEngine.formatCurrency(p.totalMonthlyEnd, state.currency)}/tháng`
         : `+${window.RetirementEngine.formatCurrency(p.totalMonthly, state.currency)}/tháng`;
       const annualStr = hasGrowth
-        ? `≈ ${window.RetirementEngine.formatCurrency(p.totalAnnual, state.currency)} ➔ ${window.RetirementEngine.formatCurrency(p.totalAnnualEnd, state.currency)}/năm`
+        ? `≈ ${window.RetirementEngine.formatCurrency(p.totalAnnual, state.currency)} - ${window.RetirementEngine.formatCurrency(p.totalAnnualEnd, state.currency)}/năm`
         : `≈ ${window.RetirementEngine.formatCurrency(p.totalAnnual, state.currency)}/năm`;
 
       const streamsHtml = p.streams.length > 0
         ? p.streams.map(s => {
             const sGrowth = s.annual !== s.annualEnd;
             const sText = sGrowth
-              ? `+${window.RetirementEngine.formatCurrency(s.monthly, state.currency)} ➔ ${window.RetirementEngine.formatCurrency(s.monthlyEnd, state.currency)}/tháng`
+              ? `+${window.RetirementEngine.formatCurrency(s.monthly, state.currency)} - ${window.RetirementEngine.formatCurrency(s.monthlyEnd, state.currency)}/tháng`
               : `+${window.RetirementEngine.formatCurrency(s.monthly, state.currency)}/tháng`;
             return `
-              <span style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-subtle); padding: 1px 6px; border-radius: 4px; font-size: 0.72rem; color: var(--text-main);">
+              <span class="period-chip income-period-chip">
                 ${escapeHtml(s.name)}: <strong>${sText}</strong>
               </span>
             `;
@@ -2186,7 +2198,7 @@
         : `<span style="font-size: 0.72rem; color: var(--text-faint); font-style: italic;">Chỉ chi tiêu từ tài sản tích lũy (Không có thu nhập chủ động)</span>`;
 
       return `
-        <div class="income-period-card" style="background: rgba(15, 23, 42, 0.65); border: 1px solid var(--border-subtle); border-left: 3px solid ${borderColor}; border-radius: 6px; padding: 0.55rem 0.75rem; display: flex; flex-direction: column; gap: 0.4rem;">
+        <div class="income-period-card" style="border-left-color: ${borderColor};">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
               <span class="badge" style="background: ${badgeBg}; color: ${badgeColor}; font-weight: 700; font-size: 0.76rem; padding: 0.15rem 0.5rem; border-radius: 4px;">
@@ -2195,12 +2207,12 @@
               <span style="font-size: 0.72rem; color: var(--text-muted);">
                 (${p.startYear} – ${p.endYear})
               </span>
-              <span class="badge" style="background: rgba(255,255,255,0.06); color: var(--text-muted); font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 3px;">
+              <span class="badge period-phase-badge">
                 ${phaseIcon} ${p.phaseLabel}
               </span>
             </div>
             <div style="text-align: right; margin-left: auto;">
-              <span class="font-mono" style="font-size: 0.95rem; font-weight: 800; color: ${isZero ? 'var(--text-faint)' : '#10b981'};">
+              <span class="font-mono" style="font-size: 0.95rem; font-weight: 800; color: ${isZero ? 'var(--text-faint)' : 'var(--primary, #10b981)'};">
                 ${isZero ? '0' : monthlyStr}
               </span>
               <span style="font-size: 0.72rem; color: var(--text-faint); display: block;">
@@ -2208,7 +2220,7 @@
               </span>
             </div>
           </div>
-          <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; border-top: 1px dashed rgba(255,255,255,0.07); padding-top: 0.35rem;">
+          <div class="period-card-streams">
             ${streamsHtml}
           </div>
         </div>
@@ -2236,8 +2248,8 @@
         <div class="income-item-header">
           <span class="income-item-name">${stream.name}</span>
           <div class="income-item-actions">
-            <button type="button" class="income-item-btn income-item-edit" data-idx="${idx}" title="Chỉnh sửa nguồn thu">✏️ Sửa</button>
-            <button type="button" class="income-item-btn income-item-del" data-idx="${idx}" title="Xóa nguồn thu">🗑️</button>
+            <button type="button" class="income-item-btn income-item-edit" data-idx="${idx}" title="Chỉnh sửa nguồn thu">Sửa</button>
+            <button type="button" class="income-item-btn income-item-del" data-idx="${idx}" title="Xóa nguồn thu">Xóa</button>
           </div>
         </div>
         <div class="income-item-body">
@@ -2274,10 +2286,10 @@
         const amtStr = window.RetirementEngine.formatCurrency(stream?.amount || 0, state.currency);
 
         showConfirmDialog({
-          icon: "🗑️",
+          icon: "",
           title: "Xác nhận xóa nguồn thu",
           message: `Bạn có chắc chắn muốn xóa <strong>"${streamName}"</strong> (${amtStr}/năm)?<br><span style="font-size:0.75rem; color:var(--text-faint); margin-top:6px; display:inline-block;">Các chỉ số chi tiêu, tỷ lệ tiết kiệm và hưu trí sẽ được tự động tính toán lại.</span>`,
-          confirmText: "🗑️ Xóa nguồn thu",
+          confirmText: "Xóa nguồn thu",
           onConfirm: () => {
             plan.incomes.splice(idx, 1);
             syncSavingsAndExpensesFromRate(plan);
@@ -2335,7 +2347,7 @@
           const chargesOnly = loan.monthlyChargesEur || 0;
           const noteText = chargesOnly > 0 ? `Crédit ${loanOnly} € + Phí ${chargesOnly} €` : undefined;
           plan.expenses.push({
-            name: `🏢 Chi phí BĐS & Crédit: ${loan.name || 'Căn hộ LMNP'}`,
+            name: `Chi phí BĐS & Crédit: ${loan.name || 'Căn hộ LMNP'}`,
             amount: mPmt * 12,
             startAge: Number(loan.startAge) || curAge,
             endAge: endAge,
@@ -2354,7 +2366,7 @@
     if (!hasPatLoans) {
       const defaultLoanAmt = cur === 'EUR' ? 570 : (cur === 'USD' ? 650 : 12000000);
       plan.expenses.push({
-        name: '🏦 Trả góp Crédit Ngân Hàng',
+        name: 'Trả góp Crédit Ngân Hàng',
         amount: defaultLoanAmt * 12,
         startAge: curAge,
         endAge: curAge + 17, // 17 years left
@@ -2367,7 +2379,7 @@
     // 2. Add base living expenses
     const defaultLiving = cur === 'EUR' ? 1200 : (cur === 'USD' ? 1350 : 25000000);
     plan.expenses.unshift({
-      name: '🛒 Chi tiêu sinh hoạt & Tiện ích',
+      name: 'Chi tiêu sinh hoạt & Tiện ích',
       amount: defaultLiving * 12,
       startAge: curAge,
       endAge: Number(plan.lifeExpectancy) || 85,
@@ -2509,18 +2521,18 @@
     const pppFactors = { 'france': 1.0, 'hybrid': 0.70, 'vietnam': 0.45 };
     const curFactor = pppFactors[loc] || 1.0;
 
-    let baseMonthly = plan.baseRetireMonthly;
+    let baseMonthly = Number(plan.baseRetireMonthly);
     if (!baseMonthly || isNaN(baseMonthly) || baseMonthly <= 0) {
-      if (inpRetireMonthly && Number(inpRetireMonthly.value) > 0) {
-        baseMonthly = Number(inpRetireMonthly.value);
-      } else {
-        const ann = Number(plan.retirementExpenses) || 13200;
+      const ann = Number(plan.retirementExpenses);
+      if (ann > 0) {
         baseMonthly = Math.round((ann / curFactor) / 12);
+      } else {
+        baseMonthly = 1000;
       }
       plan.baseRetireMonthly = baseMonthly;
-    } else if (inpRetireMonthly && Number(inpRetireMonthly.value) > 0) {
-      baseMonthly = Number(inpRetireMonthly.value);
-      plan.baseRetireMonthly = baseMonthly;
+    }
+    if (inpRetireMonthly && document.activeElement !== inpRetireMonthly) {
+      inpRetireMonthly.value = baseMonthly;
     }
 
     const cur = state.currency || 'EUR';
@@ -2665,28 +2677,28 @@
 
       const hasGrowth = p.totalAnnualStart !== p.totalAnnualEnd;
       const monthlyStr = hasGrowth
-        ? `${fmt(p.totalMonthlyStart)} ➔ ${fmt(p.totalMonthlyEnd)}/tháng`
+        ? `${fmt(p.totalMonthlyStart)} - ${fmt(p.totalMonthlyEnd)}/tháng`
         : `${fmt(p.totalMonthlyStart)}/tháng`;
       const annualStr = hasGrowth
-        ? `≈ ${fmt(p.totalAnnualStart)} ➔ ${fmt(p.totalAnnualEnd)}/năm`
+        ? `≈ ${fmt(p.totalAnnualStart)} - ${fmt(p.totalAnnualEnd)}/năm`
         : `≈ ${fmt(p.totalAnnualStart)}/năm`;
 
       const expensesHtml = p.expenses.length > 0
         ? p.expenses.map(e => {
             const eGrowth = e.annualStart !== e.annualEnd;
             const eText = eGrowth
-              ? `${fmt(e.monthlyStart)} ➔ ${fmt(e.monthlyEnd)}/tháng`
+              ? `${fmt(e.monthlyStart)} - ${fmt(e.monthlyEnd)}/tháng`
               : `${fmt(e.monthlyStart)}/tháng`;
             return `
-              <span style="background: rgba(244, 63, 94, 0.08); border: 1px solid rgba(244, 63, 94, 0.2); padding: 1px 6px; border-radius: 4px; font-size: 0.72rem; color: var(--text-main);">
-                ${escapeHtml(e.name)}: <strong style="color: #fb7185;">${eText}</strong>
+              <span class="period-chip expense-period-chip">
+                ${escapeHtml(e.name)}: <strong>${eText}</strong>
               </span>
             `;
           }).join("")
         : `<span style="font-size: 0.72rem; color: var(--text-faint); font-style: italic;">Không có khoản chi phát sinh</span>`;
 
       return `
-        <div class="expense-period-card" style="background: rgba(15, 23, 42, 0.65); border: 1px solid var(--border-subtle); border-left: 3px solid ${borderColor}; border-radius: 6px; padding: 0.55rem 0.75rem; display: flex; flex-direction: column; gap: 0.4rem;">
+        <div class="expense-period-card" style="border-left-color: ${borderColor};">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
               <span class="badge" style="background: ${badgeBg}; color: ${badgeColor}; font-weight: 700; font-size: 0.76rem; padding: 0.15rem 0.5rem; border-radius: 4px;">
@@ -2695,7 +2707,7 @@
               <span style="font-size: 0.72rem; color: var(--text-muted);">
                 (${p.startYear} – ${p.endYear})
               </span>
-              ${p.isCurrent ? '<span class="badge" style="font-size:0.68rem; background:rgba(244, 63, 94, 0.22); color:#fb7185; padding:0.1rem 0.45rem; border-radius:3px; font-weight:600;">Hiện tại</span>' : ''}
+              ${p.isCurrent ? '<span class="badge current-phase-badge">Hiện tại</span>' : ''}
             </div>
             <div style="text-align: right; margin-left: auto;">
               <span class="font-mono" style="font-size: 0.95rem; font-weight: 800; color: ${isZero ? 'var(--text-faint)' : '#f43f5e'};">
@@ -2706,7 +2718,7 @@
               </span>
             </div>
           </div>
-          <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; border-top: 1px dashed rgba(255,255,255,0.07); padding-top: 0.35rem;">
+          <div class="period-card-streams">
             ${expensesHtml}
           </div>
         </div>
@@ -2724,7 +2736,7 @@
     renderExpensePeriodsSummary(p);
 
     if (!Array.isArray(p.expenses) || p.expenses.length === 0) {
-      container.innerHTML = `<div style="font-size:0.78rem;color:var(--text-faint);padding:0.5rem 0;">Chưa có khoản chi nào. Bấm "+ Thêm khoản chi" hoặc "🔗 Lấy Nợ BĐS" để thêm.</div>`;
+      container.innerHTML = `<div style="font-size:0.78rem;color:var(--text-faint);padding:0.5rem 0;">Chưa có khoản chi nào. Bấm "+ Thêm khoản chi" hoặc "Lấy Nợ BĐS" để thêm.</div>`;
       return;
     }
 
@@ -2741,8 +2753,8 @@
             <span>${stream.name}</span>
           </div>
           <div class="income-item-actions">
-            <button type="button" class="income-item-btn expense-item-edit" data-idx="${idx}" title="Chỉnh sửa khoản chi">✏️ Sửa</button>
-            <button type="button" class="income-item-btn income-item-del expense-item-del" data-idx="${idx}" title="Xóa khoản chi">🗑️</button>
+            <button type="button" class="income-item-btn expense-item-edit" data-idx="${idx}" title="Chỉnh sửa khoản chi">Sửa</button>
+            <button type="button" class="income-item-btn income-item-del expense-item-del" data-idx="${idx}" title="Xóa khoản chi">Xóa</button>
           </div>
         </div>
         <div class="expense-item-body">
@@ -2780,10 +2792,10 @@
         const amtStr = fmt(stream?.amount || 0);
 
         showConfirmDialog({
-          icon: "🗑️",
+          icon: "",
           title: "Xác nhận xóa khoản chi",
           message: `Bạn có chắc chắn muốn xóa <strong>"${streamName}"</strong> (${amtStr}/năm)?<br><span style="font-size:0.75rem; color:var(--text-faint); margin-top:6px; display:inline-block;">Các chỉ số chi tiêu, tiết kiệm ròng và FIRE sẽ được cập nhật tự động.</span>`,
-          confirmText: "🗑️ Xóa khoản chi",
+          confirmText: "Xóa khoản chi",
           onConfirm: () => {
             plan.expenses.splice(idx, 1);
             savePlansToStorage();
@@ -2810,7 +2822,7 @@
 
     if (idx >= 0 && plan.expenses && plan.expenses[idx]) {
       const exp = plan.expenses[idx];
-      title.innerHTML = `<span>✏️</span> Chỉnh Sửa: ${exp.name}`;
+      title.innerHTML = `Chỉnh Sửa: ${exp.name}`;
       document.getElementById("inp-expense-name").value = exp.name;
       document.getElementById("inp-expense-amount").value = exp.amount;
       document.getElementById("inp-expense-amount-monthly").value = Math.round(Number(exp.amount) / 12);
@@ -2820,7 +2832,7 @@
       const chkDebt = document.getElementById("inp-expense-is-debt");
       if (chkDebt) chkDebt.checked = exp.isDebt !== false;
     } else {
-      title.innerHTML = `<span>➕</span> Thêm Khoản Chi / Nợ Vay Mới`;
+      title.innerHTML = `Thêm Khoản Chi / Nợ Vay Mới`;
       document.getElementById("inp-expense-name").value = "";
       const defaultMonthly = state.currency === 'EUR' ? 600 : (state.currency === 'USD' ? 700 : 15000000);
       document.getElementById("inp-expense-amount-monthly").value = defaultMonthly;
@@ -2903,7 +2915,7 @@
         ? loan.monthlyPaymentEur
         : (row && row.active ? row.monthlyPayment : Math.round(loan.loanAmount * 0.055 / 12));
       const endAge = (Number(loan.startAge) || curAge) + (Number(loan.loanTermYears) || 20);
-      const cleanName = `🏢 Chi phí BĐS & Crédit: ${loan.name || 'BĐS'}`;
+      const cleanName = `Chi phí BĐS & Crédit: ${loan.name || 'BĐS'}`;
 
       const existingIdx = plan.expenses.findIndex(e => e.name === cleanName || (loan.name && e.name.includes(loan.name)));
       const loanOnly = loan.monthlyLoanPaymentEur || loan.monthlyPaymentEur || 0;
@@ -3086,15 +3098,15 @@
           const patBadge = ms.source === 'patrimoine' ? `<span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; font-size: 0.65rem; padding: 0.1rem 0.4rem; border-radius: 4px; margin-left: 0.4rem;">Đồng bộ BĐS</span>` : '';
           item.innerHTML = `
             <div class="custom-ms-left">
-              <span class="custom-ms-icon">${ms.icon || '⭐'}</span>
+              <span class="custom-ms-icon"></span>
               <div class="custom-ms-details">
                 <span class="custom-ms-title">${ms.age} tuổi • ${ms.name}${patBadge}</span>
                 <span class="custom-ms-sub">${amtStr}${ms.note ? ' • ' + ms.note : ''}</span>
               </div>
             </div>
             <div class="custom-ms-actions">
-              <button type="button" class="income-item-btn btn-edit-ms" data-idx="${idx}" title="Chỉnh sửa sự kiện" style="padding: 0.25rem 0.6rem; font-weight: 600;">✏️ Sửa</button>
-              <button type="button" class="income-item-btn income-item-del btn-del-ms" data-idx="${idx}" title="Xóa sự kiện" style="padding: 0.25rem 0.6rem;">🗑️</button>
+              <button type="button" class="income-item-btn btn-edit-ms" data-idx="${idx}" title="Chỉnh sửa sự kiện" style="padding: 0.25rem 0.6rem; font-weight: 600;">Sửa</button>
+              <button type="button" class="income-item-btn income-item-del btn-del-ms" data-idx="${idx}" title="Xóa sự kiện" style="padding: 0.25rem 0.6rem;">Xóa</button>
             </div>
           `;
           customContainer.appendChild(item);
@@ -3116,10 +3128,10 @@
             const idx = Number(b.getAttribute("data-idx"));
             const msName = plan.milestones[idx]?.name || "mốc này";
             showConfirmDialog({
-              icon: "🚩",
+              icon: "",
               title: "Xác nhận xóa cột mốc",
               message: `Bạn có chắc chắn muốn xóa cột mốc <strong>"${msName}"</strong>?`,
-              confirmText: "🗑️ Xóa cột mốc",
+              confirmText: "Xóa cột mốc",
               onConfirm: () => {
                 plan.milestones.splice(idx, 1);
                 savePlansToStorage();
@@ -3143,7 +3155,7 @@
       document.getElementById("inp-ms-id").value = idx;
       document.getElementById("inp-ms-name").value = ms.name || "";
       document.getElementById("inp-ms-age").value = ms.age || 35;
-      document.getElementById("inp-ms-icon").value = ms.icon || "🏡";
+      document.getElementById("inp-ms-icon").value = "";
       document.getElementById("inp-ms-type").value = ms.type || "expense";
       document.getElementById("inp-ms-amount").value = ms.amount || 30000;
       document.getElementById("inp-ms-note").value = ms.note || "";
@@ -3152,7 +3164,7 @@
       document.getElementById("inp-ms-id").value = -1;
       document.getElementById("inp-ms-name").value = "";
       document.getElementById("inp-ms-age").value = 35;
-      document.getElementById("inp-ms-icon").value = "🏡";
+      document.getElementById("inp-ms-icon").value = "";
       document.getElementById("inp-ms-type").value = "expense";
       const defaultAmt = state.currency === 'VND' ? 500000000 : 30000;
       document.getElementById("inp-ms-amount").value = defaultAmt;
@@ -3178,7 +3190,7 @@
     }
     const idx = Number(document.getElementById("inp-ms-id").value);
     const age = Number(document.getElementById("inp-ms-age").value) || 35;
-    const icon = document.getElementById("inp-ms-icon").value || "⭐";
+    const icon = "";
     const type = document.getElementById("inp-ms-type").value || "expense";
     const amount = Number(document.getElementById("inp-ms-amount").value) || 0;
     const note = document.getElementById("inp-ms-note").value.trim();
@@ -3226,17 +3238,15 @@
       const yearStr = p ? ` (${p.year})` : '';
       const chip = document.createElement("div");
       chip.className = "milestone-chip";
-      chip.style.setProperty("--chip-color", m.color || "var(--primary)");
-      chip.title = m.desc || `${m.icon} ${m.name} (Tuổi ${m.age}${yearStr})`;
+      chip.title = m.desc || `${m.name} (Tuổi ${m.age}${yearStr})`;
       
       let amtHtml = "";
       if (m.amount) {
         const sign = m.type === "income" ? "+" : "-";
-        amtHtml = `<span class="milestone-chip-amount" style="color: ${m.color}">${sign}${window.RetirementEngine.formatCurrency(m.amount, state.currency, true)}</span>`;
+        amtHtml = `<span class="milestone-chip-amount">${sign}${window.RetirementEngine.formatCurrency(m.amount, state.currency, true)}</span>`;
       }
 
       chip.innerHTML = `
-        <span class="milestone-chip-icon">${m.icon}</span>
         <span class="milestone-chip-age">${m.age}t${yearStr}</span>
         <span class="milestone-chip-label">${m.name}</span>
         ${amtHtml}
@@ -3356,7 +3366,7 @@
         <td class="font-mono" style="color:#f59e0b; font-weight:700;">${formattedAmt}</td>
         <td style="color:var(--text-muted); font-size:0.78rem;">${rec.note ? escapeHtml(rec.note) : '<em>Không có</em>'}</td>
         <td style="text-align:right;">
-          <button type="button" class="btn btn-xs btn-ghost btn-delete-actual-rec" data-id="${rec.id}" style="color:#ef4444;" title="Xóa mốc này">🗑️</button>
+          <button type="button" class="btn btn-xs btn-ghost btn-delete-actual-rec" data-id="${rec.id}" style="color:#ef4444;" title="Xóa mốc này">Xóa</button>
         </td>
       `;
       tbody.appendChild(tr);
@@ -3439,7 +3449,7 @@
 
   async function fetchPatrimoineBalanceForActual() {
     const btn = document.getElementById("btn-fetch-patrimoine-balance");
-    if (btn) btn.innerText = "⏳ Đang tính toán...";
+    if (btn) btn.innerText = "Đang tính toán...";
 
     try {
       const data = await fetchPatrimoineData();
@@ -3467,14 +3477,14 @@
       if (inpAmount) inpAmount.value = totalVal;
       if (inpNote && !inpNote.value) inpNote.value = "Chốt từ Quản lý Tài sản (Patrimoine)";
 
-      if (btn) btn.innerText = "✓ Đã lấy thành công";
+      if (btn) btn.innerText = "Đã lấy thành công";
       setTimeout(() => {
-        if (btn) btn.innerText = "⚡ Lấy số dư hiện tại từ Patrimoine";
+        if (btn) btn.innerText = "Lấy số dư hiện tại từ Patrimoine";
       }, 1800);
     } catch (err) {
       console.warn("Lỗi lấy số dư từ Patrimoine:", err);
       alert("Không thể lấy số dư tự động: " + err.message);
-      if (btn) btn.innerText = "⚡ Lấy số dư hiện tại từ Patrimoine";
+      if (btn) btn.innerText = "Lấy số dư hiện tại từ Patrimoine";
     }
   }
 
@@ -3518,7 +3528,7 @@
       if (proj.safeAnnualSpend > 0) {
         swrSubEl.innerHTML = `Tương đương <strong>${swrRate}%</strong> SWR (≈ <strong>${window.RetirementEngine.formatCurrency(monthlySpend, state.currency)}</strong>/tháng)`;
       } else {
-        swrSubEl.innerHTML = `<span class="text-danger">⚠️ Danh mục âm/chưa đủ vốn rút an toàn</span>`;
+        swrSubEl.innerHTML = `<span class="text-danger">Danh mục âm/chưa đủ vốn rút an toàn</span>`;
       }
     }
 
@@ -3532,7 +3542,7 @@
       const fmtTarget = window.RetirementEngine.formatCurrency(targetLegacy, state.currency);
       if (proj.finalPortfolio <= 0 && estateVal > 0) {
         estateSubEl.className = "kpi-subtitle text-warning";
-        estateSubEl.innerHTML = `⚠️ Tiền mặt cạn trước 85t (Còn lại BĐS: <strong>${window.RetirementEngine.formatCurrency(estateVal, state.currency)}</strong>)`;
+        estateSubEl.innerHTML = `Tiền mặt cạn trước 85t (Còn lại BĐS: <strong>${window.RetirementEngine.formatCurrency(estateVal, state.currency)}</strong>)`;
       } else if (estateVal >= targetLegacy) {
         estateSubEl.className = "kpi-subtitle text-success";
         estateSubEl.innerHTML = `Đạt <strong>${legacyPct}%</strong> mục tiêu thừa kế (${fmtTarget})`;
@@ -3541,7 +3551,7 @@
         estateSubEl.innerHTML = `Đạt <strong>${legacyPct}%</strong> mục tiêu (${fmtTarget})`;
       } else {
         estateSubEl.className = "kpi-subtitle text-danger";
-        estateSubEl.innerHTML = `⚠️ Thâm hụt di sản (Mục tiêu: ${fmtTarget})`;
+        estateSubEl.innerHTML = `Thâm hụt di sản (Mục tiêu: ${fmtTarget})`;
       }
     }
 
@@ -3641,15 +3651,20 @@
       }
     });
 
+    const isLight = document.documentElement.getAttribute("data-theme") === "light";
+    const unifiedMilestoneColor = isLight ? "#0284c7" : "#38bdf8";
+    const unifiedMilestoneBg = isLight ? "#ffffff" : "rgba(15, 23, 42, 0.95)";
+    const unifiedMilestoneBorder = isLight ? "#cbd5e1" : "rgba(56, 189, 248, 0.45)";
+    const unifiedMilestoneLine = isLight ? "rgba(2, 132, 199, 0.4)" : "rgba(56, 189, 248, 0.4)";
+    const unifiedMilestoneText = isLight ? "#0284c7" : "#38bdf8";
+
     const pointRadii = proj.timeline.map(p => milestoneMap.has(p.age) ? 5.5 : 0);
     const pointHoverRadii = proj.timeline.map(p => milestoneMap.has(p.age) ? 8.5 : 5);
     const pointBgColors = proj.timeline.map(p => {
-      const m = milestoneMap.get(p.age);
-      return m ? m.color : '#a855f7';
+      return milestoneMap.has(p.age) ? unifiedMilestoneColor : (isLight ? '#7c3aed' : '#a855f7');
     });
     const pointBorderColors = proj.timeline.map(p => {
-      const m = milestoneMap.get(p.age);
-      return m ? '#ffffff' : '#a855f7';
+      return milestoneMap.has(p.age) ? '#ffffff' : (isLight ? '#7c3aed' : '#a855f7');
     });
     const pointBorderWidths = proj.timeline.map(p => milestoneMap.has(p.age) ? 2 : 0);
 
@@ -3675,18 +3690,23 @@
           const xPos = x.getPixelForValue(idx);
           if (xPos < chartArea.left - 10 || xPos > chartArea.right + 10) return;
 
-          // Vertical guideline line
+          // Vertical guideline line - Unified color matching Life Milestones
           ctx.beginPath();
           ctx.setLineDash([4, 4]);
-          ctx.strokeStyle = m.color || '#38bdf8';
+          ctx.strokeStyle = unifiedMilestoneLine;
           ctx.lineWidth = 1.3;
-          ctx.globalAlpha = 0.55;
+          ctx.globalAlpha = 1.0;
           ctx.moveTo(xPos, chartArea.top + 24);
           ctx.lineTo(xPos, chartArea.bottom);
           ctx.stroke();
 
-          // Top floating milestone pin badge
-          const pillW = 66;
+          // Top floating milestone pin badge - Unified color & Light mode support
+          const p = proj.timeline.find(item => item.age === m.age);
+          const yearBadge = p ? ` (${p.year})` : '';
+          const labelText = `${m.age}t${yearBadge}`;
+          ctx.font = '600 10px Inter, sans-serif';
+          const textMetrics = ctx.measureText(labelText);
+          const pillW = Math.max(68, Math.ceil(textMetrics.width + 16));
           const pillH = 19;
           const sameAgeMilestones = proj.milestones.filter(item => item.age === m.age);
           const sameAgeIdx = sameAgeMilestones.findIndex(item => item.id === m.id);
@@ -3694,9 +3714,8 @@
           const pillY = chartArea.top + yOffset;
           const pillX = Math.max(chartArea.left + 2, Math.min(chartArea.right - pillW - 2, xPos - pillW / 2));
 
-          ctx.globalAlpha = 0.95;
-          ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
-          ctx.strokeStyle = m.color || '#38bdf8';
+          ctx.fillStyle = unifiedMilestoneBg;
+          ctx.strokeStyle = unifiedMilestoneBorder;
           ctx.lineWidth = 1.2;
           ctx.beginPath();
           if (ctx.roundRect) {
@@ -3707,14 +3726,11 @@
           ctx.fill();
           ctx.stroke();
 
-          // Text inside badge
-          const p = proj.timeline.find(item => item.age === m.age);
-          const yearBadge = p ? ` (${p.year})` : '';
-          ctx.font = '600 10px Inter, sans-serif';
-          ctx.fillStyle = m.color || '#38bdf8';
+          // Text inside badge - Unified high-contrast color
+          ctx.fillStyle = unifiedMilestoneText;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(`${m.icon} ${m.age}t${yearBadge}`, pillX + pillW / 2, pillY + pillH / 2);
+          ctx.fillText(labelText, pillX + pillW / 2, pillY + pillH / 2);
         });
         ctx.restore();
       }
@@ -3845,15 +3861,15 @@
             labels: {
               boxWidth: 12,
               boxHeight: 12,
-              color: '#94a3b8',
+              color: isLight ? '#334155' : '#94a3b8',
               font: { family: 'Inter, sans-serif', size: 11, weight: '600' }
             }
           },
           tooltip: {
-            backgroundColor: 'rgba(15, 23, 42, 0.95)',
-            titleColor: '#f8fafc',
-            bodyColor: '#cbd5e1',
-            borderColor: 'rgba(255, 255, 255, 0.15)',
+            backgroundColor: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.95)',
+            titleColor: isLight ? '#0f172a' : '#f8fafc',
+            bodyColor: isLight ? '#334155' : '#cbd5e1',
+            borderColor: isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.15)',
             borderWidth: 1,
             padding: 10,
             callbacks: {
@@ -3887,23 +3903,23 @@
                   const diff = actRec.amount - forecastVal;
                   const diffPct = forecastVal !== 0 ? ((diff / Math.abs(forecastVal)) * 100).toFixed(1) : '0';
                   const sign = diff >= 0 ? '+' : '';
-                  lines.push(`🎯 Chênh lệch (Thực tế vs Dự báo): ${sign}${window.RetirementEngine.formatCurrency(diff, state.currency)} (${sign}${diffPct}%)`);
+                  lines.push(`Chênh lệch (Thực tế vs Dự báo): ${sign}${window.RetirementEngine.formatCurrency(diff, state.currency)} (${sign}${diffPct}%)`);
                   if (actRec.note) {
-                    lines.push(`📝 Ghi chú: ${actRec.note}`);
+                    lines.push(`Ghi chú: ${actRec.note}`);
                   }
                 }
 
                 if (m && m.desc) {
-                  lines.push(`🚩 ${m.desc}`);
+                  lines.push(`${m.desc}`);
                 }
                 if (p.homeEquity > 0) {
-                  lines.push(`🏡 Vốn sở hữu BĐS: ${window.RetirementEngine.formatCurrency(p.homeEquity, state.currency)}`);
+                  lines.push(`Vốn sở hữu BĐS: ${window.RetirementEngine.formatCurrency(p.homeEquity, state.currency)}`);
                 }
                 if (p.remainingDebt > 0) {
-                  lines.push(`🏦 Dư nợ vay còn lại: ${window.RetirementEngine.formatCurrency(p.remainingDebt, state.currency)}`);
+                  lines.push(`Dư nợ vay còn lại: ${window.RetirementEngine.formatCurrency(p.remainingDebt, state.currency)}`);
                 }
                 if (p.eurVndRate) {
-                  lines.push(`💱 Tỷ giá EUR/VND: ${p.eurVndRate.toLocaleString('vi-VN')} ₫/€`);
+                  lines.push(`Tỷ giá EUR/VND: ${p.eurVndRate.toLocaleString('vi-VN')} ₫/€`);
                 }
                 if (p.netCashFlow !== undefined) {
                   const sign = p.netCashFlow >= 0 ? '+' : '';
@@ -3916,13 +3932,13 @@
         },
         scales: {
           x: {
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            grid: { color: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)' },
             ticks: ageAxisTicks()
           },
           y: {
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            grid: { color: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)' },
             ticks: {
-              color: '#94a3b8',
+              color: isLight ? '#475569' : '#94a3b8',
               font: { size: 10 },
               callback: (val) => window.RetirementEngine.formatCurrency(val, state.currency, true)
             }
@@ -3973,50 +3989,103 @@
       state.charts.cashflow.destroy();
     }
 
+    const isLight = document.documentElement.getAttribute("data-theme") === "light";
+    const sym = window.RetirementEngine.getCurrencySymbol(state.currency);
+
+    const gradientIncome = ctx.createLinearGradient(0, 0, 0, 320);
+    gradientIncome.addColorStop(0, 'rgba(59, 130, 246, 0.35)');
+    gradientIncome.addColorStop(1, 'rgba(59, 130, 246, 0.02)');
+
+    const gradientExpense = ctx.createLinearGradient(0, 0, 0, 320);
+    gradientExpense.addColorStop(0, 'rgba(244, 63, 94, 0.28)');
+    gradientExpense.addColorStop(1, 'rgba(244, 63, 94, 0.02)');
+
     state.charts.cashflow = new Chart(ctx, {
-      type: 'bar',
+      type: 'line',
       data: {
         labels,
         datasets: [
           {
-            label: 'Thu nhập Hàng năm',
+            label: `Thu nhập Hàng năm (${sym})`,
             data: incomes,
-            backgroundColor: 'rgba(59, 130, 246, 0.85)',
-            borderRadius: 4
+            borderColor: '#3b82f6',
+            backgroundColor: gradientIncome,
+            borderWidth: 2.5,
+            fill: true,
+            tension: 0.35,
+            pointRadius: 0,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#3b82f6',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2
           },
           {
-            label: 'Chi tiêu Sinh hoạt',
+            label: `Chi tiêu Sinh hoạt (${sym})`,
             data: expenses,
-            backgroundColor: 'rgba(239, 68, 68, 0.85)',
-            borderRadius: 4
+            borderColor: '#f43f5e',
+            backgroundColor: gradientExpense,
+            borderWidth: 2.5,
+            fill: true,
+            tension: 0.35,
+            pointRadius: 0,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#f43f5e',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
         plugins: {
-          legend: { labels: { color: '#94a3b8', font: { size: 11 } } },
+          legend: {
+            labels: {
+              boxWidth: 12,
+              boxHeight: 12,
+              color: isLight ? '#334155' : '#94a3b8',
+              font: { family: 'Inter, sans-serif', size: 11, weight: '600' }
+            }
+          },
           tooltip: {
+            backgroundColor: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.95)',
+            titleColor: isLight ? '#0f172a' : '#f8fafc',
+            bodyColor: isLight ? '#334155' : '#cbd5e1',
+            borderColor: isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.15)',
+            borderWidth: 1,
+            padding: 10,
             callbacks: {
               title: (items) => {
                 const idx = items[0].dataIndex;
                 const p = proj.timeline[idx];
                 return p ? `Tuổi ${p.age} (Năm ${p.year})` : '';
               },
-              label: (item) => ` ${item.dataset.label}: ${window.RetirementEngine.formatCurrency(item.raw, state.currency, false)}`
+              label: (item) => ` ${item.dataset.label}: ${window.RetirementEngine.formatCurrency(item.raw, state.currency, false)}`,
+              afterBody: (items) => {
+                const idx = items[0].dataIndex;
+                const p = proj.timeline[idx];
+                if (!p) return [];
+                const diff = (p.income || 0) - (p.expenses || 0);
+                const sign = diff >= 0 ? '+' : '';
+                const label = diff >= 0 ? 'Thặng dư tích lũy' : 'Rút từ danh mục';
+                return [`${label}: ${sign}${window.RetirementEngine.formatCurrency(diff, state.currency, false)}`];
+              }
             }
           }
         },
         scales: {
           x: {
-            grid: { display: false },
+            grid: { color: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)' },
             ticks: ageAxisTicks()
           },
           y: {
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            grid: { color: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)' },
             ticks: {
-              color: '#94a3b8',
+              color: isLight ? '#475569' : '#94a3b8',
               font: { size: 10 },
               callback: (val) => window.RetirementEngine.formatCurrency(val, state.currency, true)
             }
@@ -4063,11 +4132,11 @@
       const tr = document.createElement("tr");
       let statusTag = '';
       if (row.isPast) {
-        statusTag = '<span style="font-size:0.68rem; padding:1px 5px; border-radius:4px; background:rgba(148,163,184,0.15); color:#94a3b8;">Quá khứ</span>';
+        statusTag = '<span style="font-size:0.68rem; padding:1px 5px; border-radius:4px; background:var(--bg-input); color:var(--text-muted); border:1px solid var(--border-subtle);">Quá khứ</span>';
       } else if (row.isRetired) {
         statusTag = '<span class="summary-status">Hưu</span>';
       } else if (row.age === (Number(getActivePlan().currentAge) || 29)) {
-        statusTag = '<span class="badge" style="font-size:0.68rem; padding:1px 5px; border-radius:4px; background:rgba(56,189,248,0.2); color:#38bdf8; font-weight:700;">Hiện tại</span>';
+        statusTag = '<span class="badge" style="font-size:0.68rem; padding:1px 5px; border-radius:4px; background:var(--bg-accent-subtle); color:var(--primary); font-weight:700;">Hiện tại</span>';
       }
 
       const forecastVal = state.viewMode === "nominal" ? row.portfolioEnd : row.realPortfolioEnd;
@@ -4132,7 +4201,7 @@
         const isChosen = (strat.key === chosenStrat);
 
         return {
-          label: isChosen ? `★ ${strat.name} (Đang chọn)` : strat.name,
+          label: isChosen ? `${strat.name} (Đang chọn)` : strat.name,
           data: res.timeline.map(p => p.portfolioEnd),
           borderColor: strat.color,
           borderWidth: isChosen ? 3.2 : 2.2,
@@ -4225,7 +4294,7 @@
         const badgeEl = document.getElementById(`status-strat-${s.key}`);
         if (badgeEl) {
           if (isChosen) {
-            badgeEl.innerText = "✓ Đang chọn";
+            badgeEl.innerText = "Đang chọn";
             badgeEl.style.background = "rgba(56, 189, 248, 0.2)";
             badgeEl.style.color = "#38bdf8";
             badgeEl.style.borderColor = "rgba(56, 189, 248, 0.4)";
@@ -4597,8 +4666,8 @@
     if (explanationContainer) {
       explanationContainer.innerHTML = scenarioSummaries.map(sc => {
         const statusBadge = sc.survived 
-          ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; font-weight: 600;">✓ 100% Sống sót</span>`
-          : `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; font-weight: 600;">⚠ Có rủi ro cạn vốn</span>`;
+          ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; font-weight: 600;">100% Sống sót</span>`
+          : `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; font-weight: 600;">Có rủi ro cạn vốn</span>`;
         
         const diffColor = sc.netWorthDiff > 0 ? '#34d399' : (sc.netWorthDiff < 0 ? '#f87171' : '#94a3b8');
 
@@ -4616,7 +4685,7 @@
                 ${sc.desc}
               </div>
               <div class="strategy-kpis-mini" style="margin: 0;">
-                <div class="kpi-mini-item">Số dư tuổi ${lifeExp}: <strong class="font-mono" style="color: #f8fafc;">${sc.finalPortfolioFormatted}</strong></div>
+                <div class="kpi-mini-item">Số dư tuổi ${lifeExp}: <strong class="font-mono" style="color: var(--text-main);">${sc.finalPortfolioFormatted}</strong></div>
                 <div class="kpi-mini-item">Độ lệch: <strong class="font-mono" style="color: ${diffColor};">${sc.netWorthDiffFormatted}</strong></div>
               </div>
             </div>
@@ -4929,12 +4998,12 @@
                 const lines = [];
                 if (count >= 1) {
                   const a1 = yr - kid1Birth;
-                  const st1 = a1 < 0 ? 'chưa sinh' : (a1 < 18 ? `${a1} tuổi (Đi học)` : (a1 <= 23 ? `${a1} tuổi (Đại học 🎓)` : `${a1} tuổi (Tự lập 🌟)`));
+                  const st1 = a1 < 0 ? 'chưa sinh' : (a1 < 18 ? `${a1} tuổi (Đi học)` : (a1 <= 23 ? `${a1} tuổi (Đại học)` : `${a1} tuổi (Tự lập)`));
                   lines.push(`• Bé 1 (sinh ${kid1Birth}): ${st1}`);
                 }
                 if (count >= 2) {
                   const a2 = yr - kid2Birth;
-                  const st2 = a2 < 0 ? 'chưa sinh' : (a2 < 18 ? `${a2} tuổi (Đi học)` : (a2 <= 23 ? `${a2} tuổi (Đại học 🎓)` : `${a2} tuổi (Tự lập 🌟)`));
+                  const st2 = a2 < 0 ? 'chưa sinh' : (a2 < 18 ? `${a2} tuổi (Đi học)` : (a2 <= 23 ? `${a2} tuổi (Đại học)` : `${a2} tuổi (Tự lập)`));
                   lines.push(`• Bé 2 (sinh ${kid2Birth}): ${st2}`);
                 }
                 return lines;
@@ -5120,31 +5189,31 @@
     const statusText = pct >= 100 ? 'Đạt & Vượt Mục Tiêu' : pct >= 70 ? 'Tiệm Cận Mục Tiêu' : 'Chưa Đạt Mục Tiêu';
 
     milestoneBox.innerHTML = `
-      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 0.85rem;">
+      <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 0.85rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.4rem;">
-          <span style="font-size: 0.82rem; color: #94a3b8; font-weight: 600;">Tiến Độ Tích Lũy Di Sản:</span>
+          <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;">Tiến Độ Tích Lũy Di Sản:</span>
           <span style="display: inline-flex; align-items: center; gap: 6px;">
             <span style="font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700; background: ${isSurplus ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)'}; color: ${isSurplus ? '#34d399' : '#fbbf24'}; border: 1px solid ${isSurplus ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'};">${statusText}</span>
             <strong class="${pct >= 100 ? 'text-success' : 'text-warning'} font-mono" style="font-size: 1.05rem;">${pct}%</strong>
           </span>
         </div>
-        <div style="background: rgba(255,255,255,0.06); height: 9px; border-radius: 5px; overflow: hidden; margin-bottom: 0.75rem; border: 1px solid rgba(255,255,255,0.05);">
+        <div style="background: var(--bg-input); height: 9px; border-radius: 5px; overflow: hidden; margin-bottom: 0.75rem; border: 1px solid var(--border-subtle);">
           <div style="width: ${Math.min(100, pct)}%; height: 100%; background: ${barColor}; transition: width 0.3s ease;"></div>
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.65rem;">
-          <div style="background: rgba(0,0,0,0.25); padding: 0.5rem 0.65rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.04);">
-            <div style="font-size: 0.7rem; color: #94a3b8;">Dự kiến ở tuổi ${plan.lifeExpectancy || 85}</div>
+          <div style="background: var(--bg-card-hover); padding: 0.5rem 0.65rem; border-radius: 6px; border: 1px solid var(--border-subtle);">
+            <div style="font-size: 0.7rem; color: var(--text-muted);">Dự kiến ở tuổi ${plan.lifeExpectancy || 85}</div>
             <div style="font-weight: 700; color: #38bdf8; font-size: 0.88rem; font-family: var(--font-mono, monospace);">${window.RetirementEngine.formatCurrency(finalVal, state.currency)}</div>
           </div>
-          <div style="background: rgba(0,0,0,0.25); padding: 0.5rem 0.65rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.04);">
-            <div style="font-size: 0.7rem; color: #94a3b8;">${isSurplus ? 'Thặng dư thừa kế (+)' : 'Khoảng thiếu hụt (-)'}</div>
+          <div style="background: var(--bg-card-hover); padding: 0.5rem 0.65rem; border-radius: 6px; border: 1px solid var(--border-subtle);">
+            <div style="font-size: 0.7rem; color: var(--text-muted);">${isSurplus ? 'Thặng dư thừa kế (+)' : 'Khoảng thiếu hụt (-)'}</div>
             <div style="font-weight: 700; color: ${isSurplus ? '#34d399' : '#f87171'}; font-size: 0.88rem; font-family: var(--font-mono, monospace);">${isSurplus ? '+' : '-'}${window.RetirementEngine.formatCurrency(diff, state.currency)}</div>
           </div>
         </div>
-        <p style="font-size: 0.76rem; color: #cbd5e1; margin: 0; line-height: 1.45;">
+        <p style="font-size: 0.76rem; color: var(--text-muted); margin: 0; line-height: 1.45;">
           ${isSurplus 
-            ? `✨ Bạn có đủ thặng dư di sản vượt mức mục tiêu <strong>${window.RetirementEngine.formatCurrency(target, state.currency)}</strong>. Tài sản này có thể tự do chuyển giao cho con cái hoặc hiến tặng từ thiện qua di chúc.`
-            : `⚠️ Dự kiến danh mục ở tuổi ${plan.lifeExpectancy || 85} đạt <strong>${window.RetirementEngine.formatCurrency(finalVal, state.currency)}</strong>, còn thiếu <strong>${window.RetirementEngine.formatCurrency(diff, state.currency)}</strong> so với mục tiêu. Cân nhắc giảm tỷ lệ rút vốn hàng năm (SWR) hoặc tăng tích lũy trước hưu.`
+            ? `Bạn có đủ thặng dư di sản vượt mức mục tiêu <strong>${window.RetirementEngine.formatCurrency(target, state.currency)}</strong>. Tài sản này có thể tự do chuyển giao cho con cái hoặc hiến tặng từ thiện qua di chúc.`
+            : `Dự kiến danh mục ở tuổi ${plan.lifeExpectancy || 85} đạt <strong>${window.RetirementEngine.formatCurrency(finalVal, state.currency)}</strong>, còn thiếu <strong>${window.RetirementEngine.formatCurrency(diff, state.currency)}</strong> so với mục tiêu. Cân nhắc giảm tỷ lệ rút vốn hàng năm (SWR) hoặc tăng tích lũy trước hưu.`
           }
         </p>
       </div>
@@ -5173,28 +5242,28 @@
       recs = [
         {
           tag: "tag-opportunity",
-          title: "🌍 Geo-arbitrage: Nghỉ hưu sớm hơn 12 năm nhờ Chênh lệch Sức mua",
+          title: "Geo-arbitrage: Nghỉ hưu sớm hơn 12 năm nhờ Chênh lệch Sức mua",
           text: `Bạn tích lũy thu nhập bằng EUR (€) tại Pháp nhưng sẽ chi tiêu bằng VND (₫) tại Việt Nam. Chi phí sống sung túc tại VN (~30 triệu ₫/tháng ≈ 1,100 €) chỉ bằng 1/3 chi phí tại Pháp. Nhờ đó, số tiền cần để đạt FIRE giảm ngoạn mục từ 800,000 € xuống chỉ còn khoảng 300,000 € - 330,000 €! Bạn hoàn toàn có thể FIRE ở tuổi 40-42.`,
           action: "Xem dự báo Dòng tiền →",
           targetTab: "tab-projections"
         },
         {
           tag: "tag-strategy",
-          title: "🇫🇷 Tối ưu Tài khoản PEA (Plan d'Épargne en Actions - Trần 150k€)",
+          title: "Tối ưu Tài khoản PEA (Plan d'Épargne en Actions - Trần 150k€)",
           text: `Tận dụng tối đa hạn mức PEA 150,000 € vào các quỹ ETF tích lũy toàn cầu (MSCI World CW8 / S&P 500). Theo luật thuế Pháp từ 2012, khi chuyển cư trú thuế về Việt Nam, bạn vẫn ĐƯỢC PHÉP GIỮ NGUYÊN tài khoản PEA tại ngân hàng/broker Pháp (BoursoBank, Fortuneo) mà không bị ép đóng tài khoản!`,
           action: "Xem tab Tối ưu Thuế →",
           targetTab: "tab-taxes"
         },
         {
           tag: "tag-opportunity",
-          title: "💶 Lương hưu Pháp (Agirc-Arrco & CNAV) không hề bị mất",
+          title: "Lương hưu Pháp (Agirc-Arrco & CNAV) không hề bị mất",
           text: `Số quý (trimestres) bạn đóng góp tại Pháp từ 23 đến 42 tuổi (~76 quý) sẽ được bảo lưu. Khi bạn bước sang tuổi 65, quỹ hưu trí Pháp sẽ chi trả lương hưu quốc tế hàng tháng (ước tính 500 - 800 €/tháng), gửi trực tiếp vào tài khoản ngân hàng của bạn tại Việt Nam.`,
           action: "Xem Dòng tiền Hưu trí →",
           targetTab: "tab-projections"
         },
         {
           tag: "tag-critical",
-          title: "📜 Hiệp định Tránh Đánh thuế Hai lần (France-Vietnam Tax Treaty)",
+          title: "Hiệp định Tránh Đánh thuế Hai lần (France-Vietnam Tax Treaty)",
           text: `Khi về Việt Nam sinh sống trên 183 ngày/năm, bạn trở thành cư dân thuế Việt Nam. Nhờ Hiệp định Tránh đánh thuế 2 lần (Convention Fiscale 1992), bạn không bị Pháp đánh thuế kép trên các khoản thu nhập đầu tư quốc tế.`,
           action: "Xem tab Tối ưu Thuế →",
           targetTab: "tab-taxes"
@@ -5333,10 +5402,10 @@
 
     const cur = getActivePlan();
     showConfirmDialog({
-      icon: "⚠️",
+      icon: "",
       title: "Xác nhận xóa kế hoạch",
       message: `Bạn có chắc chắn muốn xóa kế hoạch <strong>"${cur.name}"</strong>?<br><span style="font-size:0.75rem; color:#f87171; margin-top:6px; display:inline-block;">Hành động này không thể hoàn tác.</span>`,
-      confirmText: "🗑️ Xóa kế hoạch",
+      confirmText: "Xóa kế hoạch",
       onConfirm: () => {
         delete state.plansData.plans[cur.id];
         const remainingKeys = Object.keys(state.plansData.plans);
@@ -5450,15 +5519,16 @@
     const isDark = html.getAttribute("data-theme") === "dark";
     const nextTheme = isDark ? "light" : "dark";
     html.setAttribute("data-theme", nextTheme);
-    document.getElementById("theme-icon").innerText = nextTheme === "dark" ? "🌙" : "☀️";
+    document.getElementById("theme-icon").innerText = nextTheme === "dark" ? "Tối" : "Sáng";
     localStorage.setItem("pyRetrait_theme", nextTheme);
+    updateAll();
   }
 
   function loadTheme() {
     const saved = localStorage.getItem("pyRetrait_theme") || "dark";
     document.documentElement.setAttribute("data-theme", saved);
     const icon = document.getElementById("theme-icon");
-    if (icon) icon.innerText = saved === "dark" ? "🌙" : "☀️";
+    if (icon) icon.innerText = saved === "dark" ? "Tối" : "Sáng";
   }
 
   // Expose global interface for GeminiAdvisor and testing

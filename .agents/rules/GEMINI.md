@@ -80,11 +80,65 @@
 
 ## 6. UI / UX
 
-- **Thiết kế Dark Mode** là mặc định; hỗ trợ light mode nếu người dùng yêu cầu.
+- **Hỗ trợ toàn diện 2 chế độ (Dark Mode & Light Mode) — Nguyên tắc thiết kế bất biến:**
+  - Cả Dark Mode và Light Mode đều là công dân hạng nhất (first-class citizens), phải đảm bảo tính thẩm mỹ cao, độ tương phản sắc nét và dễ đọc (chuẩn WCAG AA).
+  - **Tuyệt đối KHÔNG hardcode màu nền tối cố định:**
+    - Cấm dùng `rgba(0, 0, 0, ...)`, `rgba(15, 23, 42, ...)`, `rgba(30, 41, 59, ...)`, `#0f172a`, `#1e293b` trong các class định nghĩa component gốc (như `.item`, `.card`, `.metric-item`, `.box`, `.row`, `.btn`, `.panel`, `.chip`).
+    - Lớp phủ đen bán trong suốt (`rgba(0, 0, 0, 0.15 - 0.3)`) khi đặt trên nền sáng của Light Mode sẽ bị biến thành màu xám xi măng đục/tối om — hoàn toàn bị cấm làm background thẻ nội dung.
+  - **Sử dụng 100% CSS Variables cho màu nền, viền và văn bản:**
+    - Nền: `var(--bg-app)`, `var(--bg-card)`, `var(--bg-card-hover)`, `var(--bg-sidebar)`, `var(--bg-input)`.
+    - Viền: `var(--border-subtle)`, `var(--border-strong)`.
+    - Chữ: `var(--text-main)`, `var(--text-muted)`, `var(--text-faint)`.
+  - **Quy chuẩn hiển thị Light Mode (`[data-theme="light"]`):**
+    - Mọi thẻ/hộp dữ liệu con (card, list item, metric item, breakdown box, table row, chip, callout) khi ở Light Mode phải có nền trắng thuần (`#ffffff`) hoặc màu sáng nhạt có chủ đích (`#f8fafc`, `#f0fdf4`), viền xám sáng tương phản rõ (`#cbd5e1`, `#e2e8f0`), chữ đen/xám đậm rõ nét (`#0f172a`, `#334155`).
+    - Các thành phần nổi bật (badge, metric subtext, tag) phải dùng nền màu nhạt (pastel/soft tint) kết hợp chữ màu đậm tương ứng (ví dụ: nền xanh ngọc nhạt `#ecfdf5` + chữ `#059669`, nền đỏ nhạt `#fef2f2` + chữ `#e11d48`).
+  - **Cấm inject màu nền tối hardcode trong JavaScript (`ui.js`, `patrimoine.js`, dynamic HTML):**
+    - Tuyệt đối không sinh HTML template string có chứa `style="background: rgba(...)"` hoặc `style="background: #0f172a..."`. Mọi dynamic styling phải dùng CSS class có sẵn hoặc biến CSS (`var(--bg-card)`).
+  - **Quy tắc Cache-Busting khi cập nhật CSS/Theme:**
+    - Mỗi khi bổ sung hoặc sửa đổi CSS (đặc biệt là quy tắc theme), bắt buộc phải tăng query version parameter (`?v=...`) trong thẻ `<link rel="stylesheet">` và `<script>` của `index.html` để đảm bảo trình duyệt người dùng nhận file mới ngay lập tức mà không bị kẹt cache cũ.
+  - **Quy Chuẩn Độ Tương Phản Văn Bản (Anti-Washed-Out & Typography Contrast):**
+    - **Tuyệt đối KHÔNG hardcode màu chữ xám nhạt/sáng trong HTML hoặc CSS cho văn bản thường:**
+      - Cấm dùng `#cbd5e1`, `#94a3b8`, `#e2e8f0`, `#64748b`, `#cbd5e1`, `#ffffff`, `#f8fafc` làm thuộc tính `color` cho đoạn văn, thẻ `<li>`, thẻ `<p>`, danh sách, nhãn hoặc nội dung hướng dẫn.
+      - Các màu chữ xám nhạt này chỉ đọc được trên nền tối. Khi hiển thị trên nền trắng (`#ffffff`) của Light Mode, chúng có độ tương phản cực thấp (< 2:1), khiến chữ bị bạc màu, mờ căm và không thể đọc nổi (vi phạm nghiêm trọng chuẩn tiếp cận WCAG AA).
+    - **Bắt buộc dùng 100% biến CSS cho màu văn bản:**
+      - Tiêu đề, chữ chính, nội dung quan trọng: `color: var(--text-main);` (Dark Mode: `#f8fafc`; Light Mode: `#0f172a` — độ tương phản 16:1).
+      - Chữ mô tả, danh sách gạch đầu dòng, nội dung giải thích: `color: var(--text-muted);` (Dark Mode: `#94a3b8`; Light Mode: `#475569` — độ tương phản 7.5:1).
+      - Chú thích nhỏ: `color: var(--text-faint);` (Dark Mode: `#64748b`; Light Mode: `#64748b`).
+    - **Màu chữ nhấn (Accent Titles & Highlights) phải phân tách rõ theo theme:**
+      - Tuyệt đối không dùng các mã màu pastel sáng (`#38bdf8`, `#60a5fa`, `#34d399`, `#fbbf24`) trực tiếp trên nền trắng vì sẽ bị chói/mờ tịt.
+      - Trong Light Mode:
+        - Xanh dương/cyan: Bắt buộc dùng màu đậm `#0284c7`, `#1d4ed8`, `#2563eb` (thay vì `#38bdf8`, `#60a5fa`).
+        - Xanh lá/ngọc: Bắt buộc dùng `#059669`, `#047857` (thay vì `#34d399`).
+        - Cam/vàng: Bắt buộc dùng hổ phách đậm `#d97706`, `#b45309` (thay vì `#fbbf24`).
+        - Đỏ/hồng: Bắt buộc dùng `#e11d48`, `#be123c` (thay vì `#fb7185`).
+        - Tím: Bắt buộc dùng `#7c3aed`, `#6d28d9` (thay vì `#c084fc`).
+    - **Không dùng inline styles để gán màu chữ:**
+      - Mọi thẻ thông tin, hướng dẫn (Guide cards, Callouts, Formula boxes) phải dùng CSS class có sẵn trong `styles.css` để stylesheet tự động điều chỉnh màu chữ tương phản cao trên cả 2 chế độ sáng và tối.
+  - **Quy Chuẩn Đồng Nhất Typography & Cấm Dùng Monospace Cho Văn Bản Tiếng Việt:**
+    - **Thống nhất 100% font giao diện chính `var(--font-sans)` (Inter):**
+      - Mọi văn bản giải thích, mô tả, công thức tài chính và cơ chế tính toán (ví dụ: `• Tuổi bé(t) = Năm chạy mô phỏng(t) - Năm sinh bé`, `• Chi phí 0–18t = Số bé × Nuôi con...`) bắt buộc phải sử dụng font chính của dự án `var(--font-sans)`, tuyệt đối KHÔNG để font `monospace` hoặc `var(--font-mono)`.
+      - **Lý do:** Font `monospace` khi hiển thị chữ Tiếng Việt có dấu (ă, â, đ, ê, ô, ơ, ư và các dấu thanh) sẽ gặp lỗi bất tương thích ký tự (inconsistent glyphs, dấu bị lệch hoặc biến dạng, khoảng cách ký tự đứt đoạn, fallback font xấu xí), tạo cảm giác thô kệch và lệch pha hoàn toàn so với phong cách thiết kế hiện đại của toàn bộ ứng dụng.
+    - **Quy định đối với thẻ `<code>` và các khối công thức:**
+      - Thẻ `<code>` khi dùng để thể hiện công thức tài chính, giải thuật hoặc ghi chú nghiệp vụ trong giao diện người dùng bắt buộc phải kế thừa `font-family: var(--font-sans);` kết hợp `font-weight: 500` hoặc `600`, bo góc, padding và màu sắc hài hòa.
+      - **Chỉ dùng `var(--font-mono)` hoặc `monospace` cho:** Các con số tài chính dạng bảng cần căn thẳng hàng (tabular figures), mã định danh (ticker, transaction ID, hash) hoặc câu lệnh kỹ thuật/terminal thuần túy không chứa văn bản tiếng Việt.
+  - **Quy Chuẩn Đồng Nhất Hệ Màu Cho Cột Mốc (Life Milestones & Chart Pins):**
+    - Toàn bộ các mốc sự kiện cuộc đời (Life Milestones) trên thanh Ribbon, Modal và trên Biểu Đồ (ghim mốc nổi floating pins, đường gióng nét đứt vertical guidelines, các chấm tròn data points) bắt buộc phải **dùng chung một hệ màu thống nhất theo theme**, tuyệt đối KHÔNG để mỗi mốc một màu sắc cầu vồng sặc sỡ (hồng, cam, vàng, tím, lục...).
+    - **Trong Light Mode (`[data-theme="light"]`):**
+      - Thẻ ghim trên biểu đồ: Nền trắng thuần (`#ffffff`), viền xám sáng rõ ràng (`#cbd5e1`), chữ xanh dương đậm sắc nét (`#0284c7`). Tuyệt đối CẤM hardcode nền đen/tối (`rgba(15, 23, 42, ...)` hoặc `#0f172a`) trên canvas ở Light Mode.
+      - Đường gióng nét đứt và chấm dữ liệu: Dùng chung một màu xanh dương đồng bộ (`rgba(2, 132, 199, 0.4)` / `#0284c7`).
+    - **Trong Dark Mode:**
+      - Thẻ ghim: Nền tối sang trọng (`rgba(15, 23, 42, 0.95)`), viền mờ (`rgba(56, 189, 248, 0.45)`), chữ và đường gióng màu cyan sáng (`#38bdf8`).
+    - Khi chuyển đổi chế độ sáng/tối (toggle theme), canvas biểu đồ phải được kích hoạt re-render ngay lập tức (`updateAll()`) để cập nhật màu nền và đường nét chuẩn xác.
+  - **Checklist bắt buộc trước khi hoàn thành task UI:**
+    - Luôn tự kiểm tra đối chiếu component mới/được sửa trên cả 2 chế độ:
+      1. Dark Mode: Nền tối sang trọng, viền mờ tinh tế, chữ sáng dễ đọc.
+      2. Light Mode: Nền trắng sạch sẽ (không có mảng xám đục hay mảng tối sót lại), viền sắc nét, chữ đen/xám đậm rõ ràng. Mọi dòng chữ phải sắc sảo, độ tương phản cao, tuyệt đối không bị mờ nhạt hay bạc màu.
+      3. Typography: Đồng nhất font `Inter` (`var(--font-sans)`), không để font chữ `monospace` lạc quẻ trong các câu văn bản hoặc công thức tiếng Việt.
+      4. Cột Mốc & Biểu Đồ: Thống nhất một màu hài hòa, không có ghim đen hay đường gióng đa sắc rối mắt.
 - Mọi thay đổi input phải cập nhật biểu đồ **tức thì** (debounce 300ms) — không cần nhấn nút "Tính toán".
 - Màu sắc biểu đồ phải nhất quán trong cả session; dùng bảng màu đã định nghĩa trong CSS variables.
 - Responsive: hoạt động tốt trên màn hình từ 768px trở lên (tablet landscape + desktop).
-- Không dùng `alert()` / `confirm()` của browser — thay bằng toast notification hoặc modal tùy chỉnh.
+- **Tuyệt đối KHÔNG dùng icon hoặc emoji trong toàn bộ project** (bao gồm HTML, CSS, JS, UI labels, buttons, navigation tabs, toast, modal, SVG icon trang trí, tên dữ liệu mẫu...). **Chỉ sử dụng icon khi người dùng yêu cầu rõ ràng.** Thiết kế ưu tiên phong cách tối giản (clean, minimalist, typography-first).
 - Mọi số tiền hiển thị phải có dấu phân cách nghìn (`.` cho VND, `,` cho EUR/USD) và ký hiệu tiền tệ.
 
 ---
