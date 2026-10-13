@@ -20,7 +20,7 @@
   </script>
   
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=20261013_v14">
+  <link rel="stylesheet" href="css/styles.css?v=20261013_v23">
 </head>
 <body>
   <!-- Top Navigation Bar -->
@@ -40,6 +40,7 @@
           <!-- Dynamic options loaded via JS -->
         </select>
       </div>
+      <button id="btn-quick-setup" class="btn btn-primary btn-sm btn-trigger-quick-setup" style="font-weight: 700; padding: 0.4rem 0.85rem; box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);" title="Trình hướng dẫn thiết lập kế hoạch nhanh 4 bước">Thiết lập nhanh</button>
       <button id="btn-new-plan" class="btn btn-secondary btn-sm" title="Tạo kế hoạch mới">+ Mới</button>
       <button id="btn-duplicate-plan" class="btn btn-ghost btn-sm" title="Nhân bản kế hoạch này">Nhân bản</button>
       <button id="btn-delete-plan" class="btn btn-ghost btn-sm" title="Xóa kế hoạch hiện tại" style="color: var(--danger);"> Xóa</button>
@@ -58,20 +59,6 @@
       <button id="btn-header-formula-guide" class="btn btn-secondary btn-sm btn-open-formula-modal" style="display: flex; align-items: center; gap: 0.35rem; font-weight: 500;" title="Sổ tay công thức toán học pyRetrait">
         <span> Công thức</span>
       </button>
-
-      <!-- Export Menu -->
-      <div class="dropdown-menu-wrapper">
-        <button id="btn-export-menu" class="btn btn-primary btn-sm">
-          <span>Xuất báo cáo ▾</span>
-        </button>
-        <div class="dropdown-content" id="export-dropdown">
-          <a href="#" id="export-pdf-btn"> In Báo cáo Tóm tắt (PDF)</a>
-          <a href="#" id="export-csv-btn"> Tải Bảng Dòng tiền (CSV)</a>
-          <a href="#" id="export-json-btn"> Sao lưu Dữ liệu (JSON)</a>
-          <a href="#" id="import-json-btn"> Nhập Dữ liệu (JSON)</a>
-        </div>
-        <input type="file" id="json-file-input" style="display:none" accept=".json">
-      </div>
 
       <!-- User Account Widget -->
       <div class="dropdown-menu-wrapper user-account-wrapper">
@@ -93,8 +80,8 @@
       </div>
 
       <!-- Theme Switch -->
-      <button id="theme-toggle-btn" class="btn-icon" title="Chuyển đổi giao diện Sáng/Tối">
-        <span id="theme-icon">Giao diện</span>
+      <button id="theme-toggle-btn" class="btn-icon" title="Chuyển đổi giao diện Sáng/Tối" aria-label="Chuyển đổi giao diện Sáng/Tối">
+        <span id="theme-icon" aria-hidden="true"></span>
       </button>
     </div>
   </header>
@@ -147,6 +134,13 @@
           </div>
         </button>
       </nav>
+
+      <!-- Quick Setup Button in Sidebar -->
+      <div style="padding: 0 0.5rem 0.85rem 0.5rem;">
+        <button type="button" class="btn btn-primary btn-sm btn-trigger-quick-setup" style="width: 100%; font-weight: 700; padding: 0.55rem; justify-content: center; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);" title="Trình hướng dẫn thiết lập nhanh tuần tự">
+          Thiết lập nhanh 4 bước
+        </button>
+      </div>
 
       <!-- Sidebar Quick Summary Card -->
       <div class="sidebar-summary-card">
@@ -226,15 +220,26 @@
           <div class="panel-controls">
             <div class="card">
               <h3 class="card-title"> Thông số Cơ bản & Dòng tiền</h3>
+
+              <!-- Quick Setup Banner Callout -->
+              <div class="quick-setup-banner" style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 182, 212, 0.12)); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 8px; padding: 0.75rem 1rem; margin-top: 0.5rem; margin-bottom: 1.1rem;">
+                <div>
+                  <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-main); margin-bottom: 0.15rem;">Bắt đầu kế hoạch mới?</div>
+                  <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">Dùng Trình Thiết Lập Nhanh 4 bước để tự động điền các tham số theo trình tự khoa học và chuẩn xác nhất.</div>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm btn-trigger-quick-setup" style="white-space: nowrap; font-weight: 700; padding: 0.45rem 0.85rem; flex-shrink: 0;">Thiết lập nhanh 4 bước</button>
+              </div>
               
               <div class="form-row">
                 <div class="form-group col-1">
-                  <label for="inp-birth-year">Năm sinh</label>
+                  <div class="field-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                    <label for="inp-birth-year" style="margin-bottom: 0;">Năm sinh</label>
+                    <span class="badge-header-hint" id="hint-current-age-badge" title="Tuổi hiện tại (Tự động tính từ năm sinh)">
+                      <span>Tuổi hiện tại:</span> <strong id="lbl-current-age">29t</strong>
+                    </span>
+                  </div>
                   <input type="number" id="inp-birth-year" min="1940" max="2025" value="1997" class="form-input" placeholder="1997">
-                </div>
-                <div class="form-group col-1">
-                  <label for="inp-current-age">Tuổi hiện tại</label>
-                  <input type="number" id="inp-current-age" min="18" max="80" value="29" class="form-input">
+                  <input type="hidden" id="inp-current-age" value="29">
                 </div>
                 <div class="form-group col-1">
                   <label for="inp-life-expectancy">Kỳ vọng tuổi thọ</label>
@@ -247,11 +252,11 @@
                 <div class="form-group col-1">
                   <div class="field-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
                     <label for="inp-retire-age" style="margin-bottom: 0;">Tuổi nghỉ hưu</label>
-                    <span class="input-hint text-accent" id="hint-optimal-retire-age" style="margin: 0; font-size: 0.72rem; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 4px; transition: all 0.2s ease;" title="Nhấp để áp dụng tuổi tối ưu">
-                      <span> Gợi ý:</span> <strong id="lbl-optimal-age" style="text-decoration: underline;">42t</strong>
+                    <span class="badge-header-hint clickable" id="hint-optimal-retire-age" title="Nhấp để áp dụng tuổi tối ưu">
+                      <span> Gợi ý:</span> <strong id="lbl-optimal-age" style="text-decoration: underline;">43t</strong>
                     </span>
                   </div>
-                  <input type="number" id="inp-retire-age" min="25" max="80" value="42" class="form-input">
+                  <input type="number" id="inp-retire-age" min="25" max="80" value="43" class="form-input">
                 </div>
               </div>
 
@@ -380,77 +385,147 @@
                 <span id="hint-annual-savings" style="display: none;"></span>
               </div>
 
-              <!-- Lương Hưu Nhà Nước Pháp (Retraite de Base & Décote) - Extended Full-Width -->
-              <div class="pension-composite-card" id="panel-french-pension">
-                <div class="pension-composite-header">
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-weight: 700; font-size: 0.82rem; color: #f59e0b; display: flex; align-items: center; gap: 0.4rem; text-transform: uppercase; letter-spacing: 0.02em;">
-                      Lương hưu Pháp & Kiểm tra Décote
-                    </span>
-                    <span class="field-badge font-mono" id="badge-pension-status" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">172 Quý</span>
+              <!-- Hưu Trí 2 Trụ Cột: Pháp & Việt Nam (Side-by-Side) -->
+              <div class="pension-dual-wrapper" id="panel-dual-pension">
+                <div class="pension-dual-grid">
+                  <!-- CỘT 1: Lương Hưu Nhà Nước Pháp (Retraite de Base & Décote) -->
+                  <div class="pension-subcard pension-subcard-france" id="panel-french-pension">
+                    <div class="pension-composite-header">
+                      <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 700; font-size: 0.82rem; color: #f59e0b; display: flex; align-items: center; gap: 0.4rem; text-transform: uppercase; letter-spacing: 0.02em;">
+                          Lương hưu Pháp & Kiểm tra Décote
+                        </span>
+                        <span class="field-badge font-mono" id="badge-pension-status" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">172 Quý</span>
+                      </div>
+                    </div>
+
+                    <div class="pension-subcard-body">
+                      <div class="form-row">
+                        <div class="form-group col-6">
+                          <label for="inp-start-work-age">Bắt đầu đi làm (tuổi)</label>
+                          <input type="number" id="inp-start-work-age" min="18" max="40" value="24" class="form-input">
+                        </div>
+                        <div class="form-group col-6">
+                          <label for="inp-pension-age">Tuổi bắt đầu nhận hưu</label>
+                          <input type="number" id="inp-pension-age" min="62" max="70" value="64" class="form-input">
+                        </div>
+                      </div>
+
+                      <div class="form-group" style="margin-bottom: 0.4rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                          <label for="inp-pension-base-annual" style="margin-bottom: 0; font-weight: 500;">Lương hưu mục tiêu khi đủ 43 năm (<span id="unit-pension-base">€</span>/năm)</label>
+                          <button type="button" id="btn-auto-pension-base" class="btn btn-xs" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); cursor: pointer;" title="Tự động tính từ mức lương sự nghiệp (CNAV 50% + Agirc-Arrco)">
+                             Tự động tính theo lương
+                          </button>
+                        </div>
+                        <input type="number" id="inp-pension-base-annual" value="18000" step="500" class="form-input">
+                        <div id="hint-pension-base-auto" style="font-size: 0.73rem; color: var(--text-faint); margin-top: 4px; display: flex; justify-content: space-between; align-items: center;">
+                          <span id="txt-pension-base-explanation"> Ước tính từ lương: ~17.700 €/năm (Tỷ lệ thay thế ~62% lương CNAV + Agirc-Arrco)</span>
+                          <span id="badge-pension-base-mode" style="font-size: 0.68rem; padding: 1px 6px; border-radius: 3px; background: rgba(52, 211, 153, 0.15); color: #34d399;">Tự động</span>
+                        </div>
+                      </div>
+
+                      <div id="box-pension-decote-live" class="pension-calc-live-box">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                          <span>Số quý tích lũy khi nghỉ việc:</span>
+                          <strong id="lbl-pension-quarters" class="font-mono text-warning">76 / 172 quý</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                          <span>Mức phạt Décote (nghỉ trước 67t):</span>
+                          <strong id="lbl-pension-decote" class="font-mono text-danger">-25% (kịch khung)</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                          <span>Lương hưu thực nhận tuổi 64:</span>
+                          <strong id="lbl-pension-effective" class="font-mono text-success">~5,965 €/năm (~497 €/tháng)</strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- CỘT 2: Lương Hưu Việt Nam (BHXH Tự Nguyện) -->
+                  <div class="pension-subcard pension-subcard-vietnam" id="panel-vietnam-bhxh">
+                    <div class="pension-composite-header">
+                      <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <label for="chk-enable-bhxh-vn" class="pension-label-bhxh">
+                          <input type="checkbox" id="chk-enable-bhxh-vn" checked style="accent-color: #10b981; width: 16px; height: 16px; cursor: pointer;">
+                          <span>Lương hưu VN (BHXH tự nguyện)</span>
+                        </label>
+                        <span class="field-badge font-mono" id="badge-bhxh-status" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">15 năm (Luật 2024)</span>
+                      </div>
+                    </div>
+
+                    <div class="pension-subcard-body" id="bhxh-inputs-body">
+                      <div class="form-row">
+                        <div class="form-group col-6">
+                          <label for="sel-calc-bhxh-income">Mức thu nhập chọn đóng</label>
+                          <select id="sel-calc-bhxh-income" class="form-input">
+                            <option value="5000000">5.000.000 ₫/tháng</option>
+                            <option value="10000000" selected>10.000.000 ₫/tháng</option>
+                            <option value="15000000">15.000.000 ₫/tháng</option>
+                            <option value="20000000">20.000.000 ₫/tháng</option>
+                            <option value="30000000">30.000.000 ₫/tháng</option>
+                          </select>
+                        </div>
+                        <div class="form-group col-6">
+                          <label for="sel-calc-bhxh-years">Số năm đóng tối thiểu</label>
+                          <select id="sel-calc-bhxh-years" class="form-input">
+                            <option value="15" selected>15 năm (chuẩn Luật 2024)</option>
+                            <option value="20">20 năm</option>
+                            <option value="25">25 năm</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div class="form-row">
+                        <div class="form-group col-6">
+                          <label for="inp-bhxh-start-age">Bắt đầu đóng (tuổi)</label>
+                          <input type="number" id="inp-bhxh-start-age" min="18" max="60" value="29" class="form-input">
+                        </div>
+                        <div class="form-group col-6">
+                          <label for="inp-bhxh-retire-age">Tuổi nhận lương hưu VN</label>
+                          <input type="number" id="inp-bhxh-retire-age" min="55" max="70" value="62" class="form-input">
+                        </div>
+                      </div>
+
+                      <div id="box-bhxh-calc-live" class="pension-calc-live-box">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                          <span>Tiền đóng hàng tháng (22%):</span>
+                          <strong id="lbl-bhxh-monthly-pay" class="font-mono text-warning">2.200.000 ₫ (~80 €)</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                          <span>Lương hưu nhận khi về già:</span>
+                          <strong id="lbl-bhxh-pension-est" class="font-mono text-success">~4.500.000 ₫ (~164 €)</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                          <span>Quyền lợi y tế đi kèm:</span>
+                          <strong class="text-accent" style="font-weight: 600;">Thẻ BHYT miễn phí 95% trọn đời</strong>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div class="pension-composite-grid">
-                  <!-- Cột trái: Inputs và Thống kê trực tiếp -->
-                  <div class="pension-composite-left">
-                    <div class="form-row">
-                      <div class="form-group col-6">
-                        <label for="inp-start-work-age">Bắt đầu đi làm (tuổi)</label>
-                        <input type="number" id="inp-start-work-age" min="18" max="40" value="24" class="form-input">
-                      </div>
-                      <div class="form-group col-6">
-                        <label for="inp-pension-age">Tuổi bắt đầu nhận hưu</label>
-                        <input type="number" id="inp-pension-age" min="62" max="70" value="64" class="form-input">
-                      </div>
-                    </div>
-
-                    <div class="form-group" style="margin-bottom: 0.4rem;">
-                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-                        <label for="inp-pension-base-annual" style="margin-bottom: 0; font-weight: 500;">Lương hưu mục tiêu khi đủ 43 năm (<span id="unit-pension-base">€</span>/năm)</label>
-                        <button type="button" id="btn-auto-pension-base" class="btn btn-xs" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); cursor: pointer;" title="Tự động tính từ mức lương sự nghiệp (CNAV 50% + Agirc-Arrco)">
-                           Tự động tính theo lương
-                        </button>
-                      </div>
-                      <input type="number" id="inp-pension-base-annual" value="18000" step="500" class="form-input">
-                      <div id="hint-pension-base-auto" style="font-size: 0.73rem; color: var(--text-faint); margin-top: 4px; display: flex; justify-content: space-between; align-items: center;">
-                        <span id="txt-pension-base-explanation"> Ước tính từ lương: ~17.700 €/năm (Tỷ lệ thay thế ~62% lương CNAV + Agirc-Arrco)</span>
-                        <span id="badge-pension-base-mode" style="font-size: 0.68rem; padding: 1px 6px; border-radius: 3px; background: rgba(52, 211, 153, 0.15); color: #34d399;">Tự động</span>
-                      </div>
-                    </div>
-
-                    <div id="box-pension-decote-live" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.6rem 0.85rem; font-size: 0.78rem;">
-                      <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-                        <span>Số quý tích lũy khi nghỉ việc:</span>
-                        <strong id="lbl-pension-quarters" class="font-mono text-warning">76 / 172 quý</strong>
-                      </div>
-                      <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-                        <span>Mức phạt Décote (nghỉ trước 67t):</span>
-                        <strong id="lbl-pension-decote" class="font-mono text-danger">-25% (kịch khung)</strong>
-                      </div>
-                      <div style="display: flex; justify-content: space-between;">
-                        <span>Lương hưu thực nhận tuổi 64:</span>
-                        <strong id="lbl-pension-effective" class="font-mono text-success">~5,965 €/năm (~497 €/tháng)</strong>
-                      </div>
+                <!-- CÔNG THỨC NẰM Ở DƯỚI (Side-by-side 2 công thức) -->
+                <div class="pension-formulas-row">
+                  <!-- Công thức Pháp -->
+                  <div class="formula-inline-box formula-warning" style="margin: 0; font-size: 0.72rem; padding: 0.55rem 0.75rem;">
+                    <div class="formula-tag">Công thức Hưu Trí Pháp (Réforme 2023)</div>
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.35rem;">
+                      <code>• Lương mục tiêu 43n (Taux Plein) = CNAV (50% lương ≤ PASS) + Agirc-Arrco (~15-25% lương)</code>
+                      <code>• Số quý = (min(Tuổi hưu FIRE, Tuổi nhận hưu) - Tuổi đi làm) × 4 (Chuẩn: 172 quý = 43 năm)</code>
+                      <code>• Tỷ lệ Prorata = min(172, Số quý) / 172 • Phạt Décote = -1.25%/quý thiếu (&lt; 67t)</code>
+                      <code>• Lương thực nhận = Lương mục tiêu × Prorata × (1 - Décote)</code>
                     </div>
                   </div>
 
-                  <!-- Cột phải: Công thức Hưu Trí Pháp Réforme 2023 -->
-                  <div class="pension-composite-right">
-                    <div class="formula-inline-box formula-warning" style="margin: 0; height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
-                      <div>
-                        <div class="formula-tag"> Công thức Hưu Trí Pháp (Réforme 2023)</div>
-                        <div style="display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.35rem;">
-                          <code>• Lương mục tiêu 43n (Taux Plein) = CNAV (50% lương ≤ PASS) + Agirc-Arrco (~15-25% lương)</code>
-                          <code>• Số quý = (min(Tuổi hưu FIRE, Tuổi nhận hưu) - Tuổi đi làm) × 4 (Chuẩn: 172 quý = 43 năm)</code>
-                          <code>• Tỷ lệ Prorata = min(172, Số quý) / 172</code>
-                          <code>• Phạt Décote = -1.25% × Quý thiếu (Tối đa -25% nếu &lt; 67t; Đủ 67t tự động = 0%)</code>
-                          <code>• Lương thực nhận = Lương mục tiêu × Prorata × (1 - Décote)</code>
-                        </div>
-                      </div>
-                      <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.45rem; line-height: 1.4;">
-                         <em>Lưu ý:</em> Chuẩn sức mua hiện tại; engine tự động cộng dồn lạm phát tương lai.
-                      </div>
+                  <!-- Công thức Việt Nam -->
+                  <div class="formula-inline-box formula-success" style="margin: 0; font-size: 0.72rem; padding: 0.55rem 0.75rem;">
+                    <div class="formula-tag">Công thức BHXH Tự Nguyện Việt Nam (Luật 2024)</div>
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.35rem;">
+                      <code>• Tiền đóng/tháng = Thu nhập chọn đóng × 22% (Nhà nước hỗ trợ 10-50% chuẩn nghèo)</code>
+                      <code>• Tỷ lệ hưởng lương hưu 15 năm = 45% (Nữ) hoặc 40% (Nam); thêm mỗi năm +2% (tối đa 75%)</code>
+                      <code>• Thời gian hoàn vốn = Tổng tiền đã đóng ÷ (Lương hưu/tháng × 12) ≈ 7.3 năm</code>
+                      <code>• Quyền lợi bảo trợ: Thẻ BHYT miễn phí 95% trọn đời trong suốt thời gian nhận lương hưu</code>
                     </div>
                   </div>
                 </div>
@@ -736,8 +811,10 @@
                   <div class="gemini-header-left">
                     <span class="gemini-sparkle"></span>
                     <span class="gemini-title">Gemini AI Nhận xét & Đánh giá Chiến lược</span>
-                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-networth">Gemini Intelligence</span>
-                    <span class="gemini-header-time" id="gemini-time-chart-networth"></span>
+                    <span class="gemini-badge-group">
+                      <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-networth">Gemini Intelligence</span>
+                      <span class="gemini-header-time" id="gemini-time-chart-networth"></span>
+                    </span>
                   </div>
                   <button type="button" class="btn-gemini-refresh" data-chart="chart-networth" title="Phân tích lại với Gemini">
                     Phân tích lại
@@ -767,8 +844,10 @@
                   <div class="gemini-header-left">
                     <span class="gemini-sparkle"></span>
                     <span class="gemini-title">Gemini AI Nhận xét & Đánh giá Dòng tiền</span>
-                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-cashflow">Gemini Intelligence</span>
-                    <span class="gemini-header-time" id="gemini-time-chart-cashflow"></span>
+                    <span class="gemini-badge-group">
+                      <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-cashflow">Gemini Intelligence</span>
+                      <span class="gemini-header-time" id="gemini-time-chart-cashflow"></span>
+                    </span>
                   </div>
                   <button type="button" class="btn-gemini-refresh" data-chart="chart-cashflow" title="Phân tích lại với Gemini">
                     Phân tích lại
@@ -933,8 +1012,10 @@
                 <div class="gemini-header-left">
                   <span class="gemini-sparkle"></span>
                   <span class="gemini-title">Gemini AI So sánh & Đánh giá Rút tiền</span>
-                  <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-withdrawal-comparison">Gemini Intelligence</span>
-                  <span class="gemini-header-time" id="gemini-time-chart-withdrawal-comparison"></span>
+                  <span class="gemini-badge-group">
+                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-withdrawal-comparison">Gemini Intelligence</span>
+                    <span class="gemini-header-time" id="gemini-time-chart-withdrawal-comparison"></span>
+                  </span>
                 </div>
                 <button type="button" class="btn-gemini-refresh" data-chart="chart-withdrawal-comparison" title="Phân tích lại với Gemini">
                   Phân tích lại
@@ -1036,8 +1117,10 @@
                   <div class="gemini-header-left">
                     <span class="gemini-sparkle"></span>
                     <span class="gemini-title">Gemini AI Nhận xét Chiến lược Tối ưu Thuế</span>
-                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-tax-optimization">Gemini Intelligence</span>
-                    <span class="gemini-header-time" id="gemini-time-chart-tax-optimization"></span>
+                    <span class="gemini-badge-group">
+                      <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-tax-optimization">Gemini Intelligence</span>
+                      <span class="gemini-header-time" id="gemini-time-chart-tax-optimization"></span>
+                    </span>
                   </div>
                   <button type="button" class="btn-gemini-refresh" data-chart="chart-tax-optimization" title="Phân tích lại với Gemini">
                     Phân tích lại
@@ -1651,8 +1734,10 @@
                 <div class="gemini-header-left">
                   <span class="gemini-sparkle"></span>
                   <span class="gemini-title">Gemini AI Đánh giá Rủi ro & Xác suất Monte Carlo</span>
-                  <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-monte-carlo">Gemini Intelligence</span>
-                  <span class="gemini-header-time" id="gemini-time-chart-monte-carlo"></span>
+                  <span class="gemini-badge-group">
+                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-monte-carlo">Gemini Intelligence</span>
+                    <span class="gemini-header-time" id="gemini-time-chart-monte-carlo"></span>
+                  </span>
                 </div>
                 <button type="button" class="btn-gemini-refresh" data-chart="chart-monte-carlo" title="Phân tích lại với Gemini">
                   Phân tích lại
@@ -1705,8 +1790,10 @@
                 <div class="gemini-header-left">
                   <span class="gemini-sparkle"></span>
                   <span class="gemini-title">Gemini AI Đánh giá Toàn cảnh 5 Kịch bản Biến cố</span>
-                  <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-scenarios">Gemini Intelligence</span>
-                  <span class="gemini-header-time" id="gemini-time-chart-scenarios"></span>
+                  <span class="gemini-badge-group">
+                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-scenarios">Gemini Intelligence</span>
+                    <span class="gemini-header-time" id="gemini-time-chart-scenarios"></span>
+                  </span>
                 </div>
                 <button type="button" class="btn-gemini-refresh" data-chart="chart-scenarios" title="Phân tích lại với Gemini">
                   Phân tích lại
@@ -2069,8 +2156,10 @@ Go-Go: 1.15x  |  Slow-Go: 0.90x  |  No-Go: 0.80x</code>
                   <div class="gemini-header-left">
                     <span class="gemini-sparkle"></span>
                     <span class="gemini-title">Gemini AI Nhận xét Đường cong Chi tiêu & Thừa kế</span>
-                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-spending-smile">Gemini Intelligence</span>
-                    <span class="gemini-header-time" id="gemini-time-chart-spending-smile"></span>
+                    <span class="gemini-badge-group">
+                      <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-spending-smile">Gemini Intelligence</span>
+                      <span class="gemini-header-time" id="gemini-time-chart-spending-smile"></span>
+                    </span>
                   </div>
                   <button type="button" class="btn-gemini-refresh" data-chart="chart-spending-smile" title="Phân tích lại với Gemini">
                     Phân tích lại
@@ -2231,7 +2320,7 @@ Go-Go: 1.15x  |  Slow-Go: 0.90x  |  No-Go: 0.80x</code>
                     <div class="form-row" style="margin-bottom: 0.4rem;">
                       <div class="form-group col-6" style="margin-bottom: 0;">
                         <label style="font-size: 0.72rem;">Mức thu nhập chọn đóng</label>
-                        <select id="sel-calc-bhxh-income" class="form-input" style="padding: 0.35rem 0.5rem; font-size: 0.78rem;">
+                        <select id="guide-sel-calc-bhxh-income" class="form-input" style="padding: 0.35rem 0.5rem; font-size: 0.78rem;">
                           <option value="5000000">5.000.000 ₫/tháng</option>
                           <option value="10000000" selected>10.000.000 ₫/tháng</option>
                           <option value="15000000">15.000.000 ₫/tháng</option>
@@ -2240,7 +2329,7 @@ Go-Go: 1.15x  |  Slow-Go: 0.90x  |  No-Go: 0.80x</code>
                       </div>
                       <div class="form-group col-6" style="margin-bottom: 0;">
                         <label style="font-size: 0.72rem;">Số năm đóng</label>
-                        <select id="sel-calc-bhxh-years" class="form-input" style="padding: 0.35rem 0.5rem; font-size: 0.78rem;">
+                        <select id="guide-sel-calc-bhxh-years" class="form-input" style="padding: 0.35rem 0.5rem; font-size: 0.78rem;">
                           <option value="15" selected>15 năm (chuẩn mới)</option>
                           <option value="20">20 năm</option>
                         </select>
@@ -2248,8 +2337,8 @@ Go-Go: 1.15x  |  Slow-Go: 0.90x  |  No-Go: 0.80x</code>
                     </div>
                     <!-- Live Output -->
                     <div class="guide-calc-box">
-                      <div>• Tiền đóng hàng tháng (22%): <strong id="lbl-bhxh-monthly-pay" style="color: var(--primary);">2.200.000 ₫/tháng (~80 €)</strong></div>
-                      <div>• Lương hưu nhận khi về già: <strong id="lbl-bhxh-pension-est" style="color: var(--primary);">~4.500.000 ₫/tháng (~164 €)</strong></div>
+                      <div>• Tiền đóng hàng tháng (22%): <strong id="guide-lbl-bhxh-monthly-pay" style="color: var(--primary);">2.200.000 ₫/tháng (~80 €)</strong></div>
+                      <div>• Lương hưu nhận khi về già: <strong id="guide-lbl-bhxh-pension-est" style="color: var(--primary);">~4.500.000 ₫/tháng (~164 €)</strong></div>
                       <div>• Quyền lợi đi kèm: <strong>Thẻ BHYT miễn phí 95% trọn đời</strong></div>
                     </div>
                     <!-- Inline Formula: BHXH Voluntary -->
@@ -3225,6 +3314,194 @@ Go-Go: 1.15x  |  Slow-Go: 0.90x  |  No-Go: 0.80x</code>
     </div>
   </div>
 
+  <!-- Modal: Onboarding Wizard (Thiết Lập Nhanh 4 Bước) -->
+  <div class="modal-overlay" id="quick-setup-modal" style="display: none; z-index: 99990;">
+    <div class="modal-card modal-lg wizard-modal-card">
+      <div class="modal-header wizard-modal-header">
+        <div>
+          <h3 class="modal-title">Thiết lập Kế hoạch Nghỉ hưu Nhanh</h3>
+          <p class="modal-subtitle" style="font-size: 0.82rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">
+            4 bước chuẩn xác để tính toán tức thì lộ trình FIRE & Tự do Tài chính
+          </p>
+        </div>
+        <button class="modal-close" id="btn-close-quick-setup" title="Đóng cửa sổ"></button>
+      </div>
+
+      <!-- Stepper Progress Bar -->
+      <div class="wizard-stepper">
+        <div class="wizard-step-indicator active" data-step="1">
+          <span class="step-num">1</span>
+          <span class="step-text">Thời gian</span>
+        </div>
+        <div class="wizard-step-line"></div>
+        <div class="wizard-step-indicator" data-step="2">
+          <span class="step-num">2</span>
+          <span class="step-text">Tài sản & Tiết kiệm</span>
+        </div>
+        <div class="wizard-step-line"></div>
+        <div class="wizard-step-indicator" data-step="3">
+          <span class="step-num">3</span>
+          <span class="step-text">Chi tiêu hưu trí</span>
+        </div>
+        <div class="wizard-step-line"></div>
+        <div class="wizard-step-indicator" data-step="4">
+          <span class="step-num">4</span>
+          <span class="step-text">Khẩu vị đầu tư</span>
+        </div>
+      </div>
+
+      <div class="modal-body wizard-modal-body">
+        <!-- BƯỚC 1: Thời gian & Cột mốc -->
+        <div class="wizard-pane active" id="wizard-step-1">
+          <h4 class="wizard-pane-title">Cột mốc thời gian cuộc đời</h4>
+          <p class="wizard-pane-desc">Xác định thời điểm hiện tại và độ tuổi bạn mong muốn đạt tự do tài chính.</p>
+          
+          <div class="wizard-form-grid">
+            <div class="form-group">
+              <label for="wz-birth-year" class="form-label">Năm sinh</label>
+              <input type="number" id="wz-birth-year" class="form-input" min="1940" max="2025" value="1997" placeholder="1997">
+            </div>
+            <div class="form-group">
+              <label for="wz-cur-age" class="form-label">Tuổi hiện tại <span style="font-size: 0.74rem; color: var(--primary); font-weight: 500;">(Tự động tính)</span></label>
+              <div class="input-with-sym">
+                <input type="number" id="wz-cur-age" class="form-input" min="18" max="90" value="29" readonly tabindex="-1" style="background: var(--bg-app); color: var(--text-muted); cursor: default;">
+                <span class="wz-age-unit" style="position: absolute; right: 0.75rem; color: var(--text-muted); font-size: 0.82rem; font-weight: 600; pointer-events: none;">tuổi</span>
+              </div>
+            </div>
+            <div class="form-group full-width">
+              <label for="wz-retire-age" class="form-label">Tuổi mong muốn nghỉ hưu / Tự do tài chính</label>
+              <input type="number" id="wz-retire-age" class="form-input" min="20" max="85" value="45">
+              <div class="quick-pill-group" style="margin-top: 0.5rem;">
+                <button type="button" class="btn-quick-pill" data-target="wz-retire-age" data-val="40">FIRE Sớm: 40t</button>
+                <button type="button" class="btn-quick-pill" data-target="wz-retire-age" data-val="45">FIRE Cân bằng: 45t</button>
+                <button type="button" class="btn-quick-pill" data-target="wz-retire-age" data-val="55">Vững vàng: 55t</button>
+                <button type="button" class="btn-quick-pill" data-target="wz-retire-age" data-val="64">Chuẩn Pháp: 64t</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="wz-life-exp" class="form-label">Kỳ vọng sống (Tuổi kết thúc mô phỏng)</label>
+              <input type="number" id="wz-life-exp" class="form-input" min="60" max="110" value="85">
+            </div>
+            <div class="form-group">
+              <label for="wz-plan-name" class="form-label">Tên kế hoạch</label>
+              <input type="text" id="wz-plan-name" class="form-input" value="Kế hoạch Cá nhân Mới">
+            </div>
+          </div>
+        </div>
+
+        <!-- BƯỚC 2: Tài sản & Tích lũy -->
+        <div class="wizard-pane" id="wizard-step-2">
+          <h4 class="wizard-pane-title">Nền tảng tài chính hiện có & Tích lũy hàng năm</h4>
+          <p class="wizard-pane-desc">Nhập số tiền bạn đang sở hữu và số tiền bạn dự định đầu tư tích lũy thêm mỗi năm.</p>
+
+          <div class="wizard-form-grid">
+            <div class="form-group full-width">
+              <label for="wz-savings" class="form-label">Tổng tài sản thanh khoản hiện có (Tiền gửi, Chứng khoán, Quỹ ETF...)</label>
+              <div class="input-with-sym">
+                <input type="number" id="wz-savings" class="form-input" min="0" step="1000" value="50000">
+                <span class="wz-currency-sym">€</span>
+              </div>
+              <div class="quick-pill-group" style="margin-top: 0.5rem;">
+                <button type="button" class="btn-quick-pill" data-target="wz-savings" data-val="10000">10,000</button>
+                <button type="button" class="btn-quick-pill" data-target="wz-savings" data-val="30000">30,000</button>
+                <button type="button" class="btn-quick-pill" data-target="wz-savings" data-val="50000">50,000</button>
+                <button type="button" class="btn-quick-pill" data-target="wz-savings" data-val="100000">100,000</button>
+                <button type="button" class="btn-quick-pill" data-target="wz-savings" data-val="200000">200,000</button>
+              </div>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="wz-annual-savings" class="form-label">Số tiền tiết kiệm & Đầu tư thêm mỗi năm từ thu nhập</label>
+              <div class="input-with-sym">
+                <input type="number" id="wz-annual-savings" class="form-input" min="0" step="500" value="12000">
+                <span class="wz-currency-sym">€/năm</span>
+              </div>
+              <p class="form-hint" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.35rem;">
+                Tương đương ≈ <strong id="wz-monthly-savings-calc" style="color: var(--text-main);">1,000 €/tháng</strong> đầu tư đều đặn.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- BƯỚC 3: Chi tiêu hưu trí -->
+        <div class="wizard-pane" id="wizard-step-3">
+          <h4 class="wizard-pane-title">Chi tiêu mong muốn khi về hưu</h4>
+          <p class="wizard-pane-desc">Ước tính mức sống bạn muốn duy trì mỗi tháng sau khi ngừng làm việc (tính theo thời giá hiện tại).</p>
+
+          <div class="preset-cards-grid">
+            <div class="wizard-preset-card" data-spend="1500">
+              <div class="preset-badge">Mức Tiết Kiệm</div>
+              <div class="preset-amount">1,500 <span class="wz-currency-sym">€</span><span class="preset-period">/tháng</span></div>
+              <div class="preset-desc">Chi trả sinh hoạt cơ bản, nhà ở giản dị, ít du lịch xa xỉ. Phù hợp Việt Nam hoặc tỉnh lẻ Pháp.</div>
+            </div>
+            <div class="wizard-preset-card active" data-spend="2500">
+              <div class="preset-badge badge-popular">Mức Thoải Mái (Khuyên dùng)</div>
+              <div class="preset-amount">2,500 <span class="wz-currency-sym">€</span><span class="preset-period">/tháng</span></div>
+              <div class="preset-desc">Ăn uống đầy đủ, chi tiêu sở thích, du lịch định kỳ, duy trì chất lượng sống tốt tại Pháp/Châu Âu.</div>
+            </div>
+            <div class="wizard-preset-card" data-spend="4000">
+              <div class="preset-badge">Mức Thịnh Vượng</div>
+              <div class="preset-amount">4,000 <span class="wz-currency-sym">€</span><span class="preset-period">/tháng</span></div>
+              <div class="preset-desc">Cuộc sống tự do cao cấp, du lịch quốc tế thường xuyên, tài chính dư dả cho gia đình con cháu.</div>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 1.1rem;">
+            <label for="wz-monthly-spend" class="form-label">Hoặc nhập số tiền chi tiêu tùy chỉnh mỗi tháng:</label>
+            <div class="input-with-sym">
+              <input type="number" id="wz-monthly-spend" class="form-input" min="300" step="100" value="2500">
+              <span class="wz-currency-sym">€/tháng</span>
+            </div>
+            <p class="form-hint" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.35rem;">
+              Tổng chi tiêu hưu trí tương đương: <strong id="wz-annual-spend-calc" style="color: var(--text-main);">30,000 €/năm</strong>.
+            </p>
+          </div>
+        </div>
+
+        <!-- BƯỚC 4: Khẩu vị đầu tư -->
+        <div class="wizard-pane" id="wizard-step-4">
+          <h4 class="wizard-pane-title">Khẩu vị đầu tư & Chiến lược rút tiền</h4>
+          <p class="wizard-pane-desc">Chọn phong cách tăng trưởng tài sản danh mục của bạn và thuật toán rút tiền bảo toàn vốn.</p>
+
+          <div class="preset-cards-grid">
+            <div class="wizard-preset-card" data-return="4.0" data-inf="2.0">
+              <div class="preset-badge">Thận Trọng</div>
+              <div class="preset-amount">4.0% <span class="preset-period">/năm</span></div>
+              <div class="preset-desc">Ưu tiên bảo toàn vốn tuyệt đối. Phân bổ phần lớn vào trái phiếu chính phủ, tiền gửi tiết kiệm có kỳ hạn.</div>
+            </div>
+            <div class="wizard-preset-card active" data-return="6.5" data-inf="2.2">
+              <div class="preset-badge badge-popular">Cân Bằng (Khuyên dùng)</div>
+              <div class="preset-amount">6.5% <span class="preset-period">/năm</span></div>
+              <div class="preset-desc">Cân bằng tối ưu giữa tăng trưởng và an toàn. Danh mục quỹ chỉ số toàn cầu MSCI World / S&P 500 kết hợp trái phiếu.</div>
+            </div>
+            <div class="wizard-preset-card" data-return="8.5" data-inf="2.5">
+              <div class="preset-badge">Tăng Trưởng Cao</div>
+              <div class="preset-amount">8.5% <span class="preset-period">/năm</span></div>
+              <div class="preset-desc">Chấp nhận biến động ngắn hạn để đạt lợi nhuận dài hạn vượt trội. Tỷ trọng lớn vào cổ phiếu tăng trưởng.</div>
+            </div>
+          </div>
+
+          <div class="wizard-strategy-box" style="margin-top: 1.1rem; padding: 0.85rem; border-radius: var(--radius-sm); background: var(--bg-card); border: 1px solid var(--border-subtle);">
+            <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-main); margin-bottom: 0.25rem;">
+              Chiến lược rút tiền tự động: <span style="color: var(--primary);">Lan can Guyton-Klinger (Khuyên dùng)</span>
+            </div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.45;">
+              Tự động điều chỉnh tỷ lệ rút tiền theo thị trường (tăng khi thị trường thuận lợi, có lan can phòng vệ khi thị trường giảm sút) giúp danh mục sống sót 100% đến cuối đời.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer wizard-modal-footer">
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-wz-prev" style="visibility: hidden;">Quay lại</button>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-wz-skip">Để sau / Bỏ qua</button>
+          <button type="button" class="btn btn-primary btn-sm" id="btn-wz-next">Tiếp tục ➔</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal: Universal In-App Confirmation Dialog -->
   <div class="modal-overlay" id="confirm-modal" style="display: none; z-index: 99999;">
     <div class="modal-card" style="max-width: 440px; border-radius: 16px; background: var(--bg-card); border: 1px solid var(--border-subtle); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); backdrop-filter: blur(20px); text-align: center; padding: 1.75rem 1.5rem;">
@@ -3243,10 +3520,10 @@ Go-Go: 1.15x  |  Slow-Go: 0.90x  |  No-Go: 0.80x</code>
   <script src="js/taxOptimizer.js?v=20261013_v2"></script>
   <script src="js/monteCarlo.js?v=20261013_v2"></script>
   <script src="js/scenarios.js?v=20261013_v2"></script>
-  <script src="js/geminiAdvisor.js?v=20261013_v4"></script>
+  <script src="js/geminiAdvisor.js?v=20261013_v6"></script>
   <script src="js/patrimoine.js?v=20261013_v3"></script>
   <script src="js/export.js?v=20261013_v2"></script>
   <script src="js/auth.js?v=20261013_v2"></script>
-  <script src="js/ui.js?v=20261013_v10"></script>
+  <script src="js/ui.js?v=20261013_v18"></script>
 </body>
 </html>

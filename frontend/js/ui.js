@@ -331,8 +331,9 @@
     try {
       initFamilyChildrenSimulation();
       initSpendingSmileSimulation();
+      initQuickSetupWizard();
     } catch (e) {
-      console.warn("initFamilyChildrenSimulation or initSpendingSmileSimulation failed:", e);
+      console.warn("init simulations or quick setup failed:", e);
     }
 
     // Plan Selector
@@ -370,35 +371,49 @@
     // Export Dropdown
     const exportBtn = document.getElementById("btn-export-menu");
     const exportDropdown = document.getElementById("export-dropdown");
-    exportBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      exportDropdown.classList.toggle("show");
-    });
-    document.addEventListener("click", () => exportDropdown.classList.remove("show"));
+    if (exportBtn && exportDropdown) {
+      exportBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        exportDropdown.classList.toggle("show");
+      });
+      document.addEventListener("click", () => exportDropdown.classList.remove("show"));
+    }
 
-    document.getElementById("export-csv-btn").addEventListener("click", (e) => {
-      e.preventDefault();
-      const plan = getActivePlan();
-      const proj = window.RetirementEngine.runProjection(plan);
-      window.ReportExporter.exportScheduleToCSV(plan, proj);
-    });
+    const exportCsvBtn = document.getElementById("export-csv-btn");
+    if (exportCsvBtn) {
+      exportCsvBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const plan = getActivePlan();
+        const proj = window.RetirementEngine.runProjection(plan);
+        window.ReportExporter.exportScheduleToCSV(plan, proj);
+      });
+    }
 
-    document.getElementById("export-pdf-btn").addEventListener("click", (e) => {
-      e.preventDefault();
-      window.ReportExporter.printExecutiveSummary();
-    });
+    const exportPdfBtn = document.getElementById("export-pdf-btn");
+    if (exportPdfBtn) {
+      exportPdfBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        window.ReportExporter.printExecutiveSummary();
+      });
+    }
 
-    document.getElementById("export-json-btn").addEventListener("click", (e) => {
-      e.preventDefault();
-      window.ReportExporter.exportPlansToJSON(state.plansData);
-    });
+    const exportJsonBtn = document.getElementById("export-json-btn");
+    if (exportJsonBtn) {
+      exportJsonBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        window.ReportExporter.exportPlansToJSON(state.plansData);
+      });
+    }
 
-    document.getElementById("import-json-btn").addEventListener("click", (e) => {
-      e.preventDefault();
-      document.getElementById("json-file-input").click();
-    });
-
-    document.getElementById("json-file-input").addEventListener("change", handleJSONImport);
+    const importJsonBtn = document.getElementById("import-json-btn");
+    const jsonFileInput = document.getElementById("json-file-input");
+    if (importJsonBtn && jsonFileInput) {
+      importJsonBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        jsonFileInput.click();
+      });
+      jsonFileInput.addEventListener("change", handleJSONImport);
+    }
 
     // Nominal vs Real View Toggle
     document.getElementById("btn-view-nominal").addEventListener("click", () => setViewMode("nominal"));
@@ -700,7 +715,7 @@
     const currentCalYear = new Date().getFullYear();
 
     if (inpBirthYear) {
-      ['input', 'change'].forEach(evt => {
+      ['input', 'change', 'keyup'].forEach(evt => {
         inpBirthYear.addEventListener(evt, (e) => {
           const bYear = Number(e.target.value);
           if (bYear >= 1930 && bYear <= currentCalYear) {
@@ -716,6 +731,8 @@
               });
             }
             if (inpCurrentAge) inpCurrentAge.value = calculatedAge;
+            const lblCurrentAge = document.getElementById("lbl-current-age");
+            if (lblCurrentAge) lblCurrentAge.innerText = `${calculatedAge}t`;
             syncSavingsAndExpensesFromRate(plan);
             savePlansToStorage();
             updateAll();
@@ -1072,6 +1089,44 @@
       });
     }
 
+    // Vietnam BHXH Tự Nguyện Inputs & Checkbox
+    const chkBhxhVn = document.getElementById("chk-enable-bhxh-vn");
+    if (chkBhxhVn) {
+      chkBhxhVn.addEventListener("change", () => {
+        const plan = getActivePlan();
+        plan.bhxhVnEnabled = chkBhxhVn.checked;
+        syncBhxhVnStreams(plan);
+        savePlansToStorage();
+        updateBhxhVnUI(plan);
+        renderIncomeStreamsList();
+        renderExpenseStreamsList();
+        updateCashflowBalanceUI(plan);
+        updateAll();
+      });
+    }
+
+    ['sel-calc-bhxh-income', 'sel-calc-bhxh-years', 'inp-bhxh-start-age', 'inp-bhxh-retire-age'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        ['input', 'change'].forEach(evt => {
+          el.addEventListener(evt, () => {
+            const plan = getActivePlan();
+            plan.bhxhVnIncome = Number(document.getElementById("sel-calc-bhxh-income")?.value) || 10000000;
+            plan.bhxhVnYears = Number(document.getElementById("sel-calc-bhxh-years")?.value) || 15;
+            plan.bhxhVnStartAge = Number(document.getElementById("inp-bhxh-start-age")?.value) || 29;
+            plan.bhxhVnRetireAge = Number(document.getElementById("inp-bhxh-retire-age")?.value) || 62;
+            syncBhxhVnStreams(plan);
+            savePlansToStorage();
+            updateBhxhVnUI(plan);
+            renderIncomeStreamsList();
+            renderExpenseStreamsList();
+            updateCashflowBalanceUI(plan);
+            updateAll();
+          });
+        });
+      }
+    });
+
     // Senior Care / Dépendance Inputs
     ['inp-senior-care-age', 'inp-senior-care-monthly'].forEach(id => {
       const el = document.getElementById(id);
@@ -1191,29 +1246,29 @@
       });
     }
 
-    // Mini Live Calculator for BHXH Tu Nguyen VN
-    const selIncome = document.getElementById("sel-calc-bhxh-income");
-    const selYears = document.getElementById("sel-calc-bhxh-years");
-    const lblPay = document.getElementById("lbl-bhxh-monthly-pay");
-    const lblPension = document.getElementById("lbl-bhxh-pension-est");
+    // Mini Live Calculator for BHXH Tu Nguyen VN in Guide Modal
+    const guideSelIncome = document.getElementById("guide-sel-calc-bhxh-income");
+    const guideSelYears = document.getElementById("guide-sel-calc-bhxh-years");
+    const guideLblPay = document.getElementById("guide-lbl-bhxh-monthly-pay");
+    const guideLblPension = document.getElementById("guide-lbl-bhxh-pension-est");
 
-    function updateBhxhCalc() {
-      if (!selIncome || !selYears || !lblPay || !lblPension) return;
-      const income = Number(selIncome.value) || 10000000;
-      const years = Number(selYears.value) || 15;
+    function updateGuideBhxhCalc() {
+      if (!guideSelIncome || !guideSelYears || !guideLblPay || !guideLblPension) return;
+      const income = Number(guideSelIncome.value) || 10000000;
+      const years = Number(guideSelYears.value) || 15;
       const monthlyPay = Math.round(income * 0.22);
       const pensionRate = (years === 15) ? 0.45 : (0.45 + (years - 15) * 0.02);
       const monthlyPension = Math.round(income * pensionRate);
       const eurRate = 27500;
 
-      lblPay.innerText = `${monthlyPay.toLocaleString("vi-VN")} ₫/tháng (~${Math.round(monthlyPay / eurRate)} €)`;
-      lblPension.innerText = `~${monthlyPension.toLocaleString("vi-VN")} ₫/tháng (~${Math.round(monthlyPension / eurRate)} €)`;
+      guideLblPay.innerText = `${monthlyPay.toLocaleString("vi-VN")} ₫/tháng (~${Math.round(monthlyPay / eurRate)} €)`;
+      guideLblPension.innerText = `~${monthlyPension.toLocaleString("vi-VN")} ₫/tháng (~${Math.round(monthlyPension / eurRate)} €)`;
     }
 
-    if (selIncome && selYears) {
-      selIncome.addEventListener("change", updateBhxhCalc);
-      selYears.addEventListener("change", updateBhxhCalc);
-      updateBhxhCalc();
+    if (guideSelIncome && guideSelYears) {
+      guideSelIncome.addEventListener("change", updateGuideBhxhCalc);
+      guideSelYears.addEventListener("change", updateGuideBhxhCalc);
+      updateGuideBhxhCalc();
     }
 
 
@@ -1329,8 +1384,11 @@
     const curYear = new Date().getFullYear();
     const bYear = Number(p.birthYear) || (curYear - (Number(p.currentAge) || 29));
     p.birthYear = bYear;
+    p.currentAge = curYear - bYear;
     setVal("inp-birth-year", bYear);
     setVal("inp-current-age", p.currentAge);
+    const lblCurrentAge = document.getElementById("lbl-current-age");
+    if (lblCurrentAge) lblCurrentAge.innerText = `${p.currentAge}t`;
     setVal("inp-retire-age", p.retirementAge);
     syncSalaryStreamsWithRetireAge(p);
     setVal("inp-life-expectancy", p.lifeExpectancy);
@@ -1380,6 +1438,13 @@
     setVal("inp-pension-age", p.socialSecurityAge || 64);
     syncPensionBaseAuto(p);
     updatePensionDecoteUI(p);
+
+    // Vietnam BHXH Tự Nguyện
+    if (p.bhxhVnEnabled === undefined) {
+      p.bhxhVnEnabled = true;
+    }
+    updateBhxhVnUI(p);
+    syncBhxhVnStreams(p);
 
     // Senior Care / Dépendance
     setVal("inp-senior-care-age", p.seniorCareAge || 78);
@@ -1705,6 +1770,144 @@
       badgeStatus.innerText = quarters >= 172 ? "Taux Plein" : `${quarters}/172q (${Math.round(prorata * 100)}%)`;
       badgeStatus.style.color = quarters >= 172 ? "#34d399" : "#fbbf24";
     }
+  }
+
+  function updateBhxhVnUI(p) {
+    if (!p) p = getActivePlan();
+    const isEnabled = p.bhxhVnEnabled !== false;
+    const chk = document.getElementById("chk-enable-bhxh-vn");
+    if (chk) chk.checked = isEnabled;
+
+    const incomeVal = Number(p.bhxhVnIncome) || 10000000;
+    const yearsVal = Number(p.bhxhVnYears) || 15;
+    const startAgeVal = Number(p.bhxhVnStartAge) || Number(p.currentAge) || 29;
+    const retireAgeVal = Number(p.bhxhVnRetireAge) || 62;
+
+    const selIncome = document.getElementById("sel-calc-bhxh-income");
+    const selYears = document.getElementById("sel-calc-bhxh-years");
+    const inpStart = document.getElementById("inp-bhxh-start-age");
+    const inpRetire = document.getElementById("inp-bhxh-retire-age");
+    const bodyEl = document.getElementById("bhxh-inputs-body");
+    const badgeEl = document.getElementById("badge-bhxh-status");
+    const lblPay = document.getElementById("lbl-bhxh-monthly-pay");
+    const lblPension = document.getElementById("lbl-bhxh-pension-est");
+
+    if (selIncome && selIncome.value !== String(incomeVal)) selIncome.value = String(incomeVal);
+    if (selYears && selYears.value !== String(yearsVal)) selYears.value = String(yearsVal);
+    if (inpStart && inpStart.value !== String(startAgeVal)) inpStart.value = String(startAgeVal);
+    if (inpRetire && inpRetire.value !== String(retireAgeVal)) inpRetire.value = String(retireAgeVal);
+
+    if (bodyEl) {
+      bodyEl.style.opacity = isEnabled ? "1" : "0.45";
+      bodyEl.style.pointerEvents = isEnabled ? "auto" : "none";
+    }
+
+    if (badgeEl) {
+      if (isEnabled) {
+        badgeEl.innerText = `${yearsVal} năm (Luật 2024)`;
+        badgeEl.style.background = "rgba(16, 185, 129, 0.15)";
+        badgeEl.style.color = "#34d399";
+        badgeEl.style.borderColor = "rgba(16, 185, 129, 0.3)";
+      } else {
+        badgeEl.innerText = "Chưa tham gia";
+        badgeEl.style.background = "rgba(148, 163, 184, 0.1)";
+        badgeEl.style.color = "var(--text-faint)";
+        badgeEl.style.borderColor = "var(--border-subtle)";
+      }
+    }
+
+    const monthlyPayVnd = Math.round(incomeVal * 0.22);
+    const pensionRate = (yearsVal === 15) ? 0.45 : (0.45 + (yearsVal - 15) * 0.02);
+    const monthlyPensionVnd = Math.round(incomeVal * pensionRate);
+    const eurRate = Number(p.exchangeRateEurVnd) || 27500;
+    const cur = p.currency || state.currency || 'EUR';
+
+    let payCurStr, pensionCurStr;
+    if (cur === 'VND') {
+      payCurStr = `${monthlyPayVnd.toLocaleString('vi-VN')} ₫/tháng`;
+      pensionCurStr = `~${monthlyPensionVnd.toLocaleString('vi-VN')} ₫/tháng`;
+    } else {
+      const payEur = Math.round(monthlyPayVnd / eurRate);
+      const penEur = Math.round(monthlyPensionVnd / eurRate);
+      if (cur === 'USD') {
+        const payUsd = Math.round(payEur * 1.1);
+        const penUsd = Math.round(penEur * 1.1);
+        payCurStr = `${monthlyPayVnd.toLocaleString('vi-VN')} ₫ (~${payUsd} $/tháng)`;
+        pensionCurStr = `~${monthlyPensionVnd.toLocaleString('vi-VN')} ₫ (~${penUsd} $/tháng)`;
+      } else {
+        payCurStr = `${monthlyPayVnd.toLocaleString('vi-VN')} ₫ (~${payEur} €/tháng)`;
+        pensionCurStr = `~${monthlyPensionVnd.toLocaleString('vi-VN')} ₫ (~${penEur} €/tháng)`;
+      }
+    }
+
+    if (lblPay) lblPay.innerText = payCurStr;
+    if (lblPension) lblPension.innerText = pensionCurStr;
+  }
+
+  function syncBhxhVnStreams(p) {
+    if (!p) p = getActivePlan();
+    if (!Array.isArray(p.expenses)) p.expenses = [];
+    if (!Array.isArray(p.incomes)) p.incomes = [];
+
+    // Remove previous auto-injected BHXH VN streams
+    p.expenses = p.expenses.filter(s => !s.isBhxhVn && s.name !== "Đóng BHXH Tự Nguyện VN (22%)");
+    p.incomes = p.incomes.filter(s => !s.isBhxhVn && s.name !== "Lương hưu BHXH Việt Nam");
+
+    const isEnabled = p.bhxhVnEnabled !== false;
+    if (!isEnabled) {
+      return;
+    }
+
+    const incomeVal = Number(p.bhxhVnIncome) || 10000000;
+    const yearsVal = Number(p.bhxhVnYears) || 15;
+    const startAge = Math.max(18, Number(p.bhxhVnStartAge) || Number(p.currentAge) || 29);
+    const endExpenseAge = startAge + yearsVal - 1;
+    const retireAgeVn = Math.max(startAge + yearsVal, Number(p.bhxhVnRetireAge) || 62);
+    const lifeExp = Number(p.lifeExpectancy) || 85;
+
+    const monthlyPayVnd = Math.round(incomeVal * 0.22);
+    const annualPayVnd = monthlyPayVnd * 12;
+    const pensionRate = (yearsVal === 15) ? 0.45 : (0.45 + (yearsVal - 15) * 0.02);
+    const monthlyPensionVnd = Math.round(incomeVal * pensionRate);
+    const annualPensionVnd = monthlyPensionVnd * 12;
+
+    const eurRate = Number(p.exchangeRateEurVnd) || 27500;
+    const cur = p.currency || state.currency || 'EUR';
+
+    let annualPayCur, annualPensionCur;
+    if (cur === 'VND') {
+      annualPayCur = annualPayVnd;
+      annualPensionCur = annualPensionVnd;
+    } else if (cur === 'USD') {
+      annualPayCur = Math.round((annualPayVnd / eurRate) * 1.10);
+      annualPensionCur = Math.round((annualPensionVnd / eurRate) * 1.10);
+    } else {
+      annualPayCur = Math.round(annualPayVnd / eurRate);
+      annualPensionCur = Math.round(annualPensionVnd / eurRate);
+    }
+
+    // Luồng chi tiêu đóng BHXH
+    p.expenses.push({
+      name: "Đóng BHXH Tự Nguyện VN (22%)",
+      amount: annualPayCur,
+      startAge: startAge,
+      endAge: endExpenseAge,
+      growth: 0,
+      isDebt: false,
+      isBhxhVn: true,
+      note: `22% mức ${incomeVal.toLocaleString('vi-VN')} ₫/tháng (${yearsVal} năm)`
+    });
+
+    // Luồng thu nhập nhận lương hưu VN
+    p.incomes.push({
+      name: "Lương hưu BHXH Việt Nam",
+      amount: annualPensionCur,
+      startAge: retireAgeVn,
+      endAge: lifeExp,
+      growth: 2.0,
+      taxable: false,
+      isBhxhVn: true
+    });
   }
 
   // -------------------------------------------------------------
@@ -2246,7 +2449,7 @@
       item.className = "income-item";
       item.innerHTML = `
         <div class="income-item-header">
-          <span class="income-item-name">${stream.name}</span>
+          <span class="income-item-name">${stream.name}${stream.isBhxhVn ? ' <span class="field-badge font-mono" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.68rem; margin-left: 0.35rem;">Tự động (BHXH VN)</span>' : ''}</span>
           <div class="income-item-actions">
             <button type="button" class="income-item-btn income-item-edit" data-idx="${idx}" title="Chỉnh sửa nguồn thu">Sửa</button>
             <button type="button" class="income-item-btn income-item-del" data-idx="${idx}" title="Xóa nguồn thu">Xóa</button>
@@ -2271,6 +2474,18 @@
         e.stopPropagation();
         e.preventDefault();
         const idx = Number(btn.getAttribute("data-idx"));
+        const plan = getActivePlan();
+        const stream = plan.incomes[idx];
+        if (stream && stream.isBhxhVn) {
+          const panel = document.getElementById("panel-vietnam-bhxh");
+          if (panel) {
+            panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            panel.style.transition = 'box-shadow 0.3s ease';
+            panel.style.boxShadow = '0 0 0 2px #10b981';
+            setTimeout(() => { panel.style.boxShadow = ''; }, 1500);
+          }
+          return;
+        }
         openIncomeModal(idx);
       });
     });
@@ -2291,13 +2506,22 @@
           message: `Bạn có chắc chắn muốn xóa <strong>"${streamName}"</strong> (${amtStr}/năm)?<br><span style="font-size:0.75rem; color:var(--text-faint); margin-top:6px; display:inline-block;">Các chỉ số chi tiêu, tỷ lệ tiết kiệm và hưu trí sẽ được tự động tính toán lại.</span>`,
           confirmText: "Xóa nguồn thu",
           onConfirm: () => {
-            plan.incomes.splice(idx, 1);
+            if (stream && stream.isBhxhVn) {
+              plan.bhxhVnEnabled = false;
+              const chk = document.getElementById("chk-enable-bhxh-vn");
+              if (chk) chk.checked = false;
+              syncBhxhVnStreams(plan);
+              updateBhxhVnUI(plan);
+            } else {
+              plan.incomes.splice(idx, 1);
+            }
             syncSavingsAndExpensesFromRate(plan);
             if (plan.pensionBaseAuto !== false) {
               syncPensionBaseAuto(plan, true);
             }
             savePlansToStorage();
             renderIncomeStreamsList();
+            renderExpenseStreamsList();
             updateAll();
           }
         });
@@ -2750,7 +2974,7 @@
       item.innerHTML = `
         <div class="expense-item-header">
           <div class="expense-item-name">
-            <span>${stream.name}</span>
+            <span>${stream.name}</span>${stream.isBhxhVn ? ' <span class="field-badge font-mono" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.68rem; margin-left: 0.35rem;">Tự động (BHXH VN)</span>' : ''}
           </div>
           <div class="income-item-actions">
             <button type="button" class="income-item-btn expense-item-edit" data-idx="${idx}" title="Chỉnh sửa khoản chi">Sửa</button>
@@ -2777,6 +3001,18 @@
         e.stopPropagation();
         e.preventDefault();
         const idx = Number(btn.getAttribute("data-idx"));
+        const plan = getActivePlan();
+        const stream = plan.expenses[idx];
+        if (stream && stream.isBhxhVn) {
+          const panel = document.getElementById("panel-vietnam-bhxh");
+          if (panel) {
+            panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            panel.style.transition = 'box-shadow 0.3s ease';
+            panel.style.boxShadow = '0 0 0 2px #10b981';
+            setTimeout(() => { panel.style.boxShadow = ''; }, 1500);
+          }
+          return;
+        }
         openExpenseModal(idx);
       });
     });
@@ -2797,9 +3033,18 @@
           message: `Bạn có chắc chắn muốn xóa <strong>"${streamName}"</strong> (${amtStr}/năm)?<br><span style="font-size:0.75rem; color:var(--text-faint); margin-top:6px; display:inline-block;">Các chỉ số chi tiêu, tiết kiệm ròng và FIRE sẽ được cập nhật tự động.</span>`,
           confirmText: "Xóa khoản chi",
           onConfirm: () => {
-            plan.expenses.splice(idx, 1);
+            if (stream && stream.isBhxhVn) {
+              plan.bhxhVnEnabled = false;
+              const chk = document.getElementById("chk-enable-bhxh-vn");
+              if (chk) chk.checked = false;
+              syncBhxhVnStreams(plan);
+              updateBhxhVnUI(plan);
+            } else {
+              plan.expenses.splice(idx, 1);
+            }
             savePlansToStorage();
             renderExpenseStreamsList();
+            renderIncomeStreamsList();
             updateCashflowBalanceUI(plan);
             updateAll();
           }
@@ -3497,6 +3742,7 @@
 
     // Keep Pension & Décote live display synchronized
     updatePensionDecoteUI(plan);
+    updateBhxhVnUI(plan);
 
     // Update Top KPIs
     document.getElementById("kpi-current-networth").innerText = window.RetirementEngine.formatCurrency(plan.currentSavings, state.currency);
@@ -4195,6 +4441,8 @@
         return `rgba(${r}, ${g}, ${b}, ${alpha})`;
       }
 
+      const isLight = document.documentElement.getAttribute("data-theme") === "light";
+
       const datasets = strategies.map(strat => {
         const tempPlan = { ...plan, withdrawalStrategy: strat.key };
         const res = window.RetirementEngine.runProjection(tempPlan);
@@ -4208,7 +4456,12 @@
           borderDash: [],
           fill: false,
           pointRadius: 0,
-          tension: 0.2,
+          pointHoverRadius: 6,
+          pointBackgroundColor: strat.color,
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointHitRadius: 15,
+          tension: 0.3,
           order: isChosen ? 0 : 1
         };
       });
@@ -4234,29 +4487,51 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
           plugins: {
             legend: { 
               display: true,
               position: 'top',
               labels: { 
-                color: '#94a3b8', 
-                font: { size: 11 }, 
-                boxWidth: 16,
-                usePointStyle: true
+                color: isLight ? '#334155' : '#94a3b8', 
+                font: { family: 'Inter, sans-serif', size: 11, weight: '600' }, 
+                boxWidth: 14,
+                boxHeight: 14,
+                usePointStyle: false
               } 
             },
             tooltip: {
+              backgroundColor: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.95)',
+              titleColor: isLight ? '#0f172a' : '#f8fafc',
+              bodyColor: isLight ? '#334155' : '#cbd5e1',
+              borderColor: isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.15)',
+              borderWidth: 1,
+              padding: 10,
               callbacks: {
+                title: (items) => {
+                  const idx = items[0].dataIndex;
+                  if (labels[idx] && Array.isArray(labels[idx])) {
+                    return `Tuổi ${labels[idx][0].replace('t', '')} (Năm ${labels[idx][1]})`;
+                  }
+                  return '';
+                },
                 label: (item) => ` ${item.dataset.label}: ${window.RetirementEngine.formatCurrency(item.raw, state.currency, false)}`
               }
             }
           },
           scales: {
-            x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: ageAxisTicks() },
+            x: { 
+              grid: { color: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)' }, 
+              ticks: ageAxisTicks() 
+            },
             y: {
-              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              grid: { color: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)' },
               ticks: {
-                color: '#94a3b8',
+                color: isLight ? '#475569' : '#94a3b8',
+                font: { size: 10 },
                 callback: (val) => window.RetirementEngine.formatCurrency(val, state.currency, true)
               }
             }
@@ -4510,60 +4785,141 @@
     const curYear = new Date().getFullYear();
     const bYear = Number(plan.birthYear) || (curYear - (Number(plan.currentAge) || 29));
 
+    const isLight = document.documentElement.getAttribute("data-theme") === "light";
+
+    // Gradient fill mượt mà cho đường trung vị (P50) đồng bộ với biểu đồ Net Worth
+    const gradientMedian = ctx.createLinearGradient(0, 0, 0, 320);
+    gradientMedian.addColorStop(0, isLight ? 'rgba(5, 150, 105, 0.18)' : 'rgba(16, 185, 129, 0.22)');
+    gradientMedian.addColorStop(1, 'rgba(16, 185, 129, 0.01)');
+
+    const labels = res.ageAxis.map(a => [`${a}t`, `${bYear + a}`]);
+
     state.charts.mc = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: res.ageAxis.map(a => [`${a}t`, `${bYear + a}`]),
+        labels,
         datasets: [
           {
             label: '90th Percentile (Thị trường Bùng nổ)',
             data: res.p90,
-            borderColor: 'rgba(16, 185, 129, 0.4)',
-            borderWidth: 1,
-            pointRadius: 0
+            borderColor: isLight ? '#0284c7' : '#38bdf8',
+            borderWidth: 2.2,
+            borderDash: [5, 4],
+            fill: false,
+            tension: 0.35,
+            pointRadius: 0,
+            pointHoverRadius: 6,
+            pointBackgroundColor: isLight ? '#0284c7' : '#38bdf8',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointHitRadius: 15
           },
           {
             label: '75th Percentile',
             data: res.p75,
-            borderColor: 'rgba(59, 130, 246, 0.4)',
-            borderWidth: 1,
-            pointRadius: 0
+            borderColor: isLight ? '#2563eb' : '#60a5fa',
+            borderWidth: 2.2,
+            fill: false,
+            tension: 0.35,
+            pointRadius: 0,
+            pointHoverRadius: 6,
+            pointBackgroundColor: isLight ? '#2563eb' : '#60a5fa',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointHitRadius: 15
           },
           {
             label: '50th Percentile (Trung vị Kỳ vọng)',
             data: res.p50,
-            borderColor: '#10b981',
-            borderWidth: 3,
-            pointRadius: 0
+            borderColor: isLight ? '#059669' : '#10b981',
+            backgroundColor: gradientMedian,
+            borderWidth: 3.5,
+            fill: true,
+            tension: 0.35,
+            pointRadius: 0,
+            pointHoverRadius: 7,
+            pointBackgroundColor: isLight ? '#059669' : '#10b981',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2.5,
+            pointHitRadius: 15
           },
           {
             label: '25th Percentile',
             data: res.p25,
-            borderColor: 'rgba(245, 158, 11, 0.4)',
-            borderWidth: 1,
-            pointRadius: 0
+            borderColor: isLight ? '#d97706' : '#f59e0b',
+            borderWidth: 2.2,
+            fill: false,
+            tension: 0.35,
+            pointRadius: 0,
+            pointHoverRadius: 6,
+            pointBackgroundColor: isLight ? '#d97706' : '#f59e0b',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointHitRadius: 15
           },
           {
             label: '10th Percentile (Thị trường Gấu / Khủng hoảng)',
             data: res.p10,
-            borderColor: '#ef4444',
-            borderWidth: 2,
-            pointRadius: 0
+            borderColor: isLight ? '#dc2626' : '#ef4444',
+            borderWidth: 2.8,
+            fill: false,
+            tension: 0.35,
+            pointRadius: 0,
+            pointHoverRadius: 6,
+            pointBackgroundColor: isLight ? '#dc2626' : '#ef4444',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointHitRadius: 15
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
         plugins: {
-          legend: { labels: { color: '#94a3b8' } }
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              boxWidth: 14,
+              boxHeight: 14,
+              color: isLight ? '#334155' : '#94a3b8',
+              font: { family: 'Inter, sans-serif', size: 11, weight: '600' }
+            }
+          },
+          tooltip: {
+            backgroundColor: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.95)',
+            titleColor: isLight ? '#0f172a' : '#f8fafc',
+            bodyColor: isLight ? '#334155' : '#cbd5e1',
+            borderColor: isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.15)',
+            borderWidth: 1,
+            padding: 10,
+            callbacks: {
+              title: (items) => {
+                const idx = items[0].dataIndex;
+                if (labels[idx] && Array.isArray(labels[idx])) {
+                  return `Tuổi ${labels[idx][0].replace('t', '')} (Năm ${labels[idx][1]})`;
+                }
+                return '';
+              },
+              label: (item) => ` ${item.dataset.label}: ${window.RetirementEngine.formatCurrency(item.raw, state.currency, false)}`
+            }
+          }
         },
         scales: {
-          x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: ageAxisTicks() },
+          x: {
+            grid: { color: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)' },
+            ticks: ageAxisTicks()
+          },
           y: {
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            grid: { color: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)' },
             ticks: {
-              color: '#94a3b8',
+              color: isLight ? '#475569' : '#94a3b8',
+              font: { size: 10 },
               callback: (val) => window.RetirementEngine.formatCurrency(val, state.currency, true)
             }
           }
@@ -4694,6 +5050,8 @@
       }).join('');
     }
 
+    const isLight = document.documentElement.getAttribute("data-theme") === "light";
+
     const datasets = scenarioSummaries.map(sc => ({
       label: sc.name,
       data: sc.timeline.map(p => p.portfolioEnd),
@@ -4701,8 +5059,13 @@
       borderWidth: 2.5,
       borderDash: [],
       fill: false,
+      tension: 0.3,
       pointRadius: 0,
-      tension: 0.2
+      pointHoverRadius: 6,
+      pointBackgroundColor: sc.color,
+      pointBorderColor: '#ffffff',
+      pointBorderWidth: 2,
+      pointHitRadius: 15
     }));
 
     state.charts.scenarios = new Chart(ctx, {
@@ -4714,29 +5077,49 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
         plugins: {
           legend: { 
             display: true,
             position: 'top',
             labels: { 
-              color: '#94a3b8', 
-              font: { size: 11 }, 
-              boxWidth: 16,
-              usePointStyle: true
+              color: isLight ? '#334155' : '#94a3b8', 
+              font: { family: 'Inter, sans-serif', size: 11, weight: '600' }, 
+              boxWidth: 14,
+              boxHeight: 14,
+              usePointStyle: false
             } 
           },
           tooltip: {
+            backgroundColor: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.95)',
+            titleColor: isLight ? '#0f172a' : '#f8fafc',
+            bodyColor: isLight ? '#334155' : '#cbd5e1',
+            borderColor: isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.15)',
+            borderWidth: 1,
+            padding: 10,
             callbacks: {
+              title: (items) => {
+                const idx = items[0].dataIndex;
+                const p = baselineProj.timeline[idx];
+                return p ? `Tuổi ${p.age} (Năm ${p.year})` : '';
+              },
               label: (item) => ` ${item.dataset.label}: ${window.RetirementEngine.formatCurrency(item.raw, state.currency, false)}`
             }
           }
         },
         scales: {
-          x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: ageAxisTicks() },
+          x: { 
+            grid: { color: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)' }, 
+            ticks: ageAxisTicks() 
+          },
           y: {
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            grid: { color: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)' },
             ticks: {
-              color: '#94a3b8',
+              color: isLight ? '#475569' : '#94a3b8',
+              font: { size: 10 },
               callback: (val) => window.RetirementEngine.formatCurrency(val, state.currency, true)
             }
           }
@@ -4758,7 +5141,7 @@
           netWorthDiff: s.netWorthDiffFormatted,
           survived: s.survived ? "100% Sống sót" : "Có rủi ro cạn vốn"
         }))
-      }, true);
+      });
     }
   }
 
@@ -5514,26 +5897,331 @@
     updateAll();
   }
 
+  const SUN_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-svg-icon"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>`;
+
+  const MOON_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-svg-icon"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>`;
+
+  function updateThemeIcon(theme) {
+    const icon = document.getElementById("theme-icon");
+    const btn = document.getElementById("theme-toggle-btn");
+    if (icon) {
+      icon.innerHTML = (theme === "dark") ? SUN_ICON_SVG : MOON_ICON_SVG;
+    }
+    if (btn) {
+      btn.title = (theme === "dark") ? "Chuyển sang giao diện Sáng" : "Chuyển sang giao diện Tối";
+    }
+  }
+
   function toggleTheme() {
     const html = document.documentElement;
     const isDark = html.getAttribute("data-theme") === "dark";
     const nextTheme = isDark ? "light" : "dark";
     html.setAttribute("data-theme", nextTheme);
-    document.getElementById("theme-icon").innerText = nextTheme === "dark" ? "Tối" : "Sáng";
+    updateThemeIcon(nextTheme);
     localStorage.setItem("pyRetrait_theme", nextTheme);
     updateAll();
+  }
+
+  /* ==========================================================================
+     Onboarding Quick Setup Wizard (Thiết Lập Nhanh 4 Bước)
+     ========================================================================== */
+  let wizardCurrentStep = 1;
+
+  function initQuickSetupWizard() {
+    const modal = document.getElementById("quick-setup-modal");
+    if (!modal) return;
+
+    // Trigger buttons (header, sidebar, callout banner)
+    document.querySelectorAll(".btn-trigger-quick-setup").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        openQuickSetupWizard();
+      });
+    });
+    const headerQuickBtn = document.getElementById("btn-quick-setup");
+    if (headerQuickBtn) {
+      headerQuickBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        openQuickSetupWizard();
+      });
+    }
+
+    // Close / Skip buttons
+    document.getElementById("btn-close-quick-setup")?.addEventListener("click", closeQuickSetupWizard);
+    document.getElementById("btn-wz-skip")?.addEventListener("click", () => {
+      localStorage.setItem("pyretrait_quick_setup_done", "true");
+      closeQuickSetupWizard();
+    });
+
+    // Modal background click
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeQuickSetupWizard();
+    });
+
+    // Step indicators click
+    document.querySelectorAll(".wizard-step-indicator").forEach(ind => {
+      ind.addEventListener("click", () => {
+        const step = Number(ind.getAttribute("data-step"));
+        if (step) showWizardStep(step);
+      });
+    });
+
+    // Navigation buttons
+    document.getElementById("btn-wz-prev")?.addEventListener("click", () => {
+      if (wizardCurrentStep > 1) {
+        showWizardStep(wizardCurrentStep - 1);
+      }
+    });
+
+    document.getElementById("btn-wz-next")?.addEventListener("click", () => {
+      if (wizardCurrentStep < 4) {
+        showWizardStep(wizardCurrentStep + 1);
+      } else {
+        applyWizardAndCalculate();
+      }
+    });
+
+    // Step 1: 2-way sync birth year and current age
+    const wzBirthYear = document.getElementById("wz-birth-year");
+    const wzCurAge = document.getElementById("wz-cur-age");
+    if (wzBirthYear && wzCurAge) {
+      wzBirthYear.addEventListener("input", () => {
+        const curYear = new Date().getFullYear();
+        const by = Number(wzBirthYear.value);
+        if (by >= 1940 && by <= curYear) {
+          wzCurAge.value = Math.max(18, curYear - by);
+        }
+      });
+      wzCurAge.addEventListener("input", () => {
+        const curYear = new Date().getFullYear();
+        const age = Number(wzCurAge.value);
+        if (age >= 18 && age <= 100) {
+          wzBirthYear.value = curYear - age;
+        }
+      });
+    }
+
+    // Quick pill buttons (for wz-retire-age and wz-savings)
+    document.querySelectorAll(".btn-quick-pill").forEach(pill => {
+      pill.addEventListener("click", () => {
+        const targetId = pill.getAttribute("data-target");
+        const val = pill.getAttribute("data-val");
+        const input = document.getElementById(targetId);
+        if (input && val !== null) {
+          input.value = val;
+          input.dispatchEvent(new Event("input"));
+          pill.parentElement.querySelectorAll(".btn-quick-pill").forEach(p => p.classList.remove("active"));
+          pill.classList.add("active");
+        }
+      });
+    });
+
+    // Step 2: Annual savings to monthly calculation text
+    const wzAnnualSav = document.getElementById("wz-annual-savings");
+    const wzMonthlySavCalc = document.getElementById("wz-monthly-savings-calc");
+    if (wzAnnualSav && wzMonthlySavCalc) {
+      wzAnnualSav.addEventListener("input", () => {
+        const annual = Number(wzAnnualSav.value) || 0;
+        const cur = state.currency || 'EUR';
+        const monthly = Math.round(annual / 12);
+        wzMonthlySavCalc.textContent = `${window.RetirementEngine.formatCurrency(monthly, cur)}/tháng`;
+      });
+    }
+
+    // Step 3: Preset cards for monthly spend
+    const wzMonthlySpend = document.getElementById("wz-monthly-spend");
+    const wzAnnualSpendCalc = document.getElementById("wz-annual-spend-calc");
+    document.querySelectorAll("#wizard-step-3 .wizard-preset-card").forEach(card => {
+      card.addEventListener("click", () => {
+        document.querySelectorAll("#wizard-step-3 .wizard-preset-card").forEach(c => c.classList.remove("active"));
+        card.classList.add("active");
+        const spend = card.getAttribute("data-spend");
+        if (spend && wzMonthlySpend) {
+          wzMonthlySpend.value = spend;
+          updateSpendCalcText();
+        }
+      });
+    });
+    if (wzMonthlySpend) {
+      wzMonthlySpend.addEventListener("input", () => {
+        updateSpendCalcText();
+        const curVal = wzMonthlySpend.value;
+        document.querySelectorAll("#wizard-step-3 .wizard-preset-card").forEach(c => {
+          if (c.getAttribute("data-spend") === curVal) {
+            c.classList.add("active");
+          } else {
+            c.classList.remove("active");
+          }
+        });
+      });
+    }
+
+    function updateSpendCalcText() {
+      if (!wzMonthlySpend || !wzAnnualSpendCalc) return;
+      const m = Number(wzMonthlySpend.value) || 0;
+      const cur = state.currency || 'EUR';
+      wzAnnualSpendCalc.textContent = `${window.RetirementEngine.formatCurrency(m * 12, cur)}/năm`;
+    }
+
+    // Step 4: Preset cards for investment return & risk
+    document.querySelectorAll("#wizard-step-4 .wizard-preset-card").forEach(card => {
+      card.addEventListener("click", () => {
+        document.querySelectorAll("#wizard-step-4 .wizard-preset-card").forEach(c => c.classList.remove("active"));
+        card.classList.add("active");
+      });
+    });
+  }
+
+  function openQuickSetupWizard() {
+    const modal = document.getElementById("quick-setup-modal");
+    if (!modal) return;
+
+    const plan = getActivePlan();
+    const cur = state.currency || plan?.currency || 'EUR';
+    const sym = cur === 'VND' ? '₫' : (cur === 'USD' ? '$' : '€');
+
+    // Update symbols in wizard modal
+    document.querySelectorAll(".wz-currency-sym").forEach(el => el.textContent = sym);
+
+    if (plan) {
+      const curYear = new Date().getFullYear();
+      const bYear = Number(plan.birthYear) || (curYear - (Number(plan.currentAge) || 29));
+      const curAge = Number(plan.currentAge) || (curYear - bYear);
+
+      const wzCurAge = document.getElementById("wz-cur-age");
+      if (wzCurAge) wzCurAge.value = curAge;
+
+      const wzBirthYear = document.getElementById("wz-birth-year");
+      if (wzBirthYear) wzBirthYear.value = bYear;
+
+      const wzRetireAge = document.getElementById("wz-retire-age");
+      if (wzRetireAge) wzRetireAge.value = plan.retirementAge || 45;
+
+      const wzLifeExp = document.getElementById("wz-life-exp");
+      if (wzLifeExp) wzLifeExp.value = plan.lifeExpectancy || 85;
+
+      const wzPlanName = document.getElementById("wz-plan-name");
+      if (wzPlanName) wzPlanName.value = plan.name || "Kế hoạch Cá nhân Mới";
+
+      const wzSavings = document.getElementById("wz-savings");
+      if (wzSavings) wzSavings.value = plan.currentSavings !== undefined ? plan.currentSavings : 50000;
+
+      const wzAnnualSav = document.getElementById("wz-annual-savings");
+      if (wzAnnualSav) {
+        wzAnnualSav.value = plan.annualSavings !== undefined ? plan.annualSavings : 12000;
+        const monthly = Math.round(Number(wzAnnualSav.value) / 12);
+        const monthlyCalc = document.getElementById("wz-monthly-savings-calc");
+        if (monthlyCalc) monthlyCalc.textContent = `${window.RetirementEngine.formatCurrency(monthly, cur)}/tháng`;
+      }
+
+      const wzMonthlySpend = document.getElementById("wz-monthly-spend");
+      const wzAnnualSpendCalc = document.getElementById("wz-annual-spend-calc");
+      const monthlySpend = plan.baseRetireMonthly || (plan.retirementExpenses ? Math.round(plan.retirementExpenses / 12) : 2500);
+      if (wzMonthlySpend) {
+        wzMonthlySpend.value = monthlySpend;
+        if (wzAnnualSpendCalc) {
+          wzAnnualSpendCalc.textContent = `${window.RetirementEngine.formatCurrency(monthlySpend * 12, cur)}/năm`;
+        }
+      }
+    }
+
+    showWizardStep(1);
+    modal.style.display = "flex";
+  }
+
+  function closeQuickSetupWizard() {
+    const modal = document.getElementById("quick-setup-modal");
+    if (modal) modal.style.display = "none";
+  }
+
+  function showWizardStep(step) {
+    wizardCurrentStep = step;
+
+    for (let i = 1; i <= 4; i++) {
+      const pane = document.getElementById(`wizard-step-${i}`);
+      if (pane) pane.classList.toggle("active", i === step);
+    }
+
+    document.querySelectorAll(".wizard-step-indicator").forEach(ind => {
+      const s = Number(ind.getAttribute("data-step"));
+      ind.classList.toggle("active", s === step);
+      ind.classList.toggle("completed", s < step);
+    });
+
+    const prevBtn = document.getElementById("btn-wz-prev");
+    if (prevBtn) prevBtn.style.visibility = step === 1 ? "hidden" : "visible";
+
+    const nextBtn = document.getElementById("btn-wz-next");
+    if (nextBtn) {
+      if (step === 4) {
+        nextBtn.textContent = "Hoàn tất & Tính toán";
+      } else {
+        nextBtn.textContent = "Tiếp tục ➔";
+      }
+    }
+  }
+
+  function applyWizardAndCalculate() {
+    const plan = getActivePlan();
+    if (!plan) return;
+
+    // Step 1
+    const curYear = new Date().getFullYear();
+    const birthYear = Number(document.getElementById("wz-birth-year")?.value) || 1997;
+    const currentAge = curYear - birthYear;
+    const retirementAge = Number(document.getElementById("wz-retire-age")?.value) || 45;
+    const lifeExpectancy = Number(document.getElementById("wz-life-exp")?.value) || 85;
+    const planName = document.getElementById("wz-plan-name")?.value.trim() || plan.name;
+
+    // Step 2
+    const currentSavings = Number(document.getElementById("wz-savings")?.value) || 0;
+    const annualSavings = Number(document.getElementById("wz-annual-savings")?.value) || 0;
+
+    // Step 3
+    const monthlySpend = Number(document.getElementById("wz-monthly-spend")?.value) || 2500;
+    const retirementExpenses = monthlySpend * 12;
+
+    // Step 4
+    const activeRisk = document.querySelector("#wizard-step-4 .wizard-preset-card.active");
+    const invReturn = Number(activeRisk?.getAttribute("data-return")) || 6.5;
+    const inflation = Number(activeRisk?.getAttribute("data-inf")) || 2.2;
+
+    // Apply to plan
+    plan.name = planName;
+    plan.birthYear = birthYear;
+    plan.currentAge = currentAge;
+    plan.retirementAge = retirementAge;
+    plan.lifeExpectancy = lifeExpectancy;
+    plan.currentSavings = currentSavings;
+    plan.annualSavings = annualSavings;
+    plan.annualExpenses = Math.round(annualSavings > 0 ? (annualSavings * 1.5) : (monthlySpend * 12));
+    plan.retirementExpenses = retirementExpenses;
+    plan.baseRetireMonthly = monthlySpend;
+    plan.investmentReturnPre = invReturn;
+    plan.investmentReturnPost = Math.max(3.0, +(invReturn - 1.5).toFixed(1));
+    plan.inflation = inflation;
+    plan.withdrawalStrategy = "guyton_klinger";
+
+    // Save and re-render
+    savePlansToStorage();
+    renderPlanSelector();
+    renderActivePlanInputs();
+    updateAll();
+
+    localStorage.setItem("pyretrait_quick_setup_done", "true");
+    closeQuickSetupWizard();
   }
 
   function loadTheme() {
     const saved = localStorage.getItem("pyRetrait_theme") || "dark";
     document.documentElement.setAttribute("data-theme", saved);
-    const icon = document.getElementById("theme-icon");
-    if (icon) icon.innerText = saved === "dark" ? "Tối" : "Sáng";
+    updateThemeIcon(saved);
   }
 
   // Expose global interface for GeminiAdvisor and testing
   window.RetirementApp = {
     getActivePlan,
+    openQuickSetupWizard,
     getCurrency: () => state.currency,
     updateAll,
     syncFromPatrimoine,

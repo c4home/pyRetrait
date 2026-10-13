@@ -129,12 +129,39 @@
     - **Trong Dark Mode:**
       - Thẻ ghim: Nền tối sang trọng (`rgba(15, 23, 42, 0.95)`), viền mờ (`rgba(56, 189, 248, 0.45)`), chữ và đường gióng màu cyan sáng (`#38bdf8`).
     - Khi chuyển đổi chế độ sáng/tối (toggle theme), canvas biểu đồ phải được kích hoạt re-render ngay lập tức (`updateAll()`) để cập nhật màu nền và đường nét chuẩn xác.
+  - **Quy Chuẩn Đồng Bộ Phong Cách & Độ Dày Biểu Đồ (Unified Chart Styles & Line Width):**
+    - **Thống nhất độ dày đường vẽ (Line Width):**
+      - Tuyệt đối KHÔNG dùng nét vẽ quá mỏng (`borderWidth: 1` hoặc `1.5`) cho các đường xu hướng quan trọng vì sẽ bị chìm nghỉm, mờ nhạt và rất khó nhìn trên màn hình độ phân giải cao.
+      - Đường quỹ đạo chính (Net Worth chính, P50 Median Monte Carlo, Dòng tiền chuẩn): Bắt buộc đạt `borderWidth: 2.8 - 3.2px`.
+      - Đường kịch bản so sánh, dải bao phân vị (P10, P90), đường trần/sàn lan can (Upper/Lower Bands): `borderWidth: 2.0 - 2.5px`.
+      - Đường mốc tham chiếu (Mục tiêu FIRE Nest Egg, Dư nợ gốc): Nét đứt `borderDash: [5, 5]`, độ dày `1.8 - 2.0px`.
+    - **Độ cong mượt (Curve Tension):**
+      - Thống nhất `tension: 0.35` cho toàn bộ các biểu đồ đường dự báo tài chính (Dòng tiền & Tài sản, Monte Carlo Fan Chart, So sánh 4 Chiến lược Rút tiền, Kịch bản What-If), tạo đường cong chuyển động mềm mại, tự nhiên; tuyệt đối không để đường gãy góc thô cứng (`tension: 0`).
+    - **Tương tác & Dễ dàng chọn điểm (Interaction Mode & Hit Radius):**
+      - Mọi biểu đồ đường phải luôn cấu hình:
+        ```javascript
+        interaction: {
+          mode: 'index',
+          intersect: false
+        }
+        ```
+        giúp người dùng chỉ cần rê chuột theo trục thời gian dọc là tooltip hiển thị đầy đủ giá trị của tất cả các kịch bản/chiến lược tại mốc tuổi/năm đó mà không bắt người dùng phải căn rê trúng từng pixel nhỏ li ti (`intersect: true`).
+      - Bán kính điểm chạm nhạy: `pointHitRadius: 10 - 15px`.
+      - Trạng thái mặc định: `pointRadius: 0` (hoặc `1.5 - 2px` tại mốc đặc biệt), `pointHoverRadius: 5 - 6px` khi di chuột tới để biểu đồ luôn thoáng mắt và sạch sẽ.
+    - **Độ sâu trực quan (Visual Layering & Gradient Fill):**
+      - Các đường quỹ đạo chính nên có vùng phủ mờ nhẹ dưới chân (`fill: true` với opacity `0.06 - 0.15`), tạo chiều sâu sang trọng và phân lớp dữ liệu rõ ràng.
+    - **Bảng màu & Trục tọa độ Dual-Theme:**
+      - Dark Mode: Dùng hệ màu neon sáng rõ nét (Cyan `#38bdf8`, Emerald `#10b981`, Purple `#a855f7`, Amber `#f59e0b`, Rose `#f43f5e`), lưới tọa độ `rgba(255, 255, 255, 0.06)`.
+      - Light Mode: Bắt buộc dùng hệ màu đậm sâu (Blue `#0284c7`, Emerald `#059669`, Violet `#7c3aed`, Amber `#d97706`, Crimson `#e11d48`), lưới tọa độ `rgba(0, 0, 0, 0.06)`.
+      - Trục hoành thời gian (Age/Year Axis): Dùng chuẩn `ageAxisTicks()` với nhãn 2 dòng nằm ngang (`35t \n 2032`, `maxRotation: 0`), font `Inter` 9px, tránh xoay chữ 45 độ làm rối và chiếm dụng không gian.
+    - **Cập nhật tức thời khi đổi Theme:**
+      - Hàm `toggleTheme()` phải luôn kích hoạt re-render toàn bộ các biểu đồ (`updateAll()`) để cập nhật màu sắc trục, đường kẻ và thẻ ghim ngay lập tức.
   - **Checklist bắt buộc trước khi hoàn thành task UI:**
     - Luôn tự kiểm tra đối chiếu component mới/được sửa trên cả 2 chế độ:
       1. Dark Mode: Nền tối sang trọng, viền mờ tinh tế, chữ sáng dễ đọc.
       2. Light Mode: Nền trắng sạch sẽ (không có mảng xám đục hay mảng tối sót lại), viền sắc nét, chữ đen/xám đậm rõ ràng. Mọi dòng chữ phải sắc sảo, độ tương phản cao, tuyệt đối không bị mờ nhạt hay bạc màu.
       3. Typography: Đồng nhất font `Inter` (`var(--font-sans)`), không để font chữ `monospace` lạc quẻ trong các câu văn bản hoặc công thức tiếng Việt.
-      4. Cột Mốc & Biểu Đồ: Thống nhất một màu hài hòa, không có ghim đen hay đường gióng đa sắc rối mắt.
+      4. Cột Mốc & Biểu Đồ: Thống nhất một màu hài hòa, không có ghim đen hay đường gióng đa sắc rối mắt; độ dày nét đường chuẩn 2.8 - 3.2px, `mode: 'index'`, `intersect: false`.
 - Mọi thay đổi input phải cập nhật biểu đồ **tức thì** (debounce 300ms) — không cần nhấn nút "Tính toán".
 - Màu sắc biểu đồ phải nhất quán trong cả session; dùng bảng màu đã định nghĩa trong CSS variables.
 - Responsive: hoạt động tốt trên màn hình từ 768px trở lên (tablet landscape + desktop).
@@ -143,7 +170,35 @@
 
 ---
 
-## 7. Bảo Mật & Dữ Liệu
+## 7. Gemini AI Advisor & Tối Ưu Hóa Quota Token — Nguyên Tắc Bất Biến
+
+### Nguyên Tắc Gọi Theo Biến Đổi Dữ Liệu (Data-Fingerprint Invocations)
+- **Tuyệt đối KHÔNG gọi lại API Gemini khi chuyển đổi qua lại giữa các tab, đổi giao diện (theme), hoặc khi re-render UI thông thường.**
+- **Cơ chế Cache dựa trên Dấu vân tay dữ liệu (Data Fingerprint / Hash):**
+  - Mọi yêu cầu phân tích biểu đồ hoặc kế hoạch phải gắn liền với một khóa cache được tính từ mã băm (hash) của toàn bộ các biến tài chính đầu vào cốt lõi:
+    - Tham số kế hoạch: Tiết kiệm hiện có, tích lũy hàng năm, chi tiêu hưu trí, tuổi hiện tại, tuổi nghỉ hưu, kỳ vọng sống, lợi nhuận kỳ vọng, lạm phát, chiến lược rút tiền, tỷ lệ SWR, chế độ thuế, dòng thu nhập, bất động sản.
+    - Dữ liệu tóm tắt ngữ cảnh biểu đồ (`chartSummary`) và loại tiền tệ (`currency`).
+  - **Khi các biến tài chính không đổi:** Bắt buộc tái sử dụng kết quả phân tích có sẵn trong RAM cache tức thì (0ms), không hiển thị vòng quay tải (loading spinner), không gửi HTTP request mạng, **tiết kiệm 100% token**.
+  - **Khi có biến tài chính thay đổi:** Dấu vân tay dữ liệu tự động thay đổi, hệ thống nhận diện bài toán tài chính mới và mới gửi yêu cầu phân tích mới lên Gemini.
+
+### Cấm Hardcode Làm Mới Cưỡng Bức (`forceRefresh = true`)
+- Trong toàn bộ các hàm render UI mặc định (`renderScenarioTab`, `renderNetWorthChart`, `renderWithdrawalComparison`...), **tuyệt đối cấm truyền `forceRefresh = true`**.
+- Cờ `forceRefresh = true` CHỈ được phép kích hoạt khi người dùng **chủ động nhấp chuột** vào nút bấm "Phân tích lại / Làm mới" trên giao diện.
+
+### Quy Chuẩn Hiển Thị Huy Hiệu & Thời Gian Cập Nhật
+- Huy hiệu tên mô hình (ví dụ: `gemini-3.5-flash-lite`, `Gemini Intelligence`) và nhãn thời gian `Cập nhật lúc: [HH:MM]` bắt buộc phải được bọc trong một container nhóm có `display: inline-flex; flex-wrap: nowrap; white-space: nowrap; flex-shrink: 0;`.
+- **Luôn luôn nằm trên cùng một dòng**, tuyệt đối không được để xảy ra tình trạng huy hiệu ở dòng trên còn thời gian rớt xuống dòng dưới khi màn hình co giãn.
+
+### Cơ Chế Phục Hồi & Fallback Ngoại Tuyến (Graceful Degradation)
+- Khi gặp sự cố mạng, quá giới hạn tần suất (Rate Limit 429), hoặc thiếu API key, hệ thống phải tự động chuyển sang bộ phân tích cục bộ dựng sẵn (Local Financial Intelligence) mà không làm gián đoạn trải nghiệm của người dùng hay làm hỏng luồng tính toán client-side.
+- **Quy chuẩn hiển thị biểu tượng cảnh báo ngoại tuyến tại nhãn thời gian:**
+  - Khi hệ thống ở chế độ Fallback Ngoại Tuyến (`source !== 'gemini_api'`), bắt buộc hiển thị ký hiệu/biểu tượng cảnh báo (Warning symbol `⚠` hoặc `[!]`) đặt ngay trước nhãn thời gian: `⚠ Cập nhật lúc: [HH:MM] (Ngoại tuyến)`.
+  - Cụm nhãn thời gian phải tự động đổi sang màu cảnh báo (màu hổ phách/cam vàng: Dark Mode `#f59e0b`, Light Mode `#b45309` trên nền nhạt `#fef3c7`) kết hợp thuộc tính `title` giải thích lý do ngoại tuyến, giúp người dùng nhận biết ngay lập tức phân tích đang được sinh từ bộ máy suy luận cục bộ thay vì gọi trực tiếp lên Google Gemini API.
+- Giữ vững nguyên tắc Local-First: Trí tuệ nhân tạo chỉ đóng vai trò tư vấn viên (advisor) phân tích nhận xét, tuyệt đối không dùng AI để thực hiện các phép tính số học cốt lõi.
+
+---
+
+## 8. Bảo Mật & Dữ Liệu
 
 - **Không lưu mật khẩu** hay token JWT vào `localStorage` — dùng `sessionStorage` hoặc cookie `HttpOnly`.
 - Dữ liệu kế hoạch tài chính trong `localStorage` **không được chứa thông tin nhận dạng cá nhân** (tên thật, CMND...).
@@ -152,7 +207,7 @@
 
 ---
 
-## 8. Quy Trình Làm Việc Với Agent
+## 9. Quy Trình Làm Việc Với Agent
 
 - Khi được yêu cầu thêm tính năng mới, **luôn hỏi lại** nếu tính năng có thể ảnh hưởng đến kết quả tính toán tài chính để tránh sai số.
 - Trước khi sửa `engine.js` hoặc `monteCarlo.js`, **đọc lại toàn bộ hàm liên quan** để hiểu context; không patch một phần nhỏ mà bỏ sót tác động dây chuyền.
@@ -162,7 +217,7 @@
 
 ---
 
-## 9. Tài Liệu & Documentation
+## 10. Tài Liệu & Documentation
 
 - Các file `DOCS_*.md` là **nguồn sự thật** cho logic nghiệp vụ; khi có xung đột giữa code và docs, **hỏi người dùng** để làm rõ trước khi sửa.
 - Mọi thuật toán mới hoặc thay đổi công thức phải cập nhật vào `DOCS_CALCULATION_ENGINE.md`.
@@ -170,7 +225,7 @@
 
 ---
 
-## 10. Deployment
+## 11. Deployment
 
 - Môi trường production: OVH VPS + Docker (xem `DEPLOY_OVH.md`).
 - **Không commit file `.env`** — chỉ commit `.env.example`.

@@ -51,17 +51,53 @@ window.GeminiAdvisor = (function () {
     return html;
   }
 
+  // Simple 32-bit FNV-1a string hashing for data fingerprinting
+  function hashString(str) {
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) {
+      hash ^= str.charCodeAt(i);
+      hash = Math.imul(hash, 0x01000193);
+    }
+    return (hash >>> 0).toString(36);
+  }
+
+  function computeCacheKey(chartId, chartSummary) {
+    const plan = window.RetirementApp ? window.RetirementApp.getActivePlan() : {};
+    const currency = window.RetirementApp?.getCurrency() || "EUR";
+
+    // Trích xuất các biến tài chính cốt lõi có ảnh hưởng trực tiếp đến kết quả tính toán
+    const planCore = {
+      id: plan.id,
+      curSav: plan.currentSavings,
+      annSav: plan.annualSavings,
+      retExp: plan.retirementExpenses,
+      curAge: plan.currentAge,
+      retAge: plan.retirementAge,
+      lifeExp: plan.lifeExpectancy,
+      retReturn: plan.expectedReturn,
+      inf: plan.inflationRate,
+      strat: plan.withdrawalStrategy,
+      swr: plan.initialWithdrawalRate,
+      tax: plan.taxRegime,
+      salaries: plan.salaries,
+      realEstate: plan.realEstate
+    };
+
+    const payload = JSON.stringify({
+      planCore,
+      chartSummary: chartSummary || {},
+      currency
+    });
+
+    return `${chartId}_${hashString(payload)}`;
+  }
+
   /**
    * Request Gemini analysis for a specific chart
    */
   async function fetchChartInsight(chartId, chartTitle, chartSummary, forceRefresh = false) {
     const plan = window.RetirementApp ? window.RetirementApp.getActivePlan() : {};
-    const stratKey = (chartId === "chart-withdrawal-comparison") 
-      ? `_all_strategies_swr${chartSummary?.initialSWR || "4"}` 
-      : (chartId === "chart-scenarios")
-        ? `_all_scenarios`
-        : "";
-    const cacheKey = `${chartId}_${plan.id || "default"}_${window.RetirementApp?.getCurrency() || "EUR"}${stratKey}`;
+    const cacheKey = computeCacheKey(chartId, chartSummary);
 
     if (!forceRefresh && cache[cacheKey]) {
       return cache[cacheKey];
@@ -114,7 +150,11 @@ window.GeminiAdvisor = (function () {
       chartSummary = chartMetaCache[chartId].summary;
     }
 
-    if (forceRefresh) {
+    const cacheKey = computeCacheKey(chartId, chartSummary);
+    const isCached = !forceRefresh && !!cache[cacheKey];
+
+    // Chỉ hiển thị hiệu ứng tải khi bắt buộc làm mới hoặc khi có biến thay đổi chưa có trong cache
+    if (!isCached) {
       contentEl.innerHTML = `
         <div class="gemini-loading">
           <span class="gemini-spinner"></span>
@@ -163,7 +203,16 @@ window.GeminiAdvisor = (function () {
     }
     if (timeEl) {
       const nowStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-      timeEl.innerHTML = `Cập nhật lúc: ${nowStr}`;
+      const isFallback = (data.source !== "gemini_api");
+      if (isFallback) {
+        timeEl.className = "gemini-header-time is-fallback";
+        timeEl.innerHTML = `<span class="gemini-warning-symbol">⚠</span> Cập nhật lúc: ${nowStr} (Ngoại tuyến)`;
+        timeEl.title = "Đang sử dụng bộ phân tích cục bộ do không có kết nối API hoặc hạn ngạch bị gián đoạn";
+      } else {
+        timeEl.className = "gemini-header-time";
+        timeEl.innerHTML = `Cập nhật lúc: ${nowStr}`;
+        timeEl.title = "Phân tích trực tuyến từ Google Gemini AI";
+      }
     }
 
     if (contentEl) {

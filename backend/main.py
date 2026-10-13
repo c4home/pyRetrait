@@ -96,12 +96,15 @@ DEFAULT_PLANS_FILE = DATA_DIR / "default_plans.json"
 
 def _load_default_plans() -> Dict[str, Any]:
     """Tải kế hoạch mẫu từ file JSON riêng."""
-    if DEFAULT_PLANS_FILE.exists():
-        try:
-            with open(DEFAULT_PLANS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
+    for p in (DEFAULT_PLANS_FILE, PLANS_FILE):
+        if p.exists():
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if data and data.get("plans"):
+                        return data
+            except Exception:
+                pass
     # Fallback tối giản nếu file không tồn tại
     return {"activePlanId": "plan_franco_viet", "plans": {}}
 
