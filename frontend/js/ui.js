@@ -693,6 +693,51 @@
       });
     }
 
+    // Feature Discovery / Capabilities Intro Modal Handlers
+    const modalFeatureIntro = document.getElementById("feature-intro-modal");
+    const btnOpenFeatureIntro = document.getElementById("btn-header-feature-intro");
+    const btnCloseFeatureIntro = document.getElementById("btn-close-feature-intro");
+    const btnIntroStart = document.getElementById("btn-intro-start");
+
+    const openFeatureIntroModal = () => {
+      if (modalFeatureIntro) {
+        modalFeatureIntro.style.display = "flex";
+      }
+    };
+
+    const closeFeatureIntroModal = () => {
+      if (modalFeatureIntro) {
+        modalFeatureIntro.style.display = "none";
+        try {
+          localStorage.setItem("pyretrait_intro_seen", "true");
+        } catch (e) {
+          console.warn("Could not write to localStorage:", e);
+        }
+      }
+    };
+
+    window.openFeatureIntroModal = openFeatureIntroModal;
+
+    if (btnOpenFeatureIntro) btnOpenFeatureIntro.addEventListener("click", openFeatureIntroModal);
+    if (btnCloseFeatureIntro) btnCloseFeatureIntro.addEventListener("click", closeFeatureIntroModal);
+    if (btnIntroStart) btnIntroStart.addEventListener("click", closeFeatureIntroModal);
+    if (modalFeatureIntro) {
+      modalFeatureIntro.addEventListener("click", (e) => {
+        if (e.target === modalFeatureIntro) closeFeatureIntroModal();
+      });
+    }
+
+    // Auto-open on first visit if not seen before
+    try {
+      if (!localStorage.getItem("pyretrait_intro_seen")) {
+        setTimeout(() => {
+          openFeatureIntroModal();
+        }, 600);
+      }
+    } catch (e) {
+      // Ignore localStorage security/disabled errors
+    }
+
     // In-App Universal Confirm Modal Listeners
     document.getElementById("btn-confirm-cancel")?.addEventListener("click", closeConfirmDialog);
     document.getElementById("btn-confirm-ok")?.addEventListener("click", () => {
@@ -1523,7 +1568,6 @@
 
     // Stream inputs change listeners
     const streamKidsCount = document.getElementById("sel-stream-kids-count");
-    const streamFamilyStatus = document.getElementById("sel-stream-family-status");
     const streamKid1 = document.getElementById("inp-stream-kid1-birth");
     const streamKid2 = document.getElementById("inp-stream-kid2-birth");
     const streamKid3 = document.getElementById("inp-stream-kid3-birth");
@@ -1535,7 +1579,6 @@
       const plan = getActivePlan();
       if (!plan.familyPlan) plan.familyPlan = { enabled: true, kidsCount: 2, status: 'couple', kid1Birth: 2022, kid2Birth: 2025, kid3Birth: 2027, kid4Birth: 2029, kidCostMonthly: 350, kidUniMonthly: 900 };
       if (streamKidsCount) plan.familyPlan.kidsCount = parseInt(streamKidsCount.value) || 0;
-      if (streamFamilyStatus) plan.familyPlan.status = streamFamilyStatus.value || 'couple';
       if (streamKid1) plan.familyPlan.kid1Birth = parseInt(streamKid1.value) || 2022;
       if (streamKid2) plan.familyPlan.kid2Birth = parseInt(streamKid2.value) || 2025;
       if (streamKid3) plan.familyPlan.kid3Birth = parseInt(streamKid3.value) || 2027;
@@ -1549,7 +1592,7 @@
       updateAll();
     };
 
-    [streamKidsCount, streamFamilyStatus, streamKid1, streamKid2, streamKid3, streamKid4, streamCost, streamUni].forEach(el => {
+    [streamKidsCount, streamKid1, streamKid2, streamKid3, streamKid4, streamCost, streamUni].forEach(el => {
       if (el) {
         el.addEventListener("change", onStreamFamilyInputChange);
         el.addEventListener("input", onStreamFamilyInputChange);
@@ -1557,7 +1600,7 @@
     });
 
     // Asset Allocation Sliders
-    ['inp-alloc-stocks', 'inp-alloc-bonds', 'inp-alloc-re'].forEach(id => {
+    ['inp-alloc-stocks', 'inp-alloc-bonds', 'inp-alloc-re', 'inp-alloc-cash'].forEach(id => {
       const el = document.getElementById(id);
       if (el) {
         ['input', 'change'].forEach(evt => {
@@ -1598,13 +1641,14 @@
         showConfirmDialog({
           icon: "",
           title: "Xác nhận đặt lại Phân bổ Danh mục",
-          message: `Bạn có muốn đặt lại tỷ lệ phân bổ danh mục về chuẩn <strong>60% Cổ phiếu, 20% Trái phiếu, 20% BĐS</strong>?`,
+          message: `Bạn có muốn đặt lại tỷ lệ phân bổ danh mục về chuẩn <strong>60% Cổ phiếu, 20% Trái phiếu, 20% BĐS, 0% Tiền mặt</strong>?`,
           confirmText: "Đặt lại tỷ lệ",
           onConfirm: () => {
-            plan.assetAllocation = { stocks: 60, bonds: 20, realEstate: 20 };
+            plan.assetAllocation = { stocks: 60, bonds: 20, realEstate: 20, cash: 0 };
             setVal("inp-alloc-stocks", 60);
             setVal("inp-alloc-bonds", 20);
             setVal("inp-alloc-re", 20);
+            setVal("inp-alloc-cash", 0);
             savePlansToStorage();
             updateAssetAllocationUI(plan);
             updateAll();
@@ -1649,6 +1693,17 @@
             btnEditDual.innerText = "Mở rộng";
           }
         }
+      });
+    }
+
+    const chkWithdrawal = document.getElementById("chk-enable-withdrawal-strategy");
+    if (chkWithdrawal) {
+      chkWithdrawal.addEventListener("change", () => {
+        const plan = getActivePlan();
+        plan.enableWithdrawalStrategy = chkWithdrawal.checked;
+        savePlansToStorage();
+        updateWithdrawalStrategyCards(plan);
+        updateAll();
       });
     }
 
@@ -1971,6 +2026,11 @@
     const radio = document.querySelector(`input[name='withdrawal-strategy'][value='${p.withdrawalStrategy || "guyton_klinger"}']`);
     if (radio) radio.checked = true;
 
+    const chkWithdrawalInput = document.getElementById("chk-enable-withdrawal-strategy");
+    if (chkWithdrawalInput) {
+      chkWithdrawalInput.checked = p.enableWithdrawalStrategy !== false;
+    }
+
     // Roth
     if (p.rothConversion) {
       document.getElementById("chk-roth-enabled").checked = p.rothConversion.enabled !== false;
@@ -2004,6 +2064,7 @@
       setVal("inp-alloc-stocks", p.assetAllocation.stocks !== undefined ? p.assetAllocation.stocks : 60);
       setVal("inp-alloc-bonds", p.assetAllocation.bonds !== undefined ? p.assetAllocation.bonds : 20);
       setVal("inp-alloc-re", p.assetAllocation.realEstate !== undefined ? p.assetAllocation.realEstate : 20);
+      setVal("inp-alloc-cash", p.assetAllocation.cash !== undefined ? p.assetAllocation.cash : 0);
     }
     updateAssetAllocationUI(p);
 
@@ -2042,14 +2103,17 @@
     const stocksEl = document.getElementById("inp-alloc-stocks");
     const bondsEl = document.getElementById("inp-alloc-bonds");
     const reEl = document.getElementById("inp-alloc-re");
+    const cashEl = document.getElementById("inp-alloc-cash");
 
     const stocks = (stocksEl && stocksEl.value !== "") ? Number(stocksEl.value) : (p.assetAllocation?.stocks ?? 60);
     const bonds = (bondsEl && bondsEl.value !== "") ? Number(bondsEl.value) : (p.assetAllocation?.bonds ?? 20);
     const re = (reEl && reEl.value !== "") ? Number(reEl.value) : (p.assetAllocation?.realEstate ?? 20);
+    const cash = (cashEl && cashEl.value !== "") ? Number(cashEl.value) : (p.assetAllocation?.cash ?? 0);
 
     const lblStocks = document.getElementById("lbl-alloc-stocks");
     const lblBonds = document.getElementById("lbl-alloc-bonds");
     const lblRE = document.getElementById("lbl-alloc-re");
+    const lblCash = document.getElementById("lbl-alloc-cash");
     const badgeWeighted = document.getElementById("badge-weighted-return");
     const lblWeightedCalc = document.getElementById("lbl-weighted-calc");
 
@@ -2061,19 +2125,22 @@
     const stocksAmt = Math.round(totalSavings * (stocks / 100));
     const bondsAmt = Math.round(totalSavings * (bonds / 100));
     const reAmt = Math.round(totalSavings * (re / 100));
+    const cashAmt = Math.round(totalSavings * (cash / 100));
 
     const stocksAmtFormatted = window.RetirementEngine.formatCurrency(stocksAmt, cur);
     const bondsAmtFormatted = window.RetirementEngine.formatCurrency(bondsAmt, cur);
     const reAmtFormatted = window.RetirementEngine.formatCurrency(reAmt, cur);
+    const cashAmtFormatted = window.RetirementEngine.formatCurrency(cashAmt, cur);
 
     if (lblStocks) lblStocks.innerText = `${stocks}% • ${stocksAmtFormatted} (9.5%/năm)`;
     if (lblBonds) lblBonds.innerText = `${bonds}% • ${bondsAmtFormatted} (3.5%/năm)`;
     if (lblRE) lblRE.innerText = `${re}% • ${reAmtFormatted} (6.5%/năm)`;
+    if (lblCash) lblCash.innerText = `${cash}% • ${cashAmtFormatted} (1.5%/năm)`;
 
-    const returns = p.assetReturns || { stocks: 9.5, bonds: 3.5, realEstate: 6.5 };
-    const weighted = window.RetirementEngine.calculateWeightedReturn({ stocks, bonds, realEstate: re }, returns, 0.3);
+    const returns = p.assetReturns || { stocks: 9.5, bonds: 3.5, realEstate: 6.5, cash: 1.5 };
+    const weighted = window.RetirementEngine.calculateWeightedReturn({ stocks, bonds, realEstate: re, cash }, returns, 0.3);
 
-    const totalPct = stocks + bonds + re;
+    const totalPct = stocks + bonds + re + cash;
     let totalWarning = "";
     if (totalPct !== 100) {
       totalWarning = ` <span style="color:var(--warning); font-weight:700;">(Tổng: ${totalPct}% - nên cân chỉnh về 100%)</span>`;
@@ -2081,7 +2148,7 @@
 
     if (badgeWeighted) badgeWeighted.innerText = `${weighted}%/năm`;
     if (lblWeightedCalc) {
-      lblWeightedCalc.innerHTML = `<strong>${weighted}%/năm</strong> (đã gồm +0.3% thưởng kỷ luật tái cân bằng)${totalWarning}<div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem; font-family: var(--font-sans);">Công thức: (${stocks}% × 9.5%) + (${bonds}% × 3.5%) + (${re}% × 6.5%) + 0.3% = ${weighted}%</div>`;
+      lblWeightedCalc.innerHTML = `<strong>${weighted}%/năm</strong> (đã gồm +0.3% thưởng kỷ luật tái cân bằng)${totalWarning}<div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem; font-family: var(--font-sans);">Công thức: (${stocks}% × 9.5%) + (${bonds}% × 3.5%) + (${re}% × 6.5%) + (${cash}% × 1.5%) + 0.3% = ${weighted}%</div>`;
     }
 
     // Cập nhật thẻ Phân bổ Danh mục & Tái cân bằng trong Cột Thu nhập
@@ -2091,7 +2158,11 @@
     const chkEnable = document.getElementById("chk-enable-asset-allocation");
 
     if (lblCardRatio) {
-      lblCardRatio.innerText = `${stocks}% CP • ${bonds}% TP • ${re}% BĐS`;
+      let ratioText = `${stocks}% CP • ${bonds}% TP • ${re}% BĐS`;
+      if (cash > 0) {
+        ratioText += ` • ${cash}% TM`;
+      }
+      lblCardRatio.innerText = ratioText;
     }
     if (lblCardBonus) {
       lblCardBonus.innerText = `+0.3% Tái cân bằng`;
@@ -2104,7 +2175,7 @@
       cardEl.style.opacity = p.enableAssetAllocation === false ? "0.55" : "1";
     }
 
-    p.assetAllocation = { stocks, bonds, realEstate: re };
+    p.assetAllocation = { stocks, bonds, realEstate: re, cash };
     p.investmentReturnPre = weighted;
     p.investmentReturnPost = weighted;
     setVal("inp-return-pre", weighted);
@@ -2152,6 +2223,30 @@
     }
     if (cardEl) {
       cardEl.style.opacity = isEnabled ? "1" : "0.55";
+    }
+
+    // Tự động làm mờ và hiển thị chú thích cho ô Lạm phát bình quân (%)
+    const inpInflation = document.getElementById("inp-inflation");
+    const badgeDualActive = document.getElementById("badge-dual-inflation-active");
+    const hintDualActive = document.getElementById("hint-dual-inflation-active");
+
+    if (inpInflation) {
+      if (isEnabled) {
+        inpInflation.disabled = true;
+        inpInflation.style.opacity = "0.6";
+        inpInflation.style.cursor = "not-allowed";
+        const hintText = window.I18n ? window.I18n.t("hint_dual_inflation_active", "Đang áp dụng mô hình Lạm phát 2 chặng bên dưới") : "Đang áp dụng mô hình Lạm phát 2 chặng bên dưới";
+        inpInflation.title = hintText;
+        if (badgeDualActive) badgeDualActive.style.display = "inline-flex";
+        if (hintDualActive) hintDualActive.style.display = "block";
+      } else {
+        inpInflation.disabled = false;
+        inpInflation.style.opacity = "1";
+        inpInflation.style.cursor = "text";
+        inpInflation.removeAttribute("title");
+        if (badgeDualActive) badgeDualActive.style.display = "none";
+        if (hintDualActive) hintDualActive.style.display = "none";
+      }
     }
 
     if (!p.dualInflation) p.dualInflation = {};
@@ -2522,15 +2617,13 @@
 
     if (badge) {
       if (isEnabled) {
+        badge.style.display = "inline-block";
         badge.innerText = `${window.RetirementEngine.formatCurrency(monthlyAmt, state.currency)}/tháng`;
         badge.style.background = "rgba(244, 63, 94, 0.12)";
         badge.style.color = "#fb7185";
         badge.style.borderColor = "rgba(244, 63, 94, 0.25)";
       } else {
-        badge.innerText = "Chưa kích hoạt";
-        badge.style.background = "rgba(148, 163, 184, 0.1)";
-        badge.style.color = "var(--text-faint)";
-        badge.style.borderColor = "var(--border-subtle)";
+        badge.style.display = "none";
       }
     }
 
@@ -2670,9 +2763,14 @@
     const lblTiming = document.getElementById("lbl-family-stream-timing");
     const btnDel = document.getElementById("btn-del-family-stream");
 
+    const bodyFamily = document.getElementById("family-stream-inputs-body");
+    if (bodyFamily) {
+      bodyFamily.style.display = isEnabled ? "block" : "none";
+    }
+
     if (badgeStatus) {
       if (count > 0 && isEnabled) {
-        badgeStatus.innerText = `${count} con • ${totalParts.toFixed(1)} Parts`;
+        badgeStatus.innerText = `${count} con`;
         badgeStatus.style.background = "rgba(99, 102, 241, 0.12)";
         badgeStatus.style.color = "#818cf8";
         badgeStatus.style.borderColor = "rgba(99, 102, 241, 0.25)";
@@ -2682,7 +2780,7 @@
         badgeStatus.style.color = "var(--text-faint)";
         badgeStatus.style.borderColor = "var(--border-subtle)";
       } else {
-        badgeStatus.innerText = "0 con • 2.0 Parts";
+        badgeStatus.innerText = "Chưa có con";
         badgeStatus.style.background = "rgba(148, 163, 184, 0.1)";
         badgeStatus.style.color = "var(--text-faint)";
         badgeStatus.style.borderColor = "var(--border-subtle)";
@@ -2820,8 +2918,12 @@
         const loanPmt = Number(a.monthly_loan_payment) || 0;
         const charges = Number(a.monthly_charges) || 0;
         const totalExpenses = loanPmt + charges;
+        const cat = a.property_category || (a.raw?.property_category) || (a.typology && (/maison|villa|nhà/i).test(a.typology) ? 'house' : 'apartment');
+        const appr = a.appreciation_rate !== undefined ? Number(a.appreciation_rate) : (a.raw?.appreciation_rate !== undefined ? Number(a.raw.appreciation_rate) : (cat === 'house' ? 2.5 : 0.0));
         return {
-          name: a.name || a.address || 'Căn hộ',
+          name: a.name || a.address || (cat === 'house' ? 'Nhà mặt đất' : 'Căn hộ'),
+          propertyCategory: cat,
+          propertyAppreciation: appr,
           loanAmount: Number(a.loan_amount) || 0,
           interestRate: Number(a.annual_interest_rate) || 0,
           insuranceRate: Number(a.annual_insurance_rate) || 0,
@@ -2848,7 +2950,8 @@
       startAge: (Number(l.startYear) || curYear) - bYear,
       loanAmount: Math.round(l.loanAmount * f),
       propertyValue: Math.round(l.propertyValue * f),
-      propertyAppreciation: 2.5,
+      propertyCategory: l.propertyCategory || 'apartment',
+      propertyAppreciation: l.propertyAppreciation !== undefined ? Number(l.propertyAppreciation) : (l.propertyCategory === 'house' ? 2.5 : 0.0),
       monthlyPaymentEur: l.monthlyPaymentEur ? Math.round(l.monthlyPaymentEur * f) : 0,
       monthlyLoanPaymentEur: l.monthlyLoanPaymentEur ? Math.round(l.monthlyLoanPaymentEur * f) : (l.monthlyPaymentEur ? Math.round(l.monthlyPaymentEur * f) : 0),
       monthlyChargesEur: l.monthlyChargesEur ? Math.round(l.monthlyChargesEur * f) : 0,
@@ -2860,10 +2963,8 @@
   function applyPatrimoineToPlan(p, data) {
     if (!p || !data) return;
     const eurLoans = extractPatrimoineLoansEur(p, data);
-    if (eurLoans) {
-      p.mortgage = p.mortgage || {};
-      p.mortgage.patrimoineLoansEur = eurLoans;
-    }
+    p.mortgage = p.mortgage || {};
+    p.mortgage.patrimoineLoansEur = Array.isArray(eurLoans) ? eurLoans : [];
 
     const f = eurToPlanFactor(p);
     const round = (v) => p.currency === 'VND' ? Math.round((v * f) / 100000) * 100000 : Math.round(v * f);
@@ -2918,13 +3019,13 @@
 
     // Synchronize Apartment Purchase Milestones from Patrimoine into plan.milestones
     const apts = Array.isArray(data.apartments) ? data.apartments : [];
+    if (!Array.isArray(p.milestones)) p.milestones = [];
+    // Luôn dọn sạch các mốc mua căn hộ cũ của patrimoine trước
+    p.milestones = p.milestones.filter(m => m.source !== 'patrimoine' && m.id !== 'ms_home');
+
     if (apts.length > 0) {
-      if (!Array.isArray(p.milestones)) p.milestones = [];
       const curYear = new Date().getFullYear();
       const bYear = Number(p.birthYear) || (curYear - curAge);
-
-      // Remove the old template placeholder 'ms_home' and any previously synced patrimoine milestones
-      p.milestones = p.milestones.filter(m => m.source !== 'patrimoine' && m.id !== 'ms_home');
 
       apts.forEach((apt, idx) => {
         const startYr = Number(apt.start_year) || curYear;
@@ -4508,13 +4609,43 @@
 
   function syncMortgageToExpenseStreams(plan, showToastMsg = true) {
     if (!plan) plan = getActivePlan();
-    const patLoans = buildPatrimoineLoans(plan);
-    if (!patLoans || patLoans.length === 0) {
-      if (showToastMsg) alert("Không tìm thấy khoản vay BĐS nào trong Quản Lý Tài Sản để đồng bộ!");
+    if (!Array.isArray(plan.expenses)) plan.expenses = [];
+    const patLoans = buildPatrimoineLoans(plan) || [];
+
+    // Danh sách tên chuẩn và tên gốc của các căn hộ/khoản vay BĐS còn hiệu lực
+    const validCleanNames = new Set(patLoans.map(loan => `Chi phí BĐS & Crédit: ${loan.name || 'BĐS'}`));
+    const validApartmentNames = new Set(patLoans.map(loan => (loan.name || '').trim()).filter(Boolean));
+
+    // Tự động xóa các khoản Chi phí BĐS & Crédit không còn tồn tại trong Quản Lý BĐS
+    plan.expenses = plan.expenses.filter(e => {
+      const expName = e.name || '';
+      const isPatrimoineExpense = (e.source === 'patrimoine') || expName.startsWith('Chi phí BĐS & Crédit:');
+
+      // Nếu không phải khoản chi BĐS, giữ nguyên tuyệt đối
+      if (!isPatrimoineExpense) return true;
+
+      // Nếu không còn khoản vay BĐS nào (đã xóa hết căn hộ), xóa sạch
+      if (patLoans.length === 0) return false;
+
+      // Nếu còn BĐS, kiểm tra xem khoản chi này có thuộc căn hộ còn tồn tại không
+      if (validCleanNames.has(expName)) return true;
+      for (const aptName of validApartmentNames) {
+        if (expName.includes(aptName)) return true;
+      }
+      return false; // Căn hộ này đã bị xóa => tự động xóa khoản chi tương ứng
+    });
+
+    if (patLoans.length === 0) {
+      savePlansToStorage();
+      renderExpenseStreamsList();
+      updateCashflowBalanceUI(plan);
+      updateAll();
+      if (showToastMsg) {
+        alert("Đã tự động dọn dẹp các khoản Chi phí BĐS & Crédit do không còn căn hộ nào trong Quản Lý BĐS.");
+      }
       return;
     }
 
-    if (!Array.isArray(plan.expenses)) plan.expenses = [];
     const curAge = Number(plan.currentAge) || 29;
     const sched = window.RetirementEngine.calculateMortgageSchedule({ source: 'patrimoine', loans: patLoans }, curAge, plan.lifeExpectancy || 85);
 
@@ -4540,6 +4671,7 @@
         endAge: endAge,
         growth: 0.0,
         isDebt: true,
+        source: 'patrimoine',
         note: noteText,
         enabled: true
       };
@@ -4558,7 +4690,7 @@
     updateAll();
 
     if (showToastMsg) {
-      alert(`Đã đồng bộ thành công ${patLoans.length} khoản nợ vay BĐS vào danh mục Luồng Chi Tiêu & Nợ Vay!`);
+      alert(`Đã đồng bộ thành công ${patLoans.length} khoản nợ vay BĐS vào danh mục Các Luồng Chi Tiêu!`);
     }
   }
 
@@ -5110,6 +5242,7 @@
     updatePensionDecoteUI(plan);
     updateBhxhVnUI(plan);
     updateLmnpUI(plan);
+    updateDualInflationUI(plan);
 
     // Bảng giai đoạn tuổi phụ thuộc tuổi nghỉ hưu -> phải render lại khi bất kỳ input nào đổi
     renderIncomePeriodsSummary(plan);
@@ -5251,8 +5384,126 @@
   }
 
   // -------------------------------------------------------------
-  // Chart.js Visualizations
+  // Chart.js Visualizations: Collision-Free Milestone Markers
   // -------------------------------------------------------------
+  function drawMilestoneMarkers(chart, proj, isLight) {
+    const { ctx, chartArea, scales: { x } } = chart;
+    if (!chartArea || !proj || !Array.isArray(proj.milestones) || proj.milestones.length === 0) return;
+
+    const unifiedMilestoneBg = isLight ? "#ffffff" : "rgba(15, 23, 42, 0.95)";
+    const unifiedMilestoneBorder = isLight ? "#cbd5e1" : "rgba(56, 189, 248, 0.45)";
+    const unifiedMilestoneLine = isLight ? "rgba(2, 132, 199, 0.35)" : "rgba(56, 189, 248, 0.35)";
+    const unifiedMilestoneText = isLight ? "#0284c7" : "#38bdf8";
+
+    // 1. Nhóm các mốc theo độ tuổi để triệt tiêu việc vẽ đè các mốc trùng tuổi (như 3 căn hộ tất toán cùng tuổi 46)
+    const milestonesByAge = new Map();
+    proj.milestones.forEach(m => {
+      if (!milestonesByAge.has(m.age)) {
+        milestonesByAge.set(m.age, []);
+      }
+      milestonesByAge.get(m.age).push(m);
+    });
+
+    const uniqueAges = Array.from(milestonesByAge.keys()).sort((a, b) => a - b);
+    const pillH = 18;
+    const tierGapY = 21;
+    // Hỗ trợ 3 tầng hàng thẻ ghim (Tier 0, 1, 2) so le để các mốc ở các năm liền kề không bao giờ bị đè ngang
+    const tierLastRight = [-Infinity, -Infinity, -Infinity];
+
+    ctx.save();
+
+    uniqueAges.forEach((age) => {
+      const idx = proj.timeline.findIndex(p => p.age === age);
+      if (idx === -1) return;
+      const xPos = x.getPixelForValue(idx);
+      if (xPos < chartArea.left - 5 || xPos > chartArea.right + 5) return;
+
+      const p = proj.timeline[idx];
+      const yearBadge = p ? ` (${p.year})` : '';
+      const labelText = `${age}t${yearBadge}`;
+
+      ctx.font = '600 10px Inter, sans-serif';
+      const textMetrics = ctx.measureText(labelText);
+      const pillW = Math.max(62, Math.ceil(textMetrics.width + 14));
+
+      // Tính tọa độ X căn giữa xPos, không tràn ra ngoài chartArea
+      let pillX = Math.max(chartArea.left + 2, Math.min(chartArea.right - pillW - 2, xPos - pillW / 2));
+
+      // Thuật toán tìm tầng (Tier 0, 1, 2) thấp nhất chưa bị chiếm dụng ngang (cách mép thẻ trước >= 4px)
+      let chosenTier = -1;
+      for (let r = 0; r < 3; r++) {
+        if (pillX >= tierLastRight[r] + 4) {
+          chosenTier = r;
+          break;
+        }
+      }
+
+      // Nếu cả 3 tầng đều đang bị giao cắt ngang, chọn tầng có độ chồng lấn nhỏ nhất và đẩy nhẹ pillX sang phải
+      if (chosenTier === -1) {
+        let bestTier = 0;
+        let minOver = Infinity;
+        for (let r = 0; r < 3; r++) {
+          const overlap = (tierLastRight[r] + 4) - pillX;
+          if (overlap < minOver) {
+            minOver = overlap;
+            bestTier = r;
+          }
+        }
+        chosenTier = bestTier;
+        const nudgedX = tierLastRight[chosenTier] + 4;
+        if (nudgedX + pillW <= chartArea.right - 2) {
+          pillX = nudgedX;
+        }
+      }
+
+      tierLastRight[chosenTier] = pillX + pillW;
+      const pillY = chartArea.top + (chosenTier * tierGapY) + 2;
+
+      // 1. Đường gióng nét đứt thẳng đứng từ chân thẻ ghim xuống đáy biểu đồ
+      ctx.beginPath();
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = unifiedMilestoneLine;
+      ctx.lineWidth = 1.3;
+      ctx.globalAlpha = 1.0;
+      ctx.moveTo(xPos, pillY + pillH);
+      ctx.lineTo(xPos, chartArea.bottom);
+      ctx.stroke();
+
+      // Nếu thẻ ghim bị dịch chuyển ngang nhẹ để né đè chữ, vẽ nét nối nhỏ từ tâm thẻ đến trục xPos
+      if (Math.abs((pillX + pillW / 2) - xPos) > 2) {
+        ctx.beginPath();
+        ctx.setLineDash([]);
+        ctx.strokeStyle = unifiedMilestoneLine;
+        ctx.lineWidth = 1;
+        ctx.moveTo(pillX + pillW / 2, pillY + pillH);
+        ctx.lineTo(xPos, pillY + pillH + 4);
+        ctx.stroke();
+      }
+
+      // 2. Vẽ hình thẻ ghim (Badge pill)
+      ctx.fillStyle = unifiedMilestoneBg;
+      ctx.strokeStyle = unifiedMilestoneBorder;
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(pillX, pillY, pillW, pillH, 4);
+      } else {
+        ctx.rect(pillX, pillY, pillW, pillH);
+      }
+      ctx.fill();
+      ctx.stroke();
+
+      // 3. Viết chữ vào trong thẻ ghim
+      ctx.fillStyle = unifiedMilestoneText;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(labelText, pillX + pillW / 2, pillY + pillH / 2);
+    });
+
+    ctx.restore();
+  }
+
   function renderNetWorthChart(proj) {
     const ctx = document.getElementById("chart-networth").getContext("2d");
     const labels = proj.timeline.map(p => [`${p.age}t`, `${p.year}`]);
@@ -5272,10 +5523,6 @@
 
     const isLight = document.documentElement.getAttribute("data-theme") === "light";
     const unifiedMilestoneColor = isLight ? "#0284c7" : "#38bdf8";
-    const unifiedMilestoneBg = isLight ? "#ffffff" : "rgba(15, 23, 42, 0.95)";
-    const unifiedMilestoneBorder = isLight ? "#cbd5e1" : "rgba(56, 189, 248, 0.45)";
-    const unifiedMilestoneLine = isLight ? "rgba(2, 132, 199, 0.4)" : "rgba(56, 189, 248, 0.4)";
-    const unifiedMilestoneText = isLight ? "#0284c7" : "#38bdf8";
 
     const pointRadii = proj.timeline.map(p => milestoneMap.has(p.age) ? 5.5 : 0);
     const pointHoverRadii = proj.timeline.map(p => milestoneMap.has(p.age) ? 8.5 : 5);
@@ -5299,59 +5546,7 @@
     const milestoneMarkersPlugin = {
       id: 'milestoneMarkersPlugin',
       afterDatasetsDraw(chart) {
-        const { ctx, chartArea, scales: { x } } = chart;
-        if (!chartArea || !proj || !Array.isArray(proj.milestones)) return;
-
-        ctx.save();
-        proj.milestones.forEach((m, mIdx) => {
-          const idx = proj.timeline.findIndex(p => p.age === m.age);
-          if (idx === -1) return;
-          const xPos = x.getPixelForValue(idx);
-          if (xPos < chartArea.left - 10 || xPos > chartArea.right + 10) return;
-
-          // Vertical guideline line - Unified color matching Life Milestones
-          ctx.beginPath();
-          ctx.setLineDash([4, 4]);
-          ctx.strokeStyle = unifiedMilestoneLine;
-          ctx.lineWidth = 1.3;
-          ctx.globalAlpha = 1.0;
-          ctx.moveTo(xPos, chartArea.top + 24);
-          ctx.lineTo(xPos, chartArea.bottom);
-          ctx.stroke();
-
-          // Top floating milestone pin badge - Unified color & Light mode support
-          const p = proj.timeline.find(item => item.age === m.age);
-          const yearBadge = p ? ` (${p.year})` : '';
-          const labelText = `${m.age}t${yearBadge}`;
-          ctx.font = '600 10px Inter, sans-serif';
-          const textMetrics = ctx.measureText(labelText);
-          const pillW = Math.max(68, Math.ceil(textMetrics.width + 16));
-          const pillH = 19;
-          const sameAgeMilestones = proj.milestones.filter(item => item.age === m.age);
-          const sameAgeIdx = sameAgeMilestones.findIndex(item => item.id === m.id);
-          const yOffset = (sameAgeIdx > 0) ? (sameAgeIdx * 22) : ((mIdx % 2 === 0) ? 0 : 2);
-          const pillY = chartArea.top + yOffset;
-          const pillX = Math.max(chartArea.left + 2, Math.min(chartArea.right - pillW - 2, xPos - pillW / 2));
-
-          ctx.fillStyle = unifiedMilestoneBg;
-          ctx.strokeStyle = unifiedMilestoneBorder;
-          ctx.lineWidth = 1.2;
-          ctx.beginPath();
-          if (ctx.roundRect) {
-            ctx.roundRect(pillX, pillY, pillW, pillH, 4);
-          } else {
-            ctx.rect(pillX, pillY, pillW, pillH);
-          }
-          ctx.fill();
-          ctx.stroke();
-
-          // Text inside badge - Unified high-contrast color
-          ctx.fillStyle = unifiedMilestoneText;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(labelText, pillX + pillW / 2, pillY + pillH / 2);
-        });
-        ctx.restore();
+        drawMilestoneMarkers(chart, proj, isLight);
       }
     };
 
@@ -5673,11 +5868,26 @@
       state.charts.cashflow.destroy();
     }
 
+    const milestoneMap = new Map();
+    (proj.milestones || []).forEach(m => {
+      if (!milestoneMap.has(m.age)) {
+        milestoneMap.set(m.age, m);
+      }
+    });
+
     const isLight = document.documentElement.getAttribute("data-theme") === "light";
     const sym = window.RetirementEngine.getCurrencySymbol(state.currency);
 
     const incomeColor = isLight ? '#059669' : '#10b981';
     const expenseColor = isLight ? '#e11d48' : '#f43f5e';
+
+    const unifiedMilestoneBg = isLight ? "#ffffff" : "rgba(15, 23, 42, 0.95)";
+    const unifiedMilestoneBorder = isLight ? "#cbd5e1" : "rgba(56, 189, 248, 0.45)";
+    const unifiedMilestoneLine = isLight ? "rgba(2, 132, 199, 0.4)" : "rgba(56, 189, 248, 0.4)";
+    const unifiedMilestoneText = isLight ? "#0284c7" : "#38bdf8";
+
+    const pointRadii = proj.timeline.map(p => milestoneMap.has(p.age) ? 4.5 : 0);
+    const pointHoverRadii = proj.timeline.map(p => milestoneMap.has(p.age) ? 7.5 : 6);
 
     const gradientIncome = ctx.createLinearGradient(0, 0, 0, 320);
     gradientIncome.addColorStop(0, isLight ? 'rgba(5, 150, 105, 0.32)' : 'rgba(16, 185, 129, 0.35)');
@@ -5686,6 +5896,14 @@
     const gradientExpense = ctx.createLinearGradient(0, 0, 0, 320);
     gradientExpense.addColorStop(0, isLight ? 'rgba(225, 29, 72, 0.25)' : 'rgba(244, 63, 94, 0.28)');
     gradientExpense.addColorStop(1, isLight ? 'rgba(225, 29, 72, 0.02)' : 'rgba(244, 63, 94, 0.02)');
+
+    // Custom Plugin to Draw Milestone Vertical Guidelines & Floating Pins on Cash Flow Chart
+    const milestoneMarkersCashFlowPlugin = {
+      id: 'milestoneMarkersCashFlowPlugin',
+      afterDatasetsDraw(chart) {
+        drawMilestoneMarkers(chart, proj, isLight);
+      }
+    };
 
     state.charts.cashflow = new Chart(ctx, {
       type: 'line',
@@ -5700,8 +5918,8 @@
             borderWidth: 2.8,
             fill: true,
             tension: 0.35,
-            pointRadius: 0,
-            pointHoverRadius: 6,
+            pointRadius: pointRadii,
+            pointHoverRadius: pointHoverRadii,
             pointBackgroundColor: incomeColor,
             pointBorderColor: '#ffffff',
             pointBorderWidth: 2
@@ -5714,14 +5932,15 @@
             borderWidth: 2.8,
             fill: true,
             tension: 0.35,
-            pointRadius: 0,
-            pointHoverRadius: 6,
+            pointRadius: pointRadii,
+            pointHoverRadius: pointHoverRadii,
             pointBackgroundColor: expenseColor,
             pointBorderColor: '#ffffff',
             pointBorderWidth: 2
           }
         ]
       },
+      plugins: [milestoneMarkersCashFlowPlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -5749,7 +5968,12 @@
               title: (items) => {
                 const idx = items[0].dataIndex;
                 const p = proj.timeline[idx];
-                return p ? `Tuổi ${p.age} (Năm ${p.year})${p.isRetired ? ' • Hưu trí' : ' • Tích lũy'}` : '';
+                const phaseStr = p ? (p.isRetired ? ' • Hưu trí' : ' • Tích lũy') : '';
+                const m = p ? milestoneMap.get(p.age) : null;
+                if (m) {
+                  return `Tuổi ${p.age} (Năm ${p.year})${phaseStr} • ${m.name}`;
+                }
+                return p ? `Tuổi ${p.age} (Năm ${p.year})${phaseStr}` : '';
               },
               label: (item) => {
                 const valAnnual = item.raw || 0;
@@ -5782,9 +6006,14 @@
                   rateText = ', Tỷ lệ: 0%';
                 }
 
-                return [
+                const lines = [
                   ` Tiết kiệm: ${sign}${formattedAnnual}/năm (${sign}${formattedMonthly}/tháng)${rateText}`
                 ];
+                const m = milestoneMap.get(p.age);
+                if (m && m.desc) {
+                  lines.push(` Mốc sự kiện: ${m.desc}`);
+                }
+                return lines;
               }
             }
           }
@@ -5951,14 +6180,25 @@
       const targetRadio = document.querySelector(`input[name='withdrawal-strategy'][value='${chosenStrat}']`);
       if (targetRadio) targetRadio.checked = true;
 
-      // Update Top Badge
+      // Update Top Badge & Active Status
+      const isEnabled = plan.enableWithdrawalStrategy !== false;
+      const chkWithdrawal = document.getElementById("chk-enable-withdrawal-strategy");
+      if (chkWithdrawal) chkWithdrawal.checked = isEnabled;
+
       const topBadge = document.getElementById("badge-chosen-strategy");
       const chosenObj = strategies.find(s => s.key === chosenStrat) || strategies[0];
       if (topBadge) {
-        topBadge.innerText = chosenObj.name;
-        topBadge.style.color = chosenObj.color;
-        topBadge.style.borderColor = hexToRgba(chosenObj.color, 0.4);
-        topBadge.style.background = hexToRgba(chosenObj.color, 0.15);
+        if (isEnabled) {
+          topBadge.innerText = chosenObj.name;
+          topBadge.style.color = chosenObj.color;
+          topBadge.style.borderColor = hexToRgba(chosenObj.color, 0.4);
+          topBadge.style.background = hexToRgba(chosenObj.color, 0.15);
+        } else {
+          topBadge.innerText = "Rút theo thực tế";
+          topBadge.style.color = "var(--text-faint)";
+          topBadge.style.borderColor = "var(--border-subtle)";
+          topBadge.style.background = "rgba(148, 163, 184, 0.1)";
+        }
       }
 
       // Update SWR slider
@@ -5971,12 +6211,21 @@
       // Update Card Header & Summary indicators
       const lblSwr = document.getElementById("lbl-strategy-card-swr");
       if (lblSwr) {
-        lblSwr.innerHTML = `${swrVal}% SWR<small id="lbl-strategy-card-annual"> • ≈ ${window.RetirementEngine.formatCurrency(plan.retirementExpenses || 0, state.currency)}/năm</small>`;
-        lblSwr.style.color = chosenObj.color;
+        if (isEnabled) {
+          lblSwr.innerHTML = `${swrVal}% SWR<small id="lbl-strategy-card-annual"> • ≈ ${window.RetirementEngine.formatCurrency(plan.retirementExpenses || 0, state.currency)}/năm</small>`;
+          lblSwr.style.color = chosenObj.color;
+        } else {
+          lblSwr.innerHTML = `<span style="color: var(--text-faint);">Tắt chiến lược</span><small id="lbl-strategy-card-annual"> • Rút theo chi tiêu</small>`;
+          lblSwr.style.color = "var(--text-faint)";
+        }
       }
       const lblName = document.getElementById("lbl-strategy-card-name");
       if (lblName) {
-        lblName.innerText = `${chosenObj.name} • ${chosenStrat === 'guyton_klinger' ? 'Tự điều chỉnh linh hoạt' : chosenStrat === 'bengen_4pct' ? 'Rút cố định trượt giá' : chosenStrat === 'vpw' ? 'Tỷ lệ thay đổi theo tuổi' : 'Cố định theo tài sản'}`;
+        if (isEnabled) {
+          lblName.innerText = `${chosenObj.name} • ${chosenStrat === 'guyton_klinger' ? 'Tự điều chỉnh linh hoạt' : chosenStrat === 'bengen_4pct' ? 'Rút cố định trượt giá' : chosenStrat === 'vpw' ? 'Tỷ lệ thay đổi theo tuổi' : 'Cố định theo tài sản'}`;
+        } else {
+          lblName.innerText = `Chưa kích hoạt chiến lược rút tiền • Danh mục chỉ bù đắp chi tiêu sinh hoạt`;
+        }
       }
       const lblAge = document.getElementById("lbl-strategy-card-age");
       if (lblAge) {
@@ -7656,6 +7905,16 @@
     document.documentElement.setAttribute("data-theme", saved);
     updateThemeIcon(saved);
   }
+
+  window.addEventListener('pyretrait:language-changed', () => {
+    try {
+      if (typeof getActivePlan === 'function' && getActivePlan()) {
+        updateAll();
+      }
+    } catch (e) {
+      console.warn("Lỗi re-render khi đổi ngôn ngữ:", e);
+    }
+  });
 
   // Expose global interface for GeminiAdvisor and testing
   window.RetirementApp = {

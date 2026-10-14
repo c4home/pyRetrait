@@ -20,7 +20,7 @@
   </script>
   
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=20261014_v79">
+  <link rel="stylesheet" href="css/styles.css?v=20261014_v97">
 </head>
 <body>
   <!-- Top Navigation Bar -->
@@ -40,10 +40,9 @@
           <!-- Dynamic options loaded via JS -->
         </select>
       </div>
-      <button id="btn-quick-setup" class="btn btn-primary btn-sm btn-trigger-quick-setup" style="font-weight: 700; padding: 0.4rem 0.85rem; box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);" title="Trình hướng dẫn thiết lập kế hoạch nhanh 4 bước">Thiết lập nhanh</button>
-      <button id="btn-new-plan" class="btn btn-secondary btn-sm" title="Tạo kế hoạch mới">+ Mới</button>
-      <button id="btn-duplicate-plan" class="btn btn-ghost btn-sm" title="Nhân bản kế hoạch này">Nhân bản</button>
-      <button id="btn-delete-plan" class="btn btn-ghost btn-sm" title="Xóa kế hoạch hiện tại" style="color: var(--danger);"> Xóa</button>
+      <button id="btn-new-plan" class="btn btn-secondary btn-sm" title="Tạo kế hoạch mới" data-i18n="new_plan">+ Mới</button>
+      <button id="btn-duplicate-plan" class="btn btn-ghost btn-sm" title="Nhân bản kế hoạch này" data-i18n="duplicate_plan">Nhân bản</button>
+      <button id="btn-delete-plan" class="btn btn-ghost btn-sm" title="Xóa kế hoạch hiện tại" style="color: var(--danger);" data-i18n="delete_plan"> Xóa</button>
     </div>
 
     <!-- Right Controls: Currency, Theme, Export -->
@@ -55,15 +54,20 @@
         <button class="currency-btn" data-currency="USD" id="cur-usd" title="Đô la Mỹ">$</button>
       </div>
 
+      <!-- Feature Discovery Button -->
+      <button id="btn-header-feature-intro" class="btn btn-secondary btn-sm" style="display: flex; align-items: center; gap: 0.35rem; font-weight: 500;" data-i18n-title="nav_feature_intro_title" title="Khám phá các tính năng cốt lõi của pyRetrait">
+        <span data-i18n="nav_feature_intro">Tính năng</span>
+      </button>
+
       <!-- Formula Guide Button -->
       <button id="btn-header-formula-guide" class="btn btn-secondary btn-sm btn-open-formula-modal" style="display: flex; align-items: center; gap: 0.35rem; font-weight: 500;" title="Sổ tay công thức toán học pyRetrait">
-        <span> Công thức</span>
+        <span data-i18n="formula_guide"> Công thức</span>
       </button>
 
       <!-- User Account Widget -->
       <div class="dropdown-menu-wrapper user-account-wrapper">
         <button id="auth-btn-trigger" class="btn btn-sm" style="border: 1px solid rgba(99, 102, 241, 0.45); background: rgba(99, 102, 241, 0.12); color: #c7d2fe; display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.75rem; border-radius: 6px; font-weight: 600; cursor: pointer;">
-          <span id="auth-btn-label">Đăng Nhập</span>
+          <span id="auth-btn-label" data-i18n="auth_login">Đăng Nhập</span>
         </button>
         <div class="dropdown-content" id="user-dropdown" style="right: 0; min-width: 200px; padding: 0.25rem 0;">
           <div style="padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.82rem;">
@@ -76,6 +80,17 @@
           <a href="#" id="auth-logout-btn" style="color: #ef4444; font-size: 0.82rem; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.85rem;">
             Đăng xuất
           </a>
+        </div>
+      </div>
+
+      <!-- Language Selector Dropdown (Scalable for N languages) -->
+      <div class="lang-dropdown-container" id="lang-dropdown-container">
+        <button type="button" class="lang-dropdown-btn" id="lang-dropdown-btn" aria-haspopup="true" aria-expanded="false" title="Chọn ngôn ngữ / Select language / Choisir la langue">
+          <span class="lang-code-badge" id="lang-current-code">VI</span>
+          <span class="lang-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="lang-dropdown-menu hidden" id="lang-dropdown-menu" role="menu">
+          <!-- Dynamically populated by i18n.js -->
         </div>
       </div>
 
@@ -93,31 +108,31 @@
       <nav class="nav-menu">
         <button class="nav-item active" data-tab="tab-projections">
           <div class="nav-text">
-            <span class="nav-label">Dòng tiền & Tài sản</span>
+            <span class="nav-label" data-i18n="nav_projections">Dòng tiền & Tài sản</span>
             <span class="nav-sub">Cash-Flow Projections</span>
           </div>
         </button>
         <button class="nav-item" data-tab="tab-insights">
           <div class="nav-text">
-            <span class="nav-label">Monte Carlo & Rủi ro</span>
+            <span class="nav-label" data-i18n="nav_insights">Monte Carlo & Rủi ro</span>
             <span class="nav-sub">Deeper Insights & SRR</span>
           </div>
         </button>
         <button class="nav-item" data-tab="tab-scenarios">
           <div class="nav-text">
-            <span class="nav-label">Kịch bản What-If</span>
+            <span class="nav-label" data-i18n="nav_scenarios">Kịch bản What-If</span>
             <span class="nav-sub">What-If Scenarios</span>
           </div>
         </button>
         <button class="nav-item" data-tab="tab-estate">
           <div class="nav-text">
-            <span class="nav-label">Gia Đình, Sức Khỏe & Di Sản</span>
+            <span class="nav-label" data-i18n="nav_family">Gia Đình, Sức Khỏe & Di Sản</span>
             <span class="nav-sub">Family, Health & Estate</span>
           </div>
         </button>
         <button class="nav-item" data-tab="tab-taxes">
           <div class="nav-text">
-            <span class="nav-label">Tối ưu Thuế</span>
+            <span class="nav-label" data-i18n="nav_tax">Tối ưu Thuế</span>
             <span class="nav-sub">Tax Optimization</span>
           </div>
         </button>
@@ -134,7 +149,7 @@
           <span class="metric-value text-accent" id="summary-retire-age">42 tuổi</span>
         </div>
         <div class="summary-metric">
-          <span class="metric-label">Tuổi tối ưu (Gemini):</span>
+          <span class="metric-label" data-i18n="summary_optimal_age">Tuổi tối ưu:</span>
           <span class="metric-value text-success font-semibold" id="summary-optimal-age">42 tuổi</span>
         </div>
         <div class="summary-metric">
@@ -168,7 +183,7 @@
       <section class="kpi-grid">
         <div class="kpi-card">
           <div class="kpi-info">
-            <span class="kpi-title">Tài sản hiện tại (Net Worth)</span>
+            <span class="kpi-title" data-i18n="kpi_current_networth">Tài sản hiện tại (Net Worth)</span>
             <span class="kpi-value font-mono" id="kpi-current-networth">1.50 Tỷ ₫</span>
             <span class="kpi-subtitle" id="kpi-savings-rate">Tỷ lệ tiết kiệm: <strong>60%</strong></span>
           </div>
@@ -176,7 +191,7 @@
 
         <div class="kpi-card">
           <div class="kpi-info">
-            <span class="kpi-title" id="kpi-peak-title">Tài sản Đỉnh cao nhất</span>
+            <span class="kpi-title" id="kpi-peak-title" data-i18n="kpi_peak_networth">Tài sản Đỉnh cao nhất</span>
             <span class="kpi-value font-mono" id="kpi-peak-networth">14.82 Tỷ ₫</span>
             <span class="kpi-subtitle" id="kpi-peak-subtitle">Tại tuổi <span id="kpi-peak-age">45</span> (đã tính lạm phát)</span>
           </div>
@@ -184,7 +199,7 @@
 
         <div class="kpi-card">
           <div class="kpi-info">
-            <span class="kpi-title">Chi tiêu an toàn/năm (SWR)</span>
+            <span class="kpi-title" data-i18n="kpi_safe_spend">Chi tiêu an toàn/năm (SWR)</span>
             <span class="kpi-value font-mono" id="kpi-safe-annual-spend">300.0 Tr ₫</span>
             <span class="kpi-subtitle" id="kpi-safe-spend-subtitle">Tương đương <strong>4.0%</strong> danh mục</span>
           </div>
@@ -192,7 +207,7 @@
 
         <div class="kpi-card">
           <div class="kpi-info">
-            <span class="kpi-title">Tài sản thừa kế dự kiến (85t)</span>
+            <span class="kpi-title" data-i18n="kpi_estate_end">Tài sản thừa kế dự kiến (85t)</span>
             <span class="kpi-value font-mono" id="kpi-estate-end">18.45 Tỷ ₫</span>
             <span class="kpi-subtitle text-success" id="kpi-estate-subtitle">Đạt 184% mục tiêu thừa kế</span>
           </div>
@@ -253,11 +268,15 @@
                   </div>
 
                   <!-- 5. Lạm phát bình quân (%) -->
-                  <div class="form-group" style="margin-bottom: 0;">
+                  <div class="form-group" style="margin-bottom: 0;" id="form-group-inflation">
                     <div class="field-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
                       <label for="inp-inflation" style="margin-bottom: 0;">Lạm phát bình quân (%)</label>
+                      <span class="badge-header-hint" id="badge-dual-inflation-active" style="display: none; font-size: 0.68rem; color: var(--primary); font-weight: 600;" data-i18n="badge_dual_inflation_active">2 Chặng</span>
                     </div>
                     <input type="number" id="inp-inflation" step="0.1" min="0" max="20" value="4.0" class="form-input">
+                    <div class="field-hint" id="hint-dual-inflation-active" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.35rem; line-height: 1.35; display: none;" data-i18n="hint_dual_inflation_active">
+                      Đang áp dụng mô hình Lạm phát 2 chặng bên dưới
+                    </div>
                   </div>
                 </div>
               </div>
@@ -280,8 +299,8 @@
                 <!-- Cột 1: Các Luồng Thu nhập -->
                 <div class="stream-column stream-column-income">
                   <div class="income-streams-header">
-                    <h4 class="card-subtitle" style="margin: 0;"> Các Luồng Thu nhập</h4>
-                    <button type="button" id="btn-add-income" class="btn btn-xs btn-outline">+ Thêm nguồn thu</button>
+                    <h4 class="card-subtitle" style="margin: 0;" data-i18n="col1_income_header"> Các Luồng Thu nhập</h4>
+                    <button type="button" id="btn-add-income" class="btn btn-xs btn-outline" data-i18n="btn_add_income">+ Thêm nguồn thu</button>
                   </div>
 
                   <!-- Danh sách các nguồn thu nhập hiện tại (Lương tại Pháp, Cổ tức...) đặt trên Lương hưu -->
@@ -567,6 +586,14 @@
                         <input type="range" id="inp-alloc-re" min="0" max="100" step="5" value="20" class="form-range">
                       </div>
 
+                      <div class="form-group" style="margin-bottom: 0.55rem;">
+                        <div class="field-header">
+                          <label for="inp-alloc-cash" style="font-size: 0.76rem; font-weight: 600;" data-i18n="lbl_alloc_cash">Tiền mặt / Thanh khoản chờ đầu tư (Tài khoản thanh toán, Cash)</label>
+                          <span class="field-badge font-mono" id="lbl-alloc-cash">0% (1.5%/năm)</span>
+                        </div>
+                        <input type="range" id="inp-alloc-cash" min="0" max="100" step="5" value="0" class="form-range">
+                      </div>
+
                       <div class="input-hint" id="hint-asset-allocation" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">
                         Lợi nhuận theo trọng số: <strong id="lbl-weighted-calc">8.0%/năm</strong> (đã gồm +0.3% thưởng kỷ luật tái cân bằng).
                       </div>
@@ -575,7 +602,7 @@
                       <div class="formula-inline-box formula-success" style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
                         <div class="formula-tag">Công thức Lợi Nhuận Trọng Số & Tái Cân Bằng</div>
                         <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                          <code>• R_danh_mục = (% Cổ phiếu × 9.5%) + (% Trái phiếu × 3.5%) + (% BĐS × 6.5%) + 0.3% (Tái cân bằng)</code>
+                          <code>• R_danh_mục = (% Cổ phiếu × 9.5%) + (% Trái phiếu × 3.5%) + (% BĐS × 6.5%) + (% Tiền mặt × 1.5%) + 0.3% (Tái cân bằng)</code>
                           <code>• Thưởng kỷ luật +0.3%: Định kỳ tái cân bằng (bán tài sản tăng giá, mua tài sản giảm) mang lại 0.3% – 0.5%/năm lợi nhuận phụ trội theo nghiên cứu của Vanguard và David Swensen.</code>
                           <code>• Lợi nhuận sinh lời bình quân = Tài sản đầu tư × R_danh_mục</code>
                         </div>
@@ -587,6 +614,7 @@
                   <div class="income-item-strategy" id="card-withdrawal-strategy-controls">
                     <div class="income-item-header">
                       <div class="income-item-name" style="display: flex; align-items: center; gap: 0.45rem;">
+                        <input type="checkbox" id="chk-enable-withdrawal-strategy" checked style="accent-color: #10b981; width: 15px; height: 15px; cursor: pointer;">
                         <span>Chiến Lược Rút Tiền Hưu Trí</span>
                       </div>
                       <div class="income-item-actions">
@@ -706,15 +734,14 @@
                   </div>
                 </div>
 
-                <!-- Cột 2: Các Luồng Chi Tiêu & Nợ Vay -->
+                <!-- Cột 2: Các Luồng Chi Tiêu -->
                 <div class="stream-column stream-column-expense">
                   <div class="income-streams-header" style="display: flex; justify-content: space-between; align-items: center;">
-                    <h4 class="card-subtitle" style="color: #f43f5e; display: flex; align-items: center; gap: 0.4rem; margin: 0;">
-                      Các Luồng Chi Tiêu & Nợ Vay
+                    <h4 class="card-subtitle" style="color: #f43f5e; display: flex; align-items: center; gap: 0.4rem; margin: 0;" data-i18n="col2_expense_header">
+                      Các Luồng Chi Tiêu
                     </h4>
                     <div style="display: flex; gap: 0.4rem;">
-                      <button type="button" id="btn-sync-mortgage-expenses" class="btn btn-xs btn-outline" title="Lấy tự động các khoản trả góp crédit từ danh mục Quản Lý BĐS">Lấy Nợ BĐS</button>
-                      <button type="button" id="btn-add-expense" class="btn btn-xs btn-outline">+ Thêm khoản chi</button>
+                      <button type="button" id="btn-add-expense" class="btn btn-xs btn-outline" data-i18n="btn_add_expense">+ Thêm khoản chi</button>
                     </div>
                   </div>
 
@@ -861,8 +888,7 @@
                         <span>Kế Hoạch Con Cái & Gia Đình</span>
                       </div>
                       <div class="income-item-actions">
-                        <span class="field-badge font-mono" id="badge-family-stream-status" style="background: rgba(99, 102, 241, 0.12); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.25); font-size: 0.68rem; padding: 1px 6px;">2 con • 3.0 Parts</span>
-                        <button type="button" class="income-item-btn" id="btn-edit-family-stream" title="Cấu hình số lượng con cái, chi phí nuôi con & học vấn">Sửa</button>
+                        <span class="field-badge font-mono" id="badge-family-stream-status" style="background: rgba(99, 102, 241, 0.12); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.25); font-size: 0.68rem; padding: 1px 6px;">2 con</span>
                         <button type="button" class="income-item-btn income-item-del" id="btn-del-family-stream" title="Tắt kế hoạch con cái">Xóa</button>
                       </div>
                     </div>
@@ -878,10 +904,10 @@
                       </div>
                     </div>
 
-                    <!-- Khu vực Cấu Hình Chi Tiết Kế Hoạch Con Cái & Gia Đình -->
-                    <div class="family-stream-config-box" id="family-stream-inputs-body" style="display: none;">
+                    <!-- Khu vực Cấu Hình Chi Tiết Kế Hoạch Con Cái & Gia Đình (Luôn mở) -->
+                    <div class="family-stream-config-box" id="family-stream-inputs-body" style="display: block;">
                       <div class="form-row">
-                        <div class="form-group col-6" style="margin-bottom: 0.45rem;">
+                        <div class="form-group col-12" style="margin-bottom: 0.45rem;">
                           <label for="sel-stream-kids-count" style="font-size: 0.76rem; font-weight: 600;">Số lượng con cái</label>
                           <select id="sel-stream-kids-count" class="form-input" style="padding: 0.35rem 0.6rem; font-size: 0.82rem;">
                             <option value="0">Chưa có con (0 con)</option>
@@ -889,13 +915,6 @@
                             <option value="2" selected>2 con</option>
                             <option value="3">3 con</option>
                             <option value="4">4 con</option>
-                          </select>
-                        </div>
-                        <div class="form-group col-6" style="margin-bottom: 0.45rem;">
-                          <label for="sel-stream-family-status" style="font-size: 0.76rem; font-weight: 600;">Tình trạng gia đình</label>
-                          <select id="sel-stream-family-status" class="form-input" style="padding: 0.35rem 0.6rem; font-size: 0.82rem;">
-                            <option value="couple" selected>Vợ chồng / PACS (2 parts)</option>
-                            <option value="single">Độc thân / Đơn thân (1 part)</option>
                           </select>
                         </div>
                       </div>
@@ -957,7 +976,7 @@
                         <span>Dự phòng Chăm sóc Tuổi Già (78t+)</span>
                       </div>
                       <div class="income-item-actions">
-                        <span class="field-badge font-mono" id="badge-senior-care" style="background: rgba(244, 63, 94, 0.12); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.25); font-size: 0.68rem; padding: 1px 6px;">EHPAD / Care</span>
+                        <span class="field-badge font-mono" id="badge-senior-care" style="display: none; background: rgba(244, 63, 94, 0.12); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.25); font-size: 0.68rem; padding: 1px 6px;"></span>
                         <button type="button" class="income-item-btn" id="btn-edit-senior-care" title="Cấu hình quỹ chăm sóc tuổi già">Sửa</button>
                         <button type="button" class="income-item-btn income-item-del" id="btn-del-senior-care" title="Xóa/Tắt quỹ chăm sóc">Xóa</button>
                       </div>
@@ -2545,17 +2564,25 @@
       <div class="modal-body">
         <input type="hidden" id="inp-apt-original-name" value="">
         <div class="form-row">
-          <div class="form-group col-8">
-            <label for="inp-apt-name">Tên căn hộ (Định danh)</label>
+          <div class="form-group col-5">
+            <label for="inp-apt-name" data-i18n="lbl_property_name">Tên BĐS (Định danh)</label>
             <input type="text" id="inp-apt-name" class="form-input" placeholder="Ví dụ: Borderouge 79 000">
           </div>
           <div class="form-group col-4">
-            <label for="inp-apt-typology">Loại căn hộ</label>
+            <label for="inp-apt-category" data-i18n="lbl_property_category">Hình thức BĐS</label>
+            <select id="inp-apt-category" class="form-input">
+              <option value="apartment" selected data-i18n="opt_property_apartment">Căn hộ chung cư (Copropriété)</option>
+              <option value="house" data-i18n="opt_property_house">Nhà mặt đất (Maison individuelle)</option>
+            </select>
+          </div>
+          <div class="form-group col-3">
+            <label for="inp-apt-typology" data-i18n="lbl_property_typology">Loại phân hạng</label>
             <select id="inp-apt-typology" class="form-input">
               <option value="Studio / T1">Studio / T1</option>
               <option value="T2 (2 pièces)" selected>T2 (2 pièces)</option>
               <option value="T3 (3 pièces)">T3 (3 pièces)</option>
               <option value="T4+">T4+</option>
+              <option value="Maison / Villa">Maison / Villa</option>
             </select>
           </div>
         </div>
@@ -2599,6 +2626,28 @@
           <div class="form-group col-3">
             <label for="inp-apt-furniture">Nội thất (€)</label>
             <input type="number" id="inp-apt-furniture" class="form-input" value="2000">
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-top: 0.5rem;">
+          <div class="form-group col-6">
+            <label for="inp-apt-appreciation" data-i18n="lbl_property_appreciation">Tỷ lệ điều chỉnh tăng trưởng/năm (%)</label>
+            <input type="number" id="inp-apt-appreciation" class="form-input" value="0.0" step="0.1" title="Nhà mặt đất mặc định +2.5%/năm; Căn hộ mặc định 0.0% kèm mô hình khấu hao xác nhà sau 30 năm">
+          </div>
+          <div class="form-group col-6" style="display: flex; align-items: flex-end;">
+            <div id="lbl-formula-badge" style="font-size: 0.75rem; color: var(--text-muted); padding: 0.5rem 0.75rem; background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: 6px; width: 100%;">
+              Mô hình áp dụng: <strong id="lbl-formula-name" style="color: var(--primary);">Khấu hao căn hộ sau 30 năm</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formula display box for real estate valuation -->
+        <div class="formula-inline-box" id="box-property-formula" style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
+          <div class="formula-tag" id="tag-property-formula">Công thức Định giá Căn Hộ Chung Cư (Khấu hao sau 30 năm)</div>
+          <div id="desc-property-formula" style="font-size: 0.78rem; line-height: 1.45; color: var(--text-muted);">
+            • <strong>Phần Đất (20%):</strong> Tăng trưởng ổn định dài hạn (+2.0%/năm theo thị trường).<br>
+            • <strong>Phần Xác nhà (80%):</strong> Khấu hao công trình giảm dần theo tuổi thọ 30 năm (chạm sàn 10% ở năm thứ 30).<br>
+            • <strong>Tổng giá trị(t) = Đất(t) + Xác nhà(t)</strong> (Khắc phục việc BĐS chung cư tăng ảo vô tận, phản ánh đúng hao mòn sau 30 năm).
           </div>
         </div>
 
@@ -3140,15 +3189,83 @@
     </div>
   </div>
 
+  <!-- Modal: Feature Discovery / Value Proposition Pop-up -->
+  <div class="modal-overlay" id="feature-intro-modal" style="display: none; z-index: 10000;">
+    <div class="modal-card intro-modal-card">
+      <div class="modal-header intro-modal-header">
+        <div>
+          <div class="intro-badge" data-i18n="intro_modal_badge">KHÁM PHÁ PYRETRAIT</div>
+          <h3 class="intro-title" id="feature-intro-modal-title" data-i18n="intro_modal_title">pyRetrait Giúp Bạn Giải Quyết Những Bài Toán Nào?</h3>
+          <p class="intro-subtitle" data-i18n="intro_modal_subtitle">La bàn tài chính chuẩn xác giúp bạn trả lời những câu hỏi quan trọng nhất cho cuộc sống tự do và an tâm.</p>
+        </div>
+        <button type="button" class="modal-close" id="btn-close-feature-intro" title="Đóng cửa sổ">×</button>
+      </div>
+
+      <div class="modal-body intro-modal-body">
+        <div class="intro-grid">
+          <!-- Card 1: Dòng tiền & Tài sản -->
+          <div class="intro-qa-card">
+            <div class="intro-qa-tag tag-blue" data-i18n="intro_tag1">DÒNG TIỀN & TÀI SẢN</div>
+            <h4 class="intro-q-text" data-i18n="intro_q1">Làm sao để biết chính xác dòng tiền và tài sản ròng của bạn trong 30–50 năm tới?</h4>
+            <p class="intro-a-text" data-i18n="intro_a1">Mô phỏng toàn diện dòng tiền theo từng năm cuộc đời: thu nhập, tích lũy, lãi kép đầu tư và chi phí sinh hoạt đến tuổi 100.</p>
+          </div>
+
+          <!-- Card 2: Tuổi nghỉ hưu tối ưu -->
+          <div class="intro-qa-card">
+            <div class="intro-qa-tag tag-emerald" data-i18n="intro_tag2">TUỔI NGHỈ HƯU TỐI ƯU</div>
+            <h4 class="intro-q-text" data-i18n="intro_q2">Làm sao biết được độ tuổi sớm nhất bạn có thể nghỉ hưu mà không bao giờ cạn tiền?</h4>
+            <p class="intro-a-text" data-i18n="intro_a2">Tự động tính Điểm chạm Tự do Tài chính (FIRE Number) và Tuổi nghỉ hưu tối ưu khi tài sản sinh lời đủ bù đắp 100% chi tiêu sống.</p>
+          </div>
+
+          <!-- Card 3: Con cái & Gia đình -->
+          <div class="intro-qa-card">
+            <div class="intro-qa-tag tag-amber" data-i18n="intro_tag3">GIA ĐÌNH & CON CÁI</div>
+            <h4 class="intro-q-text" data-i18n="intro_q3">Nếu có con cái hay người phụ thuộc, nguồn thu nhập có thể bù đắp chu toàn?</h4>
+            <p class="intro-a-text" data-i18n="intro_a3">Mô phỏng chi phí nuôi dạy con theo độ tuổi (0–18 tuổi), quỹ học đại học và chi phí chăm sóc y tế tuổi già (78 tuổi trở lên).</p>
+          </div>
+
+          <!-- Card 4: Chiến lược rút tiền -->
+          <div class="intro-qa-card">
+            <div class="intro-qa-tag tag-purple" data-i18n="intro_tag4">CHIẾN LƯỢC RÚT TIỀN</div>
+            <h4 class="intro-q-text" data-i18n="intro_q4">Làm sao để rút tiền từ các khoản đầu tư mà không làm hao hụt di sản tương lai?</h4>
+            <p class="intro-a-text" data-i18n="intro_a4">Tích hợp 4 chiến lược rút tiền khoa học (Guyton-Klinger có lan can phòng hộ, Bengen 4%, VPW, Fixed %) bảo vệ vốn gốc cho thế hệ sau.</p>
+          </div>
+
+          <!-- Card 5: Monte Carlo & Lạm phát -->
+          <div class="intro-qa-card">
+            <div class="intro-qa-tag tag-cyan" data-i18n="intro_tag5">MONTE CARLO & LẠM PHÁT</div>
+            <h4 class="intro-q-text" data-i18n="intro_q5">Làm sao an tâm kế hoạch không bị lạm phát bào mòn hay sụp đổ trước khủng hoảng?</h4>
+            <p class="intro-a-text" data-i18n="intro_a5">Kiểm tra độ bền danh mục với 1.000 kịch bản ngẫu nhiên Monte Carlo và mô hình Lạm phát 2 chặng EUR/VND trước mọi biến động thị trường.</p>
+          </div>
+
+          <!-- Card 6: Bất động sản & Thuế -->
+          <div class="intro-qa-card">
+            <div class="intro-qa-tag tag-rose" data-i18n="intro_tag6">BẤT ĐỘNG SẢN & THUẾ</div>
+            <h4 class="intro-q-text" data-i18n="intro_q6">Làm sao định giá đúng BĐS (nhà đất vs chung cư hao mòn) và tối ưu hóa thuế?</h4>
+            <p class="intro-a-text" data-i18n="intro_a6">Thuật toán tách biệt tăng trưởng đất với khấu hao công trình chung cư sau 30 năm; tích hợp biểu thuế lũy tiến Pháp, Mỹ và Việt Nam.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer intro-modal-footer">
+        <div class="intro-footer-actions">
+          <button type="button" class="btn btn-primary btn-intro-start" id="btn-intro-start" data-i18n="intro_btn_start">Bắt Đầu Hoạch Định Ngay</button>
+          <div class="intro-footer-note" data-i18n="intro_footer_note">Hoàn toàn miễn phí • Tính toán 100% trên trình duyệt của bạn • Dữ liệu bảo mật tuyệt đối</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Application Logic Modules -->
-  <script src="js/engine.js?v=20261014_v79"></script>
+  <script src="js/i18n.js?v=20261014_v97"></script>
+  <script src="js/engine.js?v=20261014_v97"></script>
   <script src="js/taxOptimizer.js?v=20261013_v3"></script>
   <script src="js/monteCarlo.js?v=20261013_v3"></script>
   <script src="js/scenarios.js?v=20261013_v2"></script>
   <script src="js/geminiAdvisor.js?v=20261013_v6"></script>
-  <script src="js/patrimoine.js?v=20261013_v3"></script>
+  <script src="js/patrimoine.js?v=20261014_v94"></script>
   <script src="js/export.js?v=20261013_v2"></script>
   <script src="js/auth.js?v=20261013_v2"></script>
-  <script src="js/ui.js?v=20261014_v79"></script>
+  <script src="js/ui.js?v=20261014_v97"></script>
 </body>
 </html>

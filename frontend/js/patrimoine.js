@@ -151,7 +151,10 @@
       monthly_cashflow: Math.round(monthlyCashflow), annual_cashflow: Math.round(monthlyCashflow * 12),
       monthly_post_loan_cashflow: Math.round(monthlyPostLoanCashflow),
       annual_post_loan_cashflow: Math.round(monthlyPostLoanCashflow * 12),
-      gross_yield: round2(grossYield), net_yield: round2(netYield), raw: apt
+      gross_yield: round2(grossYield), net_yield: round2(netYield),
+      property_category: apt.property_category || (apt.typology && (/maison|villa|nhà/i).test(apt.typology) ? "house" : "apartment"),
+      appreciation_rate: apt.appreciation_rate !== undefined ? Number(apt.appreciation_rate) : (apt.property_category === "house" ? 2.5 : 0.0),
+      raw: apt
     };
   }
 
@@ -359,6 +362,9 @@
             <div>
               <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                 <h4 style="margin: 0; font-size: 1.05rem; font-weight: 700;">${apt.name}</h4>
+                ${apt.property_category === 'house'
+                  ? '<span class="badge" style="background: rgba(14, 165, 233, 0.15); color: #0284c7; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;">Nhà mặt đất</span>'
+                  : '<span class="badge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;">Căn hộ</span>'}
                 <span class="badge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px;">
                   ${apt.typology || 'T2'} • ${apt.surface || 0} m²
                 </span>
@@ -676,8 +682,22 @@
       }
       remDebt = Math.max(0, Math.round(remDebt));
 
-      // Property value with 1.5% annual real estate appreciation in France
-      const propVal = Math.round(price * Math.pow(1.015, k));
+      // Property value according to House vs Apartment formula
+      const isHouse = (apt.property_category === 'house' || (apt.raw?.property_category === 'house') || (apt.typology && (/maison|villa|nhà/i).test(apt.typology)) || (/maison|villa|nhà mặt đất/i).test(apt.name || ''));
+      const customAppr = apt.appreciation_rate !== undefined ? Number(apt.appreciation_rate) / 100.0 : (apt.raw?.appreciation_rate !== undefined ? Number(apt.raw.appreciation_rate) / 100.0 : (isHouse ? 0.025 : 0.0));
+      let propVal = 0;
+      if (k === 0) {
+        propVal = Math.round(price);
+      } else if (isHouse) {
+        propVal = Math.round(price * Math.pow(1.0 + (customAppr !== undefined ? customAppr : 0.025), k));
+      } else {
+        // Căn hộ chung cư: Đất 20% tăng trưởng 2%/năm + Xác nhà 80% khấu hao dần sau 30 năm
+        const landVal = price * 0.20 * Math.pow(1.02, k);
+        const decayRatio = Math.max(0.10, 1.0 - (k / 30) * 0.90);
+        const adjFactor = (customAppr !== undefined && customAppr !== 0) ? Math.pow(1.0 + customAppr, k) : 1.0;
+        const buildingVal = price * 0.80 * decayRatio * adjFactor;
+        propVal = Math.round(landVal + buildingVal);
+      }
       const equity = Math.max(0, propVal - remDebt);
       dataHomeEquity.push(equity);
 
@@ -1135,6 +1155,12 @@
       setVal("inp-apt-rate", aptData.annual_interest_rate || r.annual_interest_rate || 3.6);
       setVal("inp-apt-ins-rate", aptData.annual_insurance_rate || r.annual_insurance_rate || 0.3);
 
+      const category = r.property_category || aptData.property_category || (aptData.typology && (/maison|villa|nhà/i).test(aptData.typology) ? "house" : "apartment");
+      setVal("inp-apt-category", category);
+      const defaultAppr = category === "house" ? 2.5 : 0.0;
+      setVal("inp-apt-appreciation", r.appreciation_rate !== undefined ? r.appreciation_rate : (aptData.appreciation_rate !== undefined ? aptData.appreciation_rate : defaultAppr));
+      updatePropertyFormulaUI(category);
+
       const savedLoanPmt = aptData.monthly_loan_payment || r.monthly_loan_payment;
       const inpCredit = document.getElementById("inp-apt-monthly-credit");
       if (inpCredit) {
@@ -1143,10 +1169,13 @@
           : "";
       }
     } else {
-      if (titleEl) titleEl.innerText = "Thêm Căn hộ Cho thuê Mới";
+      if (titleEl) titleEl.innerText = "Thêm Bất Động Sản Cho Thuê Mới";
       if (nameInp) nameInp.value = "";
       if (origNameInp) origNameInp.value = "";
       const defaultPrice = 95000;
+      setVal("inp-apt-category", "apartment");
+      setVal("inp-apt-appreciation", 0.0);
+      updatePropertyFormulaUI("apartment");
       setVal("inp-apt-address", "");
       setVal("inp-apt-start-year", 2024);
       setVal("inp-apt-surface", 35);
@@ -1179,6 +1208,30 @@
     modal.style.display = "flex";
   }
 
+  function updatePropertyFormulaUI(category) {
+    const isHouse = category === 'house';
+    const lblBadge = document.getElementById("lbl-formula-name");
+    const tagFormula = document.getElementById("tag-property-formula");
+    const descFormula = document.getElementById("desc-property-formula");
+
+    if (isHouse) {
+      if (lblBadge) lblBadge.innerText = "Tăng trưởng đất nền (+2.5%/năm)";
+      if (tagFormula) tagFormula.innerText = "Công thức Nhà Mặt Đất (Tăng trưởng đất nền bền vững)";
+      if (descFormula) {
+        descFormula.innerHTML = `• <strong>Quyền sử dụng đất:</strong> Giá trị BĐS gắn liền với đất đai khan hiếm, tăng trưởng dài hạn đều đặn theo thời gian.<br>
+• <strong>Giá trị(t) = Giá ban đầu × (1 + Tỷ lệ tăng trưởng)^t</strong> (Mặc định +2.5%/năm).`;
+      }
+    } else {
+      if (lblBadge) lblBadge.innerText = "Khấu hao căn hộ sau 30 năm";
+      if (tagFormula) tagFormula.innerText = "Công thức Căn Hộ Chung Cư (Khấu hao sau 30 năm)";
+      if (descFormula) {
+        descFormula.innerHTML = `• <strong>Phần Đất (20%):</strong> Tăng trưởng ổn định dài hạn (+2.0%/năm theo thị trường).<br>
+• <strong>Phần Xác nhà (80%):</strong> Khấu hao công trình giảm dần theo tuổi thọ 30 năm (chạm sàn 10% ở năm thứ 30).<br>
+• <strong>Tổng giá trị(t) = Đất(t) + Xác nhà(t)</strong> (Phản ánh đúng thực tế căn hộ cũ mất giá sau 30 năm nếu không đại tu).`;
+      }
+    }
+  }
+
   function closeApartmentModal() {
     const modal = document.getElementById("apartment-modal");
     if (modal) modal.style.display = "none";
@@ -1191,9 +1244,14 @@
     const originalName = origNameInp ? origNameInp.value.trim() : "";
 
     if (!name) {
-      alert("Vui lòng nhập tên căn hộ!");
+      alert("Vui lòng nhập tên BĐS!");
       return;
     }
+
+    const category = getVal("inp-apt-category") || "apartment";
+    const appreciationRate = Number(getVal("inp-apt-appreciation")) !== undefined && !isNaN(Number(getVal("inp-apt-appreciation")))
+      ? Number(getVal("inp-apt-appreciation"))
+      : (category === "house" ? 2.5 : 0.0);
 
     const aptParams = {
       address: getVal("inp-apt-address") || name,
@@ -1201,6 +1259,8 @@
       surface: Number(getVal("inp-apt-surface")) || 30,
       typology: getVal("inp-apt-typology") || "T2 (2 pièces)",
       dpe_rating: getVal("inp-apt-dpe") || "C",
+      property_category: category,
+      appreciation_rate: appreciationRate,
       district_tier: "Quartier Résidentiel",
       renovation_state: "Bon état",
       property_price: Number(getVal("inp-apt-price")) || 90000,
@@ -1450,6 +1510,19 @@
 
     const btnSaveTuro = document.getElementById("btn-save-turo");
     if (btnSaveTuro) btnSaveTuro.addEventListener("click", saveTuroSettings);
+
+    // Chuyển đổi công thức Nhà mặt đất vs Căn hộ chung cư
+    const selCat = document.getElementById("inp-apt-category");
+    if (selCat) {
+      selCat.addEventListener("change", (e) => {
+        const cat = e.target.value;
+        const inpAppr = document.getElementById("inp-apt-appreciation");
+        if (inpAppr) {
+          inpAppr.value = cat === "house" ? "2.5" : "0.0";
+        }
+        updatePropertyFormulaUI(cat);
+      });
+    }
 
     // Auto-calculate Notary Fees (~7.5% in France) when property price changes
     const inpPrice = document.getElementById("inp-apt-price");

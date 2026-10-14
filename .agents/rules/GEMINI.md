@@ -5,7 +5,19 @@
 - **Toàn bộ giao tiếp với người dùng bằng Tiếng Việt.**
 - Comments trong code: ưu tiên tiếng Việt cho logic nghiệp vụ phức tạp; tiếng Anh cho comment kỹ thuật phổ thông.
 - Tên biến và hàm: dùng tiếng Anh (camelCase cho JS, snake_case cho Python).
-- Tên hiển thị trên UI (label, tooltip, placeholder): tiếng Việt.
+- **Hỗ Trợ Đa Ngôn Ngữ Giao Diện (Internationalization - i18n) & Kiến Trúc Mở Rộng N Ngôn Ngữ:**
+  - Hệ thống hỗ trợ đa ngôn ngữ linh hoạt với kiến trúc mở rộng không giới hạn (hiện tại hỗ trợ: **Tiếng Việt (`vi`)**, **Tiếng Anh (`en`)**, **Tiếng Pháp (`fr`)**, và sẵn sàng mở rộng thêm bất kỳ ngôn ngữ nào như `de`, `es`, `ja`...).
+  - Ngôn ngữ mặc định khởi tạo: **Tiếng Việt (`vi`)**.
+  - **Quy Chuẩn Điều Khiển Chuyển Ngôn Ngữ (Scalable Dropdown Selector):**
+    - Để tính tới việc có nhiều ngôn ngữ khác nhau trong tương lai, cụm chuyển đổi ngôn ngữ trên thanh Header bắt buộc phải dùng **Dropdown Menu Selector co giãn linh hoạt** (`.lang-dropdown-container`), hiển thị mã ngôn ngữ hiện tại (ví dụ: `VI ▾`) và khi bấm sẽ mở menu danh sách các ngôn ngữ có thể chọn.
+    - **Tuyệt đối KHÔNG hardcode dàn hàng ngang các nút bấm cố định** (như `VI | EN | FR`), vì khi số lượng ngôn ngữ tăng lên (5, 10 ngôn ngữ...) sẽ gây chiếm dụng diện tích, tràn vỡ bố cục thanh Header.
+    - Danh sách ngôn ngữ được nạp động từ mảng cấu hình `AVAILABLE_LANGUAGES = [{ code, label, short }]` trong `i18n.js`. Khi thêm ngôn ngữ mới, chỉ cần khai báo metadata vào mảng này và bổ sung từ điển tương ứng, menu dropdown sẽ tự động cập nhật mà không cần sửa code HTML.
+    - Vị trí cụm chọn ngôn ngữ: Đặt trang trọng trên thanh điều khiển phía trên (Header), ngay phía trước nút chuyển giao diện Sáng/Tối.
+  - Toàn bộ văn bản hiển thị trên giao diện (nhãn label, tooltip title, placeholder, thẻ điều hướng tab, thông báo status) phải được quản lý tập trung qua module `i18n.js`:
+    - Khai báo trên HTML bằng các thuộc tính chuẩn: `data-i18n="key"`, `data-i18n-title="key"`, `data-i18n-placeholder="key"`.
+    - Gọi hàm helper trong JavaScript: `window.I18n.t(key, fallback)` đối với các chuỗi sinh động (dynamic HTML, nhãn biểu đồ, tooltip).
+  - Khi thêm bất kỳ tính năng, nút bấm, biểu đồ hoặc thẻ nội dung mới lên giao diện, **bắt buộc phải bổ sung đầy đủ bản dịch cho các ngôn ngữ đang hoạt động** trong từ điển của `i18n.js`.
+  - Trạng thái ngôn ngữ được lưu tự động trong `localStorage` (key: `pyretrait_lang`) và kích hoạt sự kiện `pyretrait:language-changed` để cập nhật giao diện tức thì mà không cần tải lại trang.
 - **Tuyệt đối KHÔNG viết công thức bằng cú pháp LaTeX (cấm dùng `$$...$$`, `$...$`, `\text{...}`, `\frac{...}`):**
   - Trong toàn bộ giao tiếp chat, tài liệu Markdown (`.md`), giải thích nghiệp vụ và UI: Mọi công thức tính toán tài chính phải được trình bày dưới dạng văn bản thường trực quan, dễ đọc hoặc code block đơn giản (ví dụ: `Tỷ lệ rút năm nay = Số tiền dự kiến rút / Số dư tài sản thực tế`, hoặc `Rút(t) = Danh mục(0) * SWR * (1 + lạm phát)^t`). Tuyệt đối không dùng LaTeX vì gây rối mắt, thô kệch và lỗi hiển thị khi không có trình render chuyên dụng.
 
@@ -21,6 +33,7 @@
 ### Phân Chia File Frontend
 | File | Trách nhiệm |
 |------|-------------|
+| `i18n.js` | Quản lý đa ngôn ngữ (i18n), từ điển dịch Tiếng Việt, Anh, Pháp |
 | `engine.js` | Toàn bộ engine tính toán dòng tiền, chiến lược rút tiền |
 | `monteCarlo.js` | Mô phỏng Monte Carlo (Mulberry32 seed=42) |
 | `patrimoine.js` | Quản lý tài sản, BĐS, LMNP, Turo |
@@ -78,6 +91,19 @@
 - 4 chiến lược bắt buộc: Bengen 4%, Guyton-Klinger, VPW, Fixed %.
 - Tỷ lệ rút mặc định gợi ý: **3.5%** (conservative).
 
+### Định Giá Bất Động Sản (Nhà Mặt Đất vs Căn Hộ Chung Cư)
+- **Tuyệt đối KHÔNG áp dụng một tỷ lệ tăng trưởng dương liên tục đến vô tận cho mọi loại BĐS.**
+- **Phân tách 2 công thức định giá riêng biệt theo loại hình:**
+  1. **Nhà mặt đất (House / Maison individuelle):**
+     - Giá trị gắn liền với quyền sử dụng đất lâu dài và khan hiếm, tăng trưởng đều đặn theo tỷ lệ thị trường:
+       `Giá trị(t) = Giá ban đầu * (1 + Tỷ lệ tăng trưởng)^t` (mặc định +2.5%/năm).
+  2. **Căn hộ chung cư (Apartment / Copropriété):**
+     - Áp dụng mô hình khấu hao hao mòn xác nhà sau 30 năm sử dụng:
+       - Phần Đất (20% giá trị ban đầu): Tăng trưởng dài hạn theo thị trường (+2.0%/năm).
+       - Phần Xác nhà (80% giá trị ban đầu): Khấu hao vật lý theo thời gian sử dụng 30 năm (giảm dần về sàn 10% ở năm thứ 30).
+       - `Giá trị căn hộ(t) = Phần Đất(t) + Phần Xác nhà(t) * (1 + Tỷ lệ điều chỉnh)^t`.
+     - Phản ánh đúng thực tế chung cư cũ bị xuống cấp, mất giá và tốn chi phí trùng tu sau 25–40 năm thay vì tăng ảo đến vô tận.
+
 ---
 
 ## 6. UI / UX
@@ -116,13 +142,13 @@
         - Tím: Bắt buộc dùng `#7c3aed`, `#6d28d9` (thay vì `#c084fc`).
     - **Không dùng inline styles để gán màu chữ:**
       - Mọi thẻ thông tin, hướng dẫn (Guide cards, Callouts, Formula boxes) phải dùng CSS class có sẵn trong `styles.css` để stylesheet tự động điều chỉnh màu chữ tương phản cao trên cả 2 chế độ sáng và tối.
-  - **Quy Chuẩn Đồng Nhất Typography & Cấm Dùng Monospace Cho Văn Bản Tiếng Việt:**
+  - **Quy Chuẩn Đồng Nhất Typography & Cấm Dùng Monospace Cho Văn Bản Đa Ngôn Ngữ:**
     - **Thống nhất 100% font giao diện chính `var(--font-sans)` (Inter):**
-      - Mọi văn bản giải thích, mô tả, công thức tài chính và cơ chế tính toán (ví dụ: `• Tuổi bé(t) = Năm chạy mô phỏng(t) - Năm sinh bé`, `• Chi phí 0–18t = Số bé × Nuôi con...`) bắt buộc phải sử dụng font chính của dự án `var(--font-sans)`, tuyệt đối KHÔNG để font `monospace` hoặc `var(--font-mono)`.
-      - **Lý do:** Font `monospace` khi hiển thị chữ Tiếng Việt có dấu (ă, â, đ, ê, ô, ơ, ư và các dấu thanh) sẽ gặp lỗi bất tương thích ký tự (inconsistent glyphs, dấu bị lệch hoặc biến dạng, khoảng cách ký tự đứt đoạn, fallback font xấu xí), tạo cảm giác thô kệch và lệch pha hoàn toàn so với phong cách thiết kế hiện đại của toàn bộ ứng dụng.
+      - Mọi văn bản giải thích, mô tả, công thức tài chính và cơ chế tính toán (áp dụng cho mọi ngôn ngữ: Tiếng Việt, Tiếng Anh, Tiếng Pháp) bắt buộc phải sử dụng font chính của dự án `var(--font-sans)`, tuyệt đối KHÔNG để font `monospace` hoặc `var(--font-mono)`.
+      - **Lý do:** Font `monospace` khi hiển thị văn bản (đặc biệt là tiếng Việt có dấu thanh và tiếng Pháp có dấu phụ accents é, è, ê, à, ç...) thường gặp lỗi bất tương thích ký tự (inconsistent glyphs, dấu bị lệch hoặc biến dạng, khoảng cách ký tự đứt đoạn, fallback font xấu xí), tạo cảm giác thô kệch và lệch pha hoàn toàn so với phong cách thiết kế hiện đại của toàn bộ ứng dụng.
     - **Quy định đối với thẻ `<code>` và các khối công thức:**
       - Thẻ `<code>` khi dùng để thể hiện công thức tài chính, giải thuật hoặc ghi chú nghiệp vụ trong giao diện người dùng bắt buộc phải kế thừa `font-family: var(--font-sans);` kết hợp `font-weight: 500` hoặc `600`, bo góc, padding và màu sắc hài hòa.
-      - **Chỉ dùng `var(--font-mono)` hoặc `monospace` cho:** Các con số tài chính dạng bảng cần căn thẳng hàng (tabular figures), mã định danh (ticker, transaction ID, hash) hoặc câu lệnh kỹ thuật/terminal thuần túy không chứa văn bản tiếng Việt.
+      - **Chỉ dùng `var(--font-mono)` hoặc `monospace` cho:** Các con số tài chính dạng bảng cần căn thẳng hàng (tabular figures), mã định danh (ticker, transaction ID, hash) hoặc câu lệnh kỹ thuật/terminal thuần túy không chứa văn bản giao diện.
   - **Quy Chuẩn Đồng Nhất Hệ Màu Cho Cột Mốc (Life Milestones & Chart Pins):**
     - Toàn bộ các mốc sự kiện cuộc đời (Life Milestones) trên thanh Ribbon, Modal và trên Biểu Đồ (ghim mốc nổi floating pins, đường gióng nét đứt vertical guidelines, các chấm tròn data points) bắt buộc phải **dùng chung một hệ màu thống nhất theo theme**, tuyệt đối KHÔNG để mỗi mốc một màu sắc cầu vồng sặc sỡ (hồng, cam, vàng, tím, lục...).
     - **Trong Light Mode (`[data-theme="light"]`):**
@@ -162,7 +188,7 @@
     - Luôn tự kiểm tra đối chiếu component mới/được sửa trên cả 2 chế độ:
       1. Dark Mode: Nền tối sang trọng, viền mờ tinh tế, chữ sáng dễ đọc.
       2. Light Mode: Nền trắng sạch sẽ (không có mảng xám đục hay mảng tối sót lại), viền sắc nét, chữ đen/xám đậm rõ ràng. Mọi dòng chữ phải sắc sảo, độ tương phản cao, tuyệt đối không bị mờ nhạt hay bạc màu.
-      3. Typography: Đồng nhất font `Inter` (`var(--font-sans)`), không để font chữ `monospace` lạc quẻ trong các câu văn bản hoặc công thức tiếng Việt.
+      3. Typography: Đồng nhất font `Inter` (`var(--font-sans)`), không để font chữ `monospace` lạc quẻ trong các câu văn bản hoặc công thức (Tiếng Việt, Tiếng Anh, Tiếng Pháp).
       4. Cột Mốc & Biểu Đồ: Thống nhất một màu hài hòa, không có ghim đen hay đường gióng đa sắc rối mắt; độ dày nét đường chuẩn 2.8 - 3.2px, `mode: 'index'`, `intersect: false`.
 - Mọi thay đổi input phải cập nhật biểu đồ **tức thì** (debounce 300ms) — không cần nhấn nút "Tính toán".
 - Màu sắc biểu đồ phải nhất quán trong cả session; dùng bảng màu đã định nghĩa trong CSS variables.

@@ -48,13 +48,15 @@ window.RetirementEngine = (function() {
     const stocks = (alloc.stocks !== undefined && !isNaN(Number(alloc.stocks))) ? Number(alloc.stocks) : 60;
     const bonds = (alloc.bonds !== undefined && !isNaN(Number(alloc.bonds))) ? Number(alloc.bonds) : 20;
     const realEstate = (alloc.realEstate !== undefined && !isNaN(Number(alloc.realEstate))) ? Number(alloc.realEstate) : 20;
-    const total = (stocks + bonds + realEstate) || 100;
+    const cash = (alloc.cash !== undefined && !isNaN(Number(alloc.cash))) ? Number(alloc.cash) : 0;
+    const total = (stocks + bonds + realEstate + cash) || 100;
 
     const rStocks = (returns && returns.stocks !== undefined && !isNaN(Number(returns.stocks))) ? Number(returns.stocks) : 9.5;
     const rBonds = (returns && returns.bonds !== undefined && !isNaN(Number(returns.bonds))) ? Number(returns.bonds) : 3.5;
     const rRE = (returns && returns.realEstate !== undefined && !isNaN(Number(returns.realEstate))) ? Number(returns.realEstate) : 6.5;
+    const rCash = (returns && returns.cash !== undefined && !isNaN(Number(returns.cash))) ? Number(returns.cash) : 1.5;
 
-    const weighted = ((stocks * rStocks) + (bonds * rBonds) + (realEstate * rRE)) / total;
+    const weighted = ((stocks * rStocks) + (bonds * rBonds) + (realEstate * rRE) + (cash * rCash)) / total;
     return Math.round((weighted + (rebalanceBonus || 0)) * 100) / 100;
   }
 
@@ -104,6 +106,38 @@ window.RetirementEngine = (function() {
     };
   }
 
+  /**
+   * Tính toán giá trị BĐS theo thời gian dựa trên loại hình Nhà mặt đất vs Căn hộ chung cư.
+   * - Nhà mặt đất (House / Maison): Giá trị đất tăng trưởng bền vững dài hạn: propVal0 * (1 + rate)^t
+   * - Căn hộ chung cư (Apartment): Mô hình phân tách Đất (20% tăng trưởng) + Xác nhà (80% khấu hao dần về 10% sau 30 năm)
+   */
+  function computePropertyValue(propVal0, age, startAge, isHouse, customAppreciation) {
+    const elapsed = Math.max(0, age - startAge);
+    if (elapsed === 0) return Math.round(propVal0);
+
+    if (isHouse) {
+      // Formula 1: Nhà mặt đất
+      const rate = customAppreciation !== undefined && customAppreciation !== null ? customAppreciation : 0.025;
+      return Math.round(propVal0 * Math.pow(1.0 + rate, elapsed));
+    } else {
+      // Formula 2: Căn hộ chung cư (khấu hao xác nhà sau 30 năm sử dụng)
+      const landRatio = 0.20;
+      const buildingRatio = 0.80;
+      const landRate = 0.020; // 2%/năm tăng trưởng đất
+      const landVal = propVal0 * landRatio * Math.pow(1.0 + landRate, elapsed);
+
+      // Tuổi thọ hao mòn công trình: 30 năm (chạm sàn 10% ở năm thứ 30)
+      const maxDecayYears = 30;
+      const decayRatio = Math.max(0.10, 1.0 - (elapsed / maxDecayYears) * 0.90);
+      const adjFactor = (customAppreciation !== undefined && customAppreciation !== null && customAppreciation !== 0)
+        ? Math.pow(1.0 + customAppreciation, elapsed)
+        : 1.0;
+      const buildingVal = propVal0 * buildingRatio * decayRatio * adjFactor;
+
+      return Math.round(landVal + buildingVal);
+    }
+  }
+
   function calculateSingleMortgageSchedule(mortgage, currentAge, lifeExpectancy) {
     const loanAmount = Number(mortgage.loanAmount) || 0;
     const interestRate = (mortgage.interestRate !== undefined && !isNaN(Number(mortgage.interestRate)) ? Number(mortgage.interestRate) : 2.2) / 100.0;
@@ -112,7 +146,13 @@ window.RetirementEngine = (function() {
     const startAge = (mortgage.startAge !== undefined && !isNaN(Number(mortgage.startAge))) ? Number(mortgage.startAge) : currentAge;
     const endAge = startAge + termYears;
     const propVal0 = Number(mortgage.propertyValue) || (loanAmount * 1.25);
-    const appreciation = (mortgage.propertyAppreciation !== undefined ? Number(mortgage.propertyAppreciation) : 2.5) / 100.0;
+    
+    // Nhận diện loại hình BĐS: Nhà mặt đất (house) hay Căn hộ chung cư (apartment)
+    const isHouse = (mortgage.propertyCategory === 'house' || mortgage.propertyType === 'house' || (mortgage.typology && (/maison|villa|nhà/i).test(mortgage.typology)) || (/maison|villa|nhà mặt đất/i).test(mortgage.name || ''));
+    const defaultAppr = isHouse ? 2.5 : 0.0;
+    const appreciation = (mortgage.propertyAppreciation !== undefined && mortgage.propertyAppreciation !== null && !isNaN(Number(mortgage.propertyAppreciation)))
+      ? Number(mortgage.propertyAppreciation) / 100.0
+      : (defaultAppr / 100.0);
 
     if (loanAmount <= 0 || termYears <= 0) return null;
 
@@ -148,10 +188,11 @@ window.RetirementEngine = (function() {
       } else {
         balance = 0;
       }
-      curPropVal = curPropVal * (1.0 + appreciation);
+      curPropVal = computePropertyValue(propVal0, age + 1, startAge, isHouse, appreciation);
     }
 
     for (let age = currentAge; age <= lifeExpectancy; age++) {
+      curPropVal = computePropertyValue(propVal0, age, startAge, isHouse, appreciation);
       if (age >= startAge && age < endAge) {
         let interestPaidYear = 0;
         let principalPaidYear = 0;
@@ -162,7 +203,6 @@ window.RetirementEngine = (function() {
           principalPaidYear += principalMonth;
           balance = Math.max(0, balance - principalMonth);
         }
-        curPropVal = curPropVal * (1.0 + appreciation);
         const homeEquity = Math.max(0, curPropVal - balance);
         schedule[age] = {
           active: true,
@@ -175,7 +215,6 @@ window.RetirementEngine = (function() {
           homeEquity: Math.round(homeEquity)
         };
       } else if (age >= endAge) {
-        curPropVal = curPropVal * (1.0 + appreciation);
         schedule[age] = {
           active: false,
           monthlyPayment: 0,
@@ -554,8 +593,8 @@ window.RetirementEngine = (function() {
         } else if (annualIncome > 0) {
           if (plan.savingsRate !== undefined && plan.savingsRate !== null && Number(plan.savingsRate) > 0) {
             const rate = Number(plan.savingsRate) / 100.0;
-            netSavingsOrWithdrawal = incomeAfterTax * rate;
-            currentExpenses = incomeAfterTax * (1.0 - rate);
+            currentExpenses = (incomeAfterTax * (1.0 - rate)) + childLifecycleCostThisYear;
+            netSavingsOrWithdrawal = incomeAfterTax - currentExpenses;
           } else {
             const cashflowSavings = incomeAfterTax - currentExpenses;
             netSavingsOrWithdrawal = Math.max(cashflowSavings, annualSavings * cumInflation);
@@ -572,34 +611,40 @@ window.RetirementEngine = (function() {
           previousYearWithdrawal = initialAnnualWithdrawal;
         }
 
-        // Apply chosen withdrawal strategy
-        if (withdrawalStrategy === 'bengen_4pct') {
-          // Bengen rule: initial dollar amount adjusted for inflation
-          const yearsIntoRetirement = age - retireAge;
-          withdrawalAmount = initialAnnualWithdrawal * Math.pow(1.0 + currentInflation, yearsIntoRetirement);
-        } else if (withdrawalStrategy === 'guyton_klinger') {
-          // Guyton-Klinger Guardrails
-          const nominalExpected = previousYearWithdrawal * (1.0 + currentInflation);
-          const currentWithdrawalRate = portfolio > 0 ? (nominalExpected / portfolio) : 1;
-          
-          if (currentWithdrawalRate > initialSWR * 1.20) {
-            // Capital preservation: cut spending by 10%
-            withdrawalAmount = nominalExpected * 0.90;
-          } else if (currentWithdrawalRate < initialSWR * 0.80) {
-            // Prosperity rule: increase spending by 10%
-            withdrawalAmount = nominalExpected * 1.10;
+        // Apply chosen withdrawal strategy (nếu bật)
+        const isStrategyActive = plan.enableWithdrawalStrategy !== false;
+        if (isStrategyActive) {
+          if (withdrawalStrategy === 'bengen_4pct') {
+            // Bengen rule: initial dollar amount adjusted for inflation
+            const yearsIntoRetirement = age - retireAge;
+            withdrawalAmount = initialAnnualWithdrawal * Math.pow(1.0 + currentInflation, yearsIntoRetirement);
+          } else if (withdrawalStrategy === 'guyton_klinger') {
+            // Guyton-Klinger Guardrails
+            const nominalExpected = previousYearWithdrawal * (1.0 + currentInflation);
+            const currentWithdrawalRate = portfolio > 0 ? (nominalExpected / portfolio) : 1;
+            
+            if (currentWithdrawalRate > initialSWR * 1.20) {
+              // Capital preservation: cut spending by 10%
+              withdrawalAmount = nominalExpected * 0.90;
+            } else if (currentWithdrawalRate < initialSWR * 0.80) {
+              // Prosperity rule: increase spending by 10%
+              withdrawalAmount = nominalExpected * 1.10;
+            } else {
+              withdrawalAmount = nominalExpected;
+            }
+            previousYearWithdrawal = withdrawalAmount;
+          } else if (withdrawalStrategy === 'vpw') {
+            // Variable Percentage Withdrawal: based on remaining life expectancy
+            const remainingYears = Math.max(1, lifeExpectancy - age + 1);
+            const vpwRate = (1.0 / remainingYears) + 0.02; // dynamic curve
+            withdrawalAmount = portfolio * Math.min(0.12, Math.max(0.03, vpwRate));
           } else {
-            withdrawalAmount = nominalExpected;
+            // Fixed percentage of portfolio
+            withdrawalAmount = portfolio * initialSWR;
           }
-          previousYearWithdrawal = withdrawalAmount;
-        } else if (withdrawalStrategy === 'vpw') {
-          // Variable Percentage Withdrawal: based on remaining life expectancy
-          const remainingYears = Math.max(1, lifeExpectancy - age + 1);
-          const vpwRate = (1.0 / remainingYears) + 0.02; // dynamic curve
-          withdrawalAmount = portfolio * Math.min(0.12, Math.max(0.03, vpwRate));
         } else {
-          // Fixed percentage of portfolio
-          withdrawalAmount = portfolio * initialSWR;
+          // Khi tắt chiến lược rút tiền: danh mục chỉ rút bù đắp phần thiếu hụt sinh hoạt thực tế
+          withdrawalAmount = 0;
         }
 
         // Net deficit needed from portfolio after accounting for passive income
@@ -612,7 +657,9 @@ window.RetirementEngine = (function() {
         } else {
           // Passive income only partially covers expenses. Net deficit must come from portfolio
           const deficit = currentExpenses - incomeAfterTax;
-          const actualWithdrawal = Math.min(portfolio, Math.max(deficit, withdrawalAmount));
+          const actualWithdrawal = isStrategyActive
+            ? Math.min(portfolio, Math.max(deficit, withdrawalAmount))
+            : Math.min(portfolio, deficit);
           portfolio = Math.max(0, (portfolio - actualWithdrawal) * (1.0 + returnRate));
           netSavingsOrWithdrawal = -actualWithdrawal;
 
