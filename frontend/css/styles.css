@@ -22,6 +22,7 @@
   --primary: #10b981; /* Emerald */
   --primary-glow: rgba(16, 185, 129, 0.35);
   --primary-hover: #059669;
+  --slider-track-bg: rgba(255, 255, 255, 0.16);
 
   --accent-blue: #3b82f6;
   --accent-cyan: #06b6d4;
@@ -71,6 +72,7 @@
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.12);
+  --slider-track-bg: #cbd5e1;
 }
 
 /* ==========================================================================
@@ -387,6 +389,18 @@ code, kbd, samp {
 .btn-secondary:hover {
   background: var(--bg-card-hover);
   border-color: var(--border-strong);
+}
+
+.btn-outline {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+}
+
+.btn-outline:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-strong);
+  color: var(--text-main);
 }
 
 .btn-ghost {
@@ -749,28 +763,32 @@ code, kbd, samp {
   width: 100%;
 }
 
-/* Gemini AI Commentaries: Horizontal row positioned after Schedule Table */
-.gemini-insights-horizontal {
+/* Gemini AI Commentaries: Horizontal row positioned after Schedule Table or Controls */
+.gemini-insights-horizontal,
+.gemini-insights-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
   gap: 1.25rem;
-  margin-top: 1.25rem;
+  margin-top: 0.85rem;
   width: 100%;
 }
 
-.gemini-insights-horizontal > .gemini-insight-box {
+.gemini-insights-horizontal > .gemini-insight-box,
+.gemini-insights-grid > .gemini-insight-box {
   margin-top: 0;
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
-.gemini-insights-horizontal > .gemini-insight-box > .gemini-insight-content {
+.gemini-insights-horizontal > .gemini-insight-box > .gemini-insight-content,
+.gemini-insights-grid > .gemini-insight-box > .gemini-insight-content {
   flex: 1;
 }
 
 @media (max-width: 900px) {
-  .gemini-insights-horizontal {
+  .gemini-insights-horizontal,
+  .gemini-insights-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -1106,9 +1124,100 @@ code, kbd, samp {
 }
 
 .form-range {
+  -webkit-appearance: none;
+  appearance: none;
   width: 100%;
-  accent-color: var(--primary);
+  height: 6px;
+  background: var(--slider-track-bg, rgba(255, 255, 255, 0.16));
+  border-radius: 9999px;
+  outline: none;
   cursor: pointer;
+  margin: 0.4rem 0;
+  transition: var(--transition-fast);
+}
+
+.form-range::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 6px;
+  background: var(--slider-track-bg, rgba(255, 255, 255, 0.16));
+  border-radius: 9999px;
+  border: none;
+}
+
+.form-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #10b981;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  margin-top: -6px;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-range::-webkit-slider-thumb:hover {
+  transform: scale(1.18);
+  background: #34d399;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+}
+
+.form-range::-moz-range-track {
+  width: 100%;
+  height: 6px;
+  background: var(--slider-track-bg, rgba(255, 255, 255, 0.16));
+  border-radius: 9999px;
+  border: none;
+}
+
+.form-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #10b981;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-range::-moz-range-thumb:hover {
+  transform: scale(1.18);
+  background: #34d399;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+}
+
+/* SWR Indicator Badge & Ticks */
+.badge-swr-indicator {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  font-size: 0.74rem;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.swr-slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.66rem;
+  color: var(--text-faint);
+  margin-top: 0.25rem;
+  padding: 0 2px;
+}
+
+.swr-tick-recommended {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.swr-tick-standard {
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 .range-value-display {
@@ -1155,6 +1264,24 @@ code, kbd, samp {
 
 @media (max-width: 960px) {
   .streams-side-by-side {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+}
+
+/* Periods Summary Side-by-Side Row (Aligned Horizontally) */
+.periods-summary-side-by-side {
+  column-span: all;
+  -webkit-column-span: all;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 1.25rem;
+  align-items: stretch;
+}
+
+@media (max-width: 960px) {
+  .periods-summary-side-by-side {
     grid-template-columns: 1fr;
     gap: 1.25rem;
   }
@@ -1283,8 +1410,9 @@ code, kbd, samp {
 .income-growth-badge {
   font-size: 0.68rem;
   font-weight: 600;
-  color: var(--accent);
-  background: rgba(99, 102, 241, 0.12);
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.22);
   padding: 0.1rem 0.4rem;
   border-radius: 4px;
 }
@@ -1295,6 +1423,7 @@ code, kbd, samp {
 .expense-item {
   background: var(--bg-card);
   border: 1px solid rgba(244, 63, 94, 0.2);
+  border-left: 3px solid #f43f5e;
   border-radius: var(--radius-sm);
   padding: 0.65rem 0.85rem;
   display: flex;
@@ -1304,7 +1433,8 @@ code, kbd, samp {
 }
 
 .expense-item:hover {
-  border-color: rgba(244, 63, 94, 0.45);
+  border-color: rgba(244, 63, 94, 0.55);
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.12);
   background: var(--bg-card-hover);
 }
 
@@ -1345,6 +1475,270 @@ code, kbd, samp {
   color: var(--text-muted);
 }
 
+/* Special Expense Item: Chi tiêu sinh hoạt hưu trí (FIRE) */
+.expense-item-retire {
+  background: var(--bg-card);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  border-left: 3px solid #f43f5e;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.95rem;
+  margin-bottom: 0.65rem;
+  transition: var(--transition-fast);
+}
+
+.expense-item-retire:hover {
+  border-color: rgba(244, 63, 94, 0.55);
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.12);
+}
+
+/* Special Income Item: Lương hưu BHXH Việt Nam */
+.income-item-bhxh {
+  background: var(--bg-card);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-left: 3px solid #10b981;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.95rem;
+  margin-bottom: 0.65rem;
+  transition: var(--transition-fast);
+}
+
+.income-item-bhxh:hover {
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12);
+}
+
+.bhxh-config-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.75rem;
+  margin-top: 0.55rem;
+}
+
+/* Special Income Item: BĐS Cho Thuê LMNP Pháp */
+.income-item-lmnp {
+  background: var(--bg-card);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-left: 3px solid #10b981;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.95rem;
+  margin-bottom: 0.65rem;
+  transition: var(--transition-fast);
+}
+
+.income-item-lmnp:hover {
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12);
+}
+
+.lmnp-config-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.75rem;
+  margin-top: 0.55rem;
+}
+
+.lmnp-apt-row {
+  transition: all 0.2s ease;
+}
+
+.lmnp-apt-row:hover {
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Special Income Item: Lương hưu Pháp */
+.income-item-french {
+  background: var(--bg-card);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-left: 3px solid #10b981;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.95rem;
+  margin-bottom: 0.65rem;
+  transition: var(--transition-fast);
+}
+
+.income-item-french:hover {
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12);
+}
+
+.french-config-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.75rem;
+  margin-top: 0.55rem;
+}
+
+/* Special Income Item: Phân bổ danh mục & Tái cân bằng */
+.income-item-allocation {
+  background: var(--bg-card);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-left: 3px solid #10b981;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.95rem;
+  margin-bottom: 0.65rem;
+  transition: var(--transition-fast);
+}
+
+.income-item-allocation:hover {
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12);
+}
+
+.allocation-config-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.75rem;
+  margin-top: 0.55rem;
+}
+
+/* Special Expense Item: Dự phòng chăm sóc tuổi già */
+.expense-item-senior {
+  background: var(--bg-card);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  border-left: 3px solid #f43f5e;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.95rem;
+  margin-bottom: 0.65rem;
+  transition: var(--transition-fast);
+}
+
+.expense-item-senior:hover {
+  border-color: rgba(244, 63, 94, 0.55);
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.12);
+}
+
+.senior-config-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.75rem;
+  margin-top: 0.55rem;
+}
+
+/* Special Expense Item: Kế Hoạch Con Cái & Gia Đình */
+.expense-item-family {
+  background: var(--bg-card);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-left: 3px solid #6366f1;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.95rem;
+  margin-bottom: 0.65rem;
+  transition: var(--transition-fast);
+}
+
+.expense-item-family:hover {
+  border-color: rgba(99, 102, 241, 0.55);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.12);
+}
+
+.family-stream-config-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.75rem;
+  margin-top: 0.55rem;
+}
+
+/* Special Item: Chiến Lược Rút Tiền Hưu Trí */
+.income-item-strategy,
+.expense-item-strategy {
+  background: var(--bg-card);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-left: 3px solid #10b981;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.95rem;
+  margin-bottom: 0.65rem;
+  transition: var(--transition-fast);
+}
+
+.income-item-strategy:hover,
+.expense-item-strategy:hover {
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12);
+}
+
+.strategy-config-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.75rem;
+  margin-top: 0.55rem;
+}
+
+.strategy-card.compact {
+  padding: 0.55rem 0.65rem;
+  gap: 0.5rem;
+  border-radius: 6px;
+}
+
+.strategy-card.compact .strategy-name {
+  font-size: 0.8rem;
+  margin-bottom: 0.1rem;
+}
+
+.strategy-card.compact .strategy-detail {
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+
+.strategy-card.compact .strategy-kpis-mini {
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.2rem;
+}
+
+.strategy-card.compact .kpi-mini-item {
+  font-size: 0.68rem;
+  padding: 0.12rem 0.4rem;
+}
+
+/* Special Expense Item: Lạm phát 2 Chặng & Tỷ giá EUR/VND */
+.expense-item-inflation {
+  background: var(--bg-card);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  border-left: 3px solid #f43f5e;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.95rem;
+  margin-bottom: 0.65rem;
+  transition: var(--transition-fast);
+}
+
+.expense-item-inflation:hover {
+  border-color: rgba(244, 63, 94, 0.55);
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.12);
+}
+
+.inflation-config-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.75rem;
+  margin-top: 0.55rem;
+}
+
+.inflation-card-rates {
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.25;
+}
+
+.inflation-growth-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #fb7185;
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.22);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
 .expense-amount-annual {
   font-size: 0.72rem;
   color: var(--text-faint);
@@ -1369,6 +1763,36 @@ code, kbd, samp {
   border: 1px solid rgba(239, 68, 68, 0.3);
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
+}
+
+/* Baseline Parameters Card (Năm sinh, Tuổi nghỉ hưu, Kỳ vọng thọ, Tài sản hiện có, Lạm phát) */
+.baseline-params-card {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.baseline-params-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.85rem;
+  align-items: flex-start;
+}
+
+@media (max-width: 1100px) {
+  .baseline-params-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .baseline-params-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Live Cashflow Balance Box */
@@ -1429,12 +1853,12 @@ code, kbd, samp {
 }
 
 .location-radio-item.active {
-  background: rgba(16, 185, 129, 0.09);
-  border-color: rgba(16, 185, 129, 0.45);
+  background: rgba(244, 63, 94, 0.09);
+  border-color: rgba(244, 63, 94, 0.45);
 }
 
 .location-radio-item input[type="radio"] {
-  accent-color: var(--primary);
+  accent-color: #f43f5e;
   margin: 0;
   cursor: pointer;
   width: 14px;
@@ -1472,14 +1896,10 @@ code, kbd, samp {
   color: #94a3b8;
 }
 
-.location-radio-badge.badge-discount {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-}
-
+.location-radio-badge.badge-discount,
 .location-radio-badge.badge-hybrid {
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
+  background: rgba(244, 63, 94, 0.12);
+  color: #fb7185;
 }
 
 .location-radio-detail {
@@ -1489,7 +1909,7 @@ code, kbd, samp {
 }
 
 .location-radio-item.active .location-radio-title {
-  color: #34d399;
+  color: #fb7185;
 }
 
 .location-radio-item.active .location-radio-detail {
@@ -1702,7 +2122,7 @@ code, kbd, samp {
 
 .pension-dual-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 0.85rem;
   align-items: stretch;
 }
@@ -3407,32 +3827,27 @@ code, kbd, samp {
    ========================================================================== */
 .formula-inline-box {
   font-family: var(--font-sans);
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(56, 189, 248, 0.22);
-  border-left: 3px solid #38bdf8;
-  border-radius: 8px;
-  padding: 0.55rem 0.75rem;
-  margin-top: 0.5rem;
-  margin-bottom: 0.35rem;
-  font-size: 0.78rem;
-  line-height: 1.5;
-  color: var(--text-main);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  background: transparent !important;
+  border: none !important;
+  border-left: none !important;
+  border-radius: 0 !important;
+  padding: 0.2rem 0 0 0 !important;
+  margin-top: 0.35rem;
+  margin-bottom: 0.15rem;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+  box-shadow: none !important;
 }
 
-.formula-inline-box.formula-success {
-  border-left-color: #10b981;
-  border-color: rgba(16, 185, 129, 0.22);
-}
-
-.formula-inline-box.formula-warning {
-  border-left-color: #f59e0b;
-  border-color: rgba(245, 158, 11, 0.22);
-}
-
-.formula-inline-box.formula-purple {
-  border-left-color: #a855f7;
-  border-color: rgba(168, 85, 247, 0.22);
+.formula-inline-box.formula-success,
+.formula-inline-box.formula-warning,
+.formula-inline-box.formula-purple,
+.formula-inline-box.formula-info,
+.formula-inline-box.formula-danger {
+  border: none !important;
+  border-left: none !important;
+  background: transparent !important;
 }
 
 .formula-tag {
@@ -3441,11 +3856,11 @@ code, kbd, samp {
   gap: 0.35rem;
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 0.76rem;
+  font-size: 0.73rem;
   text-transform: uppercase;
   letter-spacing: 0.02em;
   color: #38bdf8;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.15rem;
 }
 
 .formula-inline-box.formula-success .formula-tag {
@@ -3460,45 +3875,45 @@ code, kbd, samp {
   color: #c084fc;
 }
 
+.formula-inline-box.formula-info .formula-tag {
+  color: #38bdf8;
+}
+
+.formula-inline-box.formula-danger .formula-tag {
+  color: #fb7185;
+}
+
 .formula-inline-box code {
   font-family: var(--font-sans);
-  font-size: 0.77rem;
+  font-size: 0.73rem;
   font-weight: 500;
-  color: #f1f5f9;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 0.15rem 0.45rem;
-  border-radius: 5px;
-  display: inline-block;
-  margin: 0.1rem 0;
-  line-height: 1.45;
+  color: var(--text-muted);
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  display: block;
+  margin: 0.08rem 0;
+  line-height: 1.4;
   word-break: break-word;
 }
 
 [data-theme="light"] .formula-inline-box {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-left: 3px solid #0284c7;
-  color: #1e293b;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background: transparent !important;
+  border: none !important;
+  border-left: none !important;
+  color: var(--text-muted);
+  box-shadow: none !important;
 }
 
-[data-theme="light"] .formula-inline-box.formula-success {
-  border-left-color: #059669;
-  border-color: #d1fae5;
-  background: #f0fdf4;
-}
-
-[data-theme="light"] .formula-inline-box.formula-warning {
-  border-left-color: #d97706;
-  border-color: #fef3c7;
-  background: #fffbeb;
-}
-
-[data-theme="light"] .formula-inline-box.formula-purple {
-  border-left-color: #7c3aed;
-  border-color: #ede9fe;
-  background: #f5f3ff;
+[data-theme="light"] .formula-inline-box.formula-success,
+[data-theme="light"] .formula-inline-box.formula-warning,
+[data-theme="light"] .formula-inline-box.formula-purple,
+[data-theme="light"] .formula-inline-box.formula-info,
+[data-theme="light"] .formula-inline-box.formula-danger {
+  border: none !important;
+  border-left: none !important;
+  background: transparent !important;
 }
 
 [data-theme="light"] .formula-tag {
@@ -3517,10 +3932,19 @@ code, kbd, samp {
   color: #7c3aed;
 }
 
+[data-theme="light"] .formula-inline-box.formula-info .formula-tag {
+  color: #0284c7;
+}
+
+[data-theme="light"] .formula-inline-box.formula-danger .formula-tag {
+  color: #e11d48;
+}
+
 [data-theme="light"] .formula-inline-box code {
-  color: #0f172a;
-  background: rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: #475569;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
 }
 
 /* ==========================================================================
@@ -4063,9 +4487,12 @@ code, kbd, samp {
 
 /* Periods Summary Boxes (Dual-Theme Baseline) */
 .income-periods-box {
-  margin-bottom: 0.85rem;
+  margin: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   background: rgba(15, 23, 42, 0.55);
-  border: 1px solid rgba(56, 189, 248, 0.25);
+  border: 1px solid rgba(16, 185, 129, 0.28);
   border-radius: 8px;
   padding: 0.75rem 0.85rem;
   transition: background var(--transition-fast), border-color var(--transition-fast);
@@ -4082,7 +4509,7 @@ code, kbd, samp {
 .income-periods-title {
   font-size: 0.78rem;
   font-weight: 700;
-  color: #38bdf8;
+  color: #10b981;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   display: flex;
@@ -4091,12 +4518,20 @@ code, kbd, samp {
 }
 
 .expense-periods-box {
-  margin-bottom: 0.85rem;
+  margin: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   background: rgba(15, 23, 42, 0.55);
   border: 1px solid rgba(244, 63, 94, 0.28);
   border-radius: 8px;
   padding: 0.75rem 0.85rem;
   transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.income-periods-list,
+.expense-periods-list {
+  flex: 1;
 }
 
 .expense-periods-title {
@@ -4139,9 +4574,9 @@ code, kbd, samp {
 
 .period-card-streams {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 0.35rem;
-  align-items: center;
   border-top: 1px dashed var(--border-subtle);
   padding-top: 0.35rem;
 }
@@ -4156,9 +4591,13 @@ code, kbd, samp {
 }
 
 .income-period-chip {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border-subtle);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.22);
   color: var(--text-main);
+}
+
+.income-period-chip strong {
+  color: #34d399;
 }
 
 .expense-period-chip {
@@ -4167,12 +4606,45 @@ code, kbd, samp {
   color: var(--text-main);
 }
 
+.badge-strategy-period {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  font-size: 0.68rem;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.chip-withdrawal-period {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px dashed rgba(16, 185, 129, 0.35);
+  color: var(--text-muted);
+}
+
+.chip-withdrawal-period strong {
+  color: #34d399;
+}
+
 .period-phase-badge {
-  background: rgba(255, 255, 255, 0.06);
+  background: transparent;
   color: var(--text-muted);
   font-size: 0.7rem;
-  padding: 0.1rem 0.4rem;
+  padding: 0.1rem 0;
   border-radius: 3px;
+}
+
+.income-phase-badge {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  padding: 0.1rem 0.45rem;
+  border-radius: 3px;
+  font-weight: 600;
+  font-size: 0.68rem;
 }
 
 .current-phase-badge {
@@ -4184,16 +4656,21 @@ code, kbd, samp {
   font-weight: 600;
 }
 
+.income-period-card:hover {
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12);
+}
+
 /* --------------------------------------------------------------------------
    Light Mode Overrides (Contrast & Readability First)
    -------------------------------------------------------------------------- */
 [data-theme="light"] .income-periods-box {
-  background: #f0f9ff;
-  border-color: #bae6fd;
+  background: #f0fdf4;
+  border-color: #a7f3d0;
 }
 
 [data-theme="light"] .income-periods-title {
-  color: #0284c7;
+  color: #059669;
 }
 
 [data-theme="light"] .expense-periods-box {
@@ -4212,14 +4689,31 @@ code, kbd, samp {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
+[data-theme="light"] .income-period-card:hover {
+  background: #f0fdf4 !important;
+  border-color: #86efac !important;
+}
+
+[data-theme="light"] .income-period-age-badge {
+  color: #059669 !important;
+}
+
+[data-theme="light"] .income-period-monthly {
+  color: #059669 !important;
+}
+
 [data-theme="light"] .period-card-streams {
   border-top-color: #f1f5f9;
 }
 
 [data-theme="light"] .income-period-chip {
-  background: #f8fafc;
-  border-color: #e2e8f0;
-  color: #0f172a;
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+[data-theme="light"] .income-period-chip strong {
+  color: #059669;
 }
 
 [data-theme="light"] .expense-period-chip {
@@ -4228,9 +4722,31 @@ code, kbd, samp {
   color: #881337;
 }
 
+[data-theme="light"] .badge-strategy-period {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  border-color: #a7f3d0 !important;
+}
+
+[data-theme="light"] .chip-withdrawal-period {
+  background: #f0fdf4 !important;
+  border-color: #6ee7b7 !important;
+  color: #065f46 !important;
+}
+
+[data-theme="light"] .chip-withdrawal-period strong {
+  color: #059669 !important;
+}
+
 [data-theme="light"] .period-phase-badge {
-  background: #f1f5f9;
+  background: transparent;
   color: #475569;
+}
+
+[data-theme="light"] .income-phase-badge {
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
 }
 
 [data-theme="light"] .current-phase-badge {
@@ -4264,6 +4780,13 @@ code, kbd, samp {
   font-weight: 700;
 }
 
+/* Baseline Params Card in Light Mode */
+[data-theme="light"] .baseline-params-card {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
 /* Cashflow Balance Card in Light Mode */
 [data-theme="light"] .cashflow-balance-card {
   background: #ffffff;
@@ -4286,12 +4809,12 @@ code, kbd, samp {
 }
 
 [data-theme="light"] .location-radio-item.active {
-  background: #ecfdf5;
-  border-color: #6ee7b7;
+  background: #fff1f2;
+  border-color: #fda4af;
 }
 
 [data-theme="light"] .location-radio-item.active .location-radio-title {
-  color: #059669;
+  color: #e11d48;
 }
 
 [data-theme="light"] .location-radio-item.active .location-radio-detail {
@@ -4689,14 +5212,213 @@ code, kbd, samp {
 }
 
 [data-theme="light"] .income-growth-badge {
-  background: #e0e7ff !important;
-  color: #4338ca !important;
+  background: #ecfdf5 !important;
+  color: #059669 !important;
+  border: 1px solid #a7f3d0 !important;
 }
 
 [data-theme="light"] .expense-item {
   background: #ffffff !important;
   border: 1px solid #fecdd3 !important;
+  border-left: 3px solid #e11d48 !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .expense-item-retire {
+  background: #ffffff !important;
+  border: 1px solid #fecdd3 !important;
+  border-left: 3px solid #e11d48 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .expense-item-retire:hover {
+  background: #fff5f5 !important;
+  border-color: #fda4af !important;
+}
+
+[data-theme="light"] .income-item-bhxh {
+  background: #ffffff !important;
+  border: 1px solid #a7f3d0 !important;
+  border-left: 3px solid #059669 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .income-item-bhxh:hover {
+  background: #f0fdf4 !important;
+  border-color: #6ee7b7 !important;
+}
+
+[data-theme="light"] .bhxh-config-box {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] .income-item-lmnp {
+  background: #ffffff !important;
+  border: 1px solid #a7f3d0 !important;
+  border-left: 3px solid #059669 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .income-item-lmnp:hover {
+  background: #f0fdf4 !important;
+  border-color: #6ee7b7 !important;
+}
+
+[data-theme="light"] .lmnp-config-box {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] .lmnp-apt-row {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] .lmnp-apt-row:hover {
+  background: #f0fdf4 !important;
+  border-color: #6ee7b7 !important;
+}
+
+[data-theme="light"] .income-item-french {
+  background: #ffffff !important;
+  border: 1px solid #a7f3d0 !important;
+  border-left: 3px solid #059669 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .income-item-french:hover {
+  background: #f0fdf4 !important;
+  border-color: #6ee7b7 !important;
+}
+
+[data-theme="light"] .french-config-box {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] .income-item-allocation {
+  background: #ffffff !important;
+  border: 1px solid #a7f3d0 !important;
+  border-left: 3px solid #059669 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .income-item-allocation:hover {
+  background: #f0fdf4 !important;
+  border-color: #6ee7b7 !important;
+}
+
+[data-theme="light"] .income-item-strategy,
+[data-theme="light"] .expense-item-strategy {
+  background: #ffffff !important;
+  border: 1px solid #a7f3d0 !important;
+  border-left: 3px solid #059669 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .income-item-strategy:hover,
+[data-theme="light"] .expense-item-strategy:hover {
+  background: #f0fdf4 !important;
+  border-color: #6ee7b7 !important;
+}
+
+[data-theme="light"] .strategy-config-box {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] .expense-item-family {
+  background: #ffffff !important;
+  border: 1px solid #c7d2fe !important;
+  border-left: 3px solid #4f46e5 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .expense-item-family:hover {
+  background: #f5f7ff !important;
+  border-color: #a5b4fc !important;
+}
+
+[data-theme="light"] .family-stream-config-box {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] #lbl-family-stream-monthly {
+  color: #4f46e5 !important;
+}
+
+[data-theme="light"] #badge-family-stream-status {
+  background: #eef2ff !important;
+  color: #4338ca !important;
+  border-color: #c7d2fe !important;
+}
+
+[data-theme="light"] #lbl-family-stream-badge {
+  background: #eef2ff !important;
+  color: #4338ca !important;
+  border-color: #c7d2fe !important;
+}
+
+[data-theme="light"] .expense-item-senior {
+  background: #ffffff !important;
+  border: 1px solid #fecdd3 !important;
+  border-left: 3px solid #e11d48 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .expense-item-senior:hover {
+  background: #fff5f5 !important;
+  border-color: #fda4af !important;
+}
+
+[data-theme="light"] .senior-config-box {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] .expense-item-inflation {
+  background: #ffffff !important;
+  border: 1px solid #fecdd3 !important;
+  border-left: 3px solid #e11d48 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .expense-item-inflation:hover {
+  background: #fff5f5 !important;
+  border-color: #fda4af !important;
+}
+
+[data-theme="light"] .inflation-config-box {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] .inflation-card-rates {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .inflation-growth-badge {
+  color: #e11d48 !important;
+  background: #fff1f2 !important;
+  border: 1px solid #fecdd3 !important;
+}
+
+[data-theme="light"] #badge-senior-care,
+[data-theme="light"] #badge-dual-inflation-status {
+  background: #fff1f2 !important;
+  color: #e11d48 !important;
+  border: 1px solid #fecdd3 !important;
+}
+
+[data-theme="light"] #lbl-forex-future {
+  color: #e11d48 !important;
+}
+
+[data-theme="light"] .retire-expense-config-box {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
 }
 
 [data-theme="light"] .expense-item:hover {
@@ -5182,3 +5904,82 @@ code, kbd, samp {
   padding: 0.85rem 1.5rem 1.1rem 1.5rem;
   border-top: 1px solid var(--border-subtle);
 }
+
+/* Toggle Compare 4 Withdrawal Strategies Button */
+#btn-toggle-compare-withdrawals {
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border-color: var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+#btn-toggle-compare-withdrawals:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-strong);
+}
+#btn-toggle-compare-withdrawals.active {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #10b981 !important;
+  border-color: rgba(16, 185, 129, 0.45) !important;
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+}
+[data-theme="light"] #btn-toggle-compare-withdrawals.active {
+  background: #ecfdf5 !important;
+  color: #059669 !important;
+  border-color: #059669 !important;
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(5, 150, 105, 0.15);
+}
+
+/* Light Mode Overrides for Range Sliders & SWR Indicator */
+[data-theme="light"] .form-range {
+  background: #cbd5e1 !important;
+}
+
+[data-theme="light"] .form-range::-webkit-slider-runnable-track {
+  background: #cbd5e1 !important;
+}
+
+[data-theme="light"] .form-range::-webkit-slider-thumb {
+  background: #059669 !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.4) !important;
+}
+
+[data-theme="light"] .form-range::-webkit-slider-thumb:hover {
+  background: #047857 !important;
+  box-shadow: 0 0 10px rgba(5, 150, 105, 0.55) !important;
+}
+
+[data-theme="light"] .form-range::-moz-range-track {
+  background: #cbd5e1 !important;
+}
+
+[data-theme="light"] .form-range::-moz-range-thumb {
+  background: #059669 !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.4) !important;
+}
+
+[data-theme="light"] .form-range::-moz-range-thumb:hover {
+  background: #047857 !important;
+  box-shadow: 0 0 10px rgba(5, 150, 105, 0.55) !important;
+}
+
+[data-theme="light"] .badge-swr-indicator {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  border: 1px solid #a7f3d0 !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .swr-tick-recommended {
+  color: #059669 !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .swr-tick-standard {
+  color: #334155 !important;
+  font-weight: 600 !important;
+}
+

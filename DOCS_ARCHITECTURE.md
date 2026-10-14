@@ -54,7 +54,7 @@ graph TD
      - Áp dụng chiến lược rút tiền được chọn (`bengen_4pct`, `guyton_klinger`, `vpw`, `fixed_pct`).
      - Tự động cộng các nguồn thu nhập tuổi già (Lương hưu Pháp CNAV/Agirc-Arrco từ 65 tuổi, BHXH Việt Nam, cổ tức, bất động sản).
      - **Tái đầu tư thặng dư**: Nếu thu nhập thụ động > Chi tiêu sinh hoạt, thặng dư được tái đầu tư trở lại vào danh mục. Ngược lại, khoản thiếu hụt (`deficit`) sẽ được rút từ danh mục đầu tư.
-  7. **Mô hình Chi tiêu Spending Smile**: Điều chỉnh chi tiêu theo 3 chặng Go-Go, Slow-Go, No-Go.
+  7. **Mô hình Chi tiêu Spending Smile**: Tích hợp trực tiếp tại thẻ *Dòng Chi Tiêu Hàng Tháng Khi Về Hưu* trong Tab 1 (Dòng tiền & Tài sản). Điều chỉnh chi tiêu theo 3 chặng: Go-Go (+15%), Slow-Go (-10%), và No-Go (-20%).
 
 ### 2.2. `taxOptimizer.js` — Bộ Tối ưu Hóa Thuế & Phúc lợi Xã hội
 - **Biểu thuế lũy tiến Pháp (IR 2024)**:

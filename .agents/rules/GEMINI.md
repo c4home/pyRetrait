@@ -6,6 +6,8 @@
 - Comments trong code: ưu tiên tiếng Việt cho logic nghiệp vụ phức tạp; tiếng Anh cho comment kỹ thuật phổ thông.
 - Tên biến và hàm: dùng tiếng Anh (camelCase cho JS, snake_case cho Python).
 - Tên hiển thị trên UI (label, tooltip, placeholder): tiếng Việt.
+- **Tuyệt đối KHÔNG viết công thức bằng cú pháp LaTeX (cấm dùng `$$...$$`, `$...$`, `\text{...}`, `\frac{...}`):**
+  - Trong toàn bộ giao tiếp chat, tài liệu Markdown (`.md`), giải thích nghiệp vụ và UI: Mọi công thức tính toán tài chính phải được trình bày dưới dạng văn bản thường trực quan, dễ đọc hoặc code block đơn giản (ví dụ: `Tỷ lệ rút năm nay = Số tiền dự kiến rút / Số dư tài sản thực tế`, hoặc `Rút(t) = Danh mục(0) * SWR * (1 + lạm phát)^t`). Tuyệt đối không dùng LaTeX vì gây rối mắt, thô kệch và lỗi hiển thị khi không có trình render chuyên dụng.
 
 ---
 

@@ -103,54 +103,67 @@ Nằm ngay phía trên biểu đồ Tài sản Ròng (Net Worth Trajectory) là 
 - Xem biểu đồ đường cong tăng trưởng **Tài sản Ròng (Net Worth)** từ hiện tại đến cuối đời.
 - Có thể chuyển đổi qua lại giữa **Giá trị Tương lai (Nominal)** và **Sức mua Hiện tại (Real)** đã khấu trừ lạm phát.
 - Biểu đồ **Cân đối Dòng tiền Hàng năm (Cash-Flow Projections)**: Xem cột thu nhập (xanh) và cột chi tiêu (đỏ) qua từng năm.
+- **Công tắc Bật/Tắt So sánh 4 Chiến lược Rút tiền trên Biểu đồ Tài sản Ròng**:
+  - Nhấp vào nút `So sánh 4 Chiến lược` trên thanh tiêu đề biểu đồ Net Worth để kích hoạt hiển thị 4 nhánh phân kỳ từ tuổi nghỉ hưu:
+    1. **Quy tắc 4% Cố định (Bengen)**: Nét xanh dương.
+    2. **Lan can Guyton-Klinger (Khuyên dùng)**: Nét xanh ngọc lục bảo (đậm nếu đang chọn).
+    3. **Tỷ lệ Thay đổi (VPW)**: Nét tím violet.
+    4. **Tỷ lệ Cố định (Fixed %)**: Nét cam hổ phách.
+- **Thẻ Cấu hình Chiến Lược Rút Tiền & Tỷ Lệ SWR**: Nằm ngay trong cột điều khiển bên trái của Tab 1:
+  - Cho phép chọn nhanh 1 trong 4 chiến lược kèm thanh trượt điều chỉnh **Tỷ lệ Rút tiền Khởi điểm (SWR %)** từ 2.5% đến 6.0%.
+  - Tích hợp số dư tuổi 85 và tỷ lệ sống sót tự động cập nhật thời gian thực.
+- **Mô hình Chi tiêu Thực tế 3 Giai đoạn (Spending Smile)**: Tích hợp trực tiếp bên trong thẻ *Dòng Chi Tiêu Hàng Tháng Khi Về Hưu*, cho phép thiết lập linh hoạt 3 giai đoạn:
+  - *Go-Go (Nghỉ hưu đến 60 tuổi)*: Hệ số 1.15x (+15% du lịch, trải nghiệm).
+  - *Slow-Go (60 – 75 tuổi)*: Hệ số 0.90x (-10% sinh hoạt tại gia thanh bình).
+  - *No-Go (sau 75 tuổi)*: Hệ số 0.80x (-20% chi tiêu sinh hoạt tối giản, chuyển ngân sách sang y tế).
+- **Mô hình Lương Hưu VN (BHXH Tự Nguyện)**: Tích hợp trực tiếp trong danh mục thu nhập hàng năm, tính toán tiền đóng 22% và lương hưu nhận về trọn đời theo chuẩn Luật BHXH 2024 (mốc 15 năm).
 - **Bảng Thống kê Chi tiết Từng Năm**: Bấm *Mở rộng Bảng* để xem chi tiết từng dòng số liệu của 60 năm.
 
-### Tab 2: Chiến lược Rút tiền (`tab-withdrawals`)
-- Lựa chọn 1 trong 4 chiến lược: **Bengen 4%**, **Lan can Guyton-Klinger**, **VPW**, hoặc **Cố định**.
-- Bảng so sánh chỉ rõ số tiền rút năm đầu, mức sụt giảm tối đa (drawdown) và độ bền danh mục của từng phương án.
+### Tab 2: Monte Carlo & Rủi ro (`tab-insights`)
+- Mô phỏng xác suất sống sót với 1.000 kịch bản thị trường ngẫu nhiên (Mulberry32 PRNG seed 42).
+- Biểu đồ quạt phân vị P10 (xấu nhất), P50 (trung vị), P90 (thuận lợi nhất).
+- Phân tích rủi ro thứ tự sinh lời (Sequence of Returns Risk - SRR) và rủi ro cạn vốn sớm.
 
-### Tab 3: Tối ưu Thuế (`tab-taxes`)
-- Khám phá cơ chế tối ưu thuế lũy tiến Pháp (IR 2024), tài khoản PEA, và chiến lược Roth Conversion Ladder.
+### Tab 3: Kịch bản What-If (`tab-scenarios`)
+- Thử nghiệm độ bền vững của danh mục trước các cú sốc: Khủng hoảng thị trường sớm (-35%), Lạm phát phi mã, Cú sốc chi phí y tế tuổi 65, Thu gọn BĐS tuổi 60.
 
-### Tab 4: Monte Carlo & Rủi ro (`tab-insights`)
-- Chạy 1,000 kịch bản thị trường mô phỏng rủi ro Sequence of Returns Risk.
-- Biểu đồ quạt hiển thị xác suất thành công và các phân vị tài sản xấu nhất (P10) tới tốt nhất (P90).
+### Tab 4: Gia Đình, Sức Khỏe & Di Sản (`tab-estate`)
+- **Hoạch định Con cái & Học vấn Đại học**:
+  - Nhập năm sinh các con để hệ thống tự động xác định độ tuổi qua từng năm mô phỏng.
+  - Tự động cộng trợ cấp gia đình Pháp (CAF) và trừ chi phí đỉnh điểm khi con học Đại học (18–23 tuổi).
+  - Cơ chế **Tự tài trợ học vấn bằng BĐS**: Dòng tiền BĐS tất toán nợ tự động nuôi con học Đại học.
+- **Biểu Đồ Dòng Tiền Nuôi Con & BĐS (`chart-family-cashflow`)**: Hiển thị trực quan mối tương quan giữa chi phí nuôi con, đỉnh học phí Đại học và dòng tiền BĐS bù đắp.
+- **Kế Hoạch Thừa Kế & Đánh Giá Mục Tiêu Di Sản (`card-estate-legacy-combined`)**:
+  - Thiết lập mục tiêu tài sản để lại cho thế hệ sau / từ thiện và theo dõi thanh tiến độ tích lũy thực tế.
+  - Hướng dẫn 4 chiến lược chuyển giao tối ưu thuế:
+    - *Tách quyền (Démembrement / Nue-propriété)*: Cho tặng quyền sở hữu trần theo Điều 669 CGI (định giá 50% ở tuổi 51–60 hoặc 60% ở tuổi 61–70), giữ quyền hưởng dụng (Usufruit) nhận tiền thuê nhà; con nhận toàn quyền sở hữu 100% miễn thuế khi bố mẹ qua đời.
+    - *Hạn mức miễn thuế cho tặng định kỳ*: 100.000 €/con/bố mẹ mỗi chu kỳ 15 năm (Điều 779 CGI).
+    - *Bảo hiểm nhân thọ Pháp (Assurance-Vie)*: Miễn thuế thừa kế đến 152.500 €/người thụ hưởng (Điều 990 I CGI).
+    - *Di chúc & Thừa kế Quốc tế Pháp – Việt*: Tận dụng Luật EU 650/2012 chọn luật quốc tịch áp dụng cho toàn bộ khối tài sản song tịch.
+- **Cẩm Nang Y Tế Dự Phòng & Sức Khỏe Song Tịch**:
+  - Quyền lợi y tế miễn phí tại Pháp: *Mon Bilan Prévention* (18–25t, 45–50t, 60–65t, 70–75t) miễn phí 100% và khám tổng quát *EPS CPAM* mỗi 5 năm.
+  - Tầm soát chất lượng cao tại Việt Nam kết hợp thẻ CFE + Mutuelle quốc tế bảo lãnh viện phí trực tiếp (Tiers Payant).
 
-### Tab 5: Kịch bản What-If (`tab-scenarios`)
+### Tab 5: Tối Ưu Thuế (`tab-taxes`)
+- Nằm ngay sau nhóm Gia đình & Di sản, cung cấp cơ chế tối ưu thuế chuyên sâu:
+  - Phân tích bậc thuế thu nhập lũy tiến Pháp (IR 2024) và giảm trừ 10% chi phí chuyên nghiệp.
+- Nằm ngay sau nhóm Gia đình & Di sản, cung cấp cơ chế tối ưu thuế chuyên sâu:
+  - Phân tích bậc thuế thu nhập lũy tiến Pháp (IR 2024) và giảm trừ 10% chi phí chuyên nghiệp.
+  - Tối ưu danh mục đầu tư qua tài khoản PEA (miễn thuế thu nhập sau 5 năm) và quỹ hưu trí.
+  - Chiến lược **Roth Conversion Ladder** lấp đầy bậc thuế thấp trong các năm trũng thu nhập.
+  - Tối ưu hóa thu nhập chịu thuế MAGI trước 65 tuổi để nhận trợ cấp y tế **ACA Subsidies**.
+
+### Tab 5: Monte Carlo & Rủi ro (`tab-insights`)
+- Chạy 1,000 kịch bản thị trường mô phỏng rủi ro chuỗi lợi nhuận (Sequence of Returns Risk).
+- Sử dụng thuật toán sinh số giả ngẫu nhiên xác định **Mulberry32 (Seed 42)** đảm bảo kết quả P10/P50/P90 nhất quán 100% trên mọi trình duyệt.
+- Đánh giá xác suất thành công của kế hoạch hưu trí.
+
+### Tab 6: Kịch bản What-If (`tab-scenarios`)
 - Thử nghiệm độ bền tài chính trước 4 biến cố lớn:
   1. *Khủng hoảng sụp đổ thị trường sớm (-35%)*
   2. *Lạm phát phi mã (+30% chi phí)*
   3. *Cú sốc y tế ở tuổi 65*
   4. *Thu gọn bán bớt BĐS ở tuổi 60*
-
-### Tab 6: Thừa kế & Chi tiêu Smile (`tab-estate`)
-- Bật/tắt mô hình chi tiêu thực tế **Spending Smile** (Go-Go, Slow-Go, No-Go).
-- Đặt mục tiêu tài sản thừa kế để lại cho con cháu và xem thanh tiến độ hoàn thành.
-- **Kỹ thuật Chuyển nhượng Di sản (Démembrement / Nue-propriété)**: Xem hướng dẫn tối ưu hạn mức miễn thuế 100.000 €/bố mẹ/con mỗi 15 năm và định giá theo Điều 669 CGI.
-
-### Tab 7: Quản Lý Tài Sản (`tab-patrimoine`)
-- **Dashboard Tổng Quan Tài Sản Pháp**:
-  - `Tổng giá trị BĐS Pháp`: Theo dõi tổng giá trị các bất động sản sở hữu (ví dụ 214,000 € ≈ 5.88 Tỷ ₫).
-  - `Dư nợ vay ngân hàng`: Theo dõi số nợ thế chấp còn lại (ví dụ 220,618 €).
-  - `Dòng tiền hiện tại (Đang vay)`: Dòng tiền ròng thực tế hàng tháng sau khi trừ tiền trả góp ngân hàng, thuế địa phương và chi phí quản lý (-258 €/tháng - bù nhẹ trong thời gian trả nợ).
-  - `Dòng tiền BĐS (Hết nợ)`: Dòng tiền thụ động thuần túy bùng nổ sau khi trả hết nợ (**+1,014 €/tháng** ≈ 27.9 Triệu ₫/tháng).
-  - `Lợi nhuận đội xe Turo`: Doanh thu và lợi nhuận ròng từ đội xe cho thuê (+234 €/tháng).
-  - `Dòng tiền thụ động hưu trí`: Tổng tiền tạo ra hàng tháng sau tuổi 50 (**+1,248 €/tháng** ≈ 34.3 Triệu ₫/tháng - bao phủ sinh hoạt an nhàn tại Việt Nam!).
-- **🎯 Biểu Đồ & Điểm Hòa Vốn Từng Căn Hộ (Break-Even Trajectory)**:
-  - Chọn từng căn hộ hoặc **So sánh tất cả căn hộ** để xem đường cong thu hồi vốn.
-  - **📅 Năm bắt đầu mua**: Đặt mốc thời gian mua nhà để tính toán tiến trình trả nợ gốc chuẩn xác theo từng năm.
-  - **🎯 Hòa vốn tài sản ròng (Equity Break-Even)**: Thời điểm `Giá trị nhà - Nợ vay` vượt qua 100% vốn tự có bỏ ra ban đầu (thường sau 3 - 7 năm).
-  - **💵 Hòa vốn dòng tiền mặt (Cash-on-Cash Break-Even)**: Thời điểm lũy kế tiền thuê ròng thu về bù đắp toàn bộ số tiền tự bỏ ra.
-  - **🏆 Tất toán sạch nợ (Debt Payoff)**: Năm nợ ngân hàng về 0 €, dòng tiền thụ động bùng nổ đạt đỉnh.
-- **Quản Lý Danh Mục Căn Hộ Thực Tế**:
-  - Nhấp nút **➕ Thêm Căn Hộ** (nằm ngay cạnh tiêu đề *Danh Mục Căn Hộ Cho Thuê*) để mở modal thiết lập:
-    - **Phí công chứng tự động (Frais de Notaire 7.5%)**: Tự động tính vào tổng chi phí đầu tư và số tiền vay thế chấp.
-    - **Tỷ lệ phòng trống (Vacance Locative %)**: Mặc định 5% (khoảng 2.5 tuần trống/năm), cho phép người dùng tùy biến sát thực tế thị trường.
-    - **Thuế đất Taxe Foncière & Phí quản lý**: Tích hợp đầy đủ vào chi phí vận hành.
-    - **⚡ Live Net Cash Flow**: Khung hiển thị màu xanh/hổ phách tính toán ngay dòng tiền ròng thực tế hàng tháng theo thời gian thực mỗi khi bạn thay đổi bất kỳ ô nhập liệu nào!
-  - Xem từng thẻ căn hộ với huy hiệu hiển thị mốc thời gian: `📅 Mua: 2022 ➔ Tất toán: 2042`.
-- **⚡ Tự Động Đồng Bộ Vào Kế Hoạch FIRE (Auto-Sync)**:
-  - Hệ thống **tự động 100%** chuyển đổi và cập nhật toàn bộ dòng tiền bất động sản & xe Turo vào luồng thu nhập của kế hoạch FIRE mỗi khi bạn thêm, sửa hoặc xóa căn hộ — bạn không cần phải bấm nút đồng bộ thủ công.
 
 ---
 
@@ -158,12 +171,12 @@ Nằm ngay phía trên biểu đồ Tài sản Ròng (Net Worth Trajectory) là 
 
 ### 6.1. Lựa Chọn Địa Điểm Hưu Trí & Sức Mua PPP (Purchasing Power Parity)
 Tại bảng điều khiển bên trái, bạn có thể lựa chọn 1 trong 3 kịch bản địa điểm:
-1. **🇫🇷 100% Pháp**: Áp dụng 100% mức chi phí sống chuẩn Euro.
-2. **✈️ Song hành (6 tháng Pháp / 6 tháng Việt Nam)**: Chi phí sinh hoạt tự động giảm 30% (hệ số 0.70).
-3. **🇻🇳 100% Việt Nam (Hồi hương toàn phần)**: Sức mua tại Việt Nam giúp **tiết kiệm tới 55% chi phí sống** (hệ số 0.45), đồng thời tự động cộng thêm chi phí bảo hiểm quốc tế CFE (1,800 €/năm).
+1. **100% Pháp**: Áp dụng 100% mức chi phí sống chuẩn Euro.
+2. **Song hành (6 tháng Pháp / 6 tháng Việt Nam)**: Chi phí sinh hoạt tự động giảm 30% (hệ số 0.70).
+3. **100% Việt Nam (Hồi hương toàn phần)**: Sức mua tại Việt Nam giúp **tiết kiệm tới 55% chi phí sống** (hệ số 0.45), đồng thời tự động cộng thêm chi phí bảo hiểm quốc tế CFE (1,800 €/năm).
 
 ### 6.2. Cấu Hình Hưu Trí Pháp & Phạt Décote (Réforme 2023)
-Nhấp vào thanh mở rộng **🇫🇷 Lương Hưu Pháp & Phạt Décote** ở sidebar:
+Nhấp vào thanh mở rộng **Lương Hưu Pháp & Phạt Décote** ở sidebar:
 - Nhập `Tuổi bắt đầu đi làm` (ví dụ 24 tuổi) và `Tuổi nhận lương hưu Pháp` (ví dụ 64 hoặc 67 tuổi).
 - Hệ thống tự động tính toán:
   - Số năm và số quý đã đóng bảo hiểm (Trimestres).
@@ -175,21 +188,13 @@ Nhấp vào thanh mở rộng **🇫🇷 Lương Hưu Pháp & Phạt Décote** �
 - Nhập ngân sách dự trù hàng tháng (ví dụ 1,500 €/tháng) trong thanh mở rộng bên trái.
 - Mô hình sẽ tự động cộng khoản chi này vào chi phí sinh hoạt từ tuổi 78 trở đi, kiểm tra xem danh mục có đủ sức chống đỡ chi phí điều dưỡng hay viện dưỡng lão cao cấp mà không làm thâm hụt di sản để lại cho con cái.
 
-### 6.4. Cẩm Nang Sức Khỏe & Lương Hưu Song Tịch (Franco-Viet Guide)
-Nằm ngay dưới biểu đồ dòng tiền ở Tab 1, thẻ cẩm nang cung cấp 2 chuyên đề cốt lõi:
-- **Tab 1: Khám Sức Khỏe Định Kỳ & Y Tế Dự Phòng (Pháp vs Việt Nam)**:
+### 6.4. Cẩm Nang Y Tế Dự Phòng Song Tịch & Lương Hưu VN
+- **Cẩm nang Y tế Dự phòng (Pháp ⇄ Việt Nam)** (trong Tab Gia đình, Sức khỏe & Di sản):
   - Chi tiết chương trình mới `Mon Bilan Prévention` (18-25t, 45-50t, 60-65t, 70-75t) miễn phí 100% tại Pháp.
   - Khám tổng quát dự phòng `EPS CPAM` mỗi 5 năm qua cổng Ameli.fr.
-  - Gói khám bệnh viện quốc tế (Vinmec, FV, Hoàn Mỹ) và công lập tuyến 1 tại Việt Nam.
+  - Gói khám bệnh viện quốc tế (Vinmec, FV, Hoàn Mỹ) và công lập tuyến đầu tại Việt Nam.
   - Giải pháp thẻ CFE + Mutuelle quốc tế để hưởng dịch vụ **Bảo lãnh viện phí trực tiếp (Tiers Payant)**.
-- **Tab 2: Lương Hưu Kép & BHXH Tự Nguyện Việt Nam**:
-  - Hướng dẫn Luật BHXH 2024 (hiệu lực 01/07/2025) hạ mốc đóng tối thiểu xuống **15 năm**.
-  - Cơ chế đóng một lần cho các năm còn thiếu (đóng vét) khi đủ tuổi nghỉ hưu.
-  - Đặc quyền thẻ BHYT thanh toán 95% chi phí y tế trọn đời.
-  - **Công cụ Tính thử BHXH Tự nguyện Live Calculator**: Cho phép bạn nhập mức thu nhập lựa chọn (ví dụ 10.000.000 ₫/tháng) và xem ngay:
-    - Tiền đóng 22%: 2.200.000 ₫/tháng (~80 €)
-    - Lương hưu nhận về: ~4.500.000 ₫/tháng (~164 €)
-    - Thời gian hoàn vốn gốc: **7.3 năm!**
+- **Lương hưu kép & BHXH Tự nguyện Việt Nam**: Được mô hình hóa tài chính trực tiếp trong Cột Thu nhập hàng năm của Tab 1 (Dòng tiền & Tài sản), tính toán chính xác tiền đóng 22% và lương hưu trọn đời theo Luật BHXH 2024.
 
 ### 6.5. Kế Hoạch Con Cái & Gia Đình (Family Planning)
 - Nhập **Năm sinh** của các con thay vì tuổi cố định để hệ thống tự động đồng bộ tuổi của con theo từng năm chạy mô phỏng.

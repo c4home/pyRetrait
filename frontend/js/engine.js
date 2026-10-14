@@ -228,12 +228,12 @@ window.RetirementEngine = (function() {
     let weightedReturnPost = 7.5;
     if (plan.assetAllocation) {
       weightedReturnPre = calculateWeightedReturn(plan.assetAllocation, plan.assetReturns, 0.3);
-      weightedReturnPost = calculateWeightedReturn(plan.postAssetAllocation || plan.assetAllocation, plan.assetReturns, 0.2);
+      weightedReturnPost = weightedReturnPre;
       returnPre = weightedReturnPre / 100.0;
       returnPost = weightedReturnPost / 100.0;
     } else {
       weightedReturnPre = Number(plan.investmentReturnPre) || 8.0;
-      weightedReturnPost = Number(plan.investmentReturnPost) || 7.5;
+      weightedReturnPost = weightedReturnPre;
       returnPre = weightedReturnPre / 100.0;
       returnPost = weightedReturnPost / 100.0;
     }
@@ -271,7 +271,7 @@ window.RetirementEngine = (function() {
           plan.incomes.forEach(stream => {
             if (stream.enabled === false) return;
             const sAge = Number(stream.startAge);
-            const isSalary = stream.isSalary || (stream.name && (/lương|salary|impôt|impot/i).test(stream.name));
+            const isSalary = !stream.isBhxhVn && (stream.isSalary || (stream.name && (/lương|salary|impôt|impot/i).test(stream.name)));
             const effectiveEndAge = isSalary ? retireAge : (Number(stream.endAge) || retireAge);
             if (age >= sAge && age <= effectiveEndAge) {
               const streamGrowth = (Number(stream.growth) || 0) / 100.0;
@@ -348,7 +348,7 @@ window.RetirementEngine = (function() {
       if (Array.isArray(plan.incomes)) {
         plan.incomes.forEach(stream => {
           if (stream.enabled === false) return;
-          const isSalary = stream.isSalary || (stream.name && (/lương|salary|impôt|impot/i).test(stream.name));
+          const isSalary = !stream.isBhxhVn && (stream.isSalary || (stream.name && (/lương|salary|impôt|impot/i).test(stream.name)));
           const effectiveEndAge = isSalary ? (retireAge - 1) : (Number(stream.endAge) || retireAge);
           if (age >= stream.startAge && age <= effectiveEndAge) {
             const streamGrowth = (stream.growth !== undefined && stream.growth !== null && !isNaN(Number(stream.growth)))
@@ -364,7 +364,7 @@ window.RetirementEngine = (function() {
       // Add French Pension / BHXH if reached age (with realistic Décote calculation)
       let pensionReceivedThisYear = 0;
       const ssAge = Number(plan.socialSecurityAge) || 64;
-      if (isRetired && age >= ssAge) {
+      if (isRetired && age >= ssAge && plan.enableFrenchPension !== false) {
         const rawSS = Number(plan.socialSecurityAnnual) || 0;
         if (rawSS > 0) {
           if (plan.enableFrenchDecote !== false) {
@@ -401,8 +401,41 @@ window.RetirementEngine = (function() {
       // Senior Care / Dépendance / EHPAD reserve in late retirement (age 78+)
       let seniorCareCost = 0;
       const careAge = Number(plan.seniorCareAge) || 78;
-      if (isRetired && age >= careAge && Number(plan.seniorCareMonthly) > 0) {
+      if (isRetired && age >= careAge && Number(plan.seniorCareMonthly) > 0 && plan.enableSeniorCare !== false) {
         seniorCareCost = (Number(plan.seniorCareMonthly) || 0) * 12;
+      }
+
+      // Child Lifecycle Expenses (Kế Hoạch Con Cái & Gia Đình)
+      let childLifecycleCostThisYear = 0;
+      if (plan.familyPlan && plan.familyPlan.enabled !== false && Number(plan.familyPlan.kidsCount) > 0) {
+        const kCount = Number(plan.familyPlan.kidsCount) || 0;
+        const curSimYear = (Number(plan.birthYear) || (new Date().getFullYear() - currentAge)) + age;
+        const birthYears = [
+          Number(plan.familyPlan.kid1Birth) || 2022,
+          Number(plan.familyPlan.kid2Birth) || 2025,
+          Number(plan.familyPlan.kid3Birth) || 2027,
+          Number(plan.familyPlan.kid4Birth) || 2029
+        ];
+        const kidCostMonthly = Number(plan.familyPlan.kidCostMonthly) || 350;
+        const kidUniMonthly = Number(plan.familyPlan.kidUniMonthly) || 900;
+
+        let grossChildCost = 0;
+        let depCount = 0;
+        for (let k = 0; k < Math.min(kCount, 4); k++) {
+          const kAge = curSimYear - birthYears[k];
+          if (kAge >= 0 && kAge < 18) grossChildCost += kidCostMonthly * 12;
+          else if (kAge >= 18 && kAge <= 23) grossChildCost += kidUniMonthly * 12;
+          if (kAge >= 0 && kAge < 20) depCount++;
+        }
+
+        // CAF Family Allowance in France (bù đắp chi phí nuôi con)
+        let cafMonthly = 0;
+        if (depCount === 2) cafMonthly = 148;
+        else if (depCount === 3) cafMonthly = 338;
+        else if (depCount >= 4) cafMonthly = 529;
+
+        const netAnnualChildCost = Math.max(0, grossChildCost - (cafMonthly * 12));
+        childLifecycleCostThisYear = netAnnualChildCost * cumInflation;
       }
 
       // Calculate Active Expense Streams for this year (if configured)
@@ -436,13 +469,13 @@ window.RetirementEngine = (function() {
       if (isRetired) {
         // Base living expenses in retirement (Phương án 1: Số tiền nhập vào đã là chi tiêu thực tế tại địa điểm đã chọn)
         const baseRetire = ((baseRetireExpenses * spendingFactor) + seniorCareCost) * cumInflation;
-        currentExpenses = baseRetire + activeDebtsSum;
+        currentExpenses = baseRetire + activeDebtsSum + childLifecycleCostThisYear;
       } else {
         // Accumulation phase: realistic sum of active expense streams or fallback to base
         if (hasExpenseStreams && activeExpenseStreamsSum > 0) {
-          currentExpenses = activeExpenseStreamsSum;
+          currentExpenses = activeExpenseStreamsSum + childLifecycleCostThisYear;
         } else {
-          currentExpenses = (Number(plan.annualExpenses) || 240_000_000) * cumInflation;
+          currentExpenses = ((Number(plan.annualExpenses) || 240_000_000) * cumInflation) + childLifecycleCostThisYear;
         }
       }
 
@@ -493,7 +526,11 @@ window.RetirementEngine = (function() {
       // 3. Tax Estimation using precise Progressive Tax Engine
       let estimatedTax = 0;
       if (window.TaxOptimizer && window.TaxOptimizer.calculateProgressiveTax) {
-        estimatedTax = window.TaxOptimizer.calculateProgressiveTax(annualIncome, plan.taxRegime || 'france_vietnam');
+        estimatedTax = window.TaxOptimizer.calculateProgressiveTax(annualIncome, plan.taxRegime || 'france_vietnam', {
+          customTaxRate: plan.taxRate,
+          currency: plan.currency || cur,
+          exchangeRateEurVnd: currentEurVndRate
+        });
       } else {
         const effectiveTaxRate = (Number(plan.taxRate) || 12.0) / 100.0;
         estimatedTax = annualIncome * effectiveTaxRate * 0.7;
@@ -654,10 +691,76 @@ window.RetirementEngine = (function() {
     }
 
     // Tính Tuổi Nghỉ Hưu Tối Ưu (Optimal FIRE Age):
-    // Nếu danh mục hiện tại đã đạt mốc trong timeline, optimalFireAge = fireAge.
-    // Nếu chưa đạt mốc (ví dụ: tài sản ban đầu âm/nợ, hoặc tuổi hưu quá sớm làm ngắt lương trước khi kịp tích lũy đủ 25x),
-    // mô phỏng quá trình tiếp tục làm việc tích lũy từ currentAge để tìm chính xác độ tuổi tối thiểu chạm mốc FIRE Nest Egg.
-    let optimalFireAge = fireAge;
+    // Nâng cấp: Thay vì chỉ dừng lại ở điều kiện danh nghĩa 25x (vốn chỉ an toàn cho kỳ hưu trí ngắn 30 năm),
+    // thuật toán tìm độ tuổi hưu an toàn thực sự đáp ứng 2 điều kiện:
+    // 1. Xác suất thành công Monte Carlo P_success >= 80% (chuẩn CFP / FP Canada / Vanguard).
+    // 2. Quy mô Nest Egg đạt chuẩn theo độ dài hưu trí (Horizon-adjusted SWR):
+    //    - Horizon > 35 năm: tối thiểu 30x chi tiêu (SWR ~3.3%)
+    //    - Horizon 30 - 35 năm: tối thiểu 28x chi tiêu (SWR ~3.57%)
+    //    - Horizon <= 30 năm: tối thiểu 25x chi tiêu (SWR 4.0%)
+    let optimalFireAge = null;
+    const minSearchAge = Math.max(currentAge, fireAge || currentAge);
+    const maxSearchAge = Math.min(lifeExpectancy - 2, 75);
+
+    // Bước 1: Mô phỏng Monte Carlo Stochastic Search (nếu có MonteCarloSimulator)
+    if (typeof window !== 'undefined' && window.MonteCarloSimulator && typeof window.MonteCarloSimulator.runSimulation === 'function') {
+      try {
+        let bestAge = null;
+        let bestRate = 0;
+        for (let testAge = minSearchAge; testAge <= maxSearchAge; testAge++) {
+          const testPlan = Object.assign({}, plan, { retirementAge: testAge });
+          if (Array.isArray(testPlan.incomes)) {
+            testPlan.incomes = testPlan.incomes.map(inc => {
+              const copy = Object.assign({}, inc);
+              const name = (copy.name || '').toLowerCase();
+              if (copy.isSalary || name.includes('lương') || name.includes('salary') || name.includes('impôt') || name.includes('impot')) {
+                copy.endAge = testAge;
+              }
+              return copy;
+            });
+          }
+
+          // Chạy 200 lượt mô phỏng nhanh
+          const mcRes = window.MonteCarloSimulator.runSimulation(testPlan, 200, 15.0);
+          const sRate = Number(mcRes.successRate) || 0;
+
+          if (sRate > bestRate) {
+            bestRate = sRate;
+            bestAge = testAge;
+          }
+
+          // Tiêu chuẩn FIRE an toàn: Xác suất thành công Monte Carlo bắt buộc đạt tối thiểu 80.0%
+          if (sRate >= 80.0) {
+            optimalFireAge = testAge;
+            break;
+          }
+        }
+        if (!optimalFireAge && bestRate >= 70.0) {
+          optimalFireAge = bestAge;
+        }
+      } catch (errOpt) {
+        console.warn("Lỗi tính optimalFireAge qua Monte Carlo:", errOpt);
+      }
+    }
+
+    // Bước 2: Fallback Tất Định theo Horizon-adjusted Nest Egg (30x cho >35 năm, 28x cho 30-35 năm, 25x cho <=30 năm)
+    if (!optimalFireAge) {
+      for (let testAge = minSearchAge; testAge <= maxSearchAge; testAge++) {
+        const horizon = Math.max(1, lifeExpectancy - testAge);
+        const reqMult = horizon > 35 ? 30 : (horizon > 30 ? 28 : 25);
+        const reqNestEgg = effectiveRetireBase * reqMult;
+
+        for (let k = 0; k < timeline.length; k++) {
+          if (timeline[k].age === testAge && timeline[k].portfolioEnd >= reqNestEgg) {
+            optimalFireAge = testAge;
+            break;
+          }
+        }
+        if (optimalFireAge) break;
+      }
+    }
+
+    // Bước 3: Nếu timeline hiện tại chưa đạt (ngắt sớm), tiếp tục mô phỏng tích lũy từ currentAge
     if (!optimalFireAge) {
       let simPortfolio = initialSavings;
       let simCumInf = 1.0;
@@ -706,12 +809,20 @@ window.RetirementEngine = (function() {
           simNetSavings = (Number(plan.annualSavings) || 10_000) * simCumInf;
         }
 
-        if (simPortfolio >= fireTargetNestEgg) {
+        const horizon = Math.max(1, lifeExpectancy - simAge);
+        const reqMult = horizon > 35 ? 30 : (horizon > 30 ? 28 : 25);
+        const reqNestEgg = effectiveRetireBase * reqMult;
+
+        if (simPortfolio >= reqNestEgg) {
           optimalFireAge = simAge;
           break;
         }
         simPortfolio = (simPortfolio + simNetSavings) * (1.0 + returnPre);
       }
+    }
+
+    if (!optimalFireAge) {
+      optimalFireAge = fireAge;
     }
 
     // Build comprehensive Life Milestones markers
@@ -774,7 +885,7 @@ window.RetirementEngine = (function() {
       });
     }
 
-    if (Number(plan.socialSecurityAnnual) > 0) {
+    if (Number(plan.socialSecurityAnnual) > 0 && plan.enableFrenchPension !== false) {
       const ssAge = Number(plan.socialSecurityAge) || 64;
       const startWork = Number(plan.startWorkAge) || 24;
       const quarters = Math.max(0, Math.min(retireAge, ssAge) - startWork) * 4;
@@ -793,7 +904,7 @@ window.RetirementEngine = (function() {
       });
     }
 
-    if (Number(plan.seniorCareMonthly) > 0) {
+    if (Number(plan.seniorCareMonthly) > 0 && plan.enableSeniorCare !== false) {
       const careAge = Number(plan.seniorCareAge) || 78;
       milestones.push({
         id: 'ms_senior_care',
@@ -804,6 +915,50 @@ window.RetirementEngine = (function() {
         color: '#ec4899',
         isSystem: true
       });
+    }
+
+    if (plan.familyPlan && plan.familyPlan.enabled !== false && Number(plan.familyPlan.kidsCount) > 0) {
+      const kCount = Number(plan.familyPlan.kidsCount) || 0;
+      const parentBirthYear = Number(plan.birthYear) || (new Date().getFullYear() - currentAge);
+      const birthYears = [
+        Number(plan.familyPlan.kid1Birth) || 2022,
+        Number(plan.familyPlan.kid2Birth) || 2025,
+        Number(plan.familyPlan.kid3Birth) || 2027,
+        Number(plan.familyPlan.kid4Birth) || 2029
+      ];
+      const kidUniMonthly = Number(plan.familyPlan.kidUniMonthly) || 900;
+
+      for (let k = 1; k <= Math.min(kCount, 4); k++) {
+        const kBirth = birthYears[k - 1];
+
+        // 1. Cột mốc Chào đời / Năm sinh bé
+        const pAgeBirth = kBirth - parentBirthYear;
+        if (pAgeBirth >= 18 && pAgeBirth <= lifeExpectancy) {
+          milestones.push({
+            id: `ms_kid${k}_birth`,
+            age: pAgeBirth,
+            icon: '',
+            name: `Sinh bé thứ ${k}`,
+            desc: `Tuổi ${pAgeBirth} (Năm ${kBirth}): Chào đón bé thứ ${k} chào đời`,
+            color: '#818cf8',
+            isSystem: true
+          });
+        }
+
+        // 2. Cột mốc Con vào Đại học (18 tuổi)
+        const pAgeUni = (kBirth + 18) - parentBirthYear;
+        if (pAgeUni >= 18 && pAgeUni <= lifeExpectancy) {
+          milestones.push({
+            id: `ms_kid${k}_uni`,
+            age: pAgeUni,
+            icon: '',
+            name: `Con thứ ${k} vào Đại học`,
+            desc: `Tuổi ${pAgeUni} (Năm ${kBirth + 18}): Con thứ ${k} tròn 18 tuổi vào Đại học (${formatCurrency(kidUniMonthly * 12, cur)}/năm)`,
+            color: '#818cf8',
+            isSystem: true
+          });
+        }
+      }
     }
 
     // Include custom milestones defined in the plan

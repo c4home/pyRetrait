@@ -59,6 +59,8 @@ $$\text{Withdrawal}_t = \text{Portfolio}_t \times \text{clamp}(w_{\text{VPW}}, 3
 #### Chiến lược 4: Rút Cố Định Theo Danh Mục (Fixed Percentage)
 $$\text{Withdrawal}_t = \text{Portfolio}_t \times \text{SWR}$$
 
+*Lưu ý về hiển thị so sánh trên biểu đồ*: Khi trực quan hóa so sánh 4 chiến lược trên biểu đồ so sánh (`chart-withdrawal-comparison`), dòng thời gian được lọc chính xác từ tuổi hiện tại ($t \ge \text{currentAge}$) đến tuổi thọ kỳ vọng ($t \le \text{lifeExpectancy}$), đảm bảo dữ liệu tài sản qua từng năm khớp 1-1 với nhãn trục thời gian và loại trừ hoàn toàn các giá trị 0 của các năm quá khứ ($t < \text{currentAge}$).
+
 ---
 
 ### 2.2. Cơ Chế Bù Trừ Dòng Tiền Thụ Động & Tái Đầu Tư Thặng Dư
@@ -75,11 +77,14 @@ Tại mỗi năm hưu trí, thu nhập thụ động ròng (lương hưu, tiền
 
 ---
 
-### 2.3. Mô Hình Chi Tiêu Spending Smile
-Mức sống khi nghỉ hưu thay đổi theo các chu kỳ sức khỏe và nhu cầu trải nghiệm:
+### 2.3. Mô Hình Chi Tiêu Spending Smile (3 Giai Đoạn)
+Mô hình được tích hợp trực tiếp vào thẻ *Dòng Chi Tiêu Hàng Tháng Khi Về Hưu* tại Tab 1 (Dòng tiền & Tài sản). Mức sống khi nghỉ hưu thay đổi theo các chu kỳ sức khỏe và nhu cầu trải nghiệm:
 - **Giai đoạn Go-Go (từ lúc nghỉ hưu đến 55 - 60 tuổi)**: Du lịch, thể thao, khám phá $\implies \text{Hệ số} = 1.15$ (+15%).
 - **Giai đoạn Slow-Go (60 - 75 tuổi)**: Sinh hoạt chậm rãi tại nhà $\implies \text{Hệ số} = 0.90$ (-10%).
 - **Giai đoạn No-Go (sau 75 tuổi)**: Nhu cầu tiêu dùng cơ bản giảm, quỹ y tế riêng $\implies \text{Hệ số} = 0.80$ (-20%).
+
+Tại độ tuổi $t \ge \text{RetireAge}$:
+$$\text{Expenses}(t) = \text{BaseRetireExpenses} \times \text{PhaseFactor}(t) \times \text{CumInflation}(t)$$
 
 ### 2.4. Thuật Toán Lương Hưu Pháp & Phạt Décote (French Pension Décote Engine)
 Theo Cải cách Hưu trí Pháp 2023 (Réforme des Retraites), mức hưởng lương hưu tối đa (Taux Plein) đòi hỏi người lao động phải tích lũy đủ **172 quý (Trimestres)**, tương đương 43 năm đóng bảo hiểm:
@@ -262,5 +267,26 @@ Trong đó:
 ### 7.3. Giá Trị Thực Tiễn: Triệt Tiêu Phân Kỳ Đa Nền Tảng
 - Khi chạy trên Google Chrome, Brave Browser, Safari hoặc Firefox, thuật toán `Mulberry32` luôn sinh ra **chính xác 100% cùng một chuỗi số ngẫu nhiên**.
 - Nhờ đó, xác suất thành công (Success Rate %) và các phân vị rủi ro P10, P50, P90 của một kế hoạch luôn trùng khớp hoàn toàn giữa các thiết bị và trình duyệt khác nhau.
+
+---
+
+## 8. Thuật Toán Xác Định Tuổi Nghỉ Hưu Tối Ưu An Toàn (Optimal FIRE Age Calibration)
+
+Thuật toán xác định `Tuổi tối ưu (optimalFireAge)` được nâng cấp theo chuẩn tài chính hiện đại (CFP / FP Canada / Vanguard), kết hợp đồng thời hai tiêu chuẩn an toàn:
+
+### 8.1. Tiêu Chuẩn 1: Xác Suất Sống Sót Monte Carlo $\ge 80.0\%$
+$$\text{Age}^*_{\text{FIRE}} = \min \left\{ t \ge \text{Age}_{\text{current}} \;\Big|\; P_{\text{success}}(t) \ge 80.0\% \right\}$$
+Trong đó $P_{\text{success}}(t)$ là tỷ lệ phần trăm số kịch bản Monte Carlo mà tài sản duy trì $> 0$ xuyên suốt đến hết kỳ vọng sống $\text{Age}_{\text{lifeExpectancy}}$ khi bắt đầu rút tiền từ tuổi $t$.
+
+### 8.2. Tiêu Chuẩn 2: Quy Mô Nest Egg Thích Ứng Theo Độ Dài Hưu Trí (Horizon-adjusted SWR)
+Với các kế hoạch FIRE nghỉ hưu sớm dài hạn ($\text{Horizon} = \text{Age}_{\text{lifeExpectancy}} - t$):
+- **Nếu $\text{Horizon} > 35\text{ năm}$**: Yêu cầu Nest Egg tối thiểu $\ge 30\times \text{Chi\_phí\_hưu}$ (tương ứng $\text{SWR} \le 3.33\%$).
+- **Nếu $30 < \text{Horizon} \le 35\text{ năm}$**: Yêu cầu Nest Egg tối thiểu $\ge 28\times \text{Chi\_phí\_hưu}$ (tương ứng $\text{SWR} \le 3.57\%$).
+- **Nếu $\text{Horizon} \le 30\text{ năm}$**: Yêu cầu Nest Egg tối thiểu $\ge 25\times \text{Chi\_phí\_hưu}$ (quy tắc Bengen $4\%$).
+
+### 8.3. Cơ Chế Hoạt Động & Giá Trị Thực Tiễn
+1. Tránh "bẫy hưu non danh nghĩa": Nếu ở tuổi 44 tài sản vừa vặn đạt $25\times$, nhưng do kỳ hưu trí dài 41 năm khiến xác suất Monte Carlo chỉ đạt $56.8\%$, thuật toán sẽ từ chối gán nhãn 44 tuổi là "tối ưu".
+2. Thay vào đó, engine tự động duyệt tìm độ tuổi kế tiếp (ví dụ 46–48 tuổi) nơi tích lũy đủ $30\times$ và xác suất thành công vượt $80\%$, từ đó đưa ra gợi ý an toàn tuyệt đối cho người dùng.
+
 
 

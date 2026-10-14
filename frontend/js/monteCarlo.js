@@ -49,8 +49,8 @@ window.MonteCarloSimulator = (function() {
     const baseRetireExpenses = Number(plan.retirementExpenses) || 12000;
     const effectiveRetireExpenses = baseRetireExpenses;
 
-    const meanReturnPre = (Number(plan.investmentReturnPre) || 6.0) / 100.0;
-    const meanReturnPost = (Number(plan.investmentReturnPost) || 7.5) / 100.0;
+    const meanReturnPre = (Number(plan.investmentReturnPre) || 8.0) / 100.0;
+    const meanReturnPost = meanReturnPre;
     const sigma = (Number(volatility) || 15.0) / 100.0;
     const inflation = (Number(plan.inflationRate) || 2.5) / 100.0;
 

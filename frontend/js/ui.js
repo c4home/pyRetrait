@@ -13,6 +13,7 @@
     },
     currency: "EUR", // Default to EUR
     viewMode: "nominal", // "nominal" or "real"
+    compareWithdrawals: false,
     activeTab: "tab-projections",
     activeScenario: "baseline",
     charts: {}
@@ -330,7 +331,6 @@
 
     try {
       initFamilyChildrenSimulation();
-      initSpendingSmileSimulation();
       initQuickSetupWizard();
     } catch (e) {
       console.warn("init simulations or quick setup failed:", e);
@@ -419,14 +419,29 @@
     document.getElementById("btn-view-nominal").addEventListener("click", () => setViewMode("nominal"));
     document.getElementById("btn-view-real").addEventListener("click", () => setViewMode("real"));
 
-    // Toggle Detailed Table
-    document.getElementById("btn-toggle-table").addEventListener("click", () => {
-      const container = document.getElementById("schedule-table-container");
-      const btn = document.getElementById("btn-toggle-table");
-      const isHidden = container.style.display === "none";
-      container.style.display = isHidden ? "block" : "none";
-      btn.innerText = isHidden ? "Thu gọn Bảng ▲" : "Mở rộng Bảng ▼";
-    });
+    // Compare 4 Withdrawal Strategies Toggle on Net Worth Chart
+    const btnToggleCompare = document.getElementById("btn-toggle-compare-withdrawals");
+    if (btnToggleCompare) {
+      btnToggleCompare.addEventListener("click", () => {
+        state.compareWithdrawals = !state.compareWithdrawals;
+        btnToggleCompare.classList.toggle("active", state.compareWithdrawals);
+        const plan = getActivePlan();
+        const proj = window.RetirementEngine.runProjection(plan);
+        renderNetWorthChart(proj);
+      });
+    }
+
+    // Toggle Detailed Table (if present)
+    const btnToggleTable = document.getElementById("btn-toggle-table");
+    if (btnToggleTable) {
+      btnToggleTable.addEventListener("click", () => {
+        const container = document.getElementById("schedule-table-container");
+        if (!container) return;
+        const isHidden = container.style.display === "none";
+        container.style.display = isHidden ? "block" : "none";
+        btnToggleTable.innerText = isHidden ? "Thu gọn Bảng ▲" : "Mở rộng Bảng ▼";
+      });
+    }
 
     // Add / Edit Income Stream
     document.getElementById("btn-add-income").addEventListener("click", () => openIncomeModal(-1));
@@ -473,8 +488,11 @@
         if (growth !== null) document.getElementById("inp-expense-growth").value = growth;
         const chkDebt = document.getElementById("inp-expense-is-debt");
         if (chkDebt) chkDebt.checked = isDebt;
+        syncExpenseGrowthVisibility();
       });
     });
+    const chkExpDebt = document.getElementById("inp-expense-is-debt");
+    if (chkExpDebt) chkExpDebt.addEventListener("change", syncExpenseGrowthVisibility);
 
     // Plan Modal Events
     document.getElementById("btn-close-modal").addEventListener("click", closeModal);
@@ -925,33 +943,51 @@
         inpIncomeMonthly.value = Math.round(a / 12);
       });
     }
-    bindInput("inp-return-pre", "investmentReturnPre", Number);
-    bindInput("inp-return-post", "investmentReturnPost", Number);
+    const inpRetPre = document.getElementById("inp-return-pre");
+    if (inpRetPre) {
+      ['input', 'change'].forEach(evt => {
+        inpRetPre.addEventListener(evt, () => {
+          const val = Number(inpRetPre.value) || 0;
+          const plan = getActivePlan();
+          plan.investmentReturnPre = val;
+          plan.investmentReturnPost = val;
+          setVal("inp-return-post", val);
+          savePlansToStorage();
+          updateAll();
+        });
+      });
+    }
     bindInput("inp-target-legacy", "targetLegacy", Number);
     bindInput("inp-effective-tax", "taxRate", Number);
     bindInput("inp-tax-regime", "taxRegime", String);
     document.getElementById("inp-tax-regime")?.addEventListener("change", (e) => {
       updateTaxRegimeUI(e.target.value);
     });
+    bindInput("inp-acc-pea", "frenchAccounts.peaBalance", Number);
+    bindInput("inp-acc-av", "frenchAccounts.assuranceVieBalance", Number);
+    bindInput("inp-acc-livreta", "frenchAccounts.livretABalance", Number);
     bindInput("inp-roth-bracket", "rothConversion.targetBracket", Number);
     bindInput("inp-roth-max-annual", "rothConversion.maxAnnualConversion", Number);
-    bindInput("inp-gogo-age", "spendingPhases.gogoAge", Number);
-    bindInput("inp-gogo-factor", "spendingPhases.gogoFactor", Number);
-    bindInput("inp-slowgo-age", "spendingPhases.slowgoAge", Number);
-    bindInput("inp-slowgo-factor", "spendingPhases.slowgoFactor", Number);
-    bindInput("inp-nogo-factor", "spendingPhases.nogoFactor", Number);
+    bindInput("inp-card-gogo-age", "spendingPhases.gogoAge", Number);
+    bindInput("inp-card-gogo-factor", "spendingPhases.gogoFactor", Number);
+    bindInput("inp-card-slowgo-age", "spendingPhases.slowgoAge", Number);
+    bindInput("inp-card-slowgo-factor", "spendingPhases.slowgoFactor", Number);
+    bindInput("inp-card-nogo-factor", "spendingPhases.nogoFactor", Number);
 
     // Checkboxes
     const chkRoth = document.getElementById("chk-roth-enabled");
-    chkRoth.addEventListener("change", (e) => {
+    chkRoth?.addEventListener("change", (e) => {
       getActivePlan().rothConversion.enabled = e.target.checked;
       savePlansToStorage();
       updateAll();
     });
 
-    const chkSmile = document.getElementById("chk-smile-enabled");
-    chkSmile.addEventListener("change", (e) => {
-      getActivePlan().spendingPhases.enabled = e.target.checked;
+    document.getElementById("chk-card-smile-enabled")?.addEventListener("change", (e) => {
+      const p = getActivePlan();
+      if (!p.spendingPhases) p.spendingPhases = {};
+      p.spendingPhases.enabled = e.target.checked;
+      const cont = document.getElementById("container-card-smile-phases");
+      if (cont) cont.style.display = e.target.checked ? "flex" : "none";
       savePlansToStorage();
       updateAll();
     });
@@ -1089,6 +1125,73 @@
       });
     }
 
+    const chkFrench = document.getElementById("chk-enable-french-pension");
+    if (chkFrench) {
+      chkFrench.addEventListener("change", () => {
+        const plan = getActivePlan();
+        plan.enableFrenchPension = chkFrench.checked;
+        savePlansToStorage();
+        updatePensionDecoteUI(plan);
+        renderIncomeStreamsList();
+        updateCashflowBalanceUI(plan);
+        updateAll();
+      });
+    }
+
+    const btnEditFrench = document.getElementById("btn-edit-french-pension");
+    if (btnEditFrench) {
+      btnEditFrench.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const body = document.getElementById("french-inputs-body");
+        if (body) {
+          if (body.style.display === "none") {
+            body.style.display = "block";
+            btnEditFrench.innerText = "Sửa";
+          } else {
+            body.style.display = "none";
+            btnEditFrench.innerText = "Mở rộng";
+          }
+        }
+      });
+    }
+
+    const btnDelFrench = document.getElementById("btn-del-french-pension");
+    if (btnDelFrench) {
+      btnDelFrench.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const plan = getActivePlan();
+        if (plan.enableFrenchPension !== false) {
+          showConfirmDialog({
+            icon: "",
+            title: "Xác nhận xóa Lương hưu Pháp",
+            message: `Bạn có chắc chắn muốn tắt <strong>Lương hưu Nhà nước Pháp</strong>?<br><span style="font-size:0.75rem; color:var(--text-faint); margin-top:6px; display:inline-block;">Dòng tiền hưu trí Pháp sẽ bị hủy bỏ và các chỉ số FIRE sẽ được tính toán lại.</span>`,
+            confirmText: "Xóa nguồn thu",
+            onConfirm: () => {
+              plan.enableFrenchPension = false;
+              const chk = document.getElementById("chk-enable-french-pension");
+              if (chk) chk.checked = false;
+              savePlansToStorage();
+              updatePensionDecoteUI(plan);
+              renderIncomeStreamsList();
+              updateCashflowBalanceUI(plan);
+              updateAll();
+            }
+          });
+        } else {
+          plan.enableFrenchPension = true;
+          const chk = document.getElementById("chk-enable-french-pension");
+          if (chk) chk.checked = true;
+          savePlansToStorage();
+          updatePensionDecoteUI(plan);
+          renderIncomeStreamsList();
+          updateCashflowBalanceUI(plan);
+          updateAll();
+        }
+      });
+    }
+
     // Vietnam BHXH Tự Nguyện Inputs & Checkbox
     const chkBhxhVn = document.getElementById("chk-enable-bhxh-vn");
     if (chkBhxhVn) {
@@ -1127,6 +1230,136 @@
       }
     });
 
+    const btnEditBhxh = document.getElementById("btn-edit-bhxh-stream");
+    if (btnEditBhxh) {
+      btnEditBhxh.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const body = document.getElementById("bhxh-inputs-body");
+        if (body) {
+          if (body.style.display === "none") {
+            body.style.display = "block";
+            btnEditBhxh.innerText = "Sửa";
+          } else {
+            body.style.display = "none";
+            btnEditBhxh.innerText = "Mở rộng";
+          }
+        }
+      });
+    }
+
+    const btnDelBhxh = document.getElementById("btn-del-bhxh-stream");
+    if (btnDelBhxh) {
+      btnDelBhxh.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const plan = getActivePlan();
+        if (plan.bhxhVnEnabled !== false) {
+          showConfirmDialog({
+            icon: "",
+            title: "Xác nhận xóa Lương hưu BHXH VN",
+            message: `Bạn có chắc chắn muốn xóa <strong>Lương hưu BHXH Việt Nam</strong>?<br><span style="font-size:0.75rem; color:var(--text-faint); margin-top:6px; display:inline-block;">Các luồng đóng BHXH và nhận lương hưu sẽ bị hủy bỏ và dòng tiền được tính toán lại.</span>`,
+            confirmText: "Xóa nguồn thu",
+            onConfirm: () => {
+              plan.bhxhVnEnabled = false;
+              const chk = document.getElementById("chk-enable-bhxh-vn");
+              if (chk) chk.checked = false;
+              syncBhxhVnStreams(plan);
+              savePlansToStorage();
+              updateBhxhVnUI(plan);
+              renderIncomeStreamsList();
+              renderExpenseStreamsList();
+              updateCashflowBalanceUI(plan);
+              updateAll();
+            }
+          });
+        } else {
+          plan.bhxhVnEnabled = true;
+          const chk = document.getElementById("chk-enable-bhxh-vn");
+          if (chk) chk.checked = true;
+          syncBhxhVnStreams(plan);
+          savePlansToStorage();
+          updateBhxhVnUI(plan);
+          renderIncomeStreamsList();
+          renderExpenseStreamsList();
+          updateCashflowBalanceUI(plan);
+          updateAll();
+        }
+      });
+    }
+
+    // LMNP Stream Card Events
+    const btnEditLmnp = document.getElementById("btn-edit-lmnp-stream");
+    if (btnEditLmnp) {
+      btnEditLmnp.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const body = document.getElementById("lmnp-inputs-body");
+        if (body) {
+          if (body.style.display === "none") {
+            body.style.display = "block";
+            btnEditLmnp.innerText = "Thu gọn";
+          } else {
+            body.style.display = "none";
+            btnEditLmnp.innerText = "Sửa";
+          }
+        }
+      });
+    }
+
+    const btnAddLmnpQuick = document.getElementById("btn-add-lmnp-quick");
+    if (btnAddLmnpQuick) {
+      btnAddLmnpQuick.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (window.PatrimoineApp && typeof window.PatrimoineApp.openApartmentModal === "function") {
+          window.PatrimoineApp.openApartmentModal(null);
+        }
+      });
+    }
+
+    const btnAddAptFromStream = document.getElementById("btn-add-apartment-from-stream");
+    if (btnAddAptFromStream) {
+      btnAddAptFromStream.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (window.PatrimoineApp && typeof window.PatrimoineApp.openApartmentModal === "function") {
+          window.PatrimoineApp.openApartmentModal(null);
+        }
+      });
+    }
+
+    const chkLmnp = document.getElementById("chk-enable-lmnp-stream");
+    if (chkLmnp) {
+      chkLmnp.addEventListener("change", () => {
+        const plan = getActivePlan();
+        plan.lmnpEnabled = chkLmnp.checked;
+        savePlansToStorage();
+        updateLmnpUI(plan);
+        renderIncomeStreamsList();
+        renderExpenseStreamsList();
+        updateCashflowBalanceUI(plan);
+        updateAll();
+      });
+    }
+
+    const btnDelLmnp = document.getElementById("btn-del-lmnp-stream");
+    if (btnDelLmnp) {
+      btnDelLmnp.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const plan = getActivePlan();
+        plan.lmnpEnabled = plan.lmnpEnabled === false ? true : false;
+        if (chkLmnp) chkLmnp.checked = plan.lmnpEnabled;
+        savePlansToStorage();
+        updateLmnpUI(plan);
+        renderIncomeStreamsList();
+        renderExpenseStreamsList();
+        updateCashflowBalanceUI(plan);
+        updateAll();
+      });
+    }
+
     // Senior Care / Dépendance Inputs
     ['inp-senior-care-age', 'inp-senior-care-monthly'].forEach(id => {
       const el = document.getElementById(id);
@@ -1136,10 +1369,190 @@
             const plan = getActivePlan();
             plan.seniorCareAge = parseVal("inp-senior-care-age", 78);
             plan.seniorCareMonthly = parseVal("inp-senior-care-monthly", 0);
+            updateSeniorCareUI(plan);
+            renderExpensePeriodsSummary(plan);
             savePlansToStorage();
             updateAll();
           });
         });
+      }
+    });
+
+    const chkSenior = document.getElementById("chk-enable-senior-care");
+    if (chkSenior) {
+      chkSenior.addEventListener("change", () => {
+        const plan = getActivePlan();
+        plan.enableSeniorCare = chkSenior.checked;
+        savePlansToStorage();
+        updateSeniorCareUI(plan);
+        renderExpensePeriodsSummary(plan);
+        updateCashflowBalanceUI(plan);
+        updateAll();
+      });
+    }
+
+    const btnEditSenior = document.getElementById("btn-edit-senior-care");
+    if (btnEditSenior) {
+      btnEditSenior.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const body = document.getElementById("senior-inputs-body");
+        if (body) {
+          if (body.style.display === "none") {
+            body.style.display = "block";
+            btnEditSenior.innerText = "Sửa";
+          } else {
+            body.style.display = "none";
+            btnEditSenior.innerText = "Mở rộng";
+          }
+        }
+      });
+    }
+
+    const btnDelSenior = document.getElementById("btn-del-senior-care");
+    if (btnDelSenior) {
+      btnDelSenior.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const plan = getActivePlan();
+        if (plan.enableSeniorCare !== false && Number(plan.seniorCareMonthly) > 0) {
+          showConfirmDialog({
+            icon: "",
+            title: "Xác nhận xóa Quỹ chăm sóc tuổi già",
+            message: `Bạn có chắc chắn muốn xóa ngân sách <strong>Dự phòng Chăm sóc Tuổi Già (78t+)</strong>?<br><span style="font-size:0.75rem; color:var(--text-faint); margin-top:6px; display:inline-block;">Khoản chi dự phòng này sẽ được đặt về 0 và dòng tiền hưu trí sẽ được tính toán lại.</span>`,
+            confirmText: "Xóa khoản chi",
+            onConfirm: () => {
+              plan.enableSeniorCare = false;
+              plan.seniorCareMonthly = 0;
+              const inpM = document.getElementById("inp-senior-care-monthly");
+              if (inpM) inpM.value = 0;
+              const chk = document.getElementById("chk-enable-senior-care");
+              if (chk) chk.checked = false;
+              savePlansToStorage();
+              updateSeniorCareUI(plan);
+              renderExpensePeriodsSummary(plan);
+              updateCashflowBalanceUI(plan);
+              updateAll();
+            }
+          });
+        } else {
+          plan.enableSeniorCare = true;
+          if (Number(plan.seniorCareMonthly) === 0) {
+            plan.seniorCareMonthly = 1200;
+            const inpM = document.getElementById("inp-senior-care-monthly");
+            if (inpM) inpM.value = 1200;
+          }
+          const chk = document.getElementById("chk-enable-senior-care");
+          if (chk) chk.checked = true;
+          savePlansToStorage();
+          updateSeniorCareUI(plan);
+          renderExpensePeriodsSummary(plan);
+          updateCashflowBalanceUI(plan);
+          updateAll();
+        }
+      });
+    }
+
+    // Family / Children stream controls
+    const chkFamily = document.getElementById("chk-enable-family-stream");
+    if (chkFamily) {
+      chkFamily.addEventListener("change", () => {
+        const plan = getActivePlan();
+        if (!plan.familyPlan) plan.familyPlan = { enabled: true, kidsCount: 2, status: 'couple', kid1Birth: 2022, kid2Birth: 2025, kidCostMonthly: 350, kidUniMonthly: 900 };
+        plan.familyPlan.enabled = chkFamily.checked;
+        savePlansToStorage();
+        updateFamilyStreamUI(plan);
+        renderExpensePeriodsSummary(plan);
+        updateCashflowBalanceUI(plan);
+        updateAll();
+      });
+    }
+
+    const btnEditFamily = document.getElementById("btn-edit-family-stream");
+    if (btnEditFamily) {
+      btnEditFamily.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const body = document.getElementById("family-stream-inputs-body");
+        if (body) {
+          if (body.style.display === "none") {
+            body.style.display = "block";
+            btnEditFamily.innerText = "Thu gọn";
+          } else {
+            body.style.display = "none";
+            btnEditFamily.innerText = "Sửa";
+          }
+        }
+      });
+    }
+
+    const btnDelFamily = document.getElementById("btn-del-family-stream");
+    if (btnDelFamily) {
+      btnDelFamily.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const plan = getActivePlan();
+        if (!plan.familyPlan) plan.familyPlan = { enabled: true, kidsCount: 2, status: 'couple', kid1Birth: 2022, kid2Birth: 2025, kidCostMonthly: 350, kidUniMonthly: 900 };
+        if (plan.familyPlan.enabled !== false) {
+          showConfirmDialog({
+            icon: "",
+            title: "Xác nhận tắt Kế hoạch Con cái & Gia đình",
+            message: `Bạn có chắc chắn muốn tạm tắt <strong>Kế Hoạch Con Cái & Gia Đình</strong>?<br><span style="font-size:0.75rem; color:var(--text-faint); margin-top:6px; display:inline-block;">Các chi phí nuôi con và học vấn sẽ không bị tính vào dòng tiền cho đến khi bạn kích hoạt lại.</span>`,
+            confirmText: "Tắt kế hoạch",
+            onConfirm: () => {
+              plan.familyPlan.enabled = false;
+              if (chkFamily) chkFamily.checked = false;
+              savePlansToStorage();
+              updateFamilyStreamUI(plan);
+              renderExpensePeriodsSummary(plan);
+              updateCashflowBalanceUI(plan);
+              updateAll();
+            }
+          });
+        } else {
+          plan.familyPlan.enabled = true;
+          if (chkFamily) chkFamily.checked = true;
+          savePlansToStorage();
+          updateFamilyStreamUI(plan);
+          renderExpensePeriodsSummary(plan);
+          updateCashflowBalanceUI(plan);
+          updateAll();
+        }
+      });
+    }
+
+    // Stream inputs change listeners
+    const streamKidsCount = document.getElementById("sel-stream-kids-count");
+    const streamFamilyStatus = document.getElementById("sel-stream-family-status");
+    const streamKid1 = document.getElementById("inp-stream-kid1-birth");
+    const streamKid2 = document.getElementById("inp-stream-kid2-birth");
+    const streamKid3 = document.getElementById("inp-stream-kid3-birth");
+    const streamKid4 = document.getElementById("inp-stream-kid4-birth");
+    const streamCost = document.getElementById("inp-stream-kid-cost-monthly");
+    const streamUni = document.getElementById("inp-stream-kid-uni-monthly");
+
+    const onStreamFamilyInputChange = () => {
+      const plan = getActivePlan();
+      if (!plan.familyPlan) plan.familyPlan = { enabled: true, kidsCount: 2, status: 'couple', kid1Birth: 2022, kid2Birth: 2025, kid3Birth: 2027, kid4Birth: 2029, kidCostMonthly: 350, kidUniMonthly: 900 };
+      if (streamKidsCount) plan.familyPlan.kidsCount = parseInt(streamKidsCount.value) || 0;
+      if (streamFamilyStatus) plan.familyPlan.status = streamFamilyStatus.value || 'couple';
+      if (streamKid1) plan.familyPlan.kid1Birth = parseInt(streamKid1.value) || 2022;
+      if (streamKid2) plan.familyPlan.kid2Birth = parseInt(streamKid2.value) || 2025;
+      if (streamKid3) plan.familyPlan.kid3Birth = parseInt(streamKid3.value) || 2027;
+      if (streamKid4) plan.familyPlan.kid4Birth = parseInt(streamKid4.value) || 2029;
+      if (streamCost) plan.familyPlan.kidCostMonthly = parseFloat(streamCost.value) || 350;
+      if (streamUni) plan.familyPlan.kidUniMonthly = parseFloat(streamUni.value) || 900;
+      savePlansToStorage();
+      updateFamilyStreamUI(plan);
+      renderExpensePeriodsSummary(plan);
+      updateCashflowBalanceUI(plan);
+      updateAll();
+    };
+
+    [streamKidsCount, streamFamilyStatus, streamKid1, streamKid2, streamKid3, streamKid4, streamCost, streamUni].forEach(el => {
+      if (el) {
+        el.addEventListener("change", onStreamFamilyInputChange);
+        el.addEventListener("input", onStreamFamilyInputChange);
       }
     });
 
@@ -1157,6 +1570,60 @@
       }
     });
 
+    // Toggle / Edit Asset Allocation Stream Card
+    const btnEditAlloc = document.getElementById("btn-edit-asset-allocation");
+    if (btnEditAlloc) {
+      btnEditAlloc.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const body = document.getElementById("allocation-inputs-body");
+        if (body) {
+          if (body.style.display === "none") {
+            body.style.display = "block";
+            btnEditAlloc.innerText = "Sửa";
+          } else {
+            body.style.display = "none";
+            btnEditAlloc.innerText = "Mở rộng";
+          }
+        }
+      });
+    }
+
+    const btnDelAlloc = document.getElementById("btn-del-asset-allocation");
+    if (btnDelAlloc) {
+      btnDelAlloc.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const plan = getActivePlan();
+        showConfirmDialog({
+          icon: "",
+          title: "Xác nhận đặt lại Phân bổ Danh mục",
+          message: `Bạn có muốn đặt lại tỷ lệ phân bổ danh mục về chuẩn <strong>60% Cổ phiếu, 20% Trái phiếu, 20% BĐS</strong>?`,
+          confirmText: "Đặt lại tỷ lệ",
+          onConfirm: () => {
+            plan.assetAllocation = { stocks: 60, bonds: 20, realEstate: 20 };
+            setVal("inp-alloc-stocks", 60);
+            setVal("inp-alloc-bonds", 20);
+            setVal("inp-alloc-re", 20);
+            savePlansToStorage();
+            updateAssetAllocationUI(plan);
+            updateAll();
+          }
+        });
+      });
+    }
+
+    const chkEnableAlloc = document.getElementById("chk-enable-asset-allocation");
+    if (chkEnableAlloc) {
+      chkEnableAlloc.addEventListener("change", () => {
+        const plan = getActivePlan();
+        plan.enableAssetAllocation = chkEnableAlloc.checked;
+        savePlansToStorage();
+        updateAssetAllocationUI(plan);
+        updateAll();
+      });
+    }
+
     // Dual Inflation & Forex Inputs
     const chkDual = document.getElementById('chk-dual-inflation-enabled');
     if (chkDual) {
@@ -1166,6 +1633,78 @@
         updateAll();
       });
     }
+
+    const btnEditDual = document.getElementById("btn-edit-dual-inflation");
+    if (btnEditDual) {
+      btnEditDual.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const body = document.getElementById("dual-inflation-inputs-body");
+        if (body) {
+          if (body.style.display === "none") {
+            body.style.display = "block";
+            btnEditDual.innerText = "Sửa";
+          } else {
+            body.style.display = "none";
+            btnEditDual.innerText = "Mở rộng";
+          }
+        }
+      });
+    }
+
+    const btnEditStrat = document.getElementById("btn-edit-withdrawal-strategy");
+    if (btnEditStrat) {
+      btnEditStrat.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const body = document.getElementById("strategy-inputs-body");
+        if (body) {
+          if (body.style.display === "none") {
+            body.style.display = "block";
+            btnEditStrat.innerText = "Sửa";
+          } else {
+            body.style.display = "none";
+            btnEditStrat.innerText = "Mở rộng";
+          }
+        }
+      });
+    }
+
+    const btnDelDual = document.getElementById("btn-del-dual-inflation");
+    if (btnDelDual) {
+      btnDelDual.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const plan = getActivePlan();
+        const isEnabled = plan.dualInflation?.enabled !== false;
+        if (isEnabled) {
+          showConfirmDialog({
+            icon: "",
+            title: "Xác nhận tắt Mô hình Lạm phát 2 Chặng",
+            message: `Bạn có chắc chắn muốn tắt <strong>Lạm phát 2 Chặng & Trượt giá EUR/VND</strong>?<br><span style="font-size:0.75rem; color:var(--text-faint); margin-top:6px; display:inline-block;">Hệ thống sẽ áp dụng tỷ lệ lạm phát đơn đồng nhất cho toàn bộ chu kỳ cuộc đời.</span>`,
+            confirmText: "Tắt mô hình",
+            onConfirm: () => {
+              if (!plan.dualInflation) plan.dualInflation = {};
+              plan.dualInflation.enabled = false;
+              const chk = document.getElementById("chk-dual-inflation-enabled");
+              if (chk) chk.checked = false;
+              savePlansToStorage();
+              updateDualInflationUI(plan);
+              updateAll();
+            }
+          });
+        } else {
+          if (!plan.dualInflation) plan.dualInflation = {};
+          plan.dualInflation.enabled = true;
+          const chk = document.getElementById("chk-dual-inflation-enabled");
+          if (chk) chk.checked = true;
+          savePlansToStorage();
+          updateDualInflationUI(plan);
+          updateAll();
+        }
+      });
+    }
+
     ['inp-inflation-pre', 'inp-inflation-post', 'inp-forex-base', 'inp-forex-drift'].forEach(id => {
       const el = document.getElementById(id);
       if (el) {
@@ -1221,57 +1760,6 @@
   }
 
   function initFrancoVietGuideInteractions() {
-    const btnHealth = document.getElementById("btn-guide-tab-health");
-    const btnPension = document.getElementById("btn-guide-tab-pension");
-    const contentHealth = document.getElementById("content-guide-health");
-    const contentPension = document.getElementById("content-guide-pension");
-
-    if (btnHealth && btnPension && contentHealth && contentPension) {
-      btnHealth.addEventListener("click", () => {
-        btnHealth.classList.add("active");
-        btnHealth.style.borderColor = "var(--border-subtle)";
-        btnPension.classList.remove("active");
-        btnPension.style.borderColor = "transparent";
-        contentHealth.style.display = "block";
-        contentPension.style.display = "none";
-      });
-
-      btnPension.addEventListener("click", () => {
-        btnPension.classList.add("active");
-        btnPension.style.borderColor = "var(--border-subtle)";
-        btnHealth.classList.remove("active");
-        btnHealth.style.borderColor = "transparent";
-        contentPension.style.display = "block";
-        contentHealth.style.display = "none";
-      });
-    }
-
-    // Mini Live Calculator for BHXH Tu Nguyen VN in Guide Modal
-    const guideSelIncome = document.getElementById("guide-sel-calc-bhxh-income");
-    const guideSelYears = document.getElementById("guide-sel-calc-bhxh-years");
-    const guideLblPay = document.getElementById("guide-lbl-bhxh-monthly-pay");
-    const guideLblPension = document.getElementById("guide-lbl-bhxh-pension-est");
-
-    function updateGuideBhxhCalc() {
-      if (!guideSelIncome || !guideSelYears || !guideLblPay || !guideLblPension) return;
-      const income = Number(guideSelIncome.value) || 10000000;
-      const years = Number(guideSelYears.value) || 15;
-      const monthlyPay = Math.round(income * 0.22);
-      const pensionRate = (years === 15) ? 0.45 : (0.45 + (years - 15) * 0.02);
-      const monthlyPension = Math.round(income * pensionRate);
-      const eurRate = 27500;
-
-      guideLblPay.innerText = `${monthlyPay.toLocaleString("vi-VN")} ₫/tháng (~${Math.round(monthlyPay / eurRate)} €)`;
-      guideLblPension.innerText = `~${monthlyPension.toLocaleString("vi-VN")} ₫/tháng (~${Math.round(monthlyPension / eurRate)} €)`;
-    }
-
-    if (guideSelIncome && guideSelYears) {
-      guideSelIncome.addEventListener("change", updateGuideBhxhCalc);
-      guideSelYears.addEventListener("change", updateGuideBhxhCalc);
-      updateGuideBhxhCalc();
-    }
-
-
     // PEA Ticker Copy Chips
     document.querySelectorAll(".pea-ticker-chip").forEach(chip => {
       chip.addEventListener("click", async () => {
@@ -1364,14 +1852,10 @@
   }
 
   function renderActiveTab(tabId) {
-    if (tabId === "tab-withdrawals") renderWithdrawalComparison();
-    else if (tabId === "tab-taxes") renderTaxTab();
+    if (tabId === "tab-taxes") renderTaxTab();
     else if (tabId === "tab-insights") renderMonteCarloTab();
     else if (tabId === "tab-scenarios") renderScenarioTab();
     else if (tabId === "tab-estate") renderEstateTab();
-    else if (tabId === "tab-patrimoine") {
-      if (window.PatrimoineApp) window.PatrimoineApp.render();
-    }
   }
 
   // -------------------------------------------------------------
@@ -1427,6 +1911,9 @@
     setVal("inp-effective-tax", p.taxRate || 10);
     const taxRegime = p.taxRegime || "france_vietnam";
     setVal("inp-tax-regime", taxRegime);
+    setVal("inp-acc-pea", p.frenchAccounts?.peaBalance ?? 35000);
+    setVal("inp-acc-av", p.frenchAccounts?.assuranceVieBalance ?? 10000);
+    setVal("inp-acc-livreta", p.frenchAccounts?.livretABalance ?? 5000);
     updateTaxRegimeUI(taxRegime);
 
     // Location & Franco-Vietnamien PPP
@@ -1445,10 +1932,15 @@
     }
     updateBhxhVnUI(p);
     syncBhxhVnStreams(p);
+    updateLmnpUI(p);
 
     // Senior Care / Dépendance
     setVal("inp-senior-care-age", p.seniorCareAge || 78);
     setVal("inp-senior-care-monthly", p.seniorCareMonthly || 0);
+    updateSeniorCareUI(p);
+
+    // Kế Hoạch Con Cái & Gia Đình
+    updateFamilyStreamUI(p);
 
     // Sync currency badge & buttons
     const cur = p.currency || state.currency || 'EUR';
@@ -1486,14 +1978,25 @@
       setVal("inp-roth-max-annual", p.rothConversion.maxAnnualConversion || 200000000);
     }
 
-    // Spending Smile
+    // Spending Smile (Retirement Card)
     if (p.spendingPhases) {
-      document.getElementById("chk-smile-enabled").checked = p.spendingPhases.enabled !== false;
-      setVal("inp-gogo-age", p.spendingPhases.gogoAge || 60);
-      setVal("inp-gogo-factor", p.spendingPhases.gogoFactor || 1.15);
-      setVal("inp-slowgo-age", p.spendingPhases.slowgoAge || 75);
-      setVal("inp-slowgo-factor", p.spendingPhases.slowgoFactor || 0.90);
-      setVal("inp-nogo-factor", p.spendingPhases.nogoFactor || 0.80);
+      const isSmileOn = p.spendingPhases.enabled !== false;
+      const chk2 = document.getElementById("chk-card-smile-enabled");
+      if (chk2) chk2.checked = isSmileOn;
+      const contPhases = document.getElementById("container-card-smile-phases");
+      if (contPhases) contPhases.style.display = isSmileOn ? "flex" : "none";
+
+      const gAge = p.spendingPhases.gogoAge || 60;
+      const gFactor = p.spendingPhases.gogoFactor || 1.15;
+      const sAge = p.spendingPhases.slowgoAge || 75;
+      const sFactor = p.spendingPhases.slowgoFactor || 0.90;
+      const nFactor = p.spendingPhases.nogoFactor || 0.80;
+
+      setVal("inp-card-gogo-age", gAge);
+      setVal("inp-card-gogo-factor", gFactor);
+      setVal("inp-card-slowgo-age", sAge);
+      setVal("inp-card-slowgo-factor", sFactor);
+      setVal("inp-card-nogo-factor", nFactor);
     }
 
     // 1. Asset Allocation Sync
@@ -1550,8 +2053,9 @@
     const badgeWeighted = document.getElementById("badge-weighted-return");
     const lblWeightedCalc = document.getElementById("lbl-weighted-calc");
 
-    // Tính toán số tiền thực tế theo phần trăm tài sản hiện tại
-    const totalSavings = Number(p.currentSavings) || 0;
+    // Tính toán số tiền thực tế theo phần trăm tài sản hiện tại (chỉ tính vốn dương >= 0)
+    const rawSavings = Number(p.currentSavings) || 0;
+    const totalSavings = Math.max(0, rawSavings);
     const cur = p.currency || state.currency || 'EUR';
 
     const stocksAmt = Math.round(totalSavings * (stocks / 100));
@@ -1580,8 +2084,31 @@
       lblWeightedCalc.innerHTML = `<strong>${weighted}%/năm</strong> (đã gồm +0.3% thưởng kỷ luật tái cân bằng)${totalWarning}<div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem; font-family: var(--font-sans);">Công thức: (${stocks}% × 9.5%) + (${bonds}% × 3.5%) + (${re}% × 6.5%) + 0.3% = ${weighted}%</div>`;
     }
 
+    // Cập nhật thẻ Phân bổ Danh mục & Tái cân bằng trong Cột Thu nhập
+    const lblCardRatio = document.getElementById("lbl-alloc-card-ratio");
+    const lblCardBonus = document.getElementById("lbl-alloc-card-bonus");
+    const cardEl = document.getElementById("card-asset-allocation-stream");
+    const chkEnable = document.getElementById("chk-enable-asset-allocation");
+
+    if (lblCardRatio) {
+      lblCardRatio.innerText = `${stocks}% CP • ${bonds}% TP • ${re}% BĐS`;
+    }
+    if (lblCardBonus) {
+      lblCardBonus.innerText = `+0.3% Tái cân bằng`;
+    }
+
+    if (chkEnable) {
+      chkEnable.checked = p.enableAssetAllocation !== false;
+    }
+    if (cardEl) {
+      cardEl.style.opacity = p.enableAssetAllocation === false ? "0.55" : "1";
+    }
+
     p.assetAllocation = { stocks, bonds, realEstate: re };
     p.investmentReturnPre = weighted;
+    p.investmentReturnPost = weighted;
+    setVal("inp-return-pre", weighted);
+    setVal("inp-return-post", weighted);
   }
 
   function updateDualInflationUI(p) {
@@ -1601,8 +2128,34 @@
       lblForex.innerText = `~${forex60.toLocaleString("vi-VN")} ₫/€`;
     }
 
+    const isEnabled = chk ? chk.checked : (p.dualInflation?.enabled !== false);
+    const cardEl = document.getElementById("card-dual-inflation-stream");
+    const lblRates = document.getElementById("lbl-inflation-card-rates");
+    const lblForexCard = document.getElementById("lbl-inflation-card-forex");
+    const lblFuture = document.getElementById("lbl-inflation-card-future");
+    const badgeStatus = document.getElementById("badge-dual-inflation-status");
+
+    if (lblRates) {
+      lblRates.innerText = `Pháp ${pre}% • VN ${post}%`;
+    }
+    if (lblForexCard) {
+      lblForexCard.innerText = `Tỷ giá gốc: ${baseForex.toLocaleString("vi-VN")} ₫/€ • Trượt giá: +${drift}%/năm`;
+    }
+    if (lblFuture) {
+      lblFuture.innerText = `Ở 60t: ~${forex60.toLocaleString("vi-VN")} ₫/€`;
+    }
+    if (badgeStatus) {
+      badgeStatus.innerText = isEnabled ? "PPP Model" : "Đã tắt";
+      badgeStatus.style.background = isEnabled ? "rgba(244, 63, 94, 0.12)" : "rgba(100, 116, 139, 0.15)";
+      badgeStatus.style.color = isEnabled ? "#fb7185" : "#94a3b8";
+      badgeStatus.style.borderColor = isEnabled ? "rgba(244, 63, 94, 0.25)" : "var(--border-subtle)";
+    }
+    if (cardEl) {
+      cardEl.style.opacity = isEnabled ? "1" : "0.55";
+    }
+
     if (!p.dualInflation) p.dualInflation = {};
-    p.dualInflation.enabled = chk ? chk.checked : true;
+    p.dualInflation.enabled = isEnabled;
     p.dualInflation.inflationPre = pre;
     p.dualInflation.inflationPost = post;
     p.dualInflation.eurVndInitialRate = baseForex;
@@ -1634,26 +2187,56 @@
 
   function updateTaxRegimeUI(regime) {
     const isUS = (regime === "us");
+    const isFR = (regime === "france_vietnam");
+    const isIntl = (regime === "international");
 
-    // Controls: Show US Roth/ACA only when US is selected; show French/VN info otherwise
+    // Controls: Show US Roth/ACA only when US is selected; show French/VN info when France is selected
     const usControls = document.getElementById("group-us-tax-controls");
     const frControls = document.getElementById("group-french-tax-controls");
     if (usControls) usControls.style.display = isUS ? "block" : "none";
-    if (frControls) frControls.style.display = isUS ? "none" : "block";
+    if (frControls) frControls.style.display = isFR ? "block" : "none";
 
-    // Visualization: Show US Roth Chart & KPIs only for US
-    const rothChart = document.getElementById("card-roth-chart");
-    const usKpis = document.getElementById("grid-us-tax-kpis");
-    const geminiRoth = document.getElementById("gemini-box-chart-tax-optimization");
-    const frAccountsCard = document.getElementById("card-french-accounts");
-
-    if (rothChart) rothChart.style.display = isUS ? "block" : "none";
-    if (usKpis) usKpis.style.display = isUS ? "grid" : "none";
-    if (geminiRoth) geminiRoth.style.display = isUS ? "block" : "none";
-
-    if (frAccountsCard) {
-      frAccountsCard.style.marginTop = isUS ? "1.25rem" : "0";
+    // Status badge in live breakdown card
+    const badgeStatus = document.getElementById("badge-tax-regime-status");
+    if (badgeStatus) {
+      if (isFR) badgeStatus.innerText = "Pháp ↔ VN (IR 2024)";
+      else if (isUS) badgeStatus.innerText = "Mỹ (Federal 2024)";
+      else badgeStatus.innerText = "Quốc tế / Tùy chỉnh";
     }
+
+    // Chart header titles
+    const chartTitle = document.getElementById("lbl-tax-chart-title");
+    const chartDesc = document.getElementById("lbl-tax-chart-desc");
+    if (chartTitle && chartDesc) {
+      if (isUS) {
+        chartTitle.innerText = "Kế hoạch Chuyển đổi Roth Hàng Năm & Tiết kiệm Thuế";
+        chartDesc.innerText = "Số tiền chuyển đổi hàng năm để lấp đầy bậc thuế thấp và số tiền thuế tiết kiệm được trọn đời.";
+      } else if (isFR) {
+        chartTitle.innerText = "So Sánh Thuế Thu Nhập Lũy Tiến & Tối Ưu Hóa Dòng Tiền";
+        chartDesc.innerText = "Nghĩa vụ thuế IR Pháp theo từng độ tuổi, so sánh với thuế khoán Flat Tax PFU 30% và lợi ích từ PEA.";
+      } else {
+        chartTitle.innerText = "Dòng Tiền Thuế Thu Nhập & Thuế Suất Ước Tính";
+        chartDesc.innerText = "Dự báo mức thuế hàng năm dựa trên thuế suất ước tính bình quân và dòng tiền qua các thời kỳ.";
+      }
+    }
+
+    // Chart card: Always visible for all regimes
+    const taxChartCard = document.getElementById("card-tax-chart") || document.getElementById("card-roth-chart");
+    if (taxChartCard) taxChartCard.style.display = "block";
+
+    // US KPIs
+    const usKpis = document.getElementById("grid-us-tax-kpis");
+    if (usKpis) usKpis.style.display = isUS ? "grid" : "none";
+
+    // French accounts and masterclasses: Show for France
+    const frAccountsCard = document.getElementById("card-french-accounts");
+    const peaCard = document.getElementById("card-pea-masterclass");
+    const avCard = document.getElementById("card-assurance-vie-masterclass");
+    const livretCard = document.getElementById("card-livret-masterclass");
+    if (frAccountsCard) frAccountsCard.style.display = isFR ? "block" : "none";
+    if (peaCard) peaCard.style.display = isFR ? "block" : "none";
+    if (avCard) avCard.style.display = isFR ? "block" : "none";
+    if (livretCard) livretCard.style.display = isFR ? "block" : "none";
   }
 
   // Ước tính Lương hưu mục tiêu 43 năm (Taux Plein) theo chuẩn hưu trí Pháp (Réforme 2023)
@@ -1702,7 +2285,6 @@
     const estimated = estimateFrenchFullPension(salary, state.currency);
 
     const txtExp = document.getElementById("txt-pension-base-explanation");
-    const badgeMode = document.getElementById("badge-pension-base-mode");
     const unitEl = document.getElementById("unit-pension-base");
     if (unitEl) unitEl.innerText = state.currency === 'VND' ? '₫' : state.currency === 'USD' ? '$' : '€';
 
@@ -1710,20 +2292,10 @@
       p.pensionBaseAuto = true;
       p.socialSecurityAnnual = estimated;
       setVal("inp-pension-base-annual", estimated);
-      if (badgeMode) {
-        badgeMode.innerText = "Tự động";
-        badgeMode.style.background = "rgba(52, 211, 153, 0.15)";
-        badgeMode.style.color = "#34d399";
-      }
       if (txtExp) {
         txtExp.innerHTML = `Chuẩn sức mua hiện tại từ lương (<strong>${window.RetirementEngine.formatCurrency(salary, state.currency)}/năm</strong>): ~<strong>${window.RetirementEngine.formatCurrency(estimated, state.currency)}/năm</strong> (CNAV + Agirc-Arrco)`;
       }
     } else {
-      if (badgeMode) {
-        badgeMode.innerText = "Tùy chỉnh";
-        badgeMode.style.background = "rgba(251, 191, 36, 0.15)";
-        badgeMode.style.color = "#fbbf24";
-      }
       if (txtExp) {
         txtExp.innerHTML = `Chuẩn theo lương: ~${window.RetirementEngine.formatCurrency(estimated, state.currency)}/năm • Đang dùng số tự nhập`;
       }
@@ -1749,10 +2321,25 @@
     const lblDecote = document.getElementById("lbl-pension-decote");
     const lblEffective = document.getElementById("lbl-pension-effective");
     const badgeStatus = document.getElementById("badge-pension-status");
+    const cardMonthly = document.getElementById("lbl-french-card-monthly");
+    const cardAnnual = document.getElementById("lbl-french-card-annual");
+    const cardAgeRange = document.getElementById("lbl-french-card-age-range");
+    const cardGrowth = document.getElementById("lbl-french-card-growth");
+    const cardContainer = document.getElementById("card-french-pension-stream");
+    const btnDel = document.getElementById("btn-del-french-pension");
+    const chkFrench = document.getElementById("chk-enable-french-pension");
+    const isFrenchEnabled = p?.enableFrenchPension !== false;
+
+    if (chkFrench) chkFrench.checked = isFrenchEnabled;
+    if (btnDel) {
+      btnDel.innerText = isFrenchEnabled ? "Xóa" : "Kích hoạt";
+      btnDel.className = isFrenchEnabled ? "income-item-btn income-item-del" : "income-item-btn";
+    }
 
     if (lblQuarters) {
       lblQuarters.innerText = `${quarters} / 172 quý (${yearsWorked} năm đóng)`;
-      lblQuarters.className = quarters >= 172 ? "font-mono text-success" : "font-mono text-warning";
+      lblQuarters.className = "font-mono font-semibold";
+      lblQuarters.style.color = quarters >= 172 ? "var(--primary)" : "var(--text-main)";
     }
     if (lblDecote) {
       if (decotePenalty > 0) {
@@ -1768,7 +2355,28 @@
     }
     if (badgeStatus) {
       badgeStatus.innerText = quarters >= 172 ? "Taux Plein" : `${quarters}/172q (${Math.round(prorata * 100)}%)`;
-      badgeStatus.style.color = quarters >= 172 ? "#34d399" : "#fbbf24";
+      badgeStatus.style.color = "";
+    }
+
+    if (cardMonthly) {
+      cardMonthly.style.color = "";
+      if (isFrenchEnabled) {
+        cardMonthly.innerHTML = `${window.RetirementEngine.formatCurrency(Math.round(effectivePension / 12), state.currency)}<small>/tháng</small>`;
+      } else {
+        cardMonthly.innerHTML = `<span style="color: var(--text-faint);">0<small>/tháng</small></span>`;
+      }
+    }
+    if (cardAnnual) {
+      cardAnnual.innerText = isFrenchEnabled ? `≈ ${window.RetirementEngine.formatCurrency(effectivePension, state.currency)}/năm` : "Chưa kích hoạt lương hưu Pháp";
+    }
+    if (cardAgeRange) {
+      cardAgeRange.innerText = `${pensionAge} - ${Number(p?.lifeExpectancy) || 85} tuổi`;
+    }
+    if (cardGrowth) {
+      cardGrowth.innerText = decotePenalty > 0 ? `Décote -${(decotePenalty * 100).toFixed(1)}%` : "Taux Plein (0%)";
+    }
+    if (cardContainer) {
+      cardContainer.style.opacity = isFrenchEnabled ? "1" : "0.75";
     }
   }
 
@@ -1782,6 +2390,7 @@
     const yearsVal = Number(p.bhxhVnYears) || 15;
     const startAgeVal = Number(p.bhxhVnStartAge) || Number(p.currentAge) || 29;
     const retireAgeVal = Number(p.bhxhVnRetireAge) || 62;
+    const lifeExp = Number(p.lifeExpectancy) || 85;
 
     const selIncome = document.getElementById("sel-calc-bhxh-income");
     const selYears = document.getElementById("sel-calc-bhxh-years");
@@ -1791,6 +2400,12 @@
     const badgeEl = document.getElementById("badge-bhxh-status");
     const lblPay = document.getElementById("lbl-bhxh-monthly-pay");
     const lblPension = document.getElementById("lbl-bhxh-pension-est");
+    const cardMonthly = document.getElementById("lbl-bhxh-card-monthly");
+    const cardAnnual = document.getElementById("lbl-bhxh-card-annual");
+    const cardAgeRange = document.getElementById("lbl-bhxh-card-age-range");
+    const cardGrowth = document.getElementById("lbl-bhxh-card-growth");
+    const cardContainer = document.getElementById("card-bhxh-income-stream");
+    const btnDel = document.getElementById("btn-del-bhxh-stream");
 
     if (selIncome && selIncome.value !== String(incomeVal)) selIncome.value = String(incomeVal);
     if (selYears && selYears.value !== String(yearsVal)) selYears.value = String(yearsVal);
@@ -1816,32 +2431,304 @@
       }
     }
 
+    if (btnDel) {
+      btnDel.innerText = isEnabled ? "Xóa" : "Kích hoạt";
+      btnDel.className = isEnabled ? "income-item-btn income-item-del" : "income-item-btn";
+    }
+
     const monthlyPayVnd = Math.round(incomeVal * 0.22);
     const pensionRate = (yearsVal === 15) ? 0.45 : (0.45 + (yearsVal - 15) * 0.02);
     const monthlyPensionVnd = Math.round(incomeVal * pensionRate);
+    const annualPensionVnd = monthlyPensionVnd * 12;
     const eurRate = Number(p.exchangeRateEurVnd) || 27500;
     const cur = p.currency || state.currency || 'EUR';
 
-    let payCurStr, pensionCurStr;
+    let payCurStr, pensionCurStr, cardMonthlyStr, cardAnnualStr;
     if (cur === 'VND') {
       payCurStr = `${monthlyPayVnd.toLocaleString('vi-VN')} ₫/tháng`;
       pensionCurStr = `~${monthlyPensionVnd.toLocaleString('vi-VN')} ₫/tháng`;
+      cardMonthlyStr = `${monthlyPensionVnd.toLocaleString('vi-VN')} ₫`;
+      cardAnnualStr = `≈ ${(annualPensionVnd / 1e6).toFixed(1)} tr ₫/năm`;
     } else {
       const payEur = Math.round(monthlyPayVnd / eurRate);
       const penEur = Math.round(monthlyPensionVnd / eurRate);
+      const annualPenEur = penEur * 12;
       if (cur === 'USD') {
         const payUsd = Math.round(payEur * 1.1);
         const penUsd = Math.round(penEur * 1.1);
         payCurStr = `${monthlyPayVnd.toLocaleString('vi-VN')} ₫ (~${payUsd} $/tháng)`;
         pensionCurStr = `~${monthlyPensionVnd.toLocaleString('vi-VN')} ₫ (~${penUsd} $/tháng)`;
+        cardMonthlyStr = `$${penUsd.toLocaleString('en-US')}`;
+        cardAnnualStr = `≈ $${(penUsd * 12).toLocaleString('en-US')}/năm`;
       } else {
         payCurStr = `${monthlyPayVnd.toLocaleString('vi-VN')} ₫ (~${payEur} €/tháng)`;
         pensionCurStr = `~${monthlyPensionVnd.toLocaleString('vi-VN')} ₫ (~${penEur} €/tháng)`;
+        cardMonthlyStr = `€${penEur.toLocaleString('en-US')}`;
+        cardAnnualStr = `≈ €${annualPenEur.toLocaleString('en-US')}/năm`;
       }
     }
 
     if (lblPay) lblPay.innerText = payCurStr;
     if (lblPension) lblPension.innerText = pensionCurStr;
+
+    if (cardMonthly) {
+      if (isEnabled) {
+        cardMonthly.innerHTML = `${cardMonthlyStr}<small>/tháng</small>`;
+      } else {
+        cardMonthly.innerHTML = `<span style="color: var(--text-faint);">0<small>/tháng</small></span>`;
+      }
+    }
+    if (cardAnnual) {
+      cardAnnual.innerText = isEnabled ? cardAnnualStr : "Chưa tham gia đóng BHXH tự nguyện VN";
+    }
+    if (cardAgeRange) {
+      cardAgeRange.innerText = `${retireAgeVal} - ${lifeExp} tuổi`;
+    }
+    if (cardGrowth) {
+      cardGrowth.innerText = "+2.0%/năm";
+    }
+    if (cardContainer) {
+      cardContainer.style.opacity = isEnabled ? "1" : "0.75";
+    }
+  }
+
+  function updateSeniorCareUI(p) {
+    if (!p) p = getActivePlan();
+    const careAge = Number(p.seniorCareAge) || 78;
+    const monthlyAmt = Number(p.seniorCareMonthly) || 0;
+    const annualAmt = monthlyAmt * 12;
+    const maxAge = Number(p.lifeExpectancy) || 85;
+    const isEnabled = p.enableSeniorCare !== false && monthlyAmt > 0;
+
+    const inpAge = document.getElementById("inp-senior-care-age");
+    const inpMonthly = document.getElementById("inp-senior-care-monthly");
+    const chk = document.getElementById("chk-enable-senior-care");
+    const badge = document.getElementById("badge-senior-care");
+    const lblMonthly = document.getElementById("lbl-senior-card-monthly");
+    const lblAnnual = document.getElementById("lbl-senior-card-annual");
+    const lblRange = document.getElementById("lbl-senior-card-age-range");
+    const lblGrowth = document.getElementById("lbl-senior-card-growth");
+    const btnDel = document.getElementById("btn-del-senior-care");
+    const card = document.getElementById("card-senior-care-stream");
+
+    if (inpAge && Number(inpAge.value) !== careAge) inpAge.value = careAge;
+    if (inpMonthly && Number(inpMonthly.value) !== monthlyAmt) inpMonthly.value = monthlyAmt;
+    if (chk) chk.checked = p.enableSeniorCare !== false;
+
+    if (btnDel) {
+      btnDel.innerText = (p.enableSeniorCare !== false && monthlyAmt > 0) ? "Xóa" : "Kích hoạt";
+      btnDel.className = (p.enableSeniorCare !== false && monthlyAmt > 0) ? "income-item-btn income-item-del" : "income-item-btn";
+    }
+
+    if (badge) {
+      if (isEnabled) {
+        badge.innerText = `${window.RetirementEngine.formatCurrency(monthlyAmt, state.currency)}/tháng`;
+        badge.style.background = "rgba(244, 63, 94, 0.12)";
+        badge.style.color = "#fb7185";
+        badge.style.borderColor = "rgba(244, 63, 94, 0.25)";
+      } else {
+        badge.innerText = "Chưa kích hoạt";
+        badge.style.background = "rgba(148, 163, 184, 0.1)";
+        badge.style.color = "var(--text-faint)";
+        badge.style.borderColor = "var(--border-subtle)";
+      }
+    }
+
+    if (lblMonthly) {
+      if (isEnabled) {
+        lblMonthly.innerHTML = `${window.RetirementEngine.formatCurrency(monthlyAmt, state.currency)}<small>/tháng</small>`;
+      } else {
+        lblMonthly.innerHTML = `<span style="color: var(--text-faint);">0<small>/tháng</small></span>`;
+      }
+    }
+
+    if (lblAnnual) {
+      lblAnnual.innerText = isEnabled ? `≈ ${window.RetirementEngine.formatCurrency(annualAmt, state.currency)}/năm` : "Chưa dự phòng quỹ chăm sóc tuổi già";
+    }
+
+    if (lblRange) {
+      lblRange.innerText = `${careAge} - ${maxAge} tuổi`;
+    }
+
+    if (lblGrowth) {
+      const infPost = (p.dualInflation && p.dualInflation.enabled) ? Number(p.dualInflation.inflationPostRetire) || 4.0 : Number(p.inflationRate) || 2.2;
+      lblGrowth.innerText = `+${infPost.toFixed(1)}%/năm`;
+    }
+
+    if (card) {
+      card.style.opacity = (p.enableSeniorCare !== false) ? "1" : "0.75";
+    }
+  }
+
+  function updateFamilyStreamUI(p) {
+    if (!p) p = getActivePlan();
+    if (!p) return;
+
+    if (!p.familyPlan) {
+      p.familyPlan = {
+        enabled: true,
+        kidsCount: 2,
+        status: "couple",
+        kid1Birth: 2022,
+        kid2Birth: 2025,
+        kid3Birth: 2027,
+        kid4Birth: 2029,
+        kidCostMonthly: 350,
+        kidUniMonthly: 900
+      };
+    }
+
+    const fp = p.familyPlan;
+    const isEnabled = fp.enabled !== false;
+    const count = Number(fp.kidsCount) !== undefined ? Number(fp.kidsCount) : 2;
+    const status = fp.status || "couple";
+    const kid1Birth = Number(fp.kid1Birth) || 2022;
+    const kid2Birth = Number(fp.kid2Birth) || 2025;
+    const kid3Birth = Number(fp.kid3Birth) || 2027;
+    const kid4Birth = Number(fp.kid4Birth) || 2029;
+    const kidCostMonthly = Number(fp.kidCostMonthly) || 350;
+    const kidUniMonthly = Number(fp.kidUniMonthly) || 900;
+    const birthYears = [kid1Birth, kid2Birth, kid3Birth, kid4Birth];
+
+    const curAge = Number(p.currentAge) || 29;
+    const curYear = new Date().getFullYear();
+    const parentBirth = Number(p.birthYear) || (curYear - curAge);
+
+    // Sync input controls in Column 2 (Stream card)
+    const chkStream = document.getElementById("chk-enable-family-stream");
+    const selStreamCount = document.getElementById("sel-stream-kids-count");
+    const selStreamStatus = document.getElementById("sel-stream-family-status");
+    const inpStreamKid1 = document.getElementById("inp-stream-kid1-birth");
+    const inpStreamKid2 = document.getElementById("inp-stream-kid2-birth");
+    const inpStreamKid3 = document.getElementById("inp-stream-kid3-birth");
+    const inpStreamKid4 = document.getElementById("inp-stream-kid4-birth");
+    const inpStreamCost = document.getElementById("inp-stream-kid-cost-monthly");
+    const inpStreamUni = document.getElementById("inp-stream-kid-uni-monthly");
+    const rowStreamBirth = document.getElementById("row-stream-children-birth");
+    const rowStreamBirthExtra = document.getElementById("row-stream-children-birth-extra");
+    const grpStreamKid1 = document.getElementById("grp-stream-kid1-birth");
+    const grpStreamKid2 = document.getElementById("grp-stream-kid2-birth");
+    const grpStreamKid3 = document.getElementById("grp-stream-kid3-birth");
+    const grpStreamKid4 = document.getElementById("grp-stream-kid4-birth");
+
+    if (chkStream) chkStream.checked = isEnabled;
+    if (selStreamCount && Number(selStreamCount.value) !== count) selStreamCount.value = count;
+    if (selStreamStatus && selStreamStatus.value !== status) selStreamStatus.value = status;
+    if (inpStreamKid1 && Number(inpStreamKid1.value) !== kid1Birth) inpStreamKid1.value = kid1Birth;
+    if (inpStreamKid2 && Number(inpStreamKid2.value) !== kid2Birth) inpStreamKid2.value = kid2Birth;
+    if (inpStreamKid3 && Number(inpStreamKid3.value) !== kid3Birth) inpStreamKid3.value = kid3Birth;
+    if (inpStreamKid4 && Number(inpStreamKid4.value) !== kid4Birth) inpStreamKid4.value = kid4Birth;
+    if (inpStreamCost && Number(inpStreamCost.value) !== kidCostMonthly) inpStreamCost.value = kidCostMonthly;
+    if (inpStreamUni && Number(inpStreamUni.value) !== kidUniMonthly) inpStreamUni.value = kidUniMonthly;
+
+    if (rowStreamBirth) rowStreamBirth.style.display = count >= 1 ? "flex" : "none";
+    if (grpStreamKid1) grpStreamKid1.style.display = count >= 1 ? "block" : "none";
+    if (grpStreamKid2) grpStreamKid2.style.display = count >= 2 ? "block" : "none";
+
+    if (rowStreamBirthExtra) rowStreamBirthExtra.style.display = count >= 3 ? "flex" : "none";
+    if (grpStreamKid3) grpStreamKid3.style.display = count >= 3 ? "block" : "none";
+    if (grpStreamKid4) grpStreamKid4.style.display = count >= 4 ? "block" : "none";
+
+    // Sync input controls in Tab 4 (Estate & Family card if present)
+    const selTab4Count = document.getElementById("sel-family-kids-count");
+    const selTab4Status = document.getElementById("sel-family-status");
+    const inpTab4Kid1 = document.getElementById("inp-kid1-birth");
+    const inpTab4Kid2 = document.getElementById("inp-kid2-birth");
+    const inpTab4Cost = document.getElementById("inp-kid-cost-monthly");
+    const inpTab4Uni = document.getElementById("inp-kid-uni-monthly");
+
+    if (selTab4Count && Number(selTab4Count.value) !== count) selTab4Count.value = count;
+    if (selTab4Status && selTab4Status.value !== status) selTab4Status.value = status;
+    if (inpTab4Kid1 && Number(inpTab4Kid1.value) !== kid1Birth) inpTab4Kid1.value = kid1Birth;
+    if (inpTab4Kid2 && Number(inpTab4Kid2.value) !== kid2Birth) inpTab4Kid2.value = kid2Birth;
+    if (inpTab4Cost && Number(inpTab4Cost.value) !== kidCostMonthly) inpTab4Cost.value = kidCostMonthly;
+    if (inpTab4Uni && Number(inpTab4Uni.value) !== kidUniMonthly) inpTab4Uni.value = kidUniMonthly;
+
+    // Calculate Parts Fiscales
+    const baseParts = status === "couple" ? 2.0 : 1.0;
+    let kidParts = 0;
+    if (count === 1) kidParts = 0.5;
+    else if (count === 2) kidParts = 1.0;
+    else if (count >= 3) kidParts = 1.0 + (count - 2) * 1.0;
+    const totalParts = baseParts + kidParts;
+
+    // Calculate Current Year Cost
+    let curMonthlyCost = 0;
+    for (let k = 0; k < Math.min(count, 4); k++) {
+      const kAge = curYear - birthYears[k];
+      if (kAge >= 0 && kAge < 18) curMonthlyCost += kidCostMonthly;
+      else if (kAge >= 18 && kAge <= 23) curMonthlyCost += kidUniMonthly;
+    }
+
+    const annualAmt = curMonthlyCost * 12;
+
+    // Card UI Labels
+    const cardEl = document.getElementById("card-children-family-stream");
+    const badgeStatus = document.getElementById("badge-family-stream-status");
+    const lblMonthly = document.getElementById("lbl-family-stream-monthly");
+    const lblAnnual = document.getElementById("lbl-family-stream-annual");
+    const lblTiming = document.getElementById("lbl-family-stream-timing");
+    const btnDel = document.getElementById("btn-del-family-stream");
+
+    if (badgeStatus) {
+      if (count > 0 && isEnabled) {
+        badgeStatus.innerText = `${count} con • ${totalParts.toFixed(1)} Parts`;
+        badgeStatus.style.background = "rgba(99, 102, 241, 0.12)";
+        badgeStatus.style.color = "#818cf8";
+        badgeStatus.style.borderColor = "rgba(99, 102, 241, 0.25)";
+      } else if (!isEnabled) {
+        badgeStatus.innerText = "Đang tắt";
+        badgeStatus.style.background = "rgba(148, 163, 184, 0.1)";
+        badgeStatus.style.color = "var(--text-faint)";
+        badgeStatus.style.borderColor = "var(--border-subtle)";
+      } else {
+        badgeStatus.innerText = "0 con • 2.0 Parts";
+        badgeStatus.style.background = "rgba(148, 163, 184, 0.1)";
+        badgeStatus.style.color = "var(--text-faint)";
+        badgeStatus.style.borderColor = "var(--border-subtle)";
+      }
+    }
+
+    if (lblMonthly) {
+      if (isEnabled && count > 0) {
+        lblMonthly.innerHTML = `${window.RetirementEngine.formatCurrency(curMonthlyCost, state.currency)}<small>/tháng</small>`;
+      } else {
+        lblMonthly.innerHTML = `<span style="color: var(--text-faint);">0<small>/tháng</small></span>`;
+      }
+    }
+
+    if (lblAnnual) {
+      if (isEnabled && count > 0) {
+        lblAnnual.innerText = `≈ ${window.RetirementEngine.formatCurrency(annualAmt, state.currency)}/năm • ${count} con (${kidCostMonthly} €/tháng 0–18t, ${kidUniMonthly} € ĐH)`;
+      } else if (!isEnabled) {
+        lblAnnual.innerText = "Kế hoạch con cái đang tạm tắt";
+      } else {
+        lblAnnual.innerText = "Chưa có dự kiến con cái";
+      }
+    }
+
+    if (lblTiming) {
+      if (count > 0) {
+        const activeBirthYears = birthYears.slice(0, Math.min(count, 4));
+        const youngestBirth = Math.max(...activeBirthYears);
+        const endAgeTiming = (youngestBirth + 23) - parentBirth;
+        lblTiming.innerText = `${curAge} – ${endAgeTiming} tuổi (khi con 23t)`;
+      } else {
+        lblTiming.innerText = "Chưa có dự kiến";
+      }
+    }
+
+    if (btnDel) {
+      btnDel.innerText = isEnabled ? "Xóa" : "Kích hoạt";
+      btnDel.className = isEnabled ? "income-item-btn income-item-del" : "income-item-btn";
+    }
+
+    if (cardEl) {
+      cardEl.style.opacity = isEnabled ? "1" : "0.75";
+    }
+
+    // Also update Tab 4 calculations & chart if open
+    updateFamilyChildrenSimulation();
   }
 
   function syncBhxhVnStreams(p) {
@@ -1994,7 +2881,7 @@
         return acc + rent;
       }, 0);
       const annualRent = totalEffectiveRent > 0 ? totalEffectiveRent * 12 : (summary.total_annual_post_loan_cashflow || 0);
-      const cashflow = round(annualRent);
+      const cashflow = (p.lmnpEnabled !== false) ? round(annualRent) : 0;
       if (reIdx >= 0) {
         // Update rental income amount while preserving user-configured startAge, endAge and growth
         p.incomes[reIdx].name = 'Doanh thu BĐS LMNP Pháp';
@@ -2099,6 +2986,183 @@
       updateAll();
     }
     return true;
+  }
+
+  function updateLmnpUI(p) {
+    if (!p) p = getActivePlan();
+    const isEnabled = p.lmnpEnabled !== false;
+    const chk = document.getElementById("chk-enable-lmnp-stream");
+    if (chk) chk.checked = isEnabled;
+
+    const pData = state.patrimoineData || (window.patrimoineData) || null;
+    let apts = (pData && Array.isArray(pData.apartments)) ? pData.apartments : [];
+    if (apts.length === 0 && window.PatrimoineApp && typeof window.PatrimoineApp.computeFullPatrimoine === "function") {
+      try {
+        const guest = JSON.parse(localStorage.getItem("pyretrait_patrimoine_guest") || "{}");
+        if (guest && guest.apartments) {
+          const comp = window.PatrimoineApp.computeFullPatrimoine(guest.apartments, guest.turo, guest.wealth);
+          if (comp && Array.isArray(comp.apartments)) apts = comp.apartments;
+        }
+      } catch (e) {
+        console.warn("Lỗi đọc dữ liệu căn hộ:", e);
+      }
+    }
+
+    const cur = p.currency || state.currency || 'EUR';
+    const fmt = (v) => window.RetirementEngine.formatCurrency(v, cur);
+    const f = eurToPlanFactor(p);
+
+    const badgeStatus = document.getElementById("badge-lmnp-status");
+    const btnDel = document.getElementById("btn-del-lmnp-stream");
+    const cardContainer = document.getElementById("card-lmnp-income-stream");
+    const bodyEl = document.getElementById("lmnp-inputs-body");
+
+    if (badgeStatus) {
+      if (isEnabled) {
+        badgeStatus.innerText = apts.length > 0 ? `${apts.length} căn LMNP` : "0 căn hộ";
+        badgeStatus.style.background = "rgba(16, 185, 129, 0.15)";
+        badgeStatus.style.color = "#34d399";
+        badgeStatus.style.borderColor = "rgba(16, 185, 129, 0.3)";
+      } else {
+        badgeStatus.innerText = "Đã tạm tắt";
+        badgeStatus.style.background = "rgba(148, 163, 184, 0.1)";
+        badgeStatus.style.color = "var(--text-faint)";
+        badgeStatus.style.borderColor = "var(--border-subtle)";
+      }
+    }
+
+    if (btnDel) {
+      btnDel.innerText = isEnabled ? "Tắt" : "Bật";
+      btnDel.className = isEnabled ? "income-item-btn income-item-del" : "income-item-btn";
+    }
+
+    if (cardContainer) {
+      cardContainer.style.opacity = isEnabled ? "1" : "0.75";
+    }
+    if (bodyEl) {
+      bodyEl.style.opacity = isEnabled ? "1" : "0.5";
+      bodyEl.style.pointerEvents = isEnabled ? "auto" : "none";
+    }
+
+    // Amounts calculation
+    const lmnpStream = (p.incomes || []).find(inc => /lmnp|doanh thu bđs lmnp/i.test(inc.name || ''));
+    const totalEffectiveRentEur = apts.reduce((acc, a) => {
+      const eff = Number(a.effective_monthly_rent) || (Number(a.monthly_rent) * (1 - (Number(a.vacancy_pct !== undefined ? a.vacancy_pct : 5.0) / 100.0))) || 0;
+      return acc + eff;
+    }, 0);
+    const totalAnnualRentEur = totalEffectiveRentEur * 12;
+    const annualRent = lmnpStream ? Number(lmnpStream.amount) : Math.round(totalAnnualRentEur * f);
+    const monthlyRent = Math.round(annualRent / 12);
+
+    const lblMonthly = document.getElementById("lbl-lmnp-card-monthly");
+    const lblAnnual = document.getElementById("lbl-lmnp-card-annual");
+    const lblAgeRange = document.getElementById("lbl-lmnp-card-age-range");
+    const lblGrowth = document.getElementById("lbl-lmnp-card-growth");
+
+    if (lblMonthly) {
+      if (isEnabled) {
+        lblMonthly.innerHTML = `${fmt(monthlyRent)}<small>/tháng</small>`;
+      } else {
+        lblMonthly.innerHTML = `<span style="color: var(--text-faint);">0<small>/tháng</small></span>`;
+      }
+    }
+    if (lblAnnual) {
+      lblAnnual.innerText = isEnabled ? `≈ ${fmt(annualRent)}/năm` : "Đã tạm tắt nguồn thu BĐS";
+    }
+    if (lblAgeRange) {
+      const startAge = lmnpStream?.startAge !== undefined ? lmnpStream.startAge : (p.currentAge || 29);
+      const endAge = lmnpStream?.endAge !== undefined ? lmnpStream.endAge : 85;
+      lblAgeRange.innerText = `${startAge} - ${endAge} tuổi`;
+    }
+    if (lblGrowth) {
+      const gr = lmnpStream?.growth !== undefined ? lmnpStream.growth : 1.5;
+      lblGrowth.innerText = `+${gr}%/năm`;
+    }
+
+    // Mini KPIs inside drawer
+    const totalPropValEur = apts.reduce((acc, a) => acc + (Number(a.property_price) || 0), 0);
+    const totalLoanValEur = apts.reduce((acc, a) => acc + (Number(a.loan_amount) || 0), 0);
+    const totalNetMonthlyEur = apts.reduce((acc, a) => acc + (Number(a.monthly_cashflow) || 0), 0);
+
+    const lblPropVal = document.getElementById("lbl-lmnp-total-prop-val");
+    const lblLoanVal = document.getElementById("lbl-lmnp-total-loan-val");
+    const lblNetCf = document.getElementById("lbl-lmnp-net-cashflow-val");
+
+    if (lblPropVal) lblPropVal.innerText = fmt(Math.round(totalPropValEur * f));
+    if (lblLoanVal) lblLoanVal.innerText = fmt(Math.round(totalLoanValEur * f));
+    if (lblNetCf) {
+      const netPlan = Math.round(totalNetMonthlyEur * f);
+      const sign = netPlan >= 0 ? "+" : "";
+      lblNetCf.innerText = `${sign}${fmt(netPlan)}/tháng`;
+      lblNetCf.style.color = netPlan >= 0 ? "#10b981" : "#f59e0b";
+    }
+
+    // Render apartments list
+    const listContainer = document.getElementById("lmnp-apartments-container");
+    if (listContainer) {
+      if (apts.length === 0) {
+        listContainer.innerHTML = `<div style="font-size:0.76rem; color:var(--text-faint); padding:0.6rem; text-align:center; background:var(--bg-card); border:1px dashed var(--border-subtle); border-radius:6px;">Chưa có căn hộ nào được lưu. Bấm <strong>"+ Thêm Căn Hộ Cho Thuê Mới"</strong> để bắt đầu quản lý BĐS!</div>`;
+      } else {
+        listContainer.innerHTML = apts.map(apt => {
+          const effRentEur = Number(apt.effective_monthly_rent) || (Number(apt.monthly_rent) * (1 - (Number(apt.vacancy_pct !== undefined ? apt.vacancy_pct : 5.0) / 100.0))) || 0;
+          const loanPmtEur = Number(apt.monthly_loan_payment) || 0;
+          const netCfEur = apt.monthly_cashflow !== undefined ? Number(apt.monthly_cashflow) : (effRentEur - loanPmtEur);
+          const isNeg = netCfEur < 0;
+
+          const effRent = Math.round(effRentEur * f);
+          const loanPmt = Math.round(loanPmtEur * f);
+          const netCf = Math.round(netCfEur * f);
+
+          return `
+            <div class="lmnp-apt-row" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.55rem 0.75rem; display: flex; flex-direction: column; gap: 0.35rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                  <strong style="color: var(--text-main); font-size: 0.82rem;">${apt.name}</strong>
+                  <span style="font-size: 0.68rem; padding: 1px 5px; border-radius: 4px; background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.25); font-weight: 500;">
+                    ${apt.typology || 'T2'} • ${apt.surface || 0}m²
+                  </span>
+                  <span style="font-size: 0.68rem; padding: 1px 5px; border-radius: 4px; background: rgba(148, 163, 184, 0.12); color: var(--text-muted); border: 1px solid var(--border-subtle);">
+                    DPE ${apt.dpe_rating || 'C'} • Mua ${apt.start_year || 2023}
+                  </span>
+                </div>
+                <div style="display: flex; gap: 0.35rem;">
+                  <button type="button" class="btn btn-xs btn-outline btn-edit-sub-apt" data-name="${encodeURIComponent(apt.name)}" style="font-size: 0.72rem; padding: 2px 8px; color: #10b981; border-color: rgba(16, 185, 129, 0.4); cursor: pointer;" title="Chỉnh sửa mọi thông số căn hộ này">Sửa</button>
+                  <button type="button" class="btn btn-xs btn-outline btn-del-sub-apt" data-name="${encodeURIComponent(apt.name)}" style="font-size: 0.72rem; padding: 2px 8px; color: #f43f5e; border-color: rgba(244, 63, 94, 0.4); cursor: pointer;" title="Xóa căn hộ này">Xóa</button>
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; color: var(--text-muted); border-top: 1px dashed var(--border-subtle); padding-top: 0.35rem;">
+                <span>Thuê: <strong style="color: #10b981;">+${fmt(effRent)}/th</strong></span>
+                <span>Trả nợ: <strong style="color: #f43f5e;">-${fmt(loanPmt)}/th</strong></span>
+                <span>Dòng tiền: <strong style="color: ${isNeg ? '#f59e0b' : '#10b981'};">${isNeg ? '' : '+'}${fmt(netCf)}/th</strong></span>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        listContainer.querySelectorAll(".btn-edit-sub-apt").forEach(btn => {
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            const name = decodeURIComponent(btn.getAttribute("data-name"));
+            if (window.PatrimoineApp && typeof window.PatrimoineApp.openApartmentModal === "function") {
+              window.PatrimoineApp.openApartmentModal(name);
+            }
+          });
+        });
+
+        listContainer.querySelectorAll(".btn-del-sub-apt").forEach(btn => {
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            const name = decodeURIComponent(btn.getAttribute("data-name"));
+            if (window.PatrimoineApp && typeof window.PatrimoineApp.deleteApartment === "function") {
+              window.PatrimoineApp.deleteApartment(name);
+            }
+          });
+        });
+      }
+    }
   }
 
   function renderPatrimoineLoansList(p, loans, sched) {
@@ -2229,7 +3293,7 @@
       const amt = Number(s.amount) || 0;
       if (amt <= 0) return;
       const sAge = Number(s.startAge) || curAge;
-      const isSalary = s.isSalary || (s.name && (/lương|salary|impôt|impot/i).test(s.name));
+      const isSalary = !s.isBhxhVn && (s.isSalary || (s.name && (/lương|salary|impôt|impot/i).test(s.name)));
       const rawEndAge = isSalary ? (retireAge - 1) : (Number(s.endAge) || retireAge);
       const eAge = Math.min(lifeExp, rawEndAge);
       if (sAge <= lifeExp && eAge >= curAge) {
@@ -2247,7 +3311,7 @@
     // French Pension / BHXH if configured (matching engine.js Décote & Prorata)
     const ssAge = Number(plan.socialSecurityAge) || 64;
     const rawSS = Number(plan.socialSecurityAnnual) || 0;
-    if (rawSS > 0 && ssAge <= lifeExp) {
+    if (rawSS > 0 && ssAge <= lifeExp && plan.enableFrenchPension !== false) {
       let ssAmt = rawSS;
       if (plan.enableFrenchDecote !== false) {
         const startWorkAge = Number(plan.startWorkAge) || 24;
@@ -2260,7 +3324,7 @@
         ssAmt = Math.round(rawSS * prorata * (1.0 - decotePenalty));
       }
       streams.push({
-        name: "Lương hưu / BHXH",
+        name: "Lương hưu Pháp",
         amount: ssAmt,
         growth: 0,
         startAge: Math.max(curAge, ssAge),
@@ -2371,12 +3435,32 @@
       return;
     }
 
+    const cur = state.currency;
+    const fmt = (v) => window.RetirementEngine.formatCurrency(v, cur);
+
+    const chosenStrat = plan.withdrawalStrategy || 'guyton_klinger';
+    const swrVal = (plan.initialWithdrawalRate || plan.swr || 4.0).toFixed(1);
+    const stratNames = {
+      bengen_4pct: { full: "Quy tắc 4% Cố định (Bengen)", short: "Bengen 4%" },
+      guyton_klinger: { full: "Lan can Guyton-Klinger", short: "Guyton-Klinger" },
+      vpw: { full: "Tỷ lệ Thay đổi VPW", short: "VPW" },
+      fixed_pct: { full: "Tỷ lệ Cố định (Fixed %)", short: "Fixed %" }
+    };
+    const curStratInfo = stratNames[chosenStrat] || { full: "Lan can Guyton-Klinger", short: "Guyton-Klinger" };
+
+    let proj = null;
+    try {
+      if (window.RetirementEngine && typeof window.RetirementEngine.runProjection === "function") {
+        proj = window.RetirementEngine.runProjection(plan);
+      }
+    } catch (err) {
+      console.warn("Lỗi tính projection trong income periods summary:", err);
+    }
+
     container.innerHTML = periods.map(p => {
       const isZero = p.totalMonthly === 0;
-      const borderColor = p.isRetirePeriod ? '#a855f7' : '#10b981';
-      const badgeBg = p.isRetirePeriod ? 'rgba(168, 85, 247, 0.15)' : 'rgba(16, 185, 129, 0.15)';
-      const badgeColor = p.isRetirePeriod ? '#c084fc' : '#34d399';
-      const phaseIcon = '';
+      const borderColor = p.isRetirePeriod ? '#34d399' : '#10b981';
+      const badgeColor = p.isRetirePeriod ? '#6ee7b7' : '#34d399';
 
       const hasGrowth = p.totalAnnual !== p.totalAnnualEnd;
       const monthlyStr = hasGrowth
@@ -2386,36 +3470,66 @@
         ? `≈ ${window.RetirementEngine.formatCurrency(p.totalAnnual, state.currency)} - ${window.RetirementEngine.formatCurrency(p.totalAnnualEnd, state.currency)}/năm`
         : `≈ ${window.RetirementEngine.formatCurrency(p.totalAnnual, state.currency)}/năm`;
 
+      let withdrawalChipHtml = "";
+      if (p.isRetirePeriod && proj && Array.isArray(proj.timeline)) {
+        const pRows = proj.timeline.filter(r => r.age >= p.startAge && r.age <= p.endAge && r.isRetired);
+        if (pRows.length > 0) {
+          const firstR = pRows[0];
+          const lastR = pRows[pRows.length - 1];
+          const startAnn = (firstR.netCashFlow < 0) ? Math.round(-firstR.netCashFlow) : 0;
+          const endAnn = (lastR.netCashFlow < 0) ? Math.round(-lastR.netCashFlow) : 0;
+          const startMo = Math.round(startAnn / 12);
+          const endMo = Math.round(endAnn / 12);
+
+          if (startAnn > 0 || endAnn > 0) {
+            const hasWithGrowth = (startAnn !== endAnn);
+            const withMonthlyStr = hasWithGrowth
+              ? `${fmt(startMo)} - ${fmt(endMo)}/tháng`
+              : `${fmt(startMo)}/tháng`;
+            const withAnnualStr = hasWithGrowth
+              ? `≈ ${fmt(startAnn)} - ${fmt(endAnn)}/năm`
+              : `≈ ${fmt(startAnn)}/năm`;
+
+            withdrawalChipHtml = `
+              <span class="period-chip chip-withdrawal-period" title="Số tiền dự kiến rút từ danh mục đầu tư theo quy tắc ${escapeHtml(curStratInfo.full)} (SWR ${swrVal}%) • Quy đổi năm: ${withAnnualStr}">
+                Rút vốn (${escapeHtml(curStratInfo.short)}): <strong>${withMonthlyStr}</strong>
+              </span>
+            `;
+          }
+        }
+      }
+
       const streamsHtml = p.streams.length > 0
         ? p.streams.map(s => {
+            const cleanStreamName = (s.name || '').replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
             const sGrowth = s.annual !== s.annualEnd;
             const sText = sGrowth
               ? `+${window.RetirementEngine.formatCurrency(s.monthly, state.currency)} - ${window.RetirementEngine.formatCurrency(s.monthlyEnd, state.currency)}/tháng`
               : `+${window.RetirementEngine.formatCurrency(s.monthly, state.currency)}/tháng`;
             return `
               <span class="period-chip income-period-chip">
-                ${escapeHtml(s.name)}: <strong>${sText}</strong>
+                ${escapeHtml(cleanStreamName)}: <strong>${sText}</strong>
               </span>
             `;
           }).join("")
-        : `<span style="font-size: 0.72rem; color: var(--text-faint); font-style: italic;">Chỉ chi tiêu từ tài sản tích lũy (Không có thu nhập chủ động)</span>`;
+        : (withdrawalChipHtml ? '' : `<span style="font-size: 0.72rem; color: var(--text-faint); font-style: italic;">Chỉ chi tiêu từ tài sản tích lũy (Không có thu nhập chủ động)</span>`);
 
       return `
         <div class="income-period-card" style="border-left-color: ${borderColor};">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-              <span class="badge" style="background: ${badgeBg}; color: ${badgeColor}; font-weight: 700; font-size: 0.76rem; padding: 0.15rem 0.5rem; border-radius: 4px;">
+              <span class="badge income-period-age-badge" style="background: transparent; color: ${badgeColor}; font-weight: 700; font-size: 0.76rem; padding: 0.15rem 0;">
                 ${p.startAge} – ${p.endAge} tuổi
               </span>
               <span style="font-size: 0.72rem; color: var(--text-muted);">
                 (${p.startYear} – ${p.endYear})
               </span>
-              <span class="badge period-phase-badge">
-                ${phaseIcon} ${p.phaseLabel}
+              <span class="badge period-phase-badge income-phase-badge">
+                ${p.phaseLabel}
               </span>
             </div>
             <div style="text-align: right; margin-left: auto;">
-              <span class="font-mono" style="font-size: 0.95rem; font-weight: 800; color: ${isZero ? 'var(--text-faint)' : 'var(--primary, #10b981)'};">
+              <span class="font-mono income-period-monthly" style="font-size: 0.95rem; font-weight: 800; color: ${isZero ? 'var(--text-faint)' : '#10b981'};">
                 ${isZero ? '0' : monthlyStr}
               </span>
               <span style="font-size: 0.72rem; color: var(--text-faint); display: block;">
@@ -2425,6 +3539,7 @@
           </div>
           <div class="period-card-streams">
             ${streamsHtml}
+            ${withdrawalChipHtml}
           </div>
         </div>
       `;
@@ -2439,17 +3554,22 @@
 
     renderIncomePeriodsSummary(p);
 
-    if (p.incomes.length === 0) {
-      container.innerHTML = `<div style="font-size:0.78rem;color:var(--text-faint);padding:0.5rem 0;">Chưa có nguồn thu nào. Bấm "+ Thêm nguồn thu" để thêm.</div>`;
+    const otherIncomes = p.incomes.filter(s => !s.isBhxhVn && !/lmnp|doanh thu bđs lmnp/i.test(s.name || ''));
+    if (otherIncomes.length === 0) {
+      container.innerHTML = `<div style="font-size:0.78rem;color:var(--text-faint);padding:0.5rem 0;">Chưa có nguồn thu bổ sung nào khác. Bấm "+ Thêm nguồn thu" để thêm.</div>`;
+      updateLmnpUI(p);
       return;
     }
 
     p.incomes.forEach((stream, idx) => {
+      if (stream.isBhxhVn) return; // Dedicated card #card-bhxh-income-stream is used
+      if (/lmnp|doanh thu bđs lmnp/i.test(stream.name || '')) return; // Dedicated card #card-lmnp-income-stream is used
+      const cleanName = (stream.name || '').replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
       const item = document.createElement("div");
       item.className = "income-item";
       item.innerHTML = `
         <div class="income-item-header">
-          <span class="income-item-name">${stream.name}${stream.isBhxhVn ? ' <span class="field-badge font-mono" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.68rem; margin-left: 0.35rem;">Tự động (BHXH VN)</span>' : ''}</span>
+          <span class="income-item-name">${cleanName}</span>
           <div class="income-item-actions">
             <button type="button" class="income-item-btn income-item-edit" data-idx="${idx}" title="Chỉnh sửa nguồn thu">Sửa</button>
             <button type="button" class="income-item-btn income-item-del" data-idx="${idx}" title="Xóa nguồn thu">Xóa</button>
@@ -2527,6 +3647,7 @@
         });
       });
     });
+    updateLmnpUI(p);
   }
 
   function getActiveIncomeAtAge(plan, age) {
@@ -2628,6 +3749,37 @@
         total += (Number(e.amount) || 0) * Math.pow(1.0 + growth, years);
       }
     });
+
+    // Child lifecycle expense at age
+    if (plan.familyPlan && plan.familyPlan.enabled !== false && Number(plan.familyPlan.kidsCount) > 0) {
+      const kCount = Number(plan.familyPlan.kidsCount) || 0;
+      const curYear = new Date().getFullYear();
+      const parentBirth = Number(plan.birthYear) || (curYear - (plan.currentAge || 29));
+      const simYr = parentBirth + age;
+      const birthYears = [
+        Number(plan.familyPlan.kid1Birth) || 2022,
+        Number(plan.familyPlan.kid2Birth) || 2025,
+        Number(plan.familyPlan.kid3Birth) || 2027,
+        Number(plan.familyPlan.kid4Birth) || 2029
+      ];
+      const kidCostMonthly = Number(plan.familyPlan.kidCostMonthly) || 350;
+      const kidUniMonthly = Number(plan.familyPlan.kidUniMonthly) || 900;
+
+      let childGross = 0;
+      let depCount = 0;
+      for (let k = 0; k < Math.min(kCount, 4); k++) {
+        const a = simYr - birthYears[k];
+        if (a >= 0 && a < 18) childGross += kidCostMonthly * 12;
+        else if (a >= 18 && a <= 23) childGross += kidUniMonthly * 12;
+        if (a >= 0 && a < 20) depCount++;
+      }
+      let caf = 0;
+      if (depCount === 2) caf = 148 * 12;
+      else if (depCount === 3) caf = 338 * 12;
+      else if (depCount >= 4) caf = 529 * 12;
+      total += Math.max(0, childGross - caf);
+    }
+
     return total;
   }
 
@@ -2641,7 +3793,11 @@
     let estTax = 0;
     if (grossIncome > 0) {
       if (window.TaxOptimizer && window.TaxOptimizer.calculateProgressiveTax) {
-        estTax = window.TaxOptimizer.calculateProgressiveTax(grossIncome, plan.taxRegime || 'france_vietnam');
+        estTax = window.TaxOptimizer.calculateProgressiveTax(grossIncome, plan.taxRegime || 'france_vietnam', {
+          customTaxRate: plan.taxRate,
+          currency: plan.currency || state.currency,
+          exchangeRateEurVnd: 27500
+        });
       } else {
         estTax = grossIncome * ((Number(plan.taxRate) || 12) / 100.0) * 0.7;
       }
@@ -2789,13 +3945,61 @@
       }
     });
 
+    let activeMonthly = monthlyVietnam;
+    let activeAnnual = annualVietnam;
+    let activeDesc = "chi tiêu tại Việt Nam";
+    if (loc === 'france') { activeMonthly = monthlyFrance; activeAnnual = annualFrance; activeDesc = "chi tiêu tại Pháp"; }
+    else if (loc === 'hybrid') { activeMonthly = monthlyHybrid; activeAnnual = annualHybrid; activeDesc = "Song hành Pháp - Việt"; }
+
+    const cardMonthly = document.getElementById("lbl-retire-card-monthly");
+    const cardAge = document.getElementById("lbl-retire-card-age-range");
+    const cardGrowth = document.getElementById("lbl-retire-card-growth");
+    if (cardMonthly) cardMonthly.innerHTML = `${fmt(activeMonthly)}<small>/tháng</small>`;
+    if (cardAge) cardAge.innerText = `${plan.retirementAge || 43} – ${plan.lifeExpectancy || 85} tuổi`;
+    if (cardGrowth) {
+      const infPost = (plan.dualInflation && plan.dualInflation.enabled)
+        ? (Number(plan.dualInflation.inflationPost) || 4.0)
+        : (Number(plan.inflationRate) || 4.0);
+      cardGrowth.innerText = `+${infPost.toFixed(1)}%/năm (Lạm phát)`;
+    }
+
     const hint = document.getElementById("hint-retire-expenses");
     if (hint) {
-      let activeAnnual = annualVietnam;
-      let activeDesc = "chi tiêu tại Việt Nam";
-      if (loc === 'france') { activeAnnual = annualFrance; activeDesc = "chi tiêu tại Pháp"; }
-      else if (loc === 'hybrid') { activeAnnual = annualHybrid; activeDesc = "Song hành Pháp - Việt"; }
       hint.innerText = `≈ ${fmt(activeAnnual)}/năm • ${activeDesc}`;
+    }
+
+    // Live calculations for 3-Phase Spending Smile
+    const isSmile = plan.spendingPhases && plan.spendingPhases.enabled !== false;
+    const gFactor = Number(plan.spendingPhases?.gogoFactor) || 1.15;
+    const sFactor = Number(plan.spendingPhases?.slowgoFactor) || 0.90;
+    const nFactor = Number(plan.spendingPhases?.nogoFactor) || 0.80;
+
+    const gogoMonthly = Math.round(activeMonthly * gFactor);
+    const slowgoMonthly = Math.round(activeMonthly * sFactor);
+    const nogoMonthly = Math.round(activeMonthly * nFactor);
+
+    const lblGogo = document.getElementById("lbl-calc-gogo-monthly");
+    const lblSlowgo = document.getElementById("lbl-calc-slowgo-monthly");
+    const lblNogo = document.getElementById("lbl-calc-nogo-monthly");
+    const badgeSmile = document.getElementById("badge-card-smile-status");
+
+    const formatDiff = (f) => {
+      const pct = Math.round((f - 1.0) * 100);
+      return pct >= 0 ? `+${pct}%` : `${pct}%`;
+    };
+
+    if (lblGogo) lblGogo.innerText = `≈ ${fmt(gogoMonthly)}/tháng (${formatDiff(gFactor)})`;
+    if (lblSlowgo) lblSlowgo.innerText = `≈ ${fmt(slowgoMonthly)}/tháng (${formatDiff(sFactor)})`;
+    if (lblNogo) lblNogo.innerText = `≈ ${fmt(nogoMonthly)}/tháng (${formatDiff(nFactor)})`;
+
+    if (badgeSmile) {
+      if (isSmile) {
+        badgeSmile.innerText = `Bật: Go-Go (${formatDiff(gFactor)}) • Slow-Go (${formatDiff(sFactor)}) • No-Go (${formatDiff(nFactor)})`;
+        badgeSmile.className = "field-badge text-success";
+      } else {
+        badgeSmile.innerText = "Đang tắt (Chi tiêu phẳng)";
+        badgeSmile.className = "field-badge text-muted";
+      }
     }
   }
 
@@ -2820,9 +4024,155 @@
     const curYear = new Date().getFullYear();
     const bYear = Number(plan.birthYear) || (curYear - curAge);
 
+    // Chi tiêu sinh hoạt khi về hưu (retirementExpenses, đã quy đổi lạm phát tới tuổi nghỉ hưu)
+    const retireAgeExp = Number(plan.retirementAge) || 42;
+    // Từ tuổi nghỉ hưu, engine chỉ tính: Chi tiêu khi về hưu + các khoản nợ.
+    // Các luồng chi tiêu thường (không phải nợ) chỉ áp dụng đến (tuổi nghỉ hưu - 1).
+    const allExpenses = [];
+    plan.expenses.forEach(e => {
+      const isDebtStream = e.isDebt === true || (/crédit|credit|vay|nợ|loan|prêt|pret|ngân hàng/i).test(e.name || '');
+      if (isDebtStream) {
+        allExpenses.push(e);
+        return;
+      }
+      const sAge = Number(e.startAge) || curAge;
+      if (sAge >= retireAgeExp) return;
+      const eAge = Number(e.endAge) || maxAge;
+      allExpenses.push({ ...e, endAge: Math.min(eAge, retireAgeExp - 1) });
+    });
+
+    const retireBase = Number(plan.retirementExpenses) || 0;
+    const isSmile = plan.spendingPhases && plan.spendingPhases.enabled !== false;
+    const gAge = Number(plan.spendingPhases?.gogoAge) || 60;
+    const gFactor = Number(plan.spendingPhases?.gogoFactor) || 1.15;
+    const sAge = Number(plan.spendingPhases?.slowgoAge) || 75;
+    const sFactor = Number(plan.spendingPhases?.slowgoFactor) || 0.90;
+    const nFactor = Number(plan.spendingPhases?.nogoFactor) || 0.80;
+
+    if (retireBase > 0 && retireAgeExp <= maxAge) {
+      const infPre = (plan.dualInflation && plan.dualInflation.enabled)
+        ? (Number(plan.dualInflation.inflationPre) || 2.2)
+        : (Number(plan.inflationRate) || 4.0);
+      const infPost = (plan.dualInflation && plan.dualInflation.enabled)
+        ? (Number(plan.dualInflation.inflationPost) || 4.0)
+        : (Number(plan.inflationRate) || 4.0);
+
+      const yearsToRetire = Math.max(0, retireAgeExp - curAge);
+      const inflatedBaseAtRetire = retireBase * Math.pow(1.0 + infPre / 100.0, yearsToRetire);
+
+      if (isSmile) {
+        // Phân rã thành 3 giai đoạn: Go-Go, Slow-Go, No-Go
+        // 1. Giai đoạn Go-Go: từ retireAgeExp đến gAge
+        if (retireAgeExp <= gAge) {
+          const diffPct = Math.round((gFactor - 1.0) * 100);
+          const diffStr = diffPct >= 0 ? `+${diffPct}%` : `${diffPct}%`;
+          allExpenses.push({
+            name: `Chi tiêu Hưu trí • Go-Go (${diffStr})`,
+            amount: inflatedBaseAtRetire * gFactor,
+            startAge: retireAgeExp,
+            endAge: Math.min(gAge, maxAge),
+            growth: infPost
+          });
+        }
+        // 2. Giai đoạn Slow-Go: từ max(retireAgeExp, gAge + 1) đến sAge
+        const startSlow = Math.max(retireAgeExp, gAge + 1);
+        if (startSlow <= Math.min(sAge, maxAge)) {
+          const yearsFromRetireToSlow = Math.max(0, startSlow - retireAgeExp);
+          const inflatedAtSlow = inflatedBaseAtRetire * Math.pow(1.0 + infPost / 100.0, yearsFromRetireToSlow);
+          const diffPct = Math.round((sFactor - 1.0) * 100);
+          const diffStr = diffPct >= 0 ? `+${diffPct}%` : `${diffPct}%`;
+          allExpenses.push({
+            name: `Chi tiêu Hưu trí • Slow-Go (${diffStr})`,
+            amount: inflatedAtSlow * sFactor,
+            startAge: startSlow,
+            endAge: Math.min(sAge, maxAge),
+            growth: infPost
+          });
+        }
+        // 3. Giai đoạn No-Go: từ max(retireAgeExp, sAge + 1) đến maxAge
+        const startNo = Math.max(retireAgeExp, sAge + 1);
+        if (startNo <= maxAge) {
+          const yearsFromRetireToNo = Math.max(0, startNo - retireAgeExp);
+          const inflatedAtNo = inflatedBaseAtRetire * Math.pow(1.0 + infPost / 100.0, yearsFromRetireToNo);
+          const diffPct = Math.round((nFactor - 1.0) * 100);
+          const diffStr = diffPct >= 0 ? `+${diffPct}%` : `${diffPct}%`;
+          allExpenses.push({
+            name: `Chi tiêu Hưu trí • No-Go (${diffStr})`,
+            amount: inflatedAtNo * nFactor,
+            startAge: startNo,
+            endAge: maxAge,
+            growth: infPost
+          });
+        }
+      } else {
+        allExpenses.push({
+          name: "Chi tiêu/tháng khi về hưu",
+          amount: inflatedBaseAtRetire,
+          startAge: retireAgeExp,
+          endAge: maxAge,
+          growth: infPost
+        });
+      }
+    }
+
+    const seniorCareMonthly = Number(plan.seniorCareMonthly) || 0;
+    const seniorCareAge = Number(plan.seniorCareAge) || 78;
+    if (seniorCareMonthly > 0 && plan.enableSeniorCare !== false && seniorCareAge <= maxAge) {
+      const infPre = (plan.dualInflation && plan.dualInflation.enabled) ? (Number(plan.dualInflation.inflationPre) || 2.2) : (Number(plan.inflationRate) || 4.0);
+      const infPost = (plan.dualInflation && plan.dualInflation.enabled) ? (Number(plan.dualInflation.inflationPost) || 4.0) : (Number(plan.inflationRate) || 4.0);
+      const yearsToCare = Math.max(0, seniorCareAge - curAge);
+      allExpenses.push({
+        name: "Dự phòng Chăm sóc Tuổi Già (78t+)",
+        amount: seniorCareMonthly * 12 * Math.pow(1.0 + infPre / 100.0, yearsToCare),
+        startAge: seniorCareAge,
+        endAge: maxAge,
+        growth: infPost
+      });
+    }
+
+    // Kế Hoạch Con Cái & Gia Đình (0 - 18t nuôi con, 18 - 23t đại học)
+    if (plan.familyPlan && plan.familyPlan.enabled !== false && Number(plan.familyPlan.kidsCount) > 0) {
+      const kCount = Number(plan.familyPlan.kidsCount) || 0;
+      const birthYears = [
+        Number(plan.familyPlan.kid1Birth) || 2022,
+        Number(plan.familyPlan.kid2Birth) || 2025,
+        Number(plan.familyPlan.kid3Birth) || 2027,
+        Number(plan.familyPlan.kid4Birth) || 2029
+      ];
+      const kidCostMonthly = Number(plan.familyPlan.kidCostMonthly) || 350;
+      const kidUniMonthly = Number(plan.familyPlan.kidUniMonthly) || 900;
+      const parentBirth = Number(plan.birthYear) || (curYear - curAge);
+
+      for (let k = 1; k <= Math.min(kCount, 4); k++) {
+        const kBirth = birthYears[k - 1];
+        const parentAgeAtStart = Math.max(curAge, kBirth - parentBirth);
+        const parentAgeAtUni = Math.max(curAge, (kBirth + 18) - parentBirth);
+        const parentAgeAtEnd = (kBirth + 23) - parentBirth;
+
+        if (parentAgeAtStart < parentAgeAtUni && parentAgeAtStart <= maxAge) {
+          allExpenses.push({
+            name: `Nuôi con thứ ${k} (0–18 tuổi)`,
+            amount: kidCostMonthly * 12,
+            startAge: parentAgeAtStart,
+            endAge: Math.min(parentAgeAtUni - 1, maxAge),
+            growth: 0
+          });
+        }
+        if (parentAgeAtUni <= parentAgeAtEnd && parentAgeAtUni <= maxAge) {
+          allExpenses.push({
+            name: `Đại học con thứ ${k} (18–23 tuổi)`,
+            amount: kidUniMonthly * 12,
+            startAge: parentAgeAtUni,
+            endAge: Math.min(parentAgeAtEnd, maxAge),
+            growth: 0
+          });
+        }
+      }
+    }
+
     // Collect all transition ages
     const ageSet = new Set([curAge, maxAge]);
-    plan.expenses.forEach(e => {
+    allExpenses.forEach(e => {
       if (e.enabled === false) return;
       const s = Number(e.startAge) || curAge;
       const end = Number(e.endAge) || maxAge;
@@ -2851,7 +4201,7 @@
       let totalAnnualEnd = 0;
       const expenseBreakdown = [];
 
-      plan.expenses.forEach(e => {
+      allExpenses.forEach(e => {
         if (e.enabled === false) return;
         const s = Number(e.startAge) || curAge;
         const end = Number(e.endAge) || maxAge;
@@ -2925,7 +4275,7 @@
         <div class="expense-period-card" style="border-left-color: ${borderColor};">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-              <span class="badge" style="background: ${badgeBg}; color: ${badgeColor}; font-weight: 700; font-size: 0.76rem; padding: 0.15rem 0.5rem; border-radius: 4px;">
+              <span class="badge" style="background: transparent; color: ${badgeColor}; font-weight: 700; font-size: 0.76rem; padding: 0.15rem 0;">
                 ${p.fromAge} – ${p.toAge} tuổi
               </span>
               <span style="font-size: 0.72rem; color: var(--text-muted);">
@@ -2968,13 +4318,15 @@
     const fmt = (v) => window.RetirementEngine.formatCurrency(v, cur);
 
     p.expenses.forEach((stream, idx) => {
+      const cleanName = (stream.name || '').replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
       const item = document.createElement("div");
+      item.className = "expense-item";
       const monthlyAmt = Math.round(Number(stream.amount) / 12);
 
       item.innerHTML = `
         <div class="expense-item-header">
           <div class="expense-item-name">
-            <span>${stream.name}</span>${stream.isBhxhVn ? ' <span class="field-badge font-mono" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.68rem; margin-left: 0.35rem;">Tự động (BHXH VN)</span>' : ''}
+            <span>${cleanName}</span>
           </div>
           <div class="income-item-actions">
             <button type="button" class="income-item-btn expense-item-edit" data-idx="${idx}" title="Chỉnh sửa khoản chi">Sửa</button>
@@ -2989,7 +4341,7 @@
           </div>
           <div class="expense-item-timing" style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem;">
             <span class="income-age-range">${stream.startAge} - ${stream.endAge} tuổi</span>
-            <span class="expense-growth-badge">${Number(stream.growth) === 0 ? 'Lãi cố định 0%/năm' : `+${stream.growth}%/năm`}</span>
+            ${Number(stream.growth) !== 0 ? `<span class="expense-growth-badge">+${stream.growth}%/năm</span>` : ''}
           </div>
         </div>
       `;
@@ -3004,12 +4356,18 @@
         const plan = getActivePlan();
         const stream = plan.expenses[idx];
         if (stream && stream.isBhxhVn) {
-          const panel = document.getElementById("panel-vietnam-bhxh");
+          const panel = document.getElementById("card-bhxh-income-stream");
           if (panel) {
             panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
             panel.style.transition = 'box-shadow 0.3s ease';
             panel.style.boxShadow = '0 0 0 2px #10b981';
             setTimeout(() => { panel.style.boxShadow = ''; }, 1500);
+            const body = document.getElementById("bhxh-inputs-body");
+            if (body && body.style.display === "none") {
+              body.style.display = "block";
+              const btn = document.getElementById("btn-edit-bhxh-stream");
+              if (btn) btn.innerText = "Sửa";
+            }
           }
           return;
         }
@@ -3089,7 +4447,15 @@
       if (chkDebt) chkDebt.checked = true;
     }
 
+    syncExpenseGrowthVisibility();
     modal.style.display = "flex";
+  }
+
+  // Khoản nợ vay lãi cố định (số tiền mỗi tháng đã rõ) không cần tốc độ tăng trưởng -> ẩn ô nhập
+  function syncExpenseGrowthVisibility() {
+    const isDebt = document.getElementById("inp-expense-is-debt")?.checked ?? false;
+    const group = document.getElementById("group-expense-growth");
+    if (group) group.style.display = isDebt ? "none" : "";
   }
 
   function closeExpenseModal() {
@@ -3112,8 +4478,8 @@
     const rawStart = document.getElementById("inp-expense-start").value;
     const startAge = (rawStart !== "" && !isNaN(Number(rawStart))) ? Number(rawStart) : (plan.currentAge || 29);
     const endAge = Number(document.getElementById("inp-expense-end").value) || 85;
-    const growth = Number(document.getElementById("inp-expense-growth").value) || 0;
     const isDebt = document.getElementById("inp-expense-is-debt")?.checked ?? false;
+    const growth = isDebt ? 0 : (Number(document.getElementById("inp-expense-growth").value) || 0);
 
     if (!Array.isArray(plan.expenses)) plan.expenses = [];
 
@@ -3743,6 +5109,11 @@
     // Keep Pension & Décote live display synchronized
     updatePensionDecoteUI(plan);
     updateBhxhVnUI(plan);
+    updateLmnpUI(plan);
+
+    // Bảng giai đoạn tuổi phụ thuộc tuổi nghỉ hưu -> phải render lại khi bất kỳ input nào đổi
+    renderIncomePeriodsSummary(plan);
+    renderExpensePeriodsSummary(plan);
 
     // Update Top KPIs
     document.getElementById("kpi-current-networth").innerText = window.RetirementEngine.formatCurrency(plan.currentSavings, state.currency);
@@ -3803,6 +5174,7 @@
 
     // Đồng bộ phân bổ tài sản hiện tại
     updateAssetAllocationUI(plan);
+    updateDualInflationUI(plan);
 
     const fireScoreEl = document.getElementById("kpi-fire-score");
     if (fireScoreEl) fireScoreEl.innerText = proj.readinessScore + "%";
@@ -3865,7 +5237,8 @@
       }
     }
 
-    // Render Charts
+    // Render Charts & Cards
+    updateWithdrawalStrategyCards(plan);
     renderNetWorthChart(proj);
     renderCashFlowChart(proj);
     renderProjectionsTable(proj);
@@ -4008,62 +5381,111 @@
       return rec ? Number(rec.amount) : null;
     });
 
+    const chosenStrat = activePlan.withdrawalStrategy || 'guyton_klinger';
     const hasRealEstate = proj.timeline.some(p => (p.homeEquity || 0) > 0);
     const sym = window.RetirementEngine.getCurrencySymbol(state.currency);
+
+    const strategies = [
+      { key: "guyton_klinger", name: "Lan can Guyton-Klinger", color: isLight ? "#059669" : "#10b981" },
+      { key: "bengen_4pct", name: "Quy tắc 4% Cố định (Bengen)", color: isLight ? "#2563eb" : "#3b82f6" },
+      { key: "vpw", name: "Tỷ lệ Thay đổi (VPW)", color: isLight ? "#7c3aed" : "#8b5cf6" },
+      { key: "fixed_pct", name: "Tỷ lệ Cố định (Fixed %)", color: isLight ? "#d97706" : "#f59e0b" }
+    ];
 
     const datasets = [];
 
     if (hasRealEstate) {
       const dataNetWorth = proj.timeline.map(p => state.viewMode === "nominal" ? p.totalNetWorth : p.realTotalNetWorth);
-      const dataLiquid = proj.timeline.map(p => state.viewMode === "nominal" ? p.portfolioEnd : p.realPortfolioEnd);
+      if (state.compareWithdrawals) {
+        // Khi bật so sánh 4 chiến lược: làm mờ nhẹ đường BĐS/Tổng tài sản ròng
+        datasets.push({
+          label: `Tổng Tài sản Ròng (gồm BĐS) (${sym})`,
+          data: dataNetWorth,
+          borderColor: isLight ? 'rgba(124, 58, 237, 0.45)' : 'rgba(168, 85, 247, 0.45)',
+          borderWidth: 1.8,
+          borderDash: [5, 5],
+          backgroundColor: 'transparent',
+          fill: false,
+          tension: 0.35,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          order: 10
+        });
+      } else {
+        // Dataset 1: Tổng Tài sản Ròng (Bao gồm BĐS) - Nét đứt
+        datasets.push({
+          label: `Tổng Tài sản Ròng (${sym})`,
+          data: dataNetWorth,
+          borderColor: '#a855f7',
+          borderWidth: 2.5,
+          borderDash: [6, 4],
+          backgroundColor: gradientNetWorth,
+          fill: true,
+          tension: 0.35,
+          pointRadius: pointRadii,
+          pointHoverRadius: pointHoverRadii,
+          pointBackgroundColor: pointBgColors,
+          pointBorderColor: pointBorderColors,
+          pointBorderWidth: pointBorderWidths,
+          order: 1
+        });
+      }
+    }
 
-      // Dataset 1: Tổng Tài sản Ròng (Bao gồm BĐS) - Nét đứt
-      datasets.push({
-        label: `Tổng Tài sản Ròng (${sym})`,
-        data: dataNetWorth,
-        borderColor: '#a855f7',
-        borderWidth: 2.5,
-        borderDash: [6, 4],
-        backgroundColor: gradientNetWorth,
-        fill: true,
-        tension: 0.35,
-        pointRadius: pointRadii,
-        pointHoverRadius: pointHoverRadii,
-        pointBackgroundColor: pointBgColors,
-        pointBorderColor: pointBorderColors,
-        pointBorderWidth: pointBorderWidths
-      });
+    if (state.compareWithdrawals) {
+      // 4 Nhánh Chiến Lược Rút Tiền:
+      // Trước tuổi nghỉ hưu: đi chung 1 quỹ đạo tích lũy
+      // Từ tuổi nghỉ hưu trở đi: phân nhánh độc lập theo từng chiến lược
+      strategies.forEach(strat => {
+        const isChosen = (strat.key === chosenStrat);
+        const tempPlan = { ...activePlan, withdrawalStrategy: strat.key };
+        const res = window.RetirementEngine.runProjection(tempPlan);
 
-      // Dataset 2: Danh mục Thanh khoản (Tiền & Đầu tư để rút hưu trí) - Nét liền
-      datasets.push({
-        label: `Danh mục Thanh khoản (${sym})`,
-        data: dataLiquid,
-        borderColor: '#10b981',
-        borderWidth: 3,
-        backgroundColor: gradientPortfolio,
-        fill: true,
-        tension: 0.35,
-        pointRadius: proj.timeline.map(p => (p.age === proj.retireAge) ? 4.5 : 0),
-        pointHoverRadius: 6,
-        pointBackgroundColor: '#10b981',
-        pointBorderColor: '#ffffff',
-        pointBorderWidth: 2
+        const stratData = proj.timeline.map(p => {
+          if (p.age < proj.retireAge) {
+            return state.viewMode === "nominal" ? p.portfolioEnd : p.realPortfolioEnd;
+          }
+          const matchRow = res.timeline.find(r => r.age === p.age);
+          if (!matchRow) return null;
+          return state.viewMode === "nominal" ? matchRow.portfolioEnd : matchRow.realPortfolioEnd;
+        });
+
+        datasets.push({
+          label: isChosen ? `${strat.name} (Đang chọn)` : strat.name,
+          data: stratData,
+          borderColor: strat.color,
+          borderWidth: isChosen ? 3.2 : 2.0,
+          borderDash: [],
+          backgroundColor: isChosen ? (isLight ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.12)') : 'transparent',
+          fill: false,
+          tension: 0.35,
+          pointRadius: proj.timeline.map(p => (p.age === proj.retireAge && isChosen) ? 4.5 : 0),
+          pointHoverRadius: isChosen ? 6 : 5,
+          pointBackgroundColor: strat.color,
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointHitRadius: 15,
+          order: isChosen ? 0 : 2
+        });
       });
     } else {
+      // Chế độ mặc định: 1 đường Danh mục Thanh khoản giữ màu sắc chuẩn thống nhất (không đổi màu theo chiến lược)
       const dataLiquid = proj.timeline.map(p => state.viewMode === "nominal" ? p.portfolioEnd : p.realPortfolioEnd);
+      const defaultLineColor = isLight ? '#059669' : '#10b981';
       datasets.push({
-        label: `Dự báo Tài sản (${sym})`,
+        label: hasRealEstate ? `Danh mục Thanh khoản (${sym})` : `Dự báo Tài sản (${sym})`,
         data: dataLiquid,
-        borderColor: '#10b981',
-        borderWidth: 3,
+        borderColor: defaultLineColor,
+        borderWidth: 3.0,
         backgroundColor: gradientPortfolio,
         fill: !hasActualData,
         tension: 0.35,
-        pointRadius: pointRadii,
-        pointHoverRadius: pointHoverRadii,
-        pointBackgroundColor: pointBgColors,
-        pointBorderColor: pointBorderColors,
-        pointBorderWidth: pointBorderWidths
+        pointRadius: hasRealEstate ? proj.timeline.map(p => (p.age === proj.retireAge) ? 4.5 : 0) : pointRadii,
+        pointHoverRadius: hasRealEstate ? 6 : pointHoverRadii,
+        pointBackgroundColor: hasRealEstate ? defaultLineColor : pointBgColors,
+        pointBorderColor: hasRealEstate ? '#ffffff' : pointBorderColors,
+        pointBorderWidth: hasRealEstate ? 2 : pointBorderWidths,
+        order: 0
       });
     }
 
@@ -4081,7 +5503,8 @@
         pointHoverRadius: 9,
         pointBackgroundColor: '#f59e0b',
         pointBorderColor: '#ffffff',
-        pointBorderWidth: 2
+        pointBorderWidth: 2,
+        order: -1
       });
     }
 
@@ -4101,7 +5524,7 @@
         },
         plugins: {
           legend: {
-            display: hasRealEstate || hasActualData,
+            display: state.compareWithdrawals || hasRealEstate || hasActualData,
             position: 'top',
             align: 'end',
             labels: {
@@ -4211,7 +5634,7 @@
         }
       }
 
-      window.GeminiAdvisor.updateChartBox("chart-networth", "Biểu đồ Tăng trưởng Tài sản Ròng & Đánh giá Tuổi Nghỉ Hưu Tối Ưu", {
+      const chartSummary = {
         currentAge: Number(plan.currentAge) || 29,
         targetRetireAge: Number(plan.retirementAge) || 42,
         currentNetWorth: window.RetirementEngine.formatCurrency(proj.initialPortfolio, state.currency),
@@ -4221,7 +5644,22 @@
         fireTarget: window.RetirementEngine.formatCurrency(proj.fireTargetNestEgg, state.currency),
         fireAge: proj.optimalFireAge || proj.fireAge || (Number(plan.retirementAge) || 42),
         actualTracking: actualTrackingStr
-      });
+      };
+
+      if (state.compareWithdrawals) {
+        chartSummary.compareWithdrawalsActive = true;
+        chartSummary.strategiesComparison = strategies.map(s => {
+          const p = { ...plan, withdrawalStrategy: s.key };
+          const r = window.RetirementEngine.runProjection(p);
+          return {
+            name: s.name,
+            finalPortfolio: window.RetirementEngine.formatCurrency(r.finalPortfolio, state.currency),
+            survived: r.survived ? "100% Đạt mục tiêu" : "Có rủi ro cạn vốn"
+          };
+        });
+      }
+
+      window.GeminiAdvisor.updateChartBox("chart-networth", "Biểu đồ Tăng trưởng Tài sản Ròng & Đánh giá Tuổi Nghỉ Hưu Tối Ưu", chartSummary);
     }
   }
 
@@ -4238,13 +5676,16 @@
     const isLight = document.documentElement.getAttribute("data-theme") === "light";
     const sym = window.RetirementEngine.getCurrencySymbol(state.currency);
 
+    const incomeColor = isLight ? '#059669' : '#10b981';
+    const expenseColor = isLight ? '#e11d48' : '#f43f5e';
+
     const gradientIncome = ctx.createLinearGradient(0, 0, 0, 320);
-    gradientIncome.addColorStop(0, 'rgba(59, 130, 246, 0.35)');
-    gradientIncome.addColorStop(1, 'rgba(59, 130, 246, 0.02)');
+    gradientIncome.addColorStop(0, isLight ? 'rgba(5, 150, 105, 0.32)' : 'rgba(16, 185, 129, 0.35)');
+    gradientIncome.addColorStop(1, isLight ? 'rgba(5, 150, 105, 0.02)' : 'rgba(16, 185, 129, 0.02)');
 
     const gradientExpense = ctx.createLinearGradient(0, 0, 0, 320);
-    gradientExpense.addColorStop(0, 'rgba(244, 63, 94, 0.28)');
-    gradientExpense.addColorStop(1, 'rgba(244, 63, 94, 0.02)');
+    gradientExpense.addColorStop(0, isLight ? 'rgba(225, 29, 72, 0.25)' : 'rgba(244, 63, 94, 0.28)');
+    gradientExpense.addColorStop(1, isLight ? 'rgba(225, 29, 72, 0.02)' : 'rgba(244, 63, 94, 0.02)');
 
     state.charts.cashflow = new Chart(ctx, {
       type: 'line',
@@ -4254,28 +5695,28 @@
           {
             label: `Thu nhập Hàng năm (${sym})`,
             data: incomes,
-            borderColor: '#3b82f6',
+            borderColor: incomeColor,
             backgroundColor: gradientIncome,
-            borderWidth: 2.5,
+            borderWidth: 2.8,
             fill: true,
             tension: 0.35,
             pointRadius: 0,
             pointHoverRadius: 6,
-            pointBackgroundColor: '#3b82f6',
+            pointBackgroundColor: incomeColor,
             pointBorderColor: '#ffffff',
             pointBorderWidth: 2
           },
           {
             label: `Chi tiêu Sinh hoạt (${sym})`,
             data: expenses,
-            borderColor: '#f43f5e',
+            borderColor: expenseColor,
             backgroundColor: gradientExpense,
-            borderWidth: 2.5,
+            borderWidth: 2.8,
             fill: true,
             tension: 0.35,
             pointRadius: 0,
             pointHoverRadius: 6,
-            pointBackgroundColor: '#f43f5e',
+            pointBackgroundColor: expenseColor,
             pointBorderColor: '#ffffff',
             pointBorderWidth: 2
           }
@@ -4308,17 +5749,42 @@
               title: (items) => {
                 const idx = items[0].dataIndex;
                 const p = proj.timeline[idx];
-                return p ? `Tuổi ${p.age} (Năm ${p.year})` : '';
+                return p ? `Tuổi ${p.age} (Năm ${p.year})${p.isRetired ? ' • Hưu trí' : ' • Tích lũy'}` : '';
               },
-              label: (item) => ` ${item.dataset.label}: ${window.RetirementEngine.formatCurrency(item.raw, state.currency, false)}`,
+              label: (item) => {
+                const valAnnual = item.raw || 0;
+                const valMonthly = valAnnual / 12;
+                const currSym = state.currency;
+                const formattedAnnual = window.RetirementEngine.formatCurrency(valAnnual, currSym, false);
+                const formattedMonthly = window.RetirementEngine.formatCurrency(valMonthly, currSym, false);
+                const name = item.datasetIndex === 0 ? 'Thu nhập' : 'Chi tiêu';
+                return ` ${name}: ${formattedAnnual}/năm (${formattedMonthly}/tháng)`;
+              },
               afterBody: (items) => {
                 const idx = items[0].dataIndex;
                 const p = proj.timeline[idx];
                 if (!p) return [];
-                const diff = (p.income || 0) - (p.expenses || 0);
-                const sign = diff >= 0 ? '+' : '';
-                const label = diff >= 0 ? 'Thặng dư tích lũy' : 'Rút từ danh mục';
-                return [`${label}: ${sign}${window.RetirementEngine.formatCurrency(diff, state.currency, false)}`];
+                const income = p.income || 0;
+                const expenses = p.expenses || 0;
+                const savingsAnnual = income - expenses;
+                const savingsMonthly = savingsAnnual / 12;
+                const currSym = state.currency;
+                const sign = savingsAnnual > 0 ? '+' : '';
+
+                const formattedAnnual = window.RetirementEngine.formatCurrency(savingsAnnual, currSym, false);
+                const formattedMonthly = window.RetirementEngine.formatCurrency(savingsMonthly, currSym, false);
+
+                let rateText = '';
+                if (income > 0) {
+                  const rate = (savingsAnnual / income) * 100;
+                  rateText = `, Tỷ lệ: ${rate.toFixed(1)}%`;
+                } else {
+                  rateText = ', Tỷ lệ: 0%';
+                }
+
+                return [
+                  ` Tiết kiệm: ${sign}${formattedAnnual}/năm (${sign}${formattedMonthly}/tháng)${rateText}`
+                ];
               }
             }
           }
@@ -4361,6 +5827,7 @@
 
   function renderProjectionsTable(proj) {
     const tbody = document.getElementById("projections-table-body");
+    if (!tbody) return;
     tbody.innerHTML = "";
 
     const activePlan = getActivePlan();
@@ -4415,20 +5882,16 @@
   }
 
   // -------------------------------------------------------------
-  // TAB 2: Withdrawal Strategy Comparison
+  // TAB 1 / Global: Update Withdrawal Strategy Cards & SWR
   // -------------------------------------------------------------
-  function renderWithdrawalComparison() {
+  function updateWithdrawalStrategyCards(plan) {
     try {
-      const plan = getActivePlan();
-      const canvas = document.getElementById("chart-withdrawal-comparison");
-      if (!canvas) return;
-      const ctx = canvas.getContext("2d");
-
+      if (!plan) plan = getActivePlan();
       const chosenStrat = plan.withdrawalStrategy || 'guyton_klinger';
 
       const strategies = [
-        { key: "bengen_4pct", name: "Quy tắc 4% Cố định (Bengen)", color: "#3b82f6" },
         { key: "guyton_klinger", name: "Lan can Guyton-Klinger (Khuyên dùng)", color: "#10b981" },
+        { key: "bengen_4pct", name: "Quy tắc 4% Cố định (Bengen)", color: "#3b82f6" },
         { key: "vpw", name: "Tỷ lệ Thay đổi (VPW)", color: "#8b5cf6" },
         { key: "fixed_pct", name: "Tỷ lệ Cố định (Fixed %)", color: "#f59e0b" }
       ];
@@ -4440,104 +5903,6 @@
         const b = parseInt(h.substring(4, 6), 16);
         return `rgba(${r}, ${g}, ${b}, ${alpha})`;
       }
-
-      const isLight = document.documentElement.getAttribute("data-theme") === "light";
-
-      const datasets = strategies.map(strat => {
-        const tempPlan = { ...plan, withdrawalStrategy: strat.key };
-        const res = window.RetirementEngine.runProjection(tempPlan);
-        const isChosen = (strat.key === chosenStrat);
-
-        return {
-          label: isChosen ? `${strat.name} (Đang chọn)` : strat.name,
-          data: res.timeline.map(p => p.portfolioEnd),
-          borderColor: strat.color,
-          borderWidth: isChosen ? 3.2 : 2.2,
-          borderDash: [],
-          fill: false,
-          pointRadius: 0,
-          pointHoverRadius: 6,
-          pointBackgroundColor: strat.color,
-          pointBorderColor: '#ffffff',
-          pointBorderWidth: 2,
-          pointHitRadius: 15,
-          tension: 0.3,
-          order: isChosen ? 0 : 1
-        };
-      });
-
-      if (state.charts.withdrawals) {
-        state.charts.withdrawals.destroy();
-        state.charts.withdrawals = null;
-      }
-
-      const currentAge = Number(plan.currentAge) || 29;
-      const curYear = new Date().getFullYear();
-      const bYear = Number(plan.birthYear) || (curYear - currentAge);
-      const labels = (datasets[0] && datasets[0].data) 
-        ? datasets[0].data.map((_, i) => [`${currentAge + i}t`, `${bYear + currentAge + i}`])
-        : [];
-
-      state.charts.withdrawals = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: {
-            mode: 'index',
-            intersect: false
-          },
-          plugins: {
-            legend: { 
-              display: true,
-              position: 'top',
-              labels: { 
-                color: isLight ? '#334155' : '#94a3b8', 
-                font: { family: 'Inter, sans-serif', size: 11, weight: '600' }, 
-                boxWidth: 14,
-                boxHeight: 14,
-                usePointStyle: false
-              } 
-            },
-            tooltip: {
-              backgroundColor: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.95)',
-              titleColor: isLight ? '#0f172a' : '#f8fafc',
-              bodyColor: isLight ? '#334155' : '#cbd5e1',
-              borderColor: isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.15)',
-              borderWidth: 1,
-              padding: 10,
-              callbacks: {
-                title: (items) => {
-                  const idx = items[0].dataIndex;
-                  if (labels[idx] && Array.isArray(labels[idx])) {
-                    return `Tuổi ${labels[idx][0].replace('t', '')} (Năm ${labels[idx][1]})`;
-                  }
-                  return '';
-                },
-                label: (item) => ` ${item.dataset.label}: ${window.RetirementEngine.formatCurrency(item.raw, state.currency, false)}`
-              }
-            }
-          },
-          scales: {
-            x: { 
-              grid: { color: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)' }, 
-              ticks: ageAxisTicks() 
-            },
-            y: {
-              grid: { color: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)' },
-              ticks: {
-                color: isLight ? '#475569' : '#94a3b8',
-                font: { size: 10 },
-                callback: (val) => window.RetirementEngine.formatCurrency(val, state.currency, true)
-              }
-            }
-          }
-        }
-      });
 
       // Update embedded KPIs in each Strategy Card directly
       const lifeExp = plan.lifeExpectancy || 85;
@@ -4570,9 +5935,9 @@
         if (badgeEl) {
           if (isChosen) {
             badgeEl.innerText = "Đang chọn";
-            badgeEl.style.background = "rgba(56, 189, 248, 0.2)";
-            badgeEl.style.color = "#38bdf8";
-            badgeEl.style.borderColor = "rgba(56, 189, 248, 0.4)";
+            badgeEl.style.background = "rgba(16, 185, 129, 0.15)";
+            badgeEl.style.color = "#10b981";
+            badgeEl.style.borderColor = "rgba(16, 185, 129, 0.3)";
           } else {
             badgeEl.innerText = s.key === "guyton_klinger" ? "Khuyên dùng" : s.key === "bengen_4pct" ? "Cố định" : s.key === "vpw" ? "Linh hoạt" : "Bảo toàn";
             badgeEl.style.background = "";
@@ -4588,7 +5953,7 @@
 
       // Update Top Badge
       const topBadge = document.getElementById("badge-chosen-strategy");
-      const chosenObj = strategies.find(s => s.key === chosenStrat) || strategies[1];
+      const chosenObj = strategies.find(s => s.key === chosenStrat) || strategies[0];
       if (topBadge) {
         topBadge.innerText = chosenObj.name;
         topBadge.style.color = chosenObj.color;
@@ -4603,30 +5968,35 @@
       const swrDisp = document.getElementById("val-initial-swr");
       if (swrDisp) swrDisp.innerText = swrVal;
 
-      const strategySummary = strategies.map(s => {
-        const p = { ...plan, withdrawalStrategy: s.key };
-        const r = window.RetirementEngine.runProjection(p);
-        return {
-          key: s.key,
-          name: s.name,
-          finalPortfolio: window.RetirementEngine.formatCurrency(r.finalPortfolio, state.currency),
-          survived: r.survived ? "100% Đạt mục tiêu" : "Có rủi ro cạn vốn",
-          stability: s.key === 'bengen_4pct' ? 'Cao' : s.key === 'guyton_klinger' ? 'Rất Cao (Lan can an toàn)' : 'Linh hoạt'
-        };
-      });
-
-      // Trigger Gemini Commentary analyzing ALL 4 strategies simultaneously
-      if (window.GeminiAdvisor) {
-        window.GeminiAdvisor.updateChartBox("chart-withdrawal-comparison", "So sánh 4 Chiến lược Rút tiền trên Cùng Kịch bản", {
-          mode: "all_strategies",
-          initialSWR: (plan.initialWithdrawalRate || 4.0) + "%",
-          lifeExpectancy: plan.lifeExpectancy || 85,
-          strategies: strategySummary
-        });
+      // Update Card Header & Summary indicators
+      const lblSwr = document.getElementById("lbl-strategy-card-swr");
+      if (lblSwr) {
+        lblSwr.innerHTML = `${swrVal}% SWR<small id="lbl-strategy-card-annual"> • ≈ ${window.RetirementEngine.formatCurrency(plan.retirementExpenses || 0, state.currency)}/năm</small>`;
+        lblSwr.style.color = chosenObj.color;
+      }
+      const lblName = document.getElementById("lbl-strategy-card-name");
+      if (lblName) {
+        lblName.innerText = `${chosenObj.name} • ${chosenStrat === 'guyton_klinger' ? 'Tự điều chỉnh linh hoạt' : chosenStrat === 'bengen_4pct' ? 'Rút cố định trượt giá' : chosenStrat === 'vpw' ? 'Tỷ lệ thay đổi theo tuổi' : 'Cố định theo tài sản'}`;
+      }
+      const lblAge = document.getElementById("lbl-strategy-card-age");
+      if (lblAge) {
+        lblAge.innerText = `Từ ${plan.retirementAge || 43} tuổi trở đi`;
+      }
+      const lblSurv = document.getElementById("lbl-strategy-card-survival");
+      if (lblSurv) {
+        const pChosen = { ...plan, withdrawalStrategy: chosenStrat };
+        const rChosen = window.RetirementEngine.runProjection(pChosen);
+        lblSurv.innerText = rChosen.survived ? "100% Sống sót" : "Có rủi ro cạn vốn";
+        lblSurv.style.background = rChosen.survived ? "rgba(16, 185, 129, 0.12)" : "rgba(244, 63, 94, 0.12)";
+        lblSurv.style.color = rChosen.survived ? "#34d399" : "#fb7185";
       }
     } catch (err) {
-      console.error("Lỗi vẽ biểu đồ chiến lược rút tiền:", err);
+      console.error("Lỗi cập nhật thẻ chiến lược rút tiền:", err);
     }
+  }
+
+  function renderWithdrawalComparison() {
+    updateWithdrawalStrategyCards(getActivePlan());
   }
 
   // -------------------------------------------------------------
@@ -4639,41 +6009,127 @@
     updateTaxRegimeUI(taxRegime);
 
     const proj = window.RetirementEngine.runProjection(plan);
+    const currentAge = Number(plan.currentAge) || 29;
+    const grossIncome = getActiveIncomeAtAge(plan, currentAge);
 
-    // Render French Accounts & Waterfall Savings
-    const peaVal = document.getElementById("val-acc-pea");
-    const avVal = document.getElementById("val-acc-av");
-    const livVal = document.getElementById("val-acc-livreta");
-    const waterfallBadge = document.getElementById("badge-waterfall-saved");
-
-    if (peaVal) peaVal.innerText = window.RetirementEngine.formatCurrency(plan.frenchAccounts?.peaBalance || 35000, state.currency);
-    if (avVal) avVal.innerText = window.RetirementEngine.formatCurrency(plan.frenchAccounts?.assuranceVieBalance || 10000, state.currency);
-    if (livVal) livVal.innerText = window.RetirementEngine.formatCurrency(plan.frenchAccounts?.livretABalance || 5000, state.currency);
-    if (waterfallBadge) {
-      const saved = proj.totalWaterfallTaxSaved || 18400;
-      waterfallBadge.innerText = `Tiết kiệm: ${window.RetirementEngine.formatCurrency(saved, state.currency)} thuế`;
+    // 1. Calculate live tax breakdown
+    let taxDetailed = {
+      grossIncome,
+      abattement: 0,
+      netTaxable: grossIncome,
+      totalTax: 0,
+      effectiveRate: 0,
+      marginalRate: 0,
+      bracketDetails: [],
+      pfuComparisonTax: 0,
+      taxSavedVsPFU: 0
+    };
+    if (window.TaxOptimizer && window.TaxOptimizer.calculateTaxDetailed) {
+      taxDetailed = window.TaxOptimizer.calculateTaxDetailed(grossIncome, taxRegime, {
+        customTaxRate: plan.taxRate,
+        currency: plan.currency || state.currency,
+        exchangeRateEurVnd: 27500
+      });
     }
 
+    // Render Live Breakdown Card Elements
+    const valGross = document.getElementById("val-tax-gross");
+    const valAbattement = document.getElementById("val-tax-abattement");
+    const rowAbattement = document.getElementById("row-tax-abattement");
+    const valNetBase = document.getElementById("val-tax-net-base");
+    const valTotalTax = document.getElementById("val-tax-total-amount");
+    const valEffRate = document.getElementById("val-tax-effective-rate");
+    const valMargRate = document.getElementById("val-tax-marginal-rate");
+    const rowMargRate = document.getElementById("row-tax-marginal-rate");
+    const valSavedPfu = document.getElementById("val-tax-saved-pfu");
+    const rowSavedPfu = document.getElementById("row-tax-saving-pfu");
+    const bracketsContainer = document.getElementById("container-tax-brackets-list");
+
+    if (valGross) valGross.innerText = window.RetirementEngine.formatCurrency(taxDetailed.grossIncome, state.currency);
+    if (rowAbattement) {
+      if (taxRegime === 'france_vietnam') {
+        rowAbattement.style.display = "flex";
+        if (valAbattement) valAbattement.innerText = "-" + window.RetirementEngine.formatCurrency(taxDetailed.abattement, state.currency);
+      } else {
+        rowAbattement.style.display = "none";
+      }
+    }
+    if (valNetBase) valNetBase.innerText = window.RetirementEngine.formatCurrency(taxDetailed.netTaxable, state.currency);
+    if (valTotalTax) valTotalTax.innerText = window.RetirementEngine.formatCurrency(taxDetailed.totalTax, state.currency);
+    if (valEffRate) valEffRate.innerText = `${taxDetailed.effectiveRate.toFixed(1)}%`;
+    if (rowMargRate) {
+      if (taxRegime !== 'international') {
+        rowMargRate.style.display = "flex";
+        if (valMargRate) valMargRate.innerText = `${taxDetailed.marginalRate}%`;
+      } else {
+        rowMargRate.style.display = "none";
+      }
+    }
+    if (rowSavedPfu) {
+      if (taxRegime === 'france_vietnam') {
+        rowSavedPfu.style.display = "flex";
+        if (valSavedPfu) valSavedPfu.innerText = window.RetirementEngine.formatCurrency(taxDetailed.taxSavedVsPFU, state.currency);
+      } else {
+        rowSavedPfu.style.display = "none";
+      }
+    }
+
+    if (bracketsContainer) {
+      if (taxDetailed.bracketDetails && taxDetailed.bracketDetails.length > 0) {
+        bracketsContainer.innerHTML = taxDetailed.bracketDetails.map(b => `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.2rem 0; border-bottom: 1px dashed var(--border-subtle);">
+            <span style="color: var(--text-muted);">${b.rangeLabel} (${b.ratePercent}%):</span>
+            <span class="font-mono font-bold" style="color: var(--text-main);">${window.RetirementEngine.formatCurrency(b.taxAmount, state.currency)}</span>
+          </div>
+        `).join('');
+      } else {
+        bracketsContainer.innerHTML = `<span style="color: var(--text-muted); font-size: 0.75rem;">Không phát sinh nghĩa vụ thuế trong năm.</span>`;
+      }
+    }
+
+    // 2. Render French Accounts Inputs & Waterfall Savings
+    setVal("inp-acc-pea", plan.frenchAccounts?.peaBalance ?? 35000);
+    setVal("inp-acc-av", plan.frenchAccounts?.assuranceVieBalance ?? 10000);
+    setVal("inp-acc-livreta", plan.frenchAccounts?.livretABalance ?? 5000);
+
+    const waterfallBadge = document.getElementById("badge-waterfall-saved");
+    if (window.TaxOptimizer && window.TaxOptimizer.simulateWithdrawalWaterfall) {
+      const remainingNeed = plan.annualExpenses || 25000;
+      const wf = window.TaxOptimizer.simulateWithdrawalWaterfall(remainingNeed, {
+        peaBalance: plan.frenchAccounts?.peaBalance ?? 35000,
+        assuranceVieBalance: plan.frenchAccounts?.assuranceVieBalance ?? 10000,
+        livretABalance: plan.frenchAccounts?.livretABalance ?? 5000
+      });
+      if (waterfallBadge) {
+        waterfallBadge.innerText = `Tiết kiệm: ${window.RetirementEngine.formatCurrency(wf.taxSavedVsPFU, state.currency)} thuế/năm`;
+      }
+    }
+
+    // 3. Render Chart
     if (state.charts.tax) {
       state.charts.tax.destroy();
       state.charts.tax = null;
     }
 
-    // Only render Roth Chart & ACA KPI data if US regime is selected
-    if (isUS) {
-      const rothRes = window.TaxOptimizer.planRothConversions(plan, proj);
-      const acaRes = window.TaxOptimizer.estimateAcaSubsidies(plan, proj);
+    let rothRes = null;
+    let acaRes = null;
 
-      const kpiTaxSavings = document.getElementById("kpi-tax-savings");
-      const kpiAcaSavings = document.getElementById("kpi-aca-savings");
-      if (kpiTaxSavings) kpiTaxSavings.innerText = window.RetirementEngine.formatCurrency(rothRes.cumulativeTaxSavings, state.currency);
-      if (kpiAcaSavings) kpiAcaSavings.innerText = window.RetirementEngine.formatCurrency(acaRes.totalSubsidySaved, state.currency);
+    const canvas = document.getElementById("chart-tax-optimization");
+    if (canvas) {
+      const ctx = canvas.getContext("2d");
+      const curYear = new Date().getFullYear();
+      const bYear = Number(plan.birthYear) || (curYear - (Number(plan.currentAge) || 29));
 
-      const canvas = document.getElementById("chart-tax-optimization");
-      if (canvas) {
-        const ctx = canvas.getContext("2d");
-        const curYear = new Date().getFullYear();
-        const bYear = Number(plan.birthYear) || (curYear - (Number(plan.currentAge) || 29));
+      if (isUS) {
+        // US Roth Conversion Ladder Chart
+        rothRes = window.TaxOptimizer.planRothConversions(plan, proj);
+        acaRes = window.TaxOptimizer.estimateAcaSubsidies(plan, proj);
+
+        const kpiTaxSavings = document.getElementById("kpi-tax-savings");
+        const kpiAcaSavings = document.getElementById("kpi-aca-savings");
+        if (kpiTaxSavings) kpiTaxSavings.innerText = window.RetirementEngine.formatCurrency(rothRes.cumulativeTaxSavings, state.currency);
+        if (kpiAcaSavings) kpiAcaSavings.innerText = window.RetirementEngine.formatCurrency(acaRes.totalSubsidySaved, state.currency);
+
         const labels = rothRes.schedule.map(s => [`${s.age}t`, `${bYear + s.age}`]);
         const conversionAmounts = rothRes.schedule.map(s => s.conversionAmount);
         const taxSaved = rothRes.schedule.map(s => s.cumulativeSavings);
@@ -4704,15 +6160,94 @@
           options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
             plugins: {
-              legend: { labels: { color: '#94a3b8' } }
+              legend: { labels: { color: 'var(--text-muted)' } }
             },
             scales: {
               x: { grid: { display: false }, ticks: ageAxisTicks() },
               y: {
-                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                grid: { color: 'var(--border-subtle)' },
                 ticks: {
-                  color: '#94a3b8',
+                  color: 'var(--text-muted)',
+                  callback: (val) => window.RetirementEngine.formatCurrency(val, state.currency, true)
+                }
+              }
+            }
+          }
+        });
+      } else {
+        // France / Vietnam or International Tax Trajectory Chart
+        const timeline = proj.timeline || [];
+        const labels = timeline.map(y => [`${y.age}t`, `${y.year}`]);
+        const taxesPaid = timeline.map(y => Math.round(y.tax || 0));
+        const flatTaxRef = timeline.map(y => Math.round((y.income || 0) * 0.30));
+
+        let cumulativeSaved = 0;
+        const taxSavedArr = timeline.map(y => {
+          const savedYear = Math.max(0, ((y.income || 0) * 0.30) - (y.tax || 0));
+          cumulativeSaved += savedYear;
+          return Math.round(cumulativeSaved);
+        });
+
+        state.charts.tax = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              {
+                type: 'bar',
+                label: (taxRegime === 'france_vietnam') ? 'Thuế Thu Nhập Thực Tế (Lũy tiến IR)' : 'Thuế Thu Nhập Ước Tính',
+                data: taxesPaid,
+                backgroundColor: 'rgba(244, 63, 94, 0.75)',
+                borderRadius: 4,
+                order: 2
+              },
+              {
+                type: 'line',
+                label: 'Mức Thuế Tham Chiếu (Flat Tax PFU 30%)',
+                data: flatTaxRef,
+                borderColor: '#f59e0b',
+                borderWidth: 2.2,
+                borderDash: [5, 5],
+                pointRadius: 0,
+                pointHoverRadius: 5,
+                tension: 0.35,
+                fill: false,
+                order: 1
+              },
+              {
+                type: 'line',
+                label: 'Thuế Tiết Kiệm Tích Lũy (Cumulative Saved)',
+                data: taxSavedArr,
+                borderColor: '#10b981',
+                borderWidth: 2.8,
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                tension: 0.35,
+                fill: false,
+                order: 0
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { labels: { color: 'var(--text-muted)' } },
+              tooltip: {
+                callbacks: {
+                  label: (c) => `${c.dataset.label}: ${window.RetirementEngine.formatCurrency(c.parsed.y, state.currency)}`
+                }
+              }
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: ageAxisTicks() },
+              y: {
+                grid: { color: 'var(--border-subtle)' },
+                ticks: {
+                  color: 'var(--text-muted)',
                   callback: (val) => window.RetirementEngine.formatCurrency(val, state.currency, true)
                 }
               }
@@ -4722,15 +6257,17 @@
       }
     }
 
-    // Trigger Gemini Commentary for Tax Optimization
+    // 4. Trigger Gemini Commentary for Tax Optimization safely
     if (window.GeminiAdvisor) {
-      window.GeminiAdvisor.updateChartBox("chart-tax-optimization", "Kế hoạch Chuyển đổi Roth Hàng Năm & Tiết kiệm Thuế", {
-        taxSavings: window.RetirementEngine.formatCurrency(rothRes.totalTaxSaved, state.currency),
-        acaSavings: window.RetirementEngine.formatCurrency(acaRes.totalSubsidySaved, state.currency),
+      window.GeminiAdvisor.updateChartBox("chart-tax-optimization", isUS ? "Kế hoạch Chuyển đổi Roth Hàng Năm & Tiết kiệm Thuế" : "Phân Tích Bậc Thuế & Tối Ưu Hóa Dòng Tiền", {
+        taxSavings: rothRes ? window.RetirementEngine.formatCurrency(rothRes.totalTaxSaved, state.currency) : window.RetirementEngine.formatCurrency(taxDetailed.taxSavedVsPFU, state.currency),
+        acaSavings: acaRes ? window.RetirementEngine.formatCurrency(acaRes.totalSubsidySaved, state.currency) : "0",
         peaBalance: window.RetirementEngine.formatCurrency(plan.frenchAccounts?.peaBalance || 35000, state.currency),
         avBalance: window.RetirementEngine.formatCurrency(plan.frenchAccounts?.assuranceVieBalance || 10000, state.currency),
         livretABalance: window.RetirementEngine.formatCurrency(plan.frenchAccounts?.livretABalance || 5000, state.currency),
-        waterfallTaxSaved: window.RetirementEngine.formatCurrency(proj.totalWaterfallTaxSaved || 18400, state.currency)
+        waterfallTaxSaved: window.RetirementEngine.formatCurrency(proj.totalWaterfallTaxSaved || 18400, state.currency),
+        effectiveRate: `${taxDetailed.effectiveRate.toFixed(1)}%`,
+        regime: taxRegime
       });
     }
   }
@@ -5429,8 +6966,23 @@
 
       [selCount, selStatus, inpKid1, inpKid2, inpKidCost, inpKidUni].forEach(el => {
         if (el) {
-          el.addEventListener("input", updateFamilyChildrenSimulation);
-          el.addEventListener("change", updateFamilyChildrenSimulation);
+          const syncTab4ToPlan = () => {
+            const plan = getActivePlan();
+            if (!plan.familyPlan) plan.familyPlan = { enabled: true, kidsCount: 2, status: 'couple', kid1Birth: 2022, kid2Birth: 2025, kidCostMonthly: 350, kidUniMonthly: 900 };
+            if (selCount) plan.familyPlan.kidsCount = parseInt(selCount.value) || 0;
+            if (selStatus) plan.familyPlan.status = selStatus.value || 'couple';
+            if (inpKid1) plan.familyPlan.kid1Birth = parseInt(inpKid1.value) || 2022;
+            if (inpKid2) plan.familyPlan.kid2Birth = parseInt(inpKid2.value) || 2025;
+            if (inpKidCost) plan.familyPlan.kidCostMonthly = parseFloat(inpKidCost.value) || 350;
+            if (inpKidUni) plan.familyPlan.kidUniMonthly = parseFloat(inpKidUni.value) || 900;
+            savePlansToStorage();
+            updateFamilyStreamUI(plan);
+            renderExpensePeriodsSummary(plan);
+            updateCashflowBalanceUI(plan);
+            updateAll();
+          };
+          el.addEventListener("input", syncTab4ToPlan);
+          el.addEventListener("change", syncTab4ToPlan);
         }
       });
 
@@ -5440,129 +6992,16 @@
     }
   }
 
-  function updateSpendingSmileSummary() {
-    try {
-      const plan = getActivePlan();
-      const isSmileEnabled = document.getElementById("chk-smile-enabled") ? document.getElementById("chk-smile-enabled").checked : (plan.spendingPhases?.enabled !== false);
-      const baseAnnual = Number(plan.annualExpenses) || 240000000;
-      const baseMonthly = baseAnnual / 12;
-
-      const gogoAge = Number(document.getElementById("inp-gogo-age")?.value) || plan.spendingPhases?.gogoAge || 60;
-      const gogoFactor = Number(document.getElementById("inp-gogo-factor")?.value) || plan.spendingPhases?.gogoFactor || 1.15;
-      
-      const slowgoAge = Number(document.getElementById("inp-slowgo-age")?.value) || plan.spendingPhases?.slowgoAge || 75;
-      const slowgoFactor = Number(document.getElementById("inp-slowgo-factor")?.value) || plan.spendingPhases?.slowgoFactor || 0.90;
-      
-      const nogoFactor = Number(document.getElementById("inp-nogo-factor")?.value) || plan.spendingPhases?.nogoFactor || 0.80;
-      const retireAge = plan.retirementAge || 42;
-      const lifeExp = plan.lifeExpectancy || 85;
-
-      const gogoMonthly = isSmileEnabled ? baseMonthly * gogoFactor : baseMonthly;
-      const slowgoMonthly = isSmileEnabled ? baseMonthly * slowgoFactor : baseMonthly;
-      const nogoMonthly = isSmileEnabled ? baseMonthly * nogoFactor : baseMonthly;
-
-      const setTxt = (id, txt) => {
-        const el = document.getElementById(id);
-        if (el) el.innerText = txt;
-      };
-
-      setTxt("lbl-smile-base-monthly", window.RetirementEngine.formatCurrency(baseMonthly, state.currency));
-      setTxt("lbl-smile-gogo-range", `${retireAge} – ${gogoAge} tuổi`);
-      setTxt("lbl-smile-gogo-monthly", window.RetirementEngine.formatCurrency(gogoMonthly, state.currency));
-      setTxt("lbl-smile-gogo-delta", isSmileEnabled ? `${Math.round((gogoFactor - 1) * 100) >= 0 ? '+' : ''}${Math.round((gogoFactor - 1) * 100)}% so với cơ bản` : 'Cố định 100%');
-
-      setTxt("lbl-smile-slowgo-range", `${gogoAge} – ${slowgoAge} tuổi`);
-      setTxt("lbl-smile-slowgo-monthly", window.RetirementEngine.formatCurrency(slowgoMonthly, state.currency));
-      setTxt("lbl-smile-slowgo-delta", isSmileEnabled ? `${Math.round((slowgoFactor - 1) * 100) >= 0 ? '+' : ''}${Math.round((slowgoFactor - 1) * 100)}% so với cơ bản` : 'Cố định 100%');
-
-      setTxt("lbl-smile-nogo-range", `${slowgoAge} – ${lifeExp} tuổi`);
-      setTxt("lbl-smile-nogo-monthly", window.RetirementEngine.formatCurrency(nogoMonthly, state.currency));
-      setTxt("lbl-smile-nogo-delta", isSmileEnabled ? `${Math.round((nogoFactor - 1) * 100) >= 0 ? '+' : ''}${Math.round((nogoFactor - 1) * 100)}% so với cơ bản` : 'Cố định 100%');
-    } catch (e) {
-      console.warn("updateSpendingSmileSummary error:", e);
-    }
-  }
-
-  function initSpendingSmileSimulation() {
-    try {
-      const chk = document.getElementById("chk-smile-enabled");
-      const gogoAge = document.getElementById("inp-gogo-age");
-      const gogoFactor = document.getElementById("inp-gogo-factor");
-      const slowgoAge = document.getElementById("inp-slowgo-age");
-      const slowgoFactor = document.getElementById("inp-slowgo-factor");
-      const nogoFactor = document.getElementById("inp-nogo-factor");
-
-      [chk, gogoAge, gogoFactor, slowgoAge, slowgoFactor, nogoFactor].forEach(el => {
-        if (el) {
-          el.addEventListener("input", updateSpendingSmileSummary);
-          el.addEventListener("change", updateSpendingSmileSummary);
-        }
-      });
-      updateSpendingSmileSummary();
-    } catch (e) {
-      console.warn("initSpendingSmileSimulation error:", e);
-    }
-  }
-
   function renderEstateTab() {
     const plan = getActivePlan();
     const proj = window.RetirementEngine.runProjection(plan);
 
     updateFamilyChildrenSimulation();
-    updateSpendingSmileSummary();
-
-    const ctx = document.getElementById("chart-spending-smile").getContext("2d");
-    if (state.charts.smile) {
-      state.charts.smile.destroy();
-    }
-
-    const retireAges = proj.timeline.filter(p => p.isRetired);
-    state.charts.smile = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: retireAges.map(p => [`${p.age}t`, `${p.year}`]),
-        datasets: [{
-          label: `Chi tiêu Thực tế Điều chỉnh (Spending Smile - ${window.RetirementEngine.getCurrencySymbol(state.currency)})`,
-          data: retireAges.map(p => p.expenses),
-          borderColor: '#8b5cf6',
-          backgroundColor: 'rgba(139, 92, 246, 0.1)',
-          fill: true,
-          tension: 0.35,
-          borderWidth: 3
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
-          y: {
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-            ticks: {
-              color: '#94a3b8',
-              callback: (val) => window.RetirementEngine.formatCurrency(val, state.currency, true)
-            }
-          }
-        }
-      }
-    });
 
     const milestoneBox = document.getElementById("estate-milestone-box");
     const target = plan.targetLegacy || 1000000000;
     const finalVal = proj.finalPortfolio;
     const pct = Math.round((finalVal / target) * 100);
-
-    // Trigger Gemini Commentary for Spending Smile & Estate
-    if (window.GeminiAdvisor) {
-      window.GeminiAdvisor.updateChartBox("chart-spending-smile", "Mô hình Chi tiêu Thực tế theo Độ tuổi (Spending Smile)", {
-        targetLegacy: window.RetirementEngine.formatCurrency(target, state.currency),
-        projectedLegacy: window.RetirementEngine.formatCurrency(finalVal, state.currency),
-        pctOfTarget: pct + "%",
-        retireAge: plan.retirementAge || 42,
-        lifeExpectancy: plan.lifeExpectancy || 85,
-        surplus: finalVal >= target
-      });
-    }
 
     if (!milestoneBox) return;
 
@@ -5665,8 +7104,8 @@
           tag: "tag-strategy",
           title: "Áp dụng Lan can Guyton-Klinger để chống Lạm phát",
           text: `Thay vì rút cố định 4% cứng nhắc, chiến lược Guyton-Klinger giúp bạn rút tiền nhiều hơn khi thị trường thăng hoa và tự động phòng vệ khi thị trường điều chỉnh.`,
-          action: "Xem tab Chiến lược Rút tiền →",
-          targetTab: "tab-withdrawals"
+          action: "Xem Dòng tiền & Tài sản →",
+          targetTab: "tab-projections"
         },
         {
           tag: "tag-critical",

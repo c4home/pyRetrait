@@ -41,38 +41,206 @@ window.TaxOptimizer = (function() {
 
   /**
    * Calculate progressive tax on given taxable income
+   * @param {number} taxableIncome - Thu nhập chịu thuế gộp
+   * @param {string} regime - Chế độ thuế ('france_vietnam', 'international', 'us')
+   * @param {Object|number} options - Tùy chọn (customTaxRate, currency, exchangeRateEurVnd)
    */
-  function calculateProgressiveTax(taxableIncome, regime = 'france_vietnam') {
+  function calculateProgressiveTax(taxableIncome, regime = 'france_vietnam', options = {}) {
     if (taxableIncome <= 0) return 0;
-    
-    let brackets = FR_TAX_BRACKETS;
-    let netTaxable = taxableIncome;
+
+    const customRate = (typeof options === 'number')
+      ? options
+      : (options && options.customTaxRate !== undefined && options.customTaxRate !== null && !isNaN(Number(options.customTaxRate)) ? Number(options.customTaxRate) : null);
+    const currency = (typeof options === 'object' && options.currency) ? options.currency : 'EUR';
+    const fx = (typeof options === 'object' && Number(options.exchangeRateEurVnd) > 0) ? Number(options.exchangeRateEurVnd) : 27500;
+
+    // 1. Chế độ Quốc tế / Thuế tùy chỉnh:
+    if (regime === 'international') {
+      const rate = (customRate !== null) ? customRate : 10.0;
+      return taxableIncome * (rate / 100.0);
+    }
+
+    // 2. Chế độ Pháp ↔ Việt Nam:
+    if (regime === 'france_vietnam') {
+      // Đưa về đơn vị EUR để tính chuẩn biểu thuế IR Pháp 2024
+      const incomeEur = (currency === 'VND') ? (taxableIncome / fx) : (currency === 'USD' ? taxableIncome / 1.10 : taxableIncome);
+      const abattementEur = Math.min(incomeEur * 0.10, 14171); // Giảm trừ 10% frais pro tối đa 14.171 € (2024)
+      const netTaxableEur = Math.max(0, incomeEur - abattementEur);
+
+      let taxEur = 0;
+      let prevCap = 0;
+      for (let i = 0; i < FR_TAX_BRACKETS.length; i++) {
+        const { cap, rate } = FR_TAX_BRACKETS[i];
+        if (netTaxableEur > prevCap) {
+          const chunk = Math.min(netTaxableEur - prevCap, cap - prevCap);
+          taxEur += chunk * rate;
+          prevCap = cap;
+        } else {
+          break;
+        }
+      }
+
+      if (currency === 'VND') return taxEur * fx;
+      if (currency === 'USD') return taxEur * 1.10;
+      return taxEur;
+    }
+
+    // 3. Chế độ Mỹ:
+    if (regime === 'us') {
+      const incomeUsd = (currency === 'VND') ? (taxableIncome / (fx * 1.10)) : (currency === 'EUR' ? taxableIncome * 1.10 : taxableIncome);
+      let taxUsd = 0;
+      let prevCap = 0;
+      for (let i = 0; i < US_TAX_BRACKETS_SINGLE.length; i++) {
+        const { cap, rate } = US_TAX_BRACKETS_SINGLE[i];
+        if (incomeUsd > prevCap) {
+          const chunk = Math.min(incomeUsd - prevCap, cap - prevCap);
+          taxUsd += chunk * rate;
+          prevCap = cap;
+        } else {
+          break;
+        }
+      }
+      if (currency === 'VND') return taxUsd * fx * 1.10;
+      if (currency === 'EUR') return taxUsd / 1.10;
+      return taxUsd;
+    }
+
+    return taxableIncome * 0.10;
+  }
+
+  /**
+   * Tính chi tiết từng bậc thuế (Bậc 0%, 11%, 30%...), TMI và so sánh PFU
+   */
+  function calculateTaxDetailed(taxableIncome, regime = 'france_vietnam', options = {}) {
+    if (taxableIncome <= 0) {
+      return {
+        grossIncome: 0,
+        abattement: 0,
+        netTaxable: 0,
+        totalTax: 0,
+        effectiveRate: 0,
+        marginalRate: 0,
+        bracketDetails: [],
+        pfuComparisonTax: 0,
+        taxSavedVsPFU: 0
+      };
+    }
+
+    const customRate = (typeof options === 'number')
+      ? options
+      : (options && options.customTaxRate !== undefined && options.customTaxRate !== null && !isNaN(Number(options.customTaxRate)) ? Number(options.customTaxRate) : null);
+    const currency = (typeof options === 'object' && options.currency) ? options.currency : 'EUR';
+    const fx = (typeof options === 'object' && Number(options.exchangeRateEurVnd) > 0) ? Number(options.exchangeRateEurVnd) : 27500;
+
+    if (regime === 'international') {
+      const rate = (customRate !== null) ? customRate : 10.0;
+      const totalTax = taxableIncome * (rate / 100.0);
+      return {
+        grossIncome: taxableIncome,
+        abattement: 0,
+        netTaxable: taxableIncome,
+        totalTax,
+        effectiveRate: rate,
+        marginalRate: rate,
+        bracketDetails: [
+          { bracketIndex: 1, ratePercent: rate, rangeLabel: 'Thuế suất bình quân tùy chỉnh', taxableAmount: taxableIncome, taxAmount: totalTax }
+        ],
+        pfuComparisonTax: taxableIncome * 0.30,
+        taxSavedVsPFU: Math.max(0, (taxableIncome * 0.30) - totalTax)
+      };
+    }
 
     if (regime === 'france_vietnam') {
-      // 10% Abattement forfaitaire pour frais professionnels (Plafond 14,171 €)
-      const abattement = Math.min(taxableIncome * 0.10, 14171);
-      netTaxable = Math.max(0, taxableIncome - abattement);
-      brackets = FR_TAX_BRACKETS;
-    } else if (regime === 'us') {
-      brackets = US_TAX_BRACKETS_SINGLE;
-    } else {
-      brackets = VN_TAX_BRACKETS;
-    }
-    
-    let totalTax = 0;
-    let prevCap = 0;
+      const incomeEur = (currency === 'VND') ? (taxableIncome / fx) : (currency === 'USD' ? taxableIncome / 1.10 : taxableIncome);
+      const abattementEur = Math.min(incomeEur * 0.10, 14171);
+      const netTaxableEur = Math.max(0, incomeEur - abattementEur);
 
-    for (let i = 0; i < brackets.length; i++) {
-      const { cap, rate } = brackets[i];
-      if (netTaxable > prevCap) {
-        const taxableInBracket = Math.min(netTaxable - prevCap, cap - prevCap);
-        totalTax += taxableInBracket * rate;
+      let totalTaxEur = 0;
+      let prevCap = 0;
+      let marginalRate = 0;
+      const bracketDetails = [];
+
+      for (let i = 0; i < FR_TAX_BRACKETS.length; i++) {
+        const { cap, rate } = FR_TAX_BRACKETS[i];
+        if (netTaxableEur > prevCap) {
+          const chunk = Math.min(netTaxableEur - prevCap, cap - prevCap);
+          const chunkTax = chunk * rate;
+          totalTaxEur += chunkTax;
+          marginalRate = rate * 100;
+          bracketDetails.push({
+            bracketIndex: i + 1,
+            ratePercent: rate * 100,
+            rangeLabel: cap === Infinity ? `> ${prevCap.toLocaleString('fr-FR')} €` : `${prevCap.toLocaleString('fr-FR')} € – ${cap.toLocaleString('fr-FR')} €`,
+            taxableAmount: chunk,
+            taxAmount: chunkTax
+          });
+          prevCap = cap;
+        } else {
+          break;
+        }
+      }
+
+      const convFactor = (currency === 'VND') ? fx : (currency === 'USD' ? 1.10 : 1);
+      const totalTax = totalTaxEur * convFactor;
+      const effectiveRate = taxableIncome > 0 ? (totalTax / taxableIncome) * 100 : 0;
+      const pfuComparisonTax = (incomeEur * FR_PFU_RATE) * convFactor;
+      const taxSavedVsPFU = Math.max(0, pfuComparisonTax - totalTax);
+
+      return {
+        grossIncome: taxableIncome,
+        abattement: abattementEur * convFactor,
+        netTaxable: netTaxableEur * convFactor,
+        totalTax,
+        effectiveRate,
+        marginalRate,
+        bracketDetails,
+        pfuComparisonTax,
+        taxSavedVsPFU
+      };
+    }
+
+    // US Regime
+    const incomeUsd = (currency === 'VND') ? (taxableIncome / (fx * 1.10)) : (currency === 'EUR' ? taxableIncome * 1.10 : taxableIncome);
+    let totalTaxUsd = 0;
+    let prevCap = 0;
+    let marginalRate = 0;
+    const bracketDetails = [];
+
+    for (let i = 0; i < US_TAX_BRACKETS_SINGLE.length; i++) {
+      const { cap, rate } = US_TAX_BRACKETS_SINGLE[i];
+      if (incomeUsd > prevCap) {
+        const chunk = Math.min(incomeUsd - prevCap, cap - prevCap);
+        const chunkTax = chunk * rate;
+        totalTaxUsd += chunkTax;
+        marginalRate = rate * 100;
+        bracketDetails.push({
+          bracketIndex: i + 1,
+          ratePercent: rate * 100,
+          rangeLabel: cap === Infinity ? `> $${prevCap.toLocaleString('en-US')}` : `$${prevCap.toLocaleString('en-US')} – $${cap.toLocaleString('en-US')}`,
+          taxableAmount: chunk,
+          taxAmount: chunkTax
+        });
         prevCap = cap;
       } else {
         break;
       }
     }
-    return totalTax;
+
+    const convFactor = (currency === 'VND') ? (fx * 1.10) : (currency === 'EUR' ? 1 / 1.10 : 1);
+    const totalTax = totalTaxUsd * convFactor;
+    const effectiveRate = taxableIncome > 0 ? (totalTax / taxableIncome) * 100 : 0;
+
+    return {
+      grossIncome: taxableIncome,
+      abattement: 0,
+      netTaxable: taxableIncome,
+      totalTax,
+      effectiveRate,
+      marginalRate,
+      bracketDetails,
+      pfuComparisonTax: taxableIncome * 0.30,
+      taxSavedVsPFU: Math.max(0, (taxableIncome * 0.30) - totalTax)
+    };
   }
 
   /**
@@ -288,6 +456,7 @@ window.TaxOptimizer = (function() {
 
   return {
     calculateProgressiveTax,
+    calculateTaxDetailed,
     calculateFrenchPension,
     planRothConversions,
     detectCapitalGainsHarvesting,

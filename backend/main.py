@@ -432,6 +432,16 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
             "6. ĐÚNG BIỂU ĐỒ: Tập trung 100% vào biểu đồ được yêu cầu."
         )
 
+        extra_strat_context = ""
+        if chart_summary.get("compareWithdrawalsActive") and chart_summary.get("strategiesComparison"):
+            strat_items = chart_summary.get("strategiesComparison", [])
+            lines = [f"  * {s.get('name')}: Số dư tuổi thọ ({life_exp}t) = {s.get('finalPortfolio')} — Trạng thái: {s.get('survived')}" for s in strat_items]
+            extra_strat_context = (
+                "\nĐẶC BIỆT - NGƯỜI DÙNG ĐANG BẬT SO SÁNH 4 CHIẾN LƯỢC RÚT TIỀN TRÊN CÙNG BIỂU ĐỒ:\n"
+                + "\n".join(lines) + "\n"
+                "- Yêu cầu bổ sung: Hãy phân tích, so sánh số dư tuổi thọ cuối đời giữa 4 chiến lược, chỉ ra chiến lược nào bảo toàn vốn an toàn nhất, chiến lược nào tạo dòng tiền dồi dào nhất, và đưa ra khuyến nghị phù hợp với hoàn cảnh người dùng.\n\n"
+            )
+
         prompt = (
             f"Phân tích biểu đồ '{chart_title}' (ID: {chart_id}) với dữ liệu:\n"
             f"- Kế hoạch: {plan.get('name', 'Franco-Viet FIRE')} | Tiền tệ: {cur} ({cur_sym})\n"
@@ -441,7 +451,8 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
             f"- Chi tiêu & nợ: {expenses_summary_text}\n"
             f"- Tiết kiệm/năm: {ann_sav:,.0f} {cur_sym} | Chi tiêu hưu trí: {ret_exp:,.0f} {cur_sym}/năm (~{monthly_exp_vnd}M₫/tháng)\n"
             f"- Số dư thực tế: {actual_records_text}\n"
-            f"- Dữ liệu mô phỏng: {json.dumps(chart_summary, ensure_ascii=False)}\n\n"
+            f"- Dữ liệu mô phỏng: {json.dumps(chart_summary, ensure_ascii=False)}\n"
+            f"{extra_strat_context}\n"
             f"CẤU TRÚC PHẢN HỒI (sau TL;DR):\n"
             f"### 1. Nhận xét chính về {chart_title}\n"
             f"### 2. Điểm cần lưu ý\n"
