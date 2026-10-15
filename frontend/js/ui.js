@@ -1773,6 +1773,61 @@
       }
     });
 
+    // Toggle / Expand Estate Planning & Legacy Stream Card
+    const btnToggleLegacy = document.getElementById("btn-toggle-estate-legacy");
+    if (btnToggleLegacy) {
+      btnToggleLegacy.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const body = document.getElementById("estate-legacy-inputs-body");
+        if (body) {
+          const isHidden = body.style.display === "none";
+          body.style.display = isHidden ? "block" : "none";
+          btnToggleLegacy.innerText = isHidden ? "Thu gọn" : "Mở rộng";
+        }
+      });
+    }
+
+    const chkEnableLegacy = document.getElementById("chk-enable-estate-legacy");
+    if (chkEnableLegacy) {
+      chkEnableLegacy.addEventListener("change", (e) => {
+        const card = document.getElementById("card-estate-legacy-combined");
+        if (card) {
+          card.style.opacity = e.target.checked ? "1" : "0.65";
+        }
+      });
+    }
+
+    // Health Habits Checklist listeners in Tab Sức Khỏe
+    ['chk-habit-exercise', 'chk-habit-sleep', 'chk-habit-diet', 'chk-habit-checkup', 'chk-habit-social'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("change", () => {
+          updateHealthspanScore();
+        });
+      }
+    });
+
+    // Biological Age Selects listeners in Tab Sức Khỏe
+    ['sel-bio-rhr', 'sel-bio-bp', 'sel-bio-whtr', 'sel-bio-strength'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("change", () => {
+          updateHealthspanScore();
+        });
+      }
+    });
+
+    // Cross-Border Medical Checklist listeners in Tab Sức Khỏe
+    ['chk-cross-cfe', 'chk-cross-espace', 'chk-cross-ordonnance', 'chk-cross-tiers', 'chk-cross-vitale'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("change", () => {
+          updateCrossBorderChecklist(true);
+        });
+      }
+    });
+
     // Mortgage Inputs
     const chkMort = document.getElementById('chk-mortgage-enabled');
     if (chkMort) {
@@ -5243,6 +5298,7 @@
     updateBhxhVnUI(plan);
     updateLmnpUI(plan);
     updateDualInflationUI(plan);
+    updateEstateMilestones(plan, proj);
 
     // Bảng giai đoạn tuổi phụ thuộc tuổi nghỉ hưu -> phải render lại khi bất kỳ input nào đổi
     renderIncomePeriodsSummary(plan);
@@ -7241,16 +7297,29 @@
     }
   }
 
-  function renderEstateTab() {
-    const plan = getActivePlan();
-    const proj = window.RetirementEngine.runProjection(plan);
-
-    updateFamilyChildrenSimulation();
+  function updateEstateMilestones(plan, proj) {
+    if (!plan) plan = getActivePlan();
+    if (!proj) proj = window.RetirementEngine.runProjection(plan);
 
     const milestoneBox = document.getElementById("estate-milestone-box");
-    const target = plan.targetLegacy || 1000000000;
-    const finalVal = proj.finalPortfolio;
-    const pct = Math.round((finalVal / target) * 100);
+    const target = Number(plan.targetLegacy) || 1000000000;
+    const finalVal = proj.finalTotalNetWorth !== undefined ? proj.finalTotalNetWorth : proj.finalPortfolio;
+    const pct = target > 0 ? Math.round((finalVal / target) * 100) : 100;
+
+    const lblTarget = document.getElementById("lbl-estate-legacy-target");
+    if (lblTarget) lblTarget.innerText = window.RetirementEngine.formatCurrency(target, state.currency);
+
+    const lblFinal = document.getElementById("lbl-estate-legacy-final");
+    if (lblFinal) lblFinal.innerText = `Dự kiến: ${window.RetirementEngine.formatCurrency(finalVal, state.currency)} (ở ${plan.lifeExpectancy || 85}t)`;
+
+    const lblPct = document.getElementById("lbl-estate-legacy-pct");
+    if (lblPct) {
+      lblPct.innerText = `Tiến độ: ${pct}%`;
+      lblPct.style.color = pct >= 100 ? '#10b981' : pct >= 70 ? '#f59e0b' : '#ef4444';
+    }
+
+    const lblAge = document.getElementById("lbl-estate-legacy-age");
+    if (lblAge) lblAge.innerText = `${plan.lifeExpectancy || 85} tuổi (Cuối đời)`;
 
     if (!milestoneBox) return;
 
@@ -7260,35 +7329,293 @@
     const statusText = pct >= 100 ? 'Đạt & Vượt Mục Tiêu' : pct >= 70 ? 'Tiệm Cận Mục Tiêu' : 'Chưa Đạt Mục Tiêu';
 
     milestoneBox.innerHTML = `
-      <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 0.85rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.4rem;">
-          <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;">Tiến Độ Tích Lũy Di Sản:</span>
+      <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.75rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem; flex-wrap: wrap; gap: 0.4rem;">
+          <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">Tiến Độ Tích Lũy Di Sản:</span>
           <span style="display: inline-flex; align-items: center; gap: 6px;">
-            <span style="font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700; background: ${isSurplus ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)'}; color: ${isSurplus ? '#34d399' : '#fbbf24'}; border: 1px solid ${isSurplus ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'};">${statusText}</span>
-            <strong class="${pct >= 100 ? 'text-success' : 'text-warning'} font-mono" style="font-size: 1.05rem;">${pct}%</strong>
+            <span style="font-size: 0.7rem; padding: 0.15rem 0.45rem; border-radius: 4px; font-weight: 700; background: ${isSurplus ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)'}; color: ${isSurplus ? '#059669' : '#d97706'}; border: 1px solid ${isSurplus ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'};">${statusText}</span>
+            <strong class="${pct >= 100 ? 'text-success' : 'text-warning'} font-mono" style="font-size: 0.95rem;">${pct}%</strong>
           </span>
         </div>
-        <div style="background: var(--bg-input); height: 9px; border-radius: 5px; overflow: hidden; margin-bottom: 0.75rem; border: 1px solid var(--border-subtle);">
+        <div style="background: var(--bg-input); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 0.65rem; border: 1px solid var(--border-subtle);">
           <div style="width: ${Math.min(100, pct)}%; height: 100%; background: ${barColor}; transition: width 0.3s ease;"></div>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.65rem;">
-          <div style="background: var(--bg-card-hover); padding: 0.5rem 0.65rem; border-radius: 6px; border: 1px solid var(--border-subtle);">
-            <div style="font-size: 0.7rem; color: var(--text-muted);">Dự kiến ở tuổi ${plan.lifeExpectancy || 85}</div>
-            <div style="font-weight: 700; color: #38bdf8; font-size: 0.88rem; font-family: var(--font-mono, monospace);">${window.RetirementEngine.formatCurrency(finalVal, state.currency)}</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; margin-bottom: 0.55rem;">
+          <div style="background: var(--bg-card-hover); padding: 0.45rem 0.55rem; border-radius: 6px; border: 1px solid var(--border-subtle);">
+            <div style="font-size: 0.68rem; color: var(--text-muted);">Dự kiến ở tuổi ${plan.lifeExpectancy || 85}</div>
+            <div style="font-weight: 700; color: #0284c7; font-size: 0.82rem; font-family: var(--font-mono, monospace);">${window.RetirementEngine.formatCurrency(finalVal, state.currency)}</div>
           </div>
-          <div style="background: var(--bg-card-hover); padding: 0.5rem 0.65rem; border-radius: 6px; border: 1px solid var(--border-subtle);">
-            <div style="font-size: 0.7rem; color: var(--text-muted);">${isSurplus ? 'Thặng dư thừa kế (+)' : 'Khoảng thiếu hụt (-)'}</div>
-            <div style="font-weight: 700; color: ${isSurplus ? '#34d399' : '#f87171'}; font-size: 0.88rem; font-family: var(--font-mono, monospace);">${isSurplus ? '+' : '-'}${window.RetirementEngine.formatCurrency(diff, state.currency)}</div>
+          <div style="background: var(--bg-card-hover); padding: 0.45rem 0.55rem; border-radius: 6px; border: 1px solid var(--border-subtle);">
+            <div style="font-size: 0.68rem; color: var(--text-muted);">${isSurplus ? 'Thặng dư thừa kế (+)' : 'Khoảng thiếu hụt (-)'}</div>
+            <div style="font-weight: 700; color: ${isSurplus ? '#059669' : '#e11d48'}; font-size: 0.82rem; font-family: var(--font-mono, monospace);">${isSurplus ? '+' : '-'}${window.RetirementEngine.formatCurrency(diff, state.currency)}</div>
           </div>
         </div>
-        <p style="font-size: 0.76rem; color: var(--text-muted); margin: 0; line-height: 1.45;">
+        <p style="font-size: 0.74rem; color: var(--text-muted); margin: 0; line-height: 1.4;">
           ${isSurplus 
-            ? `Bạn có đủ thặng dư di sản vượt mức mục tiêu <strong>${window.RetirementEngine.formatCurrency(target, state.currency)}</strong>. Tài sản này có thể tự do chuyển giao cho con cái hoặc hiến tặng từ thiện qua di chúc.`
-            : `Dự kiến danh mục ở tuổi ${plan.lifeExpectancy || 85} đạt <strong>${window.RetirementEngine.formatCurrency(finalVal, state.currency)}</strong>, còn thiếu <strong>${window.RetirementEngine.formatCurrency(diff, state.currency)}</strong> so với mục tiêu. Cân nhắc giảm tỷ lệ rút vốn hàng năm (SWR) hoặc tăng tích lũy trước hưu.`
+            ? `Bạn có đủ thặng dư di sản vượt mức mục tiêu <strong>${window.RetirementEngine.formatCurrency(target, state.currency)}</strong>. Tài sản này có thể tự do chuyển giao cho con cái hoặc từ thiện.`
+            : `Dự kiến danh mục ở tuổi ${plan.lifeExpectancy || 85} đạt <strong>${window.RetirementEngine.formatCurrency(finalVal, state.currency)}</strong>, còn thiếu <strong>${window.RetirementEngine.formatCurrency(diff, state.currency)}</strong> so với mục tiêu.`
           }
         </p>
       </div>
     `;
+  }
+
+  function updateBioAge() {
+    const plan = getActivePlan();
+    const currentAge = plan ? Number(plan.currentAge) || 29 : 29;
+    const lifeExpectancy = plan ? Number(plan.lifeExpectancy) || 85 : 85;
+
+    // Helper map giá trị sinh học an toàn
+    const parseBioVal = (val, type) => {
+      const num = parseFloat(val);
+      if (!isNaN(num)) return num;
+      // Map giá trị dạng string
+      switch (val) {
+        case "optimal": return -1.5;
+        case "good": return 0;
+        case "average": return type === "strength" ? 0 : 1.0;
+        case "poor": return 2.5;
+        case "elevated": return 0.5;
+        case "stage1": return 1.5;
+        case "stage2": return 3.0;
+        case "moderate": return 1.0;
+        case "high": return type === "strength" ? -1.5 : 2.5;
+        case "low": return 2.0;
+        default: return 0;
+      }
+    };
+
+    const rhrVal = document.getElementById("sel-bio-rhr")?.value || "good";
+    const bpVal = document.getElementById("sel-bio-bp")?.value || "optimal";
+    const whtrVal = document.getElementById("sel-bio-whtr")?.value || "optimal";
+    const strengthVal = document.getElementById("sel-bio-strength")?.value || "high";
+
+    const rhr = parseBioVal(rhrVal, "rhr");
+    const bp = parseBioVal(bpVal, "bp");
+    const whtr = parseBioVal(whtrVal, "whtr");
+    const strength = parseBioVal(strengthVal, "strength");
+
+    const delta = Math.round((rhr + bp + whtr + strength) * 10) / 10;
+    const bioAge = Math.max(18, Math.round((currentAge + delta) * 10) / 10);
+
+    const lblBioNum = document.getElementById("lbl-bio-age-num");
+    const lblBioBase = document.getElementById("lbl-bio-age-base");
+    const lblBioDiff = document.getElementById("lbl-bio-age-diff");
+
+    if (lblBioNum) lblBioNum.innerText = bioAge;
+    if (lblBioBase) lblBioBase.innerText = `(Tuổi thực: ${currentAge} tuổi)`;
+
+    if (lblBioDiff) {
+      if (delta < 0) {
+        lblBioDiff.className = "badge badge-success font-semibold";
+        lblBioDiff.innerText = `Trẻ hơn ${Math.abs(delta)} tuổi sinh học`;
+      } else if (delta === 0) {
+        lblBioDiff.className = "badge badge-info font-semibold";
+        lblBioDiff.innerText = `Tương đương tuổi thực tế`;
+      } else {
+        lblBioDiff.className = "badge badge-danger font-semibold";
+        lblBioDiff.innerText = `Già hơn ${delta} tuổi sinh học`;
+      }
+    }
+
+    return { bioAge, delta, currentAge, lifeExpectancy };
+  }
+
+  function updateHealthspanScore() {
+    const habits = [
+      document.getElementById("chk-habit-exercise")?.checked,
+      document.getElementById("chk-habit-sleep")?.checked,
+      document.getElementById("chk-habit-diet")?.checked,
+      document.getElementById("chk-habit-checkup")?.checked,
+      document.getElementById("chk-habit-social")?.checked
+    ];
+    const habitCount = habits.filter(Boolean).length;
+    const score = habitCount * 20;
+
+    const lblScore = document.getElementById("lbl-healthspan-score");
+    if (lblScore) lblScore.innerText = score;
+
+    const barFill = document.getElementById("bar-healthspan-fill");
+    if (barFill) barFill.style.width = `${score}%`;
+
+    const lblGrade = document.getElementById("lbl-healthspan-grade");
+    const lblEstimate = document.getElementById("lbl-healthspan-estimate");
+
+    // Lấy tuổi sinh học và thông số tuổi
+    const bioInfo = updateBioAge();
+    const currentAge = bioInfo.currentAge;
+    const lifeExpectancy = bioInfo.lifeExpectancy;
+
+    // Tính toán số năm sống khỏe (Healthspan)
+    // Thói quen lành mạnh và tuổi sinh học trẻ giúp kéo dài Healthspan
+    const habitBonus = (habitCount - 2.5) * 1.5; // -3.75 đến +3.75 năm
+    const bioBonus = -bioInfo.delta * 0.5; // delta < 0 (trẻ hơn) -> bioBonus > 0
+    const baselineHealthAge = Math.min(lifeExpectancy - 3, Math.max(currentAge + 8, Math.round(74 + habitBonus + bioBonus)));
+    const estimatedHealthspan = Math.min(lifeExpectancy - 2, Math.max(currentAge + 5, baselineHealthAge));
+
+    if (lblGrade && lblEstimate) {
+      if (score >= 80) {
+        lblGrade.className = "badge badge-success font-semibold";
+        lblGrade.innerText = `Tuyệt Vời (+5.5 năm khỏe)`;
+        lblEstimate.innerText = `Healthspan dự kiến: ${estimatedHealthspan - 2}–${estimatedHealthspan + 2} tuổi`;
+      } else if (score >= 60) {
+        lblGrade.className = "badge badge-info font-semibold";
+        lblGrade.innerText = `Khá Tốt (+3.0 năm khỏe)`;
+        lblEstimate.innerText = `Healthspan dự kiến: ${estimatedHealthspan - 2}–${estimatedHealthspan + 1} tuổi`;
+      } else if (score >= 40) {
+        lblGrade.className = "badge badge-warning font-semibold";
+        lblGrade.innerText = `Trung Bình (+1.5 năm khỏe)`;
+        lblEstimate.innerText = `Healthspan dự kiến: ${estimatedHealthspan - 2}–${estimatedHealthspan} tuổi`;
+      } else {
+        lblGrade.className = "badge badge-danger font-semibold";
+        lblGrade.innerText = `Cần Cải Thiện Sớm`;
+        lblEstimate.innerText = `Healthspan dự kiến: < ${estimatedHealthspan} tuổi`;
+      }
+    }
+
+    // 1. Cập nhật Healthspan vs Lifespan Gap Visualizer (Tính năng 1)
+    const gapYears = Math.max(1, lifeExpectancy - estimatedHealthspan);
+    const lblGapYears = document.getElementById("lbl-gap-years");
+    if (lblGapYears) {
+      lblGapYears.innerText = `Khoảng trống: ${gapYears} năm (${estimatedHealthspan}–${lifeExpectancy}t)`;
+    }
+
+    const remainingLifespan = Math.max(5, lifeExpectancy - currentAge);
+    const healthyYears = Math.max(2, estimatedHealthspan - currentAge);
+    const transitionSpan = Math.max(2, Math.min(6, Math.round((lifeExpectancy - estimatedHealthspan) * 0.55)));
+    const transitionAge = Math.min(lifeExpectancy - 1, estimatedHealthspan + transitionSpan);
+    const dependentSpan = Math.max(1, lifeExpectancy - transitionAge);
+
+    const pctHealthy = Math.round((healthyYears / remainingLifespan) * 100);
+    const pctTransition = Math.round((transitionSpan / remainingLifespan) * 100);
+    const pctDependent = Math.max(5, 100 - pctHealthy - pctTransition);
+
+    const barHealthy = document.getElementById("bar-gap-healthy");
+    const barTransition = document.getElementById("bar-gap-transition");
+    const barDependent = document.getElementById("bar-gap-dependent");
+
+    if (barHealthy) {
+      barHealthy.style.width = `${pctHealthy}%`;
+      barHealthy.style.backgroundColor = "#16a34a";
+      barHealthy.title = `Giai đoạn Độc lập & Tận hưởng: ${healthyYears} năm (${currentAge}–${estimatedHealthspan} tuổi)`;
+      const t = document.getElementById("lbl-gap-healthy-text");
+      if (t) {
+        if (pctHealthy >= 25) {
+          t.innerText = `Khỏe mạnh (${currentAge}–${estimatedHealthspan}t)`;
+        } else if (pctHealthy >= 12) {
+          t.innerText = `Khỏe (${currentAge}–${estimatedHealthspan}t)`;
+        } else {
+          t.innerText = `${currentAge}–${estimatedHealthspan}t`;
+        }
+      }
+    }
+
+    if (barTransition) {
+      barTransition.style.width = `${pctTransition}%`;
+      barTransition.title = `Giai đoạn Cần hỗ trợ y tế nhẹ: ${transitionSpan} năm (${estimatedHealthspan}–${transitionAge} tuổi)`;
+      const t = document.getElementById("lbl-gap-transition-text");
+      if (t) {
+        if (pctTransition >= 24) {
+          t.innerText = `Chậm dần (${estimatedHealthspan}–${transitionAge}t)`;
+        } else if (pctTransition >= 14) {
+          t.innerText = `Chậm (${estimatedHealthspan}–${transitionAge}t)`;
+        } else if (pctTransition >= 8) {
+          t.innerText = `${estimatedHealthspan}–${transitionAge}t`;
+        } else {
+          t.innerText = ``;
+        }
+      }
+    }
+
+    if (barDependent) {
+      barDependent.style.width = `${pctDependent}%`;
+      barDependent.title = `Giai đoạn Nguy cơ phụ thuộc / An dưỡng: ${dependentSpan} năm (${transitionAge}–${lifeExpectancy} tuổi)`;
+      const t = document.getElementById("lbl-gap-dependent-text");
+      if (t) {
+        if (pctDependent >= 24) {
+          t.innerText = `Phụ thuộc (${transitionAge}–${lifeExpectancy}t)`;
+        } else if (pctDependent >= 14) {
+          t.innerText = `Cần chăm sóc (${transitionAge}–${lifeExpectancy}t)`;
+        } else if (pctDependent >= 8) {
+          t.innerText = `${transitionAge}–${lifeExpectancy}t`;
+        } else {
+          t.innerText = ``;
+        }
+      }
+    }
+
+    const legHealthy = document.getElementById("lbl-legend-healthy");
+    const legTransition = document.getElementById("lbl-legend-transition");
+    const legDependent = document.getElementById("lbl-legend-dependent");
+
+    if (legHealthy) legHealthy.innerText = `${healthyYears} năm (${currentAge}–${estimatedHealthspan}t)`;
+    if (legTransition) legTransition.innerText = `${transitionSpan} năm (${estimatedHealthspan}–${transitionAge}t)`;
+    if (legDependent) legDependent.innerText = `${dependentSpan} năm (${transitionAge}–${lifeExpectancy}t)`;
+  }
+
+  function updateCrossBorderChecklist(save = true) {
+    const checklistIds = [
+      'chk-cross-cfe',
+      'chk-cross-espace',
+      'chk-cross-ordonnance',
+      'chk-cross-tiers',
+      'chk-cross-vitale'
+    ];
+
+    if (save) {
+      const checkedIds = checklistIds.filter(id => document.getElementById(id)?.checked);
+      try {
+        localStorage.setItem('pyretrait_crossborder_checklist', JSON.stringify(checkedIds));
+      } catch (e) {
+        console.warn("Could not save crossborder checklist to localStorage:", e);
+      }
+    } else {
+      try {
+        const saved = JSON.parse(localStorage.getItem('pyretrait_crossborder_checklist') || '[]');
+        if (Array.isArray(saved)) {
+          checklistIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.checked = saved.includes(id);
+          });
+        }
+      } catch (e) {
+        console.warn("Could not load crossborder checklist from localStorage:", e);
+      }
+    }
+
+    const completed = checklistIds.filter(id => document.getElementById(id)?.checked).length;
+    const lblProgress = document.getElementById("lbl-checklist-progress");
+    if (lblProgress) {
+      lblProgress.innerText = `Đã hoàn thành ${completed}/5`;
+      if (completed === 5) {
+        lblProgress.className = "badge badge-success font-semibold";
+      } else if (completed >= 2) {
+        lblProgress.className = "badge badge-info font-semibold";
+      } else {
+        lblProgress.className = "badge badge-warning font-semibold";
+      }
+    }
+  }
+
+  function renderHealthTab() {
+    updateHealthspanScore();
+    updateCrossBorderChecklist(false);
+
+    // Đồng bộ ngân sách y tế dự phòng theo loại tiền tệ
+    const isVnd = state.currency === 'VND';
+    const isUsd = state.currency === 'USD';
+
+    const b30 = document.getElementById("lbl-budget-age-30");
+    const b45 = document.getElementById("lbl-budget-age-45");
+    const b60 = document.getElementById("lbl-budget-age-60");
+
+    if (b30) b30.innerText = isVnd ? "≈ 1.1 Tr ₫/tháng" : isUsd ? "≈ $45/tháng" : "≈ 40 €/tháng";
+    if (b45) b45.innerText = isVnd ? "≈ 2.7 Tr ₫/tháng" : isUsd ? "≈ $110/tháng" : "≈ 100 €/tháng";
+    if (b60) b60.innerText = isVnd ? "≈ 4.9 Tr ₫/tháng" : isUsd ? "≈ $195/tháng" : "≈ 180 €/tháng";
+  }
+
+  function renderEstateTab() {
+    renderHealthTab();
   }
 
   // -------------------------------------------------------------

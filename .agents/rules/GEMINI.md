@@ -8,16 +8,26 @@
 - **Hỗ Trợ Đa Ngôn Ngữ Giao Diện (Internationalization - i18n) & Kiến Trúc Mở Rộng N Ngôn Ngữ:**
   - Hệ thống hỗ trợ đa ngôn ngữ linh hoạt với kiến trúc mở rộng không giới hạn (hiện tại hỗ trợ: **Tiếng Việt (`vi`)**, **Tiếng Anh (`en`)**, **Tiếng Pháp (`fr`)**, và sẵn sàng mở rộng thêm bất kỳ ngôn ngữ nào như `de`, `es`, `ja`...).
   - Ngôn ngữ mặc định khởi tạo: **Tiếng Việt (`vi`)**.
-  - **Quy Chuẩn Điều Khiển Chuyển Ngôn Ngữ (Scalable Dropdown Selector):**
-    - Để tính tới việc có nhiều ngôn ngữ khác nhau trong tương lai, cụm chuyển đổi ngôn ngữ trên thanh Header bắt buộc phải dùng **Dropdown Menu Selector co giãn linh hoạt** (`.lang-dropdown-container`), hiển thị mã ngôn ngữ hiện tại (ví dụ: `VI ▾`) và khi bấm sẽ mở menu danh sách các ngôn ngữ có thể chọn.
+  - **Quy Chuẩn Điều Khiển Chuyển Ngôn Ngữ (Scalable Dropdown Selector Kèm Cờ Quốc Gia):**
+    - Để tính tới việc có nhiều ngôn ngữ khác nhau trong tương lai, cụm chuyển đổi ngôn ngữ trên thanh Header bắt buộc phải dùng **Dropdown Menu Selector co giãn linh hoạt** (`.lang-dropdown-container`), hiển thị icon cờ quốc gia cùng mã ngôn ngữ hiện tại (ví dụ: `🇻🇳 VI ▾`) và khi bấm sẽ mở menu danh sách các ngôn ngữ có thể chọn (mỗi mục kèm cờ quốc gia như 🇻🇳 Tiếng Việt, 🇬🇧 English, 🇫🇷 Français).
     - **Tuyệt đối KHÔNG hardcode dàn hàng ngang các nút bấm cố định** (như `VI | EN | FR`), vì khi số lượng ngôn ngữ tăng lên (5, 10 ngôn ngữ...) sẽ gây chiếm dụng diện tích, tràn vỡ bố cục thanh Header.
-    - Danh sách ngôn ngữ được nạp động từ mảng cấu hình `AVAILABLE_LANGUAGES = [{ code, label, short }]` trong `i18n.js`. Khi thêm ngôn ngữ mới, chỉ cần khai báo metadata vào mảng này và bổ sung từ điển tương ứng, menu dropdown sẽ tự động cập nhật mà không cần sửa code HTML.
+    - Danh sách ngôn ngữ được nạp động từ mảng cấu hình `AVAILABLE_LANGUAGES = [{ code, label, short, flag }]` trong `i18n.js`. Khi thêm ngôn ngữ mới, chỉ cần khai báo metadata vào mảng này và bổ sung từ điển tương ứng, menu dropdown sẽ tự động cập nhật mà không cần sửa code HTML.
     - Vị trí cụm chọn ngôn ngữ: Đặt trang trọng trên thanh điều khiển phía trên (Header), ngay phía trước nút chuyển giao diện Sáng/Tối.
   - Toàn bộ văn bản hiển thị trên giao diện (nhãn label, tooltip title, placeholder, thẻ điều hướng tab, thông báo status) phải được quản lý tập trung qua module `i18n.js`:
     - Khai báo trên HTML bằng các thuộc tính chuẩn: `data-i18n="key"`, `data-i18n-title="key"`, `data-i18n-placeholder="key"`.
     - Gọi hàm helper trong JavaScript: `window.I18n.t(key, fallback)` đối với các chuỗi sinh động (dynamic HTML, nhãn biểu đồ, tooltip).
   - Khi thêm bất kỳ tính năng, nút bấm, biểu đồ hoặc thẻ nội dung mới lên giao diện, **bắt buộc phải bổ sung đầy đủ bản dịch cho các ngôn ngữ đang hoạt động** trong từ điển của `i18n.js`.
   - Trạng thái ngôn ngữ được lưu tự động trong `localStorage` (key: `pyretrait_lang`) và kích hoạt sự kiện `pyretrait:language-changed` để cập nhật giao diện tức thì mà không cần tải lại trang.
+- **Quy Chuẩn Ngôn Ngữ Phổ Thông Cho Đại Chúng (Plain Language & Mass Audience UX — Phục Vụ 100,000+ Người Dùng):**
+  - **Tư duy tiếp cận đại chúng:** Ứng dụng hướng tới phục vụ 100,000+ người dùng phổ thông, đa dạng lứa tuổi, nghề nghiệp và trình độ học vấn. Mọi nội dung hiển thị phải dễ hiểu, trong sáng và mang tính ứng dụng thực tế ngay lập tức.
+  - **Tối thiểu hóa thuật ngữ kỹ thuật (technical jargon):** Tuyệt đối không lạm dụng các thuật ngữ hàn lâm, đao to búa lớn của phòng thí nghiệm hoặc giới y khoa / tài chính chuyên sâu (như *Zone 2*, *Glymphatic*, *Sarcopenia*, *Autophagy*, *Polyphenol*, *Sulforaphane*, *Apigenin*, *Nocturia*, *GI thấp*...).
+  - **Tránh tuyệt đối cảm giác AI bịa từ / ảo giác (Anti-Hallucination Perception):** Các thuật ngữ lạ lẫm như "Cardio Zone 2" khiến đại đa số người dùng nghĩ rằng AI bịa từ hoặc hallucination. Bắt buộc chuyển hóa thành cách diễn đạt thuần Việt đời thường, dễ liên tưởng:
+    - Thay vì "Cardio (Zone 2)" ➔ Dùng: "Vận động vừa sức (Đi bộ nhanh, chạy bộ nhẹ nhàng hoặc đạp xe vừa sức)".
+    - Thay vì "chống Sarcopenia" ➔ Dùng: "chống teo cơ tuổi già / giữ cơ bắp dẻo dai".
+    - Thay vì "kích hoạt Autophagy" ➔ Dùng: "giúp cơ thể tự dọn dẹp tế bào cũ hỏng".
+    - Thay vì "hệ thống Glymphatic dọn mảng bám amyloid não" ➔ Dùng: "giúp não bộ tự làm sạch các chất thải tích tụ ban ngày, ngừa sa sút trí tuệ".
+    - Thay vì "tránh Nocturia" ➔ Dùng: "tránh thức giấc đi tiểu đêm làm đứt đoạn giấc ngủ sâu".
+  - **Chỉ sử dụng thuật ngữ khi thực sự cần thiết:** Khi bắt buộc phải nhắc đến một khái niệm tài chính hoặc y khoa chuẩn, luôn phải có giải thích ngắn gọn bằng ví dụ đời thường mở ngoặc đi kèm.
 - **Tuyệt đối KHÔNG viết công thức bằng cú pháp LaTeX (cấm dùng `$$...$$`, `$...$`, `\text{...}`, `\frac{...}`):**
   - Trong toàn bộ giao tiếp chat, tài liệu Markdown (`.md`), giải thích nghiệp vụ và UI: Mọi công thức tính toán tài chính phải được trình bày dưới dạng văn bản thường trực quan, dễ đọc hoặc code block đơn giản (ví dụ: `Tỷ lệ rút năm nay = Số tiền dự kiến rút / Số dư tài sản thực tế`, hoặc `Rút(t) = Danh mục(0) * SWR * (1 + lạm phát)^t`). Tuyệt đối không dùng LaTeX vì gây rối mắt, thô kệch và lỗi hiển thị khi không có trình render chuyên dụng.
 
@@ -149,6 +159,10 @@
     - **Quy định đối với thẻ `<code>` và các khối công thức:**
       - Thẻ `<code>` khi dùng để thể hiện công thức tài chính, giải thuật hoặc ghi chú nghiệp vụ trong giao diện người dùng bắt buộc phải kế thừa `font-family: var(--font-sans);` kết hợp `font-weight: 500` hoặc `600`, bo góc, padding và màu sắc hài hòa.
       - **Chỉ dùng `var(--font-mono)` hoặc `monospace` cho:** Các con số tài chính dạng bảng cần căn thẳng hàng (tabular figures), mã định danh (ticker, transaction ID, hash) hoặc câu lệnh kỹ thuật/terminal thuần túy không chứa văn bản giao diện.
+      - **Tuyệt đối KHÔNG gộp chữ cái hoặc đơn vị đo lường (như `t`, `tuổi`, `năm`, `tháng`, `đ`, `€`, `%`) vào chung thẻ mang font `monospace` (`.font-mono`):**
+        - Font monospace biến các chữ cái thường (đặc biệt chữ `t` có nét gạch ngang và chân chữ dạng slab thô kệch) trở nên lạc quẻ, thô ráp và đứt gãy hoàn toàn so với các từ ngữ xung quanh.
+        - Các con số thống kê hoặc chỉ số Hero/Card lớn (như Điểm sức khỏe `80`, Tuổi sinh học `24.5`, Tuổi hưu `60`) bắt buộc phải dùng font giao diện chuẩn `var(--font-sans)` (Inter) kết hợp `font-weight: 700 - 800`.
+        - Bắt buộc tách bạch giữa **Giá trị số** và **Đơn vị đo lường**: Giá trị số nằm riêng trong thẻ hiển thị số, đơn vị đo lường (như `tuổi`, `năm`, `điểm`) phải đặt riêng ở thẻ con kế bên (`<span style="font-size: 0.85rem; color: var(--text-muted); font-family: var(--font-sans);">tuổi</span>`), tuyệt đối không nối chuỗi kiểu `${bioAge}t tuổi`.
   - **Quy Chuẩn Đồng Nhất Hệ Màu Cho Cột Mốc (Life Milestones & Chart Pins):**
     - Toàn bộ các mốc sự kiện cuộc đời (Life Milestones) trên thanh Ribbon, Modal và trên Biểu Đồ (ghim mốc nổi floating pins, đường gióng nét đứt vertical guidelines, các chấm tròn data points) bắt buộc phải **dùng chung một hệ màu thống nhất theo theme**, tuyệt đối KHÔNG để mỗi mốc một màu sắc cầu vồng sặc sỡ (hồng, cam, vàng, tím, lục...).
     - **Trong Light Mode (`[data-theme="light"]`):**

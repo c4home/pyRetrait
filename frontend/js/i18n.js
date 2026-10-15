@@ -11,9 +11,9 @@
 
   // Cấu hình danh sách ngôn ngữ hỗ trợ (dễ dàng mở rộng thêm N ngôn ngữ mới)
   const AVAILABLE_LANGUAGES = [
-    { code: 'vi', label: 'Tiếng Việt', short: 'VI' },
-    { code: 'en', label: 'English', short: 'EN' },
-    { code: 'fr', label: 'Français', short: 'FR' },
+    { code: 'vi', label: 'Tiếng Việt', short: 'VI', flag: '🇻🇳' },
+    { code: 'en', label: 'English', short: 'EN', flag: '🇬🇧' },
+    { code: 'fr', label: 'Français', short: 'FR', flag: '🇫🇷' },
   ];
   const SUPPORTED_LANGS = AVAILABLE_LANGUAGES.map(l => l.code);
 
@@ -21,6 +21,7 @@
     vi: {
       // Topbar Header
       "app_title": "pyRetrait — Hoạch định Độc lập Tài chính & Nghỉ hưu sớm (FIRE)",
+      "brand_tagline": "Độc Lập Tài Chính",
       "plan_select_label": "Kế hoạch:",
       "quick_setup": "Thiết lập nhanh",
       "new_plan": "+ Mới",
@@ -35,25 +36,25 @@
 
       // Navigation Sidebar
       "nav_projections": "Dòng tiền & Tài sản",
-      "nav_projections_sub": "Cash-Flow Projections",
+      "nav_projections_sub": "Thu nhập có đủ chi tiêu hay không?",
       "nav_insights": "Monte Carlo & Rủi ro",
-      "nav_insights_sub": "Deeper Insights & SRR",
+      "nav_insights_sub": "Có nguy cơ cạn sạch tiền trước tuổi già không?",
       "nav_scenarios": "Kịch bản What-If",
-      "nav_scenarios_sub": "What-If Scenarios",
+      "nav_scenarios_sub": "Sẽ ra sao nếu bị bệnh hay thị trường khủng hoảng?",
       "nav_patrimoine": "Quản lý BĐS & Đội xe",
-      "nav_patrimoine_sub": "Gestion de Patrimoine",
+      "nav_patrimoine_sub": "Bất động sản sinh lời bao nhiêu mỗi tháng?",
       "nav_tax": "Tối ưu Thuế & Roth",
-      "nav_tax_sub": "Tax Optimization & Roth",
+      "nav_tax_sub": "Làm sao giữ lại tối đa tiền sau thuế?",
       "nav_milestones": "Cột Mốc Cuộc Đời",
-      "nav_milestones_sub": "Life Milestones",
+      "nav_milestones_sub": "Khi nào mua nhà, sinh con hay tất toán nợ?",
       "nav_table": "Bảng Dòng Tiền Hàng Năm",
-      "nav_table_sub": "Detailed Annual Table",
-      "nav_family": "Gia đình, Sức khỏe & Di sản",
-      "nav_family_sub": "Family, Health & Legacy",
+      "nav_table_sub": "Dòng tiền chi tiết từng năm đến cuối đời",
+      "nav_family": "Sức Khỏe & Y Tế Dự Phòng",
+      "nav_family_sub": "Làm sao sống thọ mà vẫn khỏe mạnh độc lập?",
       "nav_gemini": "Tư Vấn Trí Tuệ Gemini AI",
-      "nav_gemini_sub": "AI Financial Advisor",
+      "nav_gemini_sub": "Chiến lược nào tối ưu nhất cho hoàn cảnh của bạn?",
       "nav_export": "Xuất Dữ Liệu Báo Cáo",
-      "nav_export_sub": "Export PDF / CSV / JSON",
+      "nav_export_sub": "In báo cáo tài chính hưu trí PDF hoặc Excel",
 
       // Top KPIs
       "kpi_current_networth": "Tài sản ròng hiện tại",
@@ -73,6 +74,10 @@
       "card_lmnp_turo": "Doanh thu BĐS LMNP & Cho thuê xe Turo",
       "card_senior_care": "Dự phòng Chăm sóc Tuổi Già (78t+)",
       "card_family_plan": "Kế Hoạch Con Cái & Gia Đình",
+      "card_estate_legacy": "Kế Hoạch Thừa Kế & Đánh Giá Mục Tiêu Di Sản",
+      "card_healthspan_title": "Chỉ Số Tuổi Thọ Khỏe Mạnh (Healthspan vs Lifespan)",
+      "card_preventive_budget_title": "Hoạch Định Ngân Sách Y Tế Dự Phòng Theo Độ Tuổi",
+      "card_health_roadmap_title": "Lộ Trình Tầm Soát Y Tế Vàng Theo Mốc Tuổi",
 
       // Parameters
       "param_current_age": "Tuổi hiện tại",
@@ -147,6 +152,7 @@
     en: {
       // Topbar Header
       "app_title": "pyRetrait — Financial Independence & Early Retirement (FIRE) Planner",
+      "brand_tagline": "Financial Independence",
       "plan_select_label": "Plan:",
       "quick_setup": "Quick Setup",
       "new_plan": "+ New",
@@ -161,25 +167,25 @@
 
       // Navigation Sidebar
       "nav_projections": "Cash Flow & Wealth",
-      "nav_projections_sub": "Cash-Flow Projections",
+      "nav_projections_sub": "Will your income cover all expenses?",
       "nav_insights": "Monte Carlo & Risk",
-      "nav_insights_sub": "Deeper Insights & SRR",
+      "nav_insights_sub": "Will your portfolio survive market crashes?",
       "nav_scenarios": "What-If Scenarios",
-      "nav_scenarios_sub": "What-If Scenarios",
+      "nav_scenarios_sub": "What if you get sick or markets crash?",
       "nav_patrimoine": "Real Estate & Cars",
-      "nav_patrimoine_sub": "Asset Management",
+      "nav_patrimoine_sub": "How much net rental cash flow every month?",
       "nav_tax": "Tax & Roth Optimization",
-      "nav_tax_sub": "Tax Optimization & Roth",
+      "nav_tax_sub": "How to legally minimize taxes and keep more wealth?",
       "nav_milestones": "Life Milestones",
-      "nav_milestones_sub": "Life Milestones",
+      "nav_milestones_sub": "When to buy a home, have kids, or clear debt?",
       "nav_table": "Annual Cash Flow Table",
-      "nav_table_sub": "Detailed Annual Table",
-      "nav_family": "Family, Health & Legacy",
-      "nav_family_sub": "Family, Health & Legacy",
+      "nav_table_sub": "Detailed cash flow projection year by year",
+      "nav_family": "Health & Longevity",
+      "nav_family_sub": "How to stay healthy & independent in old age?",
       "nav_gemini": "Gemini AI Advisor",
-      "nav_gemini_sub": "AI Financial Advisor",
+      "nav_gemini_sub": "What is the optimal strategy for your situation?",
       "nav_export": "Export Reports",
-      "nav_export_sub": "Export PDF / CSV / JSON",
+      "nav_export_sub": "Export retirement financial report to PDF/Excel",
 
       // Top KPIs
       "kpi_current_networth": "Current Net Worth",
@@ -199,6 +205,10 @@
       "card_lmnp_turo": "LMNP Real Estate & Turo Fleet Income",
       "card_senior_care": "Senior Long-Term Care Reserve (Age 78+)",
       "card_family_plan": "Children & Family Planning",
+      "card_estate_legacy": "Estate Planning & Legacy Milestone",
+      "card_healthspan_title": "Healthspan & Longevity Score",
+      "card_preventive_budget_title": "Preventive Healthcare Budget by Age",
+      "card_health_roadmap_title": "Preventive Health Milestones Roadmap",
 
       // Parameters
       "param_current_age": "Current Age",
@@ -273,6 +283,7 @@
     fr: {
       // Topbar Header
       "app_title": "pyRetrait — Planificateur d'Indépendance Financière & Retraite Anticipée (FIRE)",
+      "brand_tagline": "Indépendance Financière",
       "plan_select_label": "Plan :",
       "quick_setup": "Configuration Rapide",
       "new_plan": "+ Nouveau",
@@ -287,25 +298,25 @@
 
       // Navigation Sidebar
       "nav_projections": "Flux & Patrimoine",
-      "nav_projections_sub": "Projections de Flux",
+      "nav_projections_sub": "Vos revenus couvriront-ils vos dépenses ?",
       "nav_insights": "Monte Carlo & Risques",
-      "nav_insights_sub": "Analyses Avancées & SRR",
+      "nav_insights_sub": "Votre capital résistera-t-il aux krachs boursiers ?",
       "nav_scenarios": "Scénarios What-If",
-      "nav_scenarios_sub": "Scénarios & Chocs",
+      "nav_scenarios_sub": "Que se passe-t-il en cas de maladie ou de crise ?",
       "nav_patrimoine": "Immobilier & Flotte Auto",
-      "nav_patrimoine_sub": "Gestion de Patrimoine",
+      "nav_patrimoine_sub": "Combien rapporte votre immobilier par mois ?",
       "nav_tax": "Fiscalité & Optimisation",
-      "nav_tax_sub": "Optimisation Fiscale & Roth",
+      "nav_tax_sub": "Comment préserver vos gains après impôts ?",
       "nav_milestones": "Étapes de Vie",
-      "nav_milestones_sub": "Jalons & Événements",
+      "nav_milestones_sub": "Quand acheter, avoir des enfants ou solder vos prêts ?",
       "nav_table": "Tableau des Flux Annuels",
-      "nav_table_sub": "Tableau Détaillé par Âge",
-      "nav_family": "Famille, Santé & Succession",
-      "nav_family_sub": "Famille & Dépendance",
+      "nav_table_sub": "Flux de trésorerie détaillés année par année",
+      "nav_family": "Santé & Longévité",
+      "nav_family_sub": "Comment vieillir en bonne santé et autonome ?",
       "nav_gemini": "Conseiller IA Gemini",
-      "nav_gemini_sub": "Intelligence Financière",
+      "nav_gemini_sub": "Quelle est la meilleure stratégie pour votre profil ?",
       "nav_export": "Exportation & Rapports",
-      "nav_export_sub": "Export PDF / CSV / JSON",
+      "nav_export_sub": "Exporter votre bilan de retraite en PDF ou Excel",
 
       // Top KPIs
       "kpi_current_networth": "Patrimoine Net Actuel",
@@ -325,6 +336,10 @@
       "card_lmnp_turo": "Revenus Immobiliers LMNP & Flotte Turo",
       "card_senior_care": "Réserve Dépendance & EHPAD (78+ ans)",
       "card_family_plan": "Plan Enfants & Famille",
+      "card_estate_legacy": "Planification Successorale & Transmission",
+      "card_healthspan_title": "Score d'Espérance de Vie en Bonne Santé",
+      "card_preventive_budget_title": "Budget Santé Préventive par Âge",
+      "card_health_roadmap_title": "Calendrier des Bilans de Santé Préventifs",
 
       // Parameters
       "param_current_age": "Âge actuel",
@@ -483,14 +498,19 @@
     // Sinh danh sách ngôn ngữ động từ AVAILABLE_LANGUAGES
     menu.innerHTML = AVAILABLE_LANGUAGES.map(item => `
       <button type="button" class="lang-menu-item ${item.code === currentLang ? 'active' : ''}" data-lang="${item.code}" role="menuitem">
+        <span class="lang-item-flag">${item.flag || ''}</span>
         <span class="lang-item-code">${item.short}</span>
         <span class="lang-item-label">${item.label}</span>
       </button>
     `).join('');
 
+    const cur = AVAILABLE_LANGUAGES.find(l => l.code === currentLang);
     if (currentCode) {
-      const cur = AVAILABLE_LANGUAGES.find(l => l.code === currentLang);
       currentCode.textContent = cur ? cur.short : currentLang.toUpperCase();
+    }
+    const currentFlag = document.getElementById('lang-current-flag');
+    if (currentFlag && cur && cur.flag) {
+      currentFlag.textContent = cur.flag;
     }
 
     // Gắn sự kiện click cho từng mục ngôn ngữ
