@@ -128,7 +128,7 @@ window.GeminiAdvisor = (function () {
         success: false,
         source: "fallback",
         model: "Gemini Intelligence",
-        analysis: `### Đánh giá từ Gemini AI\n- Đang hiển thị dữ liệu mô phỏng dựa trên cấu hình hiện tại của bạn.\n- Hãy đảm bảo các thông số đầu vào được cập nhật đầy đủ để nhận được phân tích tối ưu.`
+        analysis: `### Đánh giá Kế hoạch\n- Đang hiển thị dữ liệu mô phỏng dựa trên cấu hình hiện tại của bạn.\n- Hãy đảm bảo các thông số đầu vào được cập nhật đầy đủ để nhận được phân tích tối ưu.`
       };
     }
   }
@@ -158,7 +158,7 @@ window.GeminiAdvisor = (function () {
       contentEl.innerHTML = `
         <div class="gemini-loading">
           <span class="gemini-spinner"></span>
-          <span>Gemini AI đang phân tích dữ liệu chuyên sâu...</span>
+          <span>Đang phân tích dữ liệu chuyên sâu...</span>
         </div>
       `;
     }

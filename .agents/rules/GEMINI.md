@@ -198,6 +198,11 @@
       - Trục hoành thời gian (Age/Year Axis): Dùng chuẩn `ageAxisTicks()` với nhãn 2 dòng nằm ngang (`35t \n 2032`, `maxRotation: 0`), font `Inter` 9px, tránh xoay chữ 45 độ làm rối và chiếm dụng không gian.
     - **Cập nhật tức thời khi đổi Theme:**
       - Hàm `toggleTheme()` phải luôn kích hoạt re-render toàn bộ các biểu đồ (`updateAll()`) để cập nhật màu sắc trục, đường kẻ và thẻ ghim ngay lập tức.
+  - **Quy Chuẩn Nhất Quán Màu Sắc Logic Theo Cột Dữ Liệu (Consistent Semantic Color System & Anti-Visual Noise):**
+    - **Tuyệt đối KHÔNG lạm dụng đa sắc cầu vồng trong cùng một cụm dữ liệu hoặc cùng một cột:** Mỗi cụm chức năng/cột dữ liệu chỉ được sử dụng một hệ màu chủ đạo duy nhất đại diện cho bản chất kinh tế của dòng tiền.
+    - **Cột 1 (Các Luồng Thu Nhập & Tài Sản Vào):** Bắt buộc dùng 100% hệ màu Xanh Lá (`#10b981` / `#059669`). Mọi thẻ thu nhập (lương, BĐS LMNP, lương hưu Pháp, BHXH VN, cổ tức) đều mang viền và điểm nhấn xanh lá.
+    - **Cột 2 (Các Luồng Chi Tiêu & Nghĩa Vụ Ra):** Bắt buộc dùng 100% hệ màu Đỏ/Rose (`#f43f5e` / `#e11d48`). Toàn bộ các thẻ chi tiêu bên trong cột này (bao gồm: Chi tiêu hưu trí, Kế hoạch con cái & gia đình, Dự phòng chăm sóc tuổi già, Kế hoạch thừa kế & di sản, Chi tiêu tùy chỉnh) **phải thống nhất dùng chung một tông màu Đỏ/Rose chủ đạo**. Tuyệt đối cấm tình trạng thẻ con cái tô màu tím, thẻ thừa kế tô màu vàng cam, thẻ tuổi già tô màu đỏ... làm vỡ tính định vị logic và gây hoa mắt cho người dùng.
+    - **Loại bỏ badge/nhãn trạng thái thừa thãi:** Tránh chèn các badge trạng thái lặp lại tiêu đề thẻ (ví dụ: cấm đặt badge "Di Sản & Thừa Kế" bên trong thẻ đã có tiêu đề "Kế Hoạch Thừa Kế & Đánh Giá Mục Tiêu Di Sản").
   - **Checklist bắt buộc trước khi hoàn thành task UI:**
     - Luôn tự kiểm tra đối chiếu component mới/được sửa trên cả 2 chế độ:
       1. Dark Mode: Nền tối sang trọng, viền mờ tinh tế, chữ sáng dễ đọc.

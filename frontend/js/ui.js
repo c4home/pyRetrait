@@ -866,7 +866,7 @@
           savePlansToStorage();
           updateAll();
           if (window.GeminiAdvisor) {
-            window.GeminiAdvisor.updateChartBox("chart-networth", "chart-networth", {}, true);
+            window.GeminiAdvisor.updateChartBox("chart-projections", "Kế hoạch Tài chính & Dòng tiền Hưu trí", {}, true);
           }
         }
       });
@@ -1599,12 +1599,28 @@
       }
     });
 
-    // Asset Allocation Sliders
-    ['inp-alloc-stocks', 'inp-alloc-bonds', 'inp-alloc-re', 'inp-alloc-cash'].forEach(id => {
+    // Asset Allocation Sliders (Tổng 4 cột không được vượt quá 100%, nhưng không cần đầy đủ 100%)
+    const allocSliderIds = ['inp-alloc-stocks', 'inp-alloc-bonds', 'inp-alloc-re', 'inp-alloc-cash'];
+    allocSliderIds.forEach(id => {
       const el = document.getElementById(id);
       if (el) {
         ['input', 'change'].forEach(evt => {
           el.addEventListener(evt, () => {
+            let currentVal = Number(el.value) || 0;
+            let otherSum = 0;
+            allocSliderIds.forEach(otherId => {
+              if (otherId !== id) {
+                const otherEl = document.getElementById(otherId);
+                otherSum += otherEl ? (Number(otherEl.value) || 0) : 0;
+              }
+            });
+
+            // Không cho phép tổng 4 cột vượt quá 100%
+            if (currentVal + otherSum > 100) {
+              currentVal = Math.max(0, 100 - otherSum);
+              el.value = currentVal;
+            }
+
             updateAssetAllocationUI();
             savePlansToStorage();
             updateAll();
@@ -2195,18 +2211,36 @@
     if (lblRE) lblRE.innerText = `${re}% • ${reAmtFormatted} (6.5%/năm)`;
     if (lblCash) lblCash.innerText = `${cash}% • ${cashAmtFormatted} (1.5%/năm)`;
 
+    const totalPct = Math.min(100, Math.max(0, stocks + bonds + re + cash));
+    const unallocatedPct = Math.max(0, 100 - totalPct);
+    const unallocatedAmt = Math.round(totalSavings * (unallocatedPct / 100));
+    const unallocatedAmtFormatted = window.RetirementEngine.formatCurrency(unallocatedAmt, cur);
+
     const returns = p.assetReturns || { stocks: 9.5, bonds: 3.5, realEstate: 6.5, cash: 1.5 };
     const weighted = window.RetirementEngine.calculateWeightedReturn({ stocks, bonds, realEstate: re, cash }, returns, 0.3);
 
-    const totalPct = stocks + bonds + re + cash;
-    let totalWarning = "";
-    if (totalPct !== 100) {
-      totalWarning = ` <span style="color:var(--warning); font-weight:700;">(Tổng: ${totalPct}% - nên cân chỉnh về 100%)</span>`;
+    const activeClassesCount = [stocks, bonds, re, cash].filter(v => v > 0).length;
+    const bonusRate = activeClassesCount >= 2 ? (0.3 * (totalPct / 100)) : 0;
+
+    let allocStatusNotice = "";
+    if (unallocatedPct > 0) {
+      allocStatusNotice = ` <span style="color:var(--text-muted); font-weight:600;">(Đã phân bổ: ${totalPct}% • Còn ${unallocatedPct}% vốn nhàn rỗi ${unallocatedAmtFormatted} chưa đầu tư)</span>`;
+    } else {
+      allocStatusNotice = ` <span style="color:var(--success); font-weight:600;">(Đã phân bổ trọn vẹn 100% vốn)</span>`;
     }
 
     if (badgeWeighted) badgeWeighted.innerText = `${weighted}%/năm`;
     if (lblWeightedCalc) {
-      lblWeightedCalc.innerHTML = `<strong>${weighted}%/năm</strong> (đã gồm +0.3% thưởng kỷ luật tái cân bằng)${totalWarning}<div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem; font-family: var(--font-sans);">Công thức: (${stocks}% × 9.5%) + (${bonds}% × 3.5%) + (${re}% × 6.5%) + (${cash}% × 1.5%) + 0.3% = ${weighted}%</div>`;
+      let formulaParts = [];
+      if (stocks > 0) formulaParts.push(`(${stocks}% × 9.5%)`);
+      if (bonds > 0) formulaParts.push(`(${bonds}% × 3.5%)`);
+      if (re > 0) formulaParts.push(`(${re}% × 6.5%)`);
+      if (cash > 0) formulaParts.push(`(${cash}% × 1.5%)`);
+      if (unallocatedPct > 0) formulaParts.push(`(${unallocatedPct}% chưa đầu tư × 0%)`);
+      if (formulaParts.length === 0) formulaParts.push(`(100% chưa đầu tư × 0%)`);
+
+      const formulaStr = formulaParts.join(" + ") + (bonusRate > 0 ? ` + ${bonusRate.toFixed(2)}% tái cân bằng` : "");
+      lblWeightedCalc.innerHTML = `<strong>${weighted}%/năm</strong>${allocStatusNotice}<div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem; font-family: var(--font-sans);">Công thức: ${formulaStr} = ${weighted}%</div>`;
     }
 
     // Cập nhật thẻ Phân bổ Danh mục & Tái cân bằng trong Cột Thu nhập
@@ -2216,14 +2250,17 @@
     const chkEnable = document.getElementById("chk-enable-asset-allocation");
 
     if (lblCardRatio) {
-      let ratioText = `${stocks}% CP • ${bonds}% TP • ${re}% BĐS`;
-      if (cash > 0) {
-        ratioText += ` • ${cash}% TM`;
-      }
-      lblCardRatio.innerText = ratioText;
+      let ratioItems = [];
+      if (stocks > 0) ratioItems.push(`${stocks}% CP`);
+      if (bonds > 0) ratioItems.push(`${bonds}% TP`);
+      if (re > 0) ratioItems.push(`${re}% BĐS`);
+      if (cash > 0) ratioItems.push(`${cash}% TM`);
+      if (unallocatedPct > 0) ratioItems.push(`${unallocatedPct}% Nhàn rỗi`);
+      if (ratioItems.length === 0) ratioItems.push(`100% Chưa đầu tư`);
+      lblCardRatio.innerText = ratioItems.join(" • ");
     }
     if (lblCardBonus) {
-      lblCardBonus.innerText = `+0.3% Tái cân bằng`;
+      lblCardBonus.innerText = bonusRate > 0 ? `+${bonusRate.toFixed(2)}% Tái cân bằng` : `0% Tái cân bằng`;
     }
 
     if (chkEnable) {
@@ -3617,37 +3654,27 @@
     }
 
     container.innerHTML = periods.map(p => {
-      const isZero = p.totalMonthly === 0;
-      const borderColor = p.isRetirePeriod ? '#34d399' : '#10b981';
-      const badgeColor = p.isRetirePeriod ? '#6ee7b7' : '#34d399';
-
-      const hasGrowth = p.totalAnnual !== p.totalAnnualEnd;
-      const monthlyStr = hasGrowth
-        ? `+${window.RetirementEngine.formatCurrency(p.totalMonthly, state.currency)} - ${window.RetirementEngine.formatCurrency(p.totalMonthlyEnd, state.currency)}/tháng`
-        : `+${window.RetirementEngine.formatCurrency(p.totalMonthly, state.currency)}/tháng`;
-      const annualStr = hasGrowth
-        ? `≈ ${window.RetirementEngine.formatCurrency(p.totalAnnual, state.currency)} - ${window.RetirementEngine.formatCurrency(p.totalAnnualEnd, state.currency)}/năm`
-        : `≈ ${window.RetirementEngine.formatCurrency(p.totalAnnual, state.currency)}/năm`;
-
+      let withMoStart = 0, withMoEnd = 0, withAnnStart = 0, withAnnEnd = 0;
       let withdrawalChipHtml = "";
+
       if (p.isRetirePeriod && proj && Array.isArray(proj.timeline)) {
         const pRows = proj.timeline.filter(r => r.age >= p.startAge && r.age <= p.endAge && r.isRetired);
         if (pRows.length > 0) {
           const firstR = pRows[0];
           const lastR = pRows[pRows.length - 1];
-          const startAnn = (firstR.netCashFlow < 0) ? Math.round(-firstR.netCashFlow) : 0;
-          const endAnn = (lastR.netCashFlow < 0) ? Math.round(-lastR.netCashFlow) : 0;
-          const startMo = Math.round(startAnn / 12);
-          const endMo = Math.round(endAnn / 12);
+          withAnnStart = (firstR.netCashFlow < 0) ? Math.round(-firstR.netCashFlow) : 0;
+          withAnnEnd = (lastR.netCashFlow < 0) ? Math.round(-lastR.netCashFlow) : 0;
+          withMoStart = Math.round(withAnnStart / 12);
+          withMoEnd = Math.round(withAnnEnd / 12);
 
-          if (startAnn > 0 || endAnn > 0) {
-            const hasWithGrowth = (startAnn !== endAnn);
+          if (withAnnStart > 0 || withAnnEnd > 0) {
+            const hasWithGrowth = (withAnnStart !== withAnnEnd);
             const withMonthlyStr = hasWithGrowth
-              ? `${fmt(startMo)} - ${fmt(endMo)}/tháng`
-              : `${fmt(startMo)}/tháng`;
+              ? `${fmt(withMoStart)} - ${fmt(withMoEnd)}/tháng`
+              : `${fmt(withMoStart)}/tháng`;
             const withAnnualStr = hasWithGrowth
-              ? `≈ ${fmt(startAnn)} - ${fmt(endAnn)}/năm`
-              : `≈ ${fmt(startAnn)}/năm`;
+              ? `≈ ${fmt(withAnnStart)} - ${fmt(withAnnEnd)}/năm`
+              : `≈ ${fmt(withAnnStart)}/năm`;
 
             withdrawalChipHtml = `
               <span class="period-chip chip-withdrawal-period" title="Số tiền dự kiến rút từ danh mục đầu tư theo quy tắc ${escapeHtml(curStratInfo.full)} (SWR ${swrVal}%) • Quy đổi năm: ${withAnnualStr}">
@@ -3657,6 +3684,34 @@
           }
         }
       }
+
+      // Trong kỳ hưu trí: tổng dòng tiền chi tiêu khả dụng về tài khoản = Thu nhập định kỳ + Tiền rút vốn
+      const effMoStart = p.isRetirePeriod ? (p.totalMonthly + withMoStart) : p.totalMonthly;
+      const effMoEnd = p.isRetirePeriod ? (p.totalMonthlyEnd + withMoEnd) : p.totalMonthlyEnd;
+      const effAnnStart = p.isRetirePeriod ? (p.totalAnnual + withAnnStart) : p.totalAnnual;
+      const effAnnEnd = p.isRetirePeriod ? (p.totalAnnualEnd + withAnnEnd) : p.totalAnnualEnd;
+
+      const isZero = effMoStart === 0 && effMoEnd === 0;
+      const borderColor = p.isRetirePeriod ? '#34d399' : '#10b981';
+      const badgeColor = p.isRetirePeriod ? '#6ee7b7' : '#34d399';
+
+      const hasGrowth = effAnnStart !== effAnnEnd;
+      const monthlyStr = hasGrowth
+        ? `+${window.RetirementEngine.formatCurrency(effMoStart, state.currency)} - ${window.RetirementEngine.formatCurrency(effMoEnd, state.currency)}/tháng`
+        : `+${window.RetirementEngine.formatCurrency(effMoStart, state.currency)}/tháng`;
+
+      let annualLabelSuffix = "";
+      if (p.isRetirePeriod) {
+        if (p.totalMonthly === 0 && withMoStart > 0) {
+          annualLabelSuffix = " • Từ rút vốn";
+        } else if (p.totalMonthly > 0 && withMoStart > 0) {
+          annualLabelSuffix = " • Thu nhập + Rút vốn";
+        }
+      }
+
+      const annualStr = hasGrowth
+        ? `≈ ${window.RetirementEngine.formatCurrency(effAnnStart, state.currency)} - ${window.RetirementEngine.formatCurrency(effAnnEnd, state.currency)}/năm${annualLabelSuffix}`
+        : `≈ ${window.RetirementEngine.formatCurrency(effAnnStart, state.currency)}/năm${annualLabelSuffix}`;
 
       const streamsHtml = p.streams.length > 0
         ? p.streams.map(s => {
@@ -3703,6 +3758,84 @@
         </div>
       `;
     }).join("");
+  }
+
+  function triggerPlanProjectionsInsight(proj) {
+    if (!window.GeminiAdvisor) return;
+    const plan = getActivePlan();
+    if (!plan || !proj) return;
+
+    let actualTrackingStr = "Chưa có dữ liệu theo dõi thực tế";
+    const actualRecords = Array.isArray(plan.actualRecords) ? plan.actualRecords : [];
+    if (actualRecords.length > 0 && proj.timeline && proj.timeline.length > 0) {
+      const sortedActual = [...actualRecords].sort((a, b) => (a.year || 0) - (b.year || 0));
+      const latestRec = sortedActual[sortedActual.length - 1];
+      const maxActualYear = latestRec.year || new Date(latestRec.date).getFullYear();
+      const latestTimelineRow = proj.timeline.find(row => row.year === maxActualYear);
+      if (latestTimelineRow) {
+        const forecastVal = (plan.assetClassBreakdown && plan.assetClassBreakdown.length > 0)
+          ? (state.viewMode === "nominal" ? latestTimelineRow.totalNetWorth : latestTimelineRow.realTotalNetWorth)
+          : (state.viewMode === "nominal" ? latestTimelineRow.portfolioEnd : latestTimelineRow.realPortfolioEnd);
+        const diff = latestRec.amount - forecastVal;
+        const diffPct = forecastVal !== 0 ? ((diff / Math.abs(forecastVal)) * 100).toFixed(1) : '0';
+        const sign = diff >= 0 ? '+' : '';
+        actualTrackingStr = `Năm ${maxActualYear} (tuổi ${latestTimelineRow.age}): Thực tế ${window.RetirementEngine.formatCurrency(latestRec.amount, state.currency)}, Dự báo ${window.RetirementEngine.formatCurrency(forecastVal, state.currency)} (Chênh lệch ${sign}${window.RetirementEngine.formatCurrency(diff, state.currency)} / ${sign}${diffPct}%)`;
+      }
+    }
+
+    const optFireAge = proj.optimalFireAge || proj.fireAge || (Number(plan.retirementAge) || 42);
+
+    const chartSummary = {
+      currentAge: Number(plan.currentAge) || 29,
+      targetRetireAge: Number(plan.retirementAge) || 42,
+      optimalFireAge: optFireAge,
+      lifeExpectancy: Number(plan.lifeExpectancy) || 85,
+      currentNetWorth: window.RetirementEngine.formatCurrency(proj.initialPortfolio, state.currency),
+      currentSavings: window.RetirementEngine.formatCurrency(plan.currentSavings || 0, state.currency),
+      annualSavings: window.RetirementEngine.formatCurrency(plan.annualSavings || 0, state.currency),
+      retirementExpenses: window.RetirementEngine.formatCurrency(plan.retirementExpenses || 0, state.currency),
+      peakNetWorth: window.RetirementEngine.formatCurrency(proj.peakNetWorth, state.currency),
+      peakAge: proj.peakAge,
+      finalNetWorth: window.RetirementEngine.formatCurrency(proj.finalTotalNetWorth, state.currency),
+      finalPortfolio: window.RetirementEngine.formatCurrency(proj.finalPortfolio, state.currency),
+      fireTarget: window.RetirementEngine.formatCurrency(proj.fireTargetNestEgg, state.currency),
+      survived: proj.survived ? "100% An toàn vốn" : "Có nguy cơ cạn vốn",
+      withdrawalStrategy: plan.withdrawalStrategy,
+      initialWithdrawalRate: `${plan.initialWithdrawalRate || 3.5}%`,
+      totalLifetimeIncome: window.RetirementEngine.formatCurrency(proj.totalLifetimeIncome, state.currency),
+      totalLifetimeExpenses: window.RetirementEngine.formatCurrency(proj.totalLifetimeExpenses, state.currency),
+      actualTracking: actualTrackingStr
+    };
+
+    if (state.compareWithdrawals) {
+      chartSummary.compareWithdrawalsActive = true;
+      const stratKeys = [
+        { key: "bengen", name: "Bengen 4% Rule" },
+        { key: "guyton_klinger", name: "Guyton-Klinger" },
+        { key: "vpw", name: "VPW" },
+        { key: "fixed", name: "Fixed %" }
+      ];
+      chartSummary.strategiesComparison = stratKeys.map(s => {
+        const p = { ...plan, withdrawalStrategy: s.key };
+        const r = window.RetirementEngine.runProjection(p);
+        return {
+          name: s.name,
+          finalPortfolio: window.RetirementEngine.formatCurrency(r.finalPortfolio, state.currency),
+          survived: r.survived ? "100% Đạt mục tiêu" : "Có rủi ro cạn vốn"
+        };
+      });
+    }
+
+    const periods = (typeof computeIncomePeriods === 'function') ? computeIncomePeriods(plan) : [];
+    if (periods && periods.length > 0) {
+      chartSummary.incomePeriods = periods.map(p => `${p.startAge}–${p.endAge}t (${p.phaseLabel}): +${window.RetirementEngine.formatCurrency(p.totalMonthly, state.currency)}/tháng [${p.streams.map(str => str.name).join(', ')}]`).join(" | ");
+    }
+
+    window.GeminiAdvisor.updateChartBox(
+      "chart-projections",
+      "Kế hoạch Tài chính & Dòng tiền Hưu trí",
+      chartSummary
+    );
   }
 
   function renderIncomeStreamsList() {
@@ -5415,7 +5548,7 @@
         probEl.className = "metric-value " + (mcSuccessRate >= 80 ? "text-success font-semibold" : (mcSuccessRate >= 50 ? "text-warning font-semibold" : "text-danger font-semibold"));
       }
       if (statusEl) {
-        statusEl.innerText = mcSuccessRate >= 80 ? "FIRE Tự tin" : (mcSuccessRate >= 50 ? "Khá Rủi ro" : "Cần Điều chỉnh");
+        statusEl.innerText = mcSuccessRate >= 80 ? "Vững chắc" : (mcSuccessRate >= 50 ? "Khá Rủi ro" : "Cần Điều chỉnh");
         statusEl.className = "summary-status " + (mcSuccessRate >= 80 ? "status-success" : (mcSuccessRate >= 50 ? "status-warning" : "status-danger"));
       }
     } else {
@@ -5424,7 +5557,7 @@
         probEl.className = "metric-value " + (proj.survived ? "text-success" : "text-danger");
       }
       if (statusEl) {
-        statusEl.innerText = proj.survived ? "FIRE Vững chắc" : "Cần Điều chỉnh";
+        statusEl.innerText = proj.survived ? "Vững chắc" : "Cần Điều chỉnh";
         statusEl.className = "summary-status " + (proj.survived ? "status-success" : "status-danger");
       }
     }
@@ -5435,6 +5568,7 @@
     renderCashFlowChart(proj);
     renderProjectionsTable(proj);
     renderIncomePeriodsSummary(plan);
+    triggerPlanProjectionsInsight(proj);
 
     // Also re-render current active tab if different from projections
     if (state.activeTab && state.activeTab !== "tab-projections") {
@@ -5869,59 +6003,24 @@
         }
       }
     });
-
-    // Trigger Gemini Commentary for Net Worth Trajectory & Optimal Retirement Age
-    if (window.GeminiAdvisor) {
-      const plan = getActivePlan();
-      let actualTrackingStr = "Chưa có mốc số dư thực tế";
-      if (hasActualData && maxActualYear > -Infinity) {
-        const latestRec = actualMapByYear.get(maxActualYear);
-        const latestTimelineRow = proj.timeline.find(p => p.year === maxActualYear);
-        if (latestRec && latestTimelineRow) {
-          const forecastVal = hasRealEstate
-            ? (state.viewMode === "nominal" ? latestTimelineRow.totalNetWorth : latestTimelineRow.realTotalNetWorth)
-            : (state.viewMode === "nominal" ? latestTimelineRow.portfolioEnd : latestTimelineRow.realPortfolioEnd);
-          const diff = latestRec.amount - forecastVal;
-          const diffPct = forecastVal !== 0 ? ((diff / Math.abs(forecastVal)) * 100).toFixed(1) : '0';
-          const sign = diff >= 0 ? '+' : '';
-          actualTrackingStr = `Năm ${maxActualYear} (tuổi ${latestTimelineRow.age}): Thực tế ${window.RetirementEngine.formatCurrency(latestRec.amount, state.currency)}, Dự báo ${window.RetirementEngine.formatCurrency(forecastVal, state.currency)} (Chênh lệch ${sign}${window.RetirementEngine.formatCurrency(diff, state.currency)} / ${sign}${diffPct}%)`;
-        }
-      }
-
-      const chartSummary = {
-        currentAge: Number(plan.currentAge) || 29,
-        targetRetireAge: Number(plan.retirementAge) || 42,
-        currentNetWorth: window.RetirementEngine.formatCurrency(proj.initialPortfolio, state.currency),
-        peakNetWorth: window.RetirementEngine.formatCurrency(proj.peakNetWorth, state.currency),
-        peakAge: proj.peakAge,
-        finalNetWorth: window.RetirementEngine.formatCurrency(proj.finalTotalNetWorth, state.currency),
-        fireTarget: window.RetirementEngine.formatCurrency(proj.fireTargetNestEgg, state.currency),
-        fireAge: proj.optimalFireAge || proj.fireAge || (Number(plan.retirementAge) || 42),
-        actualTracking: actualTrackingStr
-      };
-
-      if (state.compareWithdrawals) {
-        chartSummary.compareWithdrawalsActive = true;
-        chartSummary.strategiesComparison = strategies.map(s => {
-          const p = { ...plan, withdrawalStrategy: s.key };
-          const r = window.RetirementEngine.runProjection(p);
-          return {
-            name: s.name,
-            finalPortfolio: window.RetirementEngine.formatCurrency(r.finalPortfolio, state.currency),
-            survived: r.survived ? "100% Đạt mục tiêu" : "Có rủi ro cạn vốn"
-          };
-        });
-      }
-
-      window.GeminiAdvisor.updateChartBox("chart-networth", "Biểu đồ Tăng trưởng Tài sản Ròng & Đánh giá Tuổi Nghỉ Hưu Tối Ưu", chartSummary);
-    }
   }
 
   function renderCashFlowChart(proj) {
     const ctx = document.getElementById("chart-cashflow").getContext("2d");
+    const activePlan = getActivePlan();
+    const stratKey = activePlan.withdrawalStrategy || 'guyton_klinger';
+    const stratMap = {
+      'guyton_klinger': 'Guyton-Klinger',
+      'bengen_4pct': 'Bengen 4%',
+      'vpw': 'VPW',
+      'fixed_pct': 'Fixed %'
+    };
+    const stratName = stratMap[stratKey] || 'Guyton-Klinger';
+
     const labels = proj.timeline.map(p => [`${p.age}t`, `${p.year}`]);
     const incomes = proj.timeline.map(p => p.income);
     const expenses = proj.timeline.map(p => p.expenses);
+    const withdrawals = proj.timeline.map(p => p.isRetired ? (p.withdrawal || 0) : null);
 
     if (state.charts.cashflow) {
       state.charts.cashflow.destroy();
@@ -5939,11 +6038,7 @@
 
     const incomeColor = isLight ? '#059669' : '#10b981';
     const expenseColor = isLight ? '#e11d48' : '#f43f5e';
-
-    const unifiedMilestoneBg = isLight ? "#ffffff" : "rgba(15, 23, 42, 0.95)";
-    const unifiedMilestoneBorder = isLight ? "#cbd5e1" : "rgba(56, 189, 248, 0.45)";
-    const unifiedMilestoneLine = isLight ? "rgba(2, 132, 199, 0.4)" : "rgba(56, 189, 248, 0.4)";
-    const unifiedMilestoneText = isLight ? "#0284c7" : "#38bdf8";
+    const withdrawalColor = isLight ? '#7c3aed' : '#a855f7';
 
     const pointRadii = proj.timeline.map(p => milestoneMap.has(p.age) ? 4.5 : 0);
     const pointHoverRadii = proj.timeline.map(p => milestoneMap.has(p.age) ? 7.5 : 6);
@@ -5955,6 +6050,10 @@
     const gradientExpense = ctx.createLinearGradient(0, 0, 0, 320);
     gradientExpense.addColorStop(0, isLight ? 'rgba(225, 29, 72, 0.25)' : 'rgba(244, 63, 94, 0.28)');
     gradientExpense.addColorStop(1, isLight ? 'rgba(225, 29, 72, 0.02)' : 'rgba(244, 63, 94, 0.02)');
+
+    const gradientWithdrawal = ctx.createLinearGradient(0, 0, 0, 320);
+    gradientWithdrawal.addColorStop(0, isLight ? 'rgba(124, 58, 237, 0.22)' : 'rgba(168, 85, 247, 0.25)');
+    gradientWithdrawal.addColorStop(1, isLight ? 'rgba(124, 58, 237, 0.02)' : 'rgba(168, 85, 247, 0.02)');
 
     // Custom Plugin to Draw Milestone Vertical Guidelines & Floating Pins on Cash Flow Chart
     const milestoneMarkersCashFlowPlugin = {
@@ -5996,6 +6095,21 @@
             pointBackgroundColor: expenseColor,
             pointBorderColor: '#ffffff',
             pointBorderWidth: 2
+          },
+          {
+            label: `Dòng tiền Rút vốn [${stratName}] (${sym})`,
+            data: withdrawals,
+            borderColor: withdrawalColor,
+            backgroundColor: gradientWithdrawal,
+            borderWidth: 2.8,
+            borderDash: [5, 4],
+            fill: false,
+            tension: 0.35,
+            pointRadius: pointRadii,
+            pointHoverRadius: pointHoverRadii,
+            pointBackgroundColor: withdrawalColor,
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2
           }
         ]
       },
@@ -6035,39 +6149,55 @@
                 return p ? `Tuổi ${p.age} (Năm ${p.year})${phaseStr}` : '';
               },
               label: (item) => {
-                const valAnnual = item.raw || 0;
+                const valAnnual = item.raw;
+                if (valAnnual === null || valAnnual === undefined) return null;
                 const valMonthly = valAnnual / 12;
                 const currSym = state.currency;
                 const formattedAnnual = window.RetirementEngine.formatCurrency(valAnnual, currSym, false);
                 const formattedMonthly = window.RetirementEngine.formatCurrency(valMonthly, currSym, false);
-                const name = item.datasetIndex === 0 ? 'Thu nhập' : 'Chi tiêu';
+                let name = 'Thu nhập ngoài';
+                if (item.datasetIndex === 1) name = 'Chi tiêu sinh hoạt';
+                else if (item.datasetIndex === 2) name = `Rút vốn (${stratName})`;
                 return ` ${name}: ${formattedAnnual}/năm (${formattedMonthly}/tháng)`;
               },
               afterBody: (items) => {
                 const idx = items[0].dataIndex;
                 const p = proj.timeline[idx];
                 if (!p) return [];
-                const income = p.income || 0;
-                const expenses = p.expenses || 0;
-                const savingsAnnual = income - expenses;
-                const savingsMonthly = savingsAnnual / 12;
                 const currSym = state.currency;
-                const sign = savingsAnnual > 0 ? '+' : '';
+                const lines = [];
 
-                const formattedAnnual = window.RetirementEngine.formatCurrency(savingsAnnual, currSym, false);
-                const formattedMonthly = window.RetirementEngine.formatCurrency(savingsMonthly, currSym, false);
-
-                let rateText = '';
-                if (income > 0) {
-                  const rate = (savingsAnnual / income) * 100;
-                  rateText = `, Tỷ lệ: ${rate.toFixed(1)}%`;
+                if (!p.isRetired) {
+                  // Giai đoạn tích lũy: Tiết kiệm
+                  const income = p.income || 0;
+                  const expenses = p.expenses || 0;
+                  const savingsAnnual = income - expenses;
+                  const savingsMonthly = savingsAnnual / 12;
+                  const sign = savingsAnnual > 0 ? '+' : '';
+                  const formattedAnnual = window.RetirementEngine.formatCurrency(savingsAnnual, currSym, false);
+                  const formattedMonthly = window.RetirementEngine.formatCurrency(savingsMonthly, currSym, false);
+                  const rate = income > 0 ? ((savingsAnnual / income) * 100).toFixed(1) : '0';
+                  lines.push(` Tiết kiệm: ${sign}${formattedAnnual}/năm (${sign}${formattedMonthly}/tháng), Tỷ lệ: ${rate}%`);
                 } else {
-                  rateText = ', Tỷ lệ: 0%';
+                  // Giai đoạn hưu trí: Tổng khả dụng & Cân đối dòng tiền
+                  const income = p.income || 0;
+                  const withdrawal = p.withdrawal || 0;
+                  const totalCash = income + withdrawal;
+                  const expenses = p.expenses || 0;
+                  const diff = totalCash - expenses;
+                  const sign = diff >= 0 ? '+' : '';
+                  const totalFormatted = window.RetirementEngine.formatCurrency(totalCash, currSym, false);
+                  const totalMonthly = window.RetirementEngine.formatCurrency(totalCash / 12, currSym, false);
+                  const diffFormatted = window.RetirementEngine.formatCurrency(Math.abs(diff), currSym, false);
+
+                  lines.push(` Tổng tiền khả dụng: ${totalFormatted}/năm (${totalMonthly}/tháng)`);
+                  if (diff >= 0) {
+                    lines.push(` Cân đối chi tiêu: Đảm bảo 100% (Dư ${sign}${diffFormatted}/năm)`);
+                  } else {
+                    lines.push(` Cân đối chi tiêu: Thiếu hụt -${diffFormatted}/năm`);
+                  }
                 }
 
-                const lines = [
-                  ` Tiết kiệm: ${sign}${formattedAnnual}/năm (${sign}${formattedMonthly}/tháng)${rateText}`
-                ];
                 const m = milestoneMap.get(p.age);
                 if (m && m.desc) {
                   lines.push(` Mốc sự kiện: ${m.desc}`);
@@ -6093,24 +6223,6 @@
         }
       }
     });
-
-    // Trigger Gemini Commentary for Cash Flow
-    if (window.GeminiAdvisor) {
-      const plan = getActivePlan();
-      const periods = (typeof computeIncomePeriods === 'function') ? computeIncomePeriods(plan) : [];
-      const periodsStr = periods.map(p => `${p.startAge}–${p.endAge}t (${p.phaseLabel}): +${window.RetirementEngine.formatCurrency(p.totalMonthly, state.currency)}/tháng [${p.streams.map(s => s.name).join(', ')}]`).join(" | ");
-
-      window.GeminiAdvisor.updateChartBox("chart-cashflow", "Biểu đồ Dòng tiền Hàng năm (Cash-Flow Projections)", {
-        currentAge: proj.currentAge,
-        retireAge: proj.retireAge,
-        lifeExpectancy: proj.lifeExpectancy,
-        totalLifetimeIncome: window.RetirementEngine.formatCurrency(proj.totalLifetimeIncome, state.currency),
-        totalLifetimeExpenses: window.RetirementEngine.formatCurrency(proj.totalLifetimeExpenses, state.currency),
-        annualSavings: window.RetirementEngine.formatCurrency(plan.annualSavings || 0, state.currency),
-        retirementExpenses: window.RetirementEngine.formatCurrency(plan.retirementExpenses || 0, state.currency),
-        incomePeriods: periodsStr || "Chưa phân chia giai đoạn"
-      });
-    }
   }
 
   function renderProjectionsTable(proj) {
@@ -6618,7 +6730,7 @@
       probEl.className = "metric-value " + (parseFloat(res.successRate) >= 80 ? "text-success font-semibold" : (parseFloat(res.successRate) >= 50 ? "text-warning font-semibold" : "text-danger font-semibold"));
     }
     if (statusEl) {
-      statusEl.innerText = parseFloat(res.successRate) >= 80 ? "FIRE Tự tin" : (parseFloat(res.successRate) >= 50 ? "Khá Rủi ro" : "Cần Điều chỉnh");
+      statusEl.innerText = parseFloat(res.successRate) >= 80 ? "Vững chắc" : (parseFloat(res.successRate) >= 50 ? "Khá Rủi ro" : "Cần Điều chỉnh");
       statusEl.className = "summary-status " + (parseFloat(res.successRate) >= 80 ? "status-success" : (parseFloat(res.successRate) >= 50 ? "status-warning" : "status-danger"));
     }
 

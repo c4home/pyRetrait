@@ -408,10 +408,10 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
         return {
             "success": False, "source": "no_api_key", "model": None,
             "analysis": (
-                "> **Chưa cấu hình Gemini API Key**\n\n"
-                "Để nhận phân tích AI thông minh cho biểu đồ này, vui lòng:\n"
-                "1. Truy cập tab **Cài đặt AI** ở cuối trang\n"
-                "2. Nhập Gemini API Key của bạn (miễn phí tại [aistudio.google.com](https://aistudio.google.com))\n"
+                "> **Chưa cấu hình API Key**\n\n"
+                "Để nhận phân tích thông minh cho kế hoạch này, vui lòng:\n"
+                "1. Mở mục **Cấu hình Trợ lý AI** ở góc dưới\n"
+                "2. Nhập API Key của bạn (miễn phí tại [aistudio.google.com](https://aistudio.google.com))\n"
                 "3. Nhấn **Lưu** và thử lại"
             )
         }

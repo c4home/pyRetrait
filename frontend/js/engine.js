@@ -43,21 +43,31 @@ window.RetirementEngine = (function() {
   }
 
   // Calculate weighted return across asset classes with optional rebalancing bonus
+  // Quy chuẩn: Tổng 4 cột không được vượt quá 100%, nhưng không cần đầy đủ 100%.
+  // Mẫu số luôn luôn là 100% của danh mục. Phần chưa phân bổ (100% - total) có tỷ suất sinh lời 0% (nhàn rỗi/bảo toàn vốn).
   function calculateWeightedReturn(alloc, returns, rebalanceBonus = 0.3) {
     if (!alloc) return 8.0;
-    const stocks = (alloc.stocks !== undefined && !isNaN(Number(alloc.stocks))) ? Number(alloc.stocks) : 60;
-    const bonds = (alloc.bonds !== undefined && !isNaN(Number(alloc.bonds))) ? Number(alloc.bonds) : 20;
-    const realEstate = (alloc.realEstate !== undefined && !isNaN(Number(alloc.realEstate))) ? Number(alloc.realEstate) : 20;
-    const cash = (alloc.cash !== undefined && !isNaN(Number(alloc.cash))) ? Number(alloc.cash) : 0;
-    const total = (stocks + bonds + realEstate + cash) || 100;
+    const stocks = (alloc.stocks !== undefined && !isNaN(Number(alloc.stocks))) ? Math.max(0, Number(alloc.stocks)) : 60;
+    const bonds = (alloc.bonds !== undefined && !isNaN(Number(alloc.bonds))) ? Math.max(0, Number(alloc.bonds)) : 20;
+    const realEstate = (alloc.realEstate !== undefined && !isNaN(Number(alloc.realEstate))) ? Math.max(0, Number(alloc.realEstate)) : 20;
+    const cash = (alloc.cash !== undefined && !isNaN(Number(alloc.cash))) ? Math.max(0, Number(alloc.cash)) : 0;
+    const total = stocks + bonds + realEstate + cash;
+    const clampedTotal = Math.min(100, Math.max(0, total));
 
     const rStocks = (returns && returns.stocks !== undefined && !isNaN(Number(returns.stocks))) ? Number(returns.stocks) : 9.5;
     const rBonds = (returns && returns.bonds !== undefined && !isNaN(Number(returns.bonds))) ? Number(returns.bonds) : 3.5;
     const rRE = (returns && returns.realEstate !== undefined && !isNaN(Number(returns.realEstate))) ? Number(returns.realEstate) : 6.5;
     const rCash = (returns && returns.cash !== undefined && !isNaN(Number(returns.cash))) ? Number(returns.cash) : 1.5;
 
-    const weighted = ((stocks * rStocks) + (bonds * rBonds) + (realEstate * rRE) + (cash * rCash)) / total;
-    return Math.round((weighted + (rebalanceBonus || 0)) * 100) / 100;
+    // Tính lợi nhuận theo trọng số trên tổng 100% tài sản
+    const weightedSum = (stocks * rStocks) + (bonds * rBonds) + (realEstate * rRE) + (cash * rCash);
+    const baseWeighted = weightedSum / 100.0;
+
+    // Thưởng kỷ luật tái cân bằng: chỉ áp dụng khi có ít nhất 2 lớp tài sản được phân bổ > 0%
+    const activeClassesCount = [stocks, bonds, realEstate, cash].filter(v => v > 0).length;
+    const bonus = (activeClassesCount >= 2) ? (rebalanceBonus || 0.3) * (clampedTotal / 100.0) : 0.0;
+
+    return Math.round((baseWeighted + bonus) * 100) / 100;
   }
 
   // Calculate full standard amortization schedule and home equity trajectory.
@@ -335,6 +345,8 @@ window.RetirementEngine = (function() {
           isPast: true,
           income: pastIncome,
           expenses: pastExpenses,
+          withdrawal: 0,
+          totalAvailableCash: pastIncome,
           mortgagePayment: 0,
           netCashFlow: pastIncome - pastExpenses,
           tax: 0,
@@ -579,6 +591,7 @@ window.RetirementEngine = (function() {
       // 4. Withdrawal / Savings Cash Flow
       let netSavingsOrWithdrawal = 0;
       let withdrawalAmount = 0;
+      let actualWithdrawal = 0;
       let returnRate = isRetired ? returnPost : returnPre;
       returnRate += scenarioReturnModifier;
 
@@ -654,10 +667,11 @@ window.RetirementEngine = (function() {
           const surplus = incomeAfterTax - currentExpenses;
           portfolio = (portfolio + surplus) * (1.0 + returnRate);
           netSavingsOrWithdrawal = surplus;
+          actualWithdrawal = 0;
         } else {
           // Passive income only partially covers expenses. Net deficit must come from portfolio
           const deficit = currentExpenses - incomeAfterTax;
-          const actualWithdrawal = isStrategyActive
+          actualWithdrawal = isStrategyActive
             ? Math.min(portfolio, Math.max(deficit, withdrawalAmount))
             : Math.min(portfolio, deficit);
           portfolio = Math.max(0, (portfolio - actualWithdrawal) * (1.0 + returnRate));
@@ -704,6 +718,8 @@ window.RetirementEngine = (function() {
         isRetired,
         income: annualIncome,
         expenses: currentExpenses,
+        withdrawal: actualWithdrawal,
+        totalAvailableCash: isRetired ? (annualIncome + actualWithdrawal) : annualIncome,
         mortgagePayment: mortgagePaymentThisYear,
         netCashFlow: netSavingsOrWithdrawal,
         tax: estimatedTax,

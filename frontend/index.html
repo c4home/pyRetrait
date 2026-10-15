@@ -20,7 +20,7 @@
   </script>
   
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=20261015_v117">
+  <link rel="stylesheet" href="css/styles.css?v=20261015_v121">
 </head>
 <body>
   <!-- Top Navigation Bar -->
@@ -137,7 +137,7 @@
       <div class="sidebar-summary-card">
         <div class="summary-card-header">
           <span class="summary-title">Mục tiêu Độc lập</span>
-          <span class="summary-status" id="summary-fire-status">FIRE Tự tin</span>
+          <span class="summary-status" id="summary-fire-status">Vững chắc</span>
         </div>
         <div class="summary-metric">
           <span class="metric-label">Tuổi nghỉ hưu:</span>
@@ -159,13 +159,34 @@
           <span class="metric-label">Tỷ lệ thành công:</span>
           <span class="metric-value text-success" id="summary-success-prob">94.8%</span>
         </div>
-        <div class="formula-inline-box formula-success" style="margin-top: 0.4rem; font-size: 0.70rem; padding: 0.35rem 0.45rem;">
-          <div class="formula-tag" style="margin-bottom: 0.2rem; font-size: 0.71rem;">Điều kiện Mục Tiêu FIRE</div>
-          <div style="display: flex; flex-direction: column; gap: 0.15rem; line-height: 1.35;">
-            <code style="font-family: var(--font-sans); font-size: 0.70rem; font-weight: 600;">• Mục tiêu: Chi tiêu bù đắp ÷ SWR (Quy tắc 4%: Chi tiêu × 25)</code>
-            <code style="font-family: var(--font-sans); font-size: 0.69rem; color: var(--text-muted); font-weight: 500;">• Bù đắp: Chi tiêu bù đắp = max(0, Chi tiêu hưu - Lương hưu - Thu nhập thụ động)</code>
-            <code style="font-family: var(--font-sans); font-size: 0.69rem; color: var(--text-muted); font-weight: 500;">• Horizon: 30x (&gt;35n hưu) • 28x (30–35n) • 25x (≤30n)</code>
-            <code style="font-family: var(--font-sans); font-size: 0.69rem; color: var(--text-muted); font-weight: 500;">• An toàn: Xác suất thành công Monte Carlo ≥ 80%</code>
+        <div class="formula-inline-box formula-success" style="margin-top: 0.5rem; font-size: 0.72rem; padding: 0.5rem 0.6rem; border-radius: var(--radius-md);">
+          <div class="formula-tag" style="margin-bottom: 0.35rem; font-size: 0.72rem; font-weight: 700;">
+            Điều Kiện Đạt Độc Lập Tài Chính
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.3rem; line-height: 1.45;">
+            <div>
+              <span style="color: var(--text-main); font-weight: 600;">1. Tiền cần bù đắp mỗi năm:</span>
+              <div style="color: var(--text-muted); font-size: 0.68rem; margin-top: 0.05rem;">
+                = Chi tiêu hưu − Lương hưu − Thu nhập thụ động
+              </div>
+            </div>
+            <div>
+              <span style="color: var(--text-main); font-weight: 600;">2. Tài sản mục tiêu cần tích lũy:</span>
+              <div style="color: var(--text-muted); font-size: 0.68rem; margin-top: 0.05rem;">
+                = Tiền cần bù đắp × Hệ số an toàn (25 – 30 lần)
+              </div>
+            </div>
+            <div style="color: var(--text-muted); font-size: 0.67rem; border-top: 1px dashed var(--border-subtle); padding-top: 0.25rem; margin-top: 0.1rem; line-height: 1.4;">
+              • <strong>Hưu ≤ 30 năm:</strong> Cần gấp <strong>25 lần</strong><br>
+              • <strong>Hưu 30–35 năm:</strong> Cần gấp <strong>28 lần</strong><br>
+              • <strong>Hưu &gt; 35 năm:</strong> Cần gấp <strong>30 lần</strong>
+            </div>
+            <div>
+              <span style="color: var(--text-main); font-weight: 600;">3. Đạt chuẩn an toàn:</span>
+              <div style="color: var(--text-muted); font-size: 0.68rem; margin-top: 0.05rem;">
+                1,000 kịch bản thị trường đạt tỷ lệ thành công ≥ 80%
+              </div>
+            </div>
           </div>
         </div>
 
@@ -621,11 +642,11 @@
 
                       <!-- Công thức Lợi Nhuận Trọng Số Danh Mục -->
                       <div class="formula-inline-box formula-success" style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
-                        <div class="formula-tag">Công thức Lợi Nhuận Trọng Số & Tái Cân Bằng</div>
+                        <div class="formula-tag">Quy Chuẩn Phân Bổ & Lợi Nhuận Sinh Lời Danh Mục</div>
                         <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                          <code>• R_danh_mục = (% Cổ phiếu × 9.5%) + (% Trái phiếu × 3.5%) + (% BĐS × 6.5%) + (% Tiền mặt × 1.5%) + 0.3% (Tái cân bằng)</code>
-                          <code>• Thưởng kỷ luật +0.3%: Định kỳ tái cân bằng (bán tài sản tăng giá, mua tài sản giảm) mang lại 0.3% – 0.5%/năm lợi nhuận phụ trội theo nghiên cứu của Vanguard và David Swensen.</code>
-                          <code>• Lợi nhuận sinh lời bình quân = Tài sản đầu tư × R_danh_mục</code>
+                          <code>• Quy tắc 100%: Tổng 4 cột không được vượt quá 100%, nhưng không bắt buộc phải đầy đủ 100%. Phần vốn chưa phân bổ được coi là tiền nhàn rỗi (lợi nhuận 0%/năm).</code>
+                          <code>• R_danh_mục = (% Cổ phiếu × 9.5%) + (% Trái phiếu × 3.5%) + (% BĐS × 6.5%) + (% Tiền mặt × 1.5%) + (% Chưa đầu tư × 0%) + Thưởng tái cân bằng</code>
+                          <code>• Vốn đầu tư & Tiết kiệm: Cả tài sản hiện có và tiền tiết kiệm mới hàng năm đều được phân bổ sinh lời theo đúng tỷ lệ danh mục này.</code>
                         </div>
                       </div>
                     </div>
@@ -905,23 +926,23 @@
                   <div class="expense-item-family" id="card-children-family-stream">
                     <div class="expense-item-header">
                       <div class="expense-item-name" style="display: flex; align-items: center; gap: 0.45rem;">
-                        <input type="checkbox" id="chk-enable-family-stream" checked style="accent-color: #6366f1; width: 15px; height: 15px; cursor: pointer;">
+                        <input type="checkbox" id="chk-enable-family-stream" checked style="accent-color: #f43f5e; width: 15px; height: 15px; cursor: pointer;">
                         <span>Kế Hoạch Con Cái & Gia Đình</span>
                       </div>
                       <div class="income-item-actions">
-                        <span class="field-badge font-mono" id="badge-family-stream-status" style="background: rgba(99, 102, 241, 0.12); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.25); font-size: 0.68rem; padding: 1px 6px;">2 con</span>
+                        <span class="field-badge font-mono" id="badge-family-stream-status" style="background: rgba(244, 63, 94, 0.12); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.25); font-size: 0.68rem; padding: 1px 6px;">2 con</span>
                         <button type="button" class="income-item-btn income-item-del" id="btn-del-family-stream" title="Tắt kế hoạch con cái">Xóa</button>
                       </div>
                     </div>
 
                     <div class="expense-item-body">
                       <div class="income-item-amounts">
-                        <span class="expense-amount-monthly" id="lbl-family-stream-monthly" style="color: #818cf8;">€700<small>/tháng</small></span>
+                        <span class="expense-amount-monthly" id="lbl-family-stream-monthly" style="color: #f43f5e;">€700<small>/tháng</small></span>
                         <span id="lbl-family-stream-annual" style="font-size: 0.73rem; color: var(--text-muted); display: block; margin-top: 0.2rem;">≈ €8.4k/năm • 2 con (0–18t: 350 €/tháng/bé)</span>
                       </div>
                       <div class="expense-item-timing" style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem;">
                         <span class="income-age-range" id="lbl-family-stream-timing">29 – 51 tuổi (khi con 23t)</span>
-                        <span class="expense-growth-badge" id="lbl-family-stream-badge" style="background: rgba(99, 102, 241, 0.12); color: #818cf8;">CAF + Giảm thuế IR</span>
+                        <span class="expense-growth-badge" id="lbl-family-stream-badge" style="background: rgba(244, 63, 94, 0.12); color: #fb7185;">CAF + Giảm thuế IR</span>
                       </div>
                     </div>
 
@@ -978,7 +999,7 @@
                       </div>
 
                       <!-- Công thức Kế Hoạch Con Cái -->
-                      <div class="formula-inline-box formula-purple" style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
+                      <div class="formula-inline-box formula-danger" style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
                         <div class="formula-tag">Cơ Chế Chi Phí Con Cái & Quyền Lợi Pháp</div>
                         <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
                           <code>• Chi phí 0–18t = Số bé (0 ≤ tuổi &lt; 18) × Nuôi con hàng tháng × 12</code>
@@ -1048,23 +1069,22 @@
                   <div class="expense-item-legacy" id="card-estate-legacy-combined">
                     <div class="expense-item-header">
                       <div class="expense-item-name" style="display: flex; align-items: center; gap: 0.45rem;">
-                        <input type="checkbox" id="chk-enable-estate-legacy" checked style="accent-color: #f59e0b; width: 15px; height: 15px; cursor: pointer;">
+                        <input type="checkbox" id="chk-enable-estate-legacy" checked style="accent-color: #f43f5e; width: 15px; height: 15px; cursor: pointer;">
                         <span data-i18n="card_estate_legacy">Kế Hoạch Thừa Kế & Đánh Giá Mục Tiêu Di Sản</span>
                       </div>
                       <div class="income-item-actions">
-                        <span class="field-badge font-mono" id="badge-estate-legacy-status" style="background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); font-size: 0.68rem; padding: 1px 6px;">Di Sản & Thừa Kế</span>
                         <button type="button" class="income-item-btn" id="btn-toggle-estate-legacy" title="Mở rộng hoặc thu gọn chi tiết">Thu gọn</button>
                       </div>
                     </div>
 
                     <div class="expense-item-body">
                       <div class="income-item-amounts">
-                        <span class="expense-amount-monthly font-mono" id="lbl-estate-legacy-target" style="color: #fbbf24;">1.0 Tỷ ₫</span>
+                        <span class="expense-amount-monthly font-mono" id="lbl-estate-legacy-target" style="color: #f43f5e;">1.0 Tỷ ₫</span>
                         <span id="lbl-estate-legacy-final" style="font-size: 0.73rem; color: var(--text-muted); display: block; margin-top: 0.2rem;">Dự kiến ở tuổi cuối đời</span>
                       </div>
                       <div class="expense-item-timing" style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem;">
                         <span class="income-age-range" id="lbl-estate-legacy-age">85 tuổi (Cuối đời)</span>
-                        <span class="expense-growth-badge font-mono" id="lbl-estate-legacy-pct" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">Tiến độ: --%</span>
+                        <span class="expense-growth-badge font-mono" id="lbl-estate-legacy-pct" style="background: rgba(244, 63, 94, 0.12); color: #fb7185;">Tiến độ: --%</span>
                       </div>
                     </div>
 
@@ -1230,50 +1250,30 @@
               </div>
             </div>
 
-            <!-- Section Riêng: Gemini AI Cố Vấn — Nhận xét & Đánh giá Chiến lược & Dòng tiền -->
+            <!-- Section Riêng: Nhận xét & Đánh giá Kế hoạch -->
             <div class="card gemini-advisor-section" id="section-gemini-projections" style="margin-top: 1.25rem;">
               <div class="card-header" style="margin-bottom: 0.85rem;">
-                <h3 class="card-title" style="margin-bottom: 0.2rem;">Gemini AI Cố Vấn — Nhận xét & Đánh giá Kế hoạch</h3>
+                <h3 class="card-title" style="margin-bottom: 0.2rem;">Nhận xét & Đánh giá Kế hoạch</h3>
                 <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0;">Trí tuệ nhân tạo nhận xét chuyên sâu về quỹ đạo tài sản và cân đối dòng tiền hưu trí.</p>
               </div>
               <div class="gemini-insights-grid">
-                <!-- Box 1: Gemini AI Nhận xét & Đánh giá Chiến lược -->
-                <div class="gemini-insight-box" id="gemini-box-chart-networth">
+                <!-- Unified Box: Nhận xét & Đánh giá Kế hoạch (Chiến lược & Dòng tiền) -->
+                <div class="gemini-insight-box" id="gemini-box-chart-projections">
                   <div class="gemini-insight-header">
                     <div class="gemini-header-left">
                       <span class="gemini-sparkle"></span>
-                      <span class="gemini-title">Gemini AI Nhận xét & Đánh giá Chiến lược</span>
+                      <span class="gemini-title">Nhận xét & Đánh giá Kế hoạch (Chiến lược & Dòng tiền)</span>
                       <span class="gemini-badge-group">
-                        <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-networth">Gemini Intelligence</span>
-                        <span class="gemini-header-time" id="gemini-time-chart-networth"></span>
+                        <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-projections">Gemini Intelligence</span>
+                        <span class="gemini-header-time" id="gemini-time-chart-projections"></span>
                       </span>
                     </div>
-                    <button type="button" class="btn-gemini-refresh" data-chart="chart-networth" title="Phân tích lại với Gemini">
+                    <button type="button" class="btn-gemini-refresh" data-chart="chart-projections" title="Phân tích lại">
                       Phân tích lại
                     </button>
                   </div>
-                  <div class="gemini-insight-content" id="gemini-content-chart-networth">
-                    <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu từ Gemini...</div>
-                  </div>
-                </div>
-
-                <!-- Box 2: Gemini AI Nhận xét & Đánh giá Dòng tiền -->
-                <div class="gemini-insight-box" id="gemini-box-chart-cashflow">
-                  <div class="gemini-insight-header">
-                    <div class="gemini-header-left">
-                      <span class="gemini-sparkle"></span>
-                      <span class="gemini-title">Gemini AI Nhận xét & Đánh giá Dòng tiền</span>
-                      <span class="gemini-badge-group">
-                        <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-cashflow">Gemini Intelligence</span>
-                        <span class="gemini-header-time" id="gemini-time-chart-cashflow"></span>
-                      </span>
-                    </div>
-                    <button type="button" class="btn-gemini-refresh" data-chart="chart-cashflow" title="Phân tích lại với Gemini">
-                      Phân tích lại
-                    </button>
-                  </div>
-                  <div class="gemini-insight-content" id="gemini-content-chart-cashflow">
-                    <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu từ Gemini...</div>
+                  <div class="gemini-insight-content" id="gemini-content-chart-projections">
+                    <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu...</div>
                   </div>
                 </div>
               </div>
@@ -1487,18 +1487,18 @@
                 <div class="gemini-insight-header">
                   <div class="gemini-header-left">
                     <span class="gemini-sparkle"></span>
-                    <span class="gemini-title">Gemini AI Nhận xét Chiến lược Tối ưu Thuế</span>
+                    <span class="gemini-title">Nhận xét Chiến lược Tối ưu Thuế</span>
                     <span class="gemini-badge-group">
                       <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-tax-optimization">Gemini Intelligence</span>
                       <span class="gemini-header-time" id="gemini-time-chart-tax-optimization"></span>
                     </span>
                   </div>
-                  <button type="button" class="btn-gemini-refresh" data-chart="chart-tax-optimization" title="Phân tích lại với Gemini">
+                  <button type="button" class="btn-gemini-refresh" data-chart="chart-tax-optimization" title="Phân tích lại">
                     Phân tích lại
                   </button>
                 </div>
                 <div class="gemini-insight-content" id="gemini-content-chart-tax-optimization">
-                  <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu từ Gemini...</div>
+                  <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu...</div>
                 </div>
               </div>
             </div>
@@ -1745,7 +1745,7 @@
                 <div>
                   <h3 class="card-title">Cẩm Nang Chiến Lược & 6 Mẹo Vàng Assurance-Vie (Bảo Hiểm Nhân Thọ Đầu Tư)</h3>
                 </div>
-                <div style="display: gap: 0.4rem; flex-wrap: wrap; align-items: center;">
+                <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center;">
                   <span class="field-badge text-success">Miễn 4.6k€ – 9.2k€ Lãi/Năm</span>
                   <span class="field-badge" style="color: var(--accent-blue); background: rgba(59, 130, 246, 0.12);">Không Giới Hạn Vốn Nạp</span>
                   <span class="field-badge" style="color: var(--accent-amber); background: rgba(245, 158, 11, 0.12);">Thừa Kế 152.5k€ Miễn Thuế</span>
@@ -2149,18 +2149,18 @@
               <div class="gemini-insight-header">
                 <div class="gemini-header-left">
                   <span class="gemini-sparkle"></span>
-                  <span class="gemini-title">Gemini AI Đánh giá Rủi ro & Xác suất Monte Carlo</span>
+                  <span class="gemini-title">Đánh giá Rủi ro & Xác suất Monte Carlo</span>
                   <span class="gemini-badge-group">
                     <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-monte-carlo">Gemini Intelligence</span>
                     <span class="gemini-header-time" id="gemini-time-chart-monte-carlo"></span>
                   </span>
                 </div>
-                <button type="button" class="btn-gemini-refresh" data-chart="chart-monte-carlo" title="Phân tích lại với Gemini">
+                <button type="button" class="btn-gemini-refresh" data-chart="chart-monte-carlo" title="Phân tích lại">
                   Phân tích lại
                 </button>
               </div>
               <div class="gemini-insight-content" id="gemini-content-chart-monte-carlo">
-                <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu từ Gemini...</div>
+                <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu...</div>
               </div>
             </div>
           </div>
@@ -2212,18 +2212,18 @@
               <div class="gemini-insight-header">
                 <div class="gemini-header-left">
                   <span class="gemini-sparkle"></span>
-                  <span class="gemini-title">Gemini AI Đánh giá Toàn cảnh 5 Kịch bản Biến cố</span>
+                  <span class="gemini-title">Đánh giá Toàn cảnh 5 Kịch bản Biến cố</span>
                   <span class="gemini-badge-group">
                     <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-scenarios">Gemini Intelligence</span>
                     <span class="gemini-header-time" id="gemini-time-chart-scenarios"></span>
                   </span>
                 </div>
-                <button type="button" class="btn-gemini-refresh" data-chart="chart-scenarios" title="Phân tích lại với Gemini">
+                <button type="button" class="btn-gemini-refresh" data-chart="chart-scenarios" title="Phân tích lại">
                   Phân tích lại
                 </button>
               </div>
               <div class="gemini-insight-content" id="gemini-content-chart-scenarios">
-                <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu từ Gemini...</div>
+                <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu...</div>
               </div>
             </div>
           </div>
@@ -2390,9 +2390,9 @@
                     <div>
                       <label for="sel-bio-strength" style="font-size: 0.7rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Sức mạnh nắm tay / Hít đất</label>
                       <select id="sel-bio-strength" class="form-input" style="padding: 0.35rem 0.45rem; font-size: 0.75rem;">
-                        <option value="high" selected>Rất khỏe (>20 hít đất)</option>
-                        <option value="average">Trung bình (10–20 hít)</option>
-                        <option value="low">Yếu (&lt;10 hít đất)</option>
+                        <option value="high" selected>Rất khỏe (&gt;20 cái liên tục)</option>
+                        <option value="average">Trung bình (10–20 cái)</option>
+                        <option value="low">Yếu (&lt;10 cái)</option>
                       </select>
                     </div>
                   </div>
@@ -2410,7 +2410,6 @@
                     <div class="health-habit-content">
                       <div class="health-habit-title">
                         <span>1. Tập cơ bắp & Vận động vừa sức (Đi bộ nhanh, đạp xe nhẹ)</span>
-                        <span class="health-habit-pts">+20 điểm</span>
                       </div>
                       <p class="health-habit-desc">Dành tối thiểu 150 phút mỗi tuần vận động vừa sức (mức độ thở hơi nhanh nhưng vẫn trò chuyện bình thường) kết hợp tập cơ bắp để giữ thể lực dẻo dai, chống teo cơ tuổi già.</p>
                     </div>
@@ -2421,7 +2420,6 @@
                     <div class="health-habit-content">
                       <div class="health-habit-title">
                         <span>2. Giấc ngủ ngon & Sâu giấc 7–8 tiếng mỗi đêm</span>
-                        <span class="health-habit-pts">+20 điểm</span>
                       </div>
                       <p class="health-habit-desc">Ngủ đủ giấc giúp não bộ tự làm sạch các chất thải tích tụ ban ngày, giảm nguy cơ sa sút trí tuệ và giúp tinh thần luôn tỉnh táo, sảng khoái.</p>
                     </div>
@@ -2432,7 +2430,6 @@
                     <div class="health-habit-content">
                       <div class="health-habit-title">
                         <span>3. Ăn uống lành mạnh & Giảm viêm cơ thể</span>
-                        <span class="health-habit-pts">+20 điểm</span>
                       </div>
                       <p class="health-habit-desc">Ưu tiên rau củ quả, dầu thực vật tốt (dầu ô-liu), cá giàu chất béo tốt; bớt ăn đồ ngọt, nước ngọt có ga và các thực phẩm đóng gói chế biến sẵn.</p>
                     </div>
@@ -2443,7 +2440,6 @@
                     <div class="health-habit-content">
                       <div class="health-habit-title">
                         <span>4. Khám sức khỏe & Tầm soát định kỳ hàng năm</span>
-                        <span class="health-habit-pts">+20 điểm</span>
                       </div>
                       <p class="health-habit-desc">Chủ động xét nghiệm máu, siêu âm và kiểm tra sức khỏe định kỳ để phát hiện sớm các nguy cơ trước khi cơ thể phát bệnh.</p>
                     </div>
@@ -2454,11 +2450,52 @@
                     <div class="health-habit-content">
                       <div class="health-habit-title">
                         <span>5. Giữ tinh thần lạc quan & Gắn kết gia đình, bạn bè</span>
-                        <span class="health-habit-pts">+20 điểm</span>
                       </div>
                       <p class="health-habit-desc">Duy trì sở thích cá nhân, trò chuyện vui vẻ với người thân, bạn bè và học thêm điều mới giúp não bộ luôn linh hoạt, sống vui khỏe.</p>
                     </div>
                   </label>
+                </div>
+
+                <!-- Hộp Công Thức Tính Khoảng Cách Suy Yếu Cuối Đời (Healthspan Gap) -->
+                <div class="healthspan-formula-box" style="margin-top: 0.85rem; padding: 0.75rem 0.85rem; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.35rem;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: var(--accent-emerald); text-transform: uppercase; letter-spacing: 0.02em;">
+                      Công thức Tính Khoảng Cách Suy Yếu (Healthspan Gap)
+                    </span>
+                    <span class="badge badge-warning" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">Mục tiêu: Thu hẹp về 0</span>
+                  </div>
+                  
+                  <div style="padding: 0.45rem 0.65rem; background: var(--bg-app); border: 1px dashed var(--border-subtle); border-radius: 4px; margin-bottom: 0.5rem; font-size: 0.75rem; font-weight: 600; color: var(--text-main); font-family: var(--font-sans);">
+                    <code>Khoảng Cách Suy Yếu (năm) = Kỳ Vọng Sống (Lifespan) - Tuổi Thọ Khỏe Mạnh (Healthspan)</code>
+                  </div>
+
+                  <div style="display: flex; flex-direction: column; gap: 0.45rem; font-size: 0.72rem; line-height: 1.5; color: var(--text-muted);">
+                    <div>
+                      • <strong>Kỳ vọng sống (Lifespan):</strong> Tổng số tuổi thọ dự kiến (mặc định 80 – 85 tuổi theo nhân khẩu học).
+                    </div>
+                    <div>
+                      • <strong>Tuổi thọ khỏe mạnh (Healthspan):</strong> Số năm cơ thể dồi dào sinh lực, tự chủ vận động hoàn toàn:
+                      <div style="margin-top: 0.35rem; padding: 0.45rem 0.65rem; background: var(--bg-app); border-radius: 4px; border: 1px dashed var(--border-subtle);">
+                        <strong style="color: var(--text-main);">1. Tác động của 5 Thói quen vàng (tối đa +3.8 năm):</strong>
+                        <div style="margin-top: 0.2rem; padding-left: 0.5rem;">
+                          - Mỗi thói quen tích thêm: <strong>tăng đúng +1.5 năm sống khỏe</strong>.<br>
+                          - Đạt đủ cả 5 thói quen: <strong>+3.8 năm</strong> (ngược lại nếu không có thói quen nào: bị trừ -3.8 năm).
+                        </div>
+                        
+                        <strong style="color: var(--text-main); display: block; margin-top: 0.35rem;">2. Tác động của 4 Chỉ số sinh học (tối đa +3.0 năm):</strong>
+                        <div style="margin-top: 0.2rem; padding-left: 0.5rem;">
+                          - <em>Nhịp tim nghỉ (&lt;60 bpm):</em> <strong>+0.75 năm</strong> (trên 80 bpm: trừ -1.25 năm).<br>
+                          - <em>Huyết áp chuẩn (&lt;120 mmHg):</em> <strong>+0.75 năm</strong> (huyết áp cao: trừ -0.75 đến -1.5 năm).<br>
+                          - <em>Vòng eo/Chiều cao (&lt;0.5 - không mỡ bụng):</em> <strong>+0.75 năm</strong> (bụng bia mỡ tạng: trừ -1.25 năm).<br>
+                          - <em>Sức mạnh hít đất (&gt;20 cái liên tục):</em> <strong>+0.75 năm</strong> (yếu dưới 10 cái: trừ -1.0 năm).<br>
+                          ➔ Tối ưu cả 4 chỉ số giúp trẻ hơn <strong>6 tuổi sinh học</strong> và tăng thêm tới <strong>+3.0 năm</strong> sống khỏe.
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      • <strong>Ý nghĩa thực tiễn:</strong> Giúp bạn nhận diện số năm cuối đời có nguy cơ phải phụ thuộc chăm sóc y tế, từ đó chủ động nén thời gian bệnh tật (Compression of Morbidity) về mức ngắn nhất có thể.
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2518,8 +2555,8 @@
               <div class="hydration-col">
                 <span class="hydration-phase-time">19:30 – 21:00 • Thư giãn thần kinh</span>
                 <div class="hydration-phase-name">An Giấc & Dọn Rác Não</div>
-                <div class="hydration-action">150 – 200ml trà thảo mộc ấm (Hoa Cúc)</div>
-                <p class="hydration-detail">Cung cấp apigenin an thần; ngừng uống trước giờ ngủ 90 phút để tránh thức giấc tiểu đêm (Nocturia), bảo vệ trọn vẹn pha ngủ sâu (Deep Sleep).</p>
+                <div class="hydration-action">150 – 200ml nước ấm hoặc nước gạo lứt rang</div>
+                <p class="hydration-detail">Giúp làm ấm bụng và thư giãn mạch máu; ngừng uống trước giờ ngủ 90 phút để tránh thức giấc đi tiểu đêm làm đứt đoạn giấc ngủ sâu.</p>
               </div>
             </div>
           </div>
@@ -2529,47 +2566,47 @@
             <div class="nutrition-col col-breakfast">
               <div class="nutrition-col-header header-breakfast">
                 <span class="nutrition-time-badge badge-morning">07:00 – 08:30</span>
-                <div class="nutrition-meal-title">Bữa Sáng: Đạm & Chất Béo Lành Mạnh</div>
+                <div class="nutrition-meal-title">Bữa Sáng: Đạm & Năng Lượng Lành Mạnh</div>
                 <div class="nutrition-meal-subtitle">Tập trung tỉnh táo, năng lượng ổn định suốt buổi sáng</div>
               </div>
               
               <div class="nutrition-section">
                 <div class="nutrition-section-title">Nhóm Thực Phẩm Vàng Ưu Tiên</div>
                 <div class="nutrition-food-group">
-                  <div class="nutrition-group-label">Đạm lành mạnh bổ dưỡng</div>
+                  <div class="nutrition-group-label">Đạm bình dân, bổ dưỡng</div>
                   <ul class="nutrition-food-bullets">
-                    <li>Trứng gà (luộc lòng đào hoặc ốp la)</li>
-                    <li>Sữa chua Hy Lạp nguyên chất</li>
-                    <li>Đậu hũ non sốt tương gừng</li>
+                    <li>Trứng gà (luộc lòng đào, ốp la hoặc chiên)</li>
+                    <li>Đậu phụ (đậu hũ non) luộc hoặc sốt cà chua</li>
+                    <li>Sữa chua không đường (yaourt nature)</li>
                   </ul>
                 </div>
                 <div class="nutrition-food-group">
-                  <div class="nutrition-group-label">Chất béo tốt & Chất xơ tự nhiên</div>
+                  <div class="nutrition-group-label">Tinh bột tốt & No lâu tự nhiên</div>
                   <ul class="nutrition-food-bullets">
-                    <li>Bơ tươi hoặc hạt chia ngâm sữa</li>
-                    <li>Quả óc chó, hạnh nhân</li>
-                    <li>Yến mạch nguyên cám nấu nhanh</li>
+                    <li>Yến mạch nấu nhanh (với nước hoặc sữa)</li>
+                    <li>Khoai lang luộc hoặc chuối chín</li>
+                    <li>Lạc (đậu phộng) rang mộc hoặc hạt bí ngô</li>
                   </ul>
                 </div>
                 <div class="nutrition-food-group">
-                  <div class="nutrition-group-label">Nước uống thanh lọc cơ thể</div>
+                  <div class="nutrition-group-label">Thức uống thanh lọc mộc mạc</div>
                   <ul class="nutrition-food-bullets">
-                    <li>Trà xanh Matcha ấm không đường</li>
-                    <li>Cà phê đen nguyên chất</li>
+                    <li>Trà xanh mộc ấm (nước chè tươi hoặc trà xanh)</li>
+                    <li>Cà phê đen nguyên chất không đường</li>
                     <li>Nước ấm vắt chanh tươi</li>
                   </ul>
                 </div>
               </div>
 
               <div class="nutrition-recipe-box">
-                <div class="nutrition-recipe-title">Gợi Ý Mẫu: Trứng Chần & Bơ Hạt Chia</div>
+                <div class="nutrition-recipe-title">Gợi Ý Mẫu: Trứng Luộc, Khoai Lang & Trà Xanh</div>
                 <div class="nutrition-recipe-tags">
                   <span>Chuẩn bị: 5 phút</span>
-                  <span>Chi phí: ≈ 18.000 ₫ (~0.7 €)</span>
-                  <span>Đạm: 18g • Xơ: 6g</span>
+                  <span>Chi phí: ≈ 12.000 ₫ (~0.5 €)</span>
+                  <span>Đạm: 16g • Xơ: 5g</span>
                 </div>
                 <p class="nutrition-recipe-desc">
-                  2 quả trứng gà luộc lòng đào ăn kèm 1/2 quả bơ dầm chút muối tiêu chanh, rắc 1 muỗng hạt chia. Uống 1 tách trà xanh ấm.
+                  2 quả trứng gà luộc ăn kèm 1 củ khoai lang nhỏ (hoặc 1 bát yến mạch) và 1 quả chuối chín. Uống 1 tách trà xanh ấm giúp tỉnh táo cả buổi sáng.
                 </p>
               </div>
             </div>
@@ -2585,40 +2622,40 @@
               <div class="nutrition-section">
                 <div class="nutrition-section-title">Nhóm Thực Phẩm Vàng Ưu Tiên</div>
                 <div class="nutrition-food-group">
-                  <div class="nutrition-group-label">Đạm nạc & Cá giàu chất béo tốt</div>
+                  <div class="nutrition-group-label">Đạm nạc & Cá giàu Omega-3 giá rẻ</div>
                   <ul class="nutrition-food-bullets">
-                    <li>Cá thu, cá hồi, cá mòi hoặc ức gà</li>
-                    <li>Đậu phụ áp chảo hoặc tôm nõn</li>
-                    <li>Thịt bò nạc nướng tiêu</li>
+                    <li>Cá mòi hộp, cá nục, cá basa hoặc cá thu</li>
+                    <li>Ức gà hoặc thịt nạc heo luộc/áp chảo</li>
+                    <li>Đậu phụ rán lướt ván hoặc sốt thịt băm</li>
                   </ul>
                 </div>
                 <div class="nutrition-food-group">
-                  <div class="nutrition-group-label">Rau củ đa sắc màu tươi mát</div>
+                  <div class="nutrition-group-label">Rau củ tươi mát, chế biến cực nhanh</div>
                   <ul class="nutrition-food-bullets">
-                    <li>Bông cải xanh (súp lơ) hấp giòn</li>
-                    <li>Cải bó xôi (rau chân vịt) xào tỏi</li>
-                    <li>Cà rốt, ớt chuông xào dầu ô-liu</li>
+                    <li>Bắp cải luộc (chấm trứng/nước mắm) hoặc xào tỏi</li>
+                    <li>Bông cải xanh (súp lơ) hoặc cà rốt hấp ngọt thanh</li>
+                    <li>Canh rau ngót, rau cải nấu tôm/thịt nạc</li>
                   </ul>
                 </div>
                 <div class="nutrition-food-group">
                   <div class="nutrition-group-label">Tinh bột tốt lâu đói (Dễ tiêu)</div>
                   <ul class="nutrition-food-bullets">
-                    <li>Cơm gạo lứt hoặc diêm mạch (Quinoa)</li>
+                    <li>Cơm gạo lứt hoặc cơm trắng độn đậu đen</li>
                     <li>Khoai lang luộc cả vỏ</li>
-                    <li>Đậu lăng, đậu đen hầm mềm</li>
+                    <li>Đậu lăng hoặc đậu đen hầm nhừ</li>
                   </ul>
                 </div>
               </div>
 
               <div class="nutrition-recipe-box">
-                <div class="nutrition-recipe-title">Gợi Ý Mẫu: Cá Mòi Áp Chảo Bông Cải & Gạo Lứt</div>
+                <div class="nutrition-recipe-title">Gợi Ý Mẫu: Cá Mòi Hộp, Bắp Cải Luộc & Gạo Lứt</div>
                 <div class="nutrition-recipe-tags">
-                  <span>Chuẩn bị: 12 phút</span>
-                  <span>Chi phí: ≈ 32.000 ₫ (~1.2 €)</span>
-                  <span>Đạm: 30g • Xơ: 9g</span>
+                  <span>Chuẩn bị: 10 phút</span>
+                  <span>Chi phí: ≈ 25.000 ₫ (~1.0 €)</span>
+                  <span>Đạm: 28g • Xơ: 8g</span>
                 </div>
                 <p class="nutrition-recipe-desc">
-                  1 hộp cá mòi áp chảo nhanh với tỏi và dầu ô-liu, ăn kèm 1 chén cơm gạo lứt nhỏ và đĩa súp lơ xanh hấp giòn ngọt thanh.
+                  1 hộp cá mòi (giàu Omega-3 tự nhiên) ăn kèm đĩa bắp cải luộc ngọt mát và 1 chén cơm gạo lứt. Nhanh gọn, siêu rẻ, no lâu và không lo buồn ngủ.
                 </p>
               </div>
             </div>
@@ -2634,40 +2671,40 @@
               <div class="nutrition-section">
                 <div class="nutrition-section-title">Nhóm Thực Phẩm Vàng Ưu Tiên</div>
                 <div class="nutrition-food-group">
-                  <div class="nutrition-group-label">Đạm êm bụng, dễ tiêu hóa</div>
+                  <div class="nutrition-group-label">Đạm thanh nhẹ, êm bụng dễ tiêu</div>
                   <ul class="nutrition-food-bullets">
-                    <li>Cá trắng (cá basa, cá tuyết, cá điêu hồng)</li>
-                    <li>Canh đậu phụ rong biển</li>
-                    <li>Trứng hấp thịt băm nấm rơm</li>
+                    <li>Canh đậu phụ nấu cà chua hoặc canh nấm</li>
+                    <li>Cá phi lê hấp hoặc áp chảo (cá basa, cá rô phi, cá colin)</li>
+                    <li>Trứng hấp thịt nạc băm nấm hương</li>
                   </ul>
                 </div>
                 <div class="nutrition-food-group">
-                  <div class="nutrition-group-label">Rau củ nhuận tràng, mát ruột</div>
+                  <div class="nutrition-group-label">Rau củ mát ruột, nhuận tràng</div>
                   <ul class="nutrition-food-bullets">
-                    <li>Bí ngòi, măng tây nướng mềm</li>
-                    <li>Canh rau mồng tơi, rau dền thanh mát</li>
-                    <li>Kim chi lên men tự nhiên</li>
+                    <li>Bí ngòi (courgette) luộc hoặc xào tỏi nhẹ</li>
+                    <li>Canh rau dền, rau mồng tơi, bí xanh (bí đao)</li>
+                    <li>Dưa chuột tươi ăn giòn mát</li>
                   </ul>
                 </div>
                 <div class="nutrition-food-group">
-                  <div class="nutrition-group-label">Thực phẩm giúp dễ ngủ & An thần</div>
+                  <div class="nutrition-group-label">Món nhẹ hỗ trợ ngủ ngon</div>
                   <ul class="nutrition-food-bullets">
-                    <li>Hạt bí ngô nướng mộc</li>
-                    <li>Trà hoa cúc La Mã ấm</li>
-                    <li>1 quả kiwi vàng tráng miệng</li>
+                    <li>1 củ khoai lang nhỏ hoặc 1 quả chuối chín</li>
+                    <li>Một nắm nhỏ hạt lạc hoặc hạt bí ngô rang mộc</li>
+                    <li>Nước ấm hoặc nước gạo lứt/đậu đen rang ấm</li>
                   </ul>
                 </div>
               </div>
 
               <div class="nutrition-recipe-box">
-                <div class="nutrition-recipe-title">Gợi Ý Mẫu: Canh Đậu Hũ Rong Biển & Cá Áp Chảo</div>
+                <div class="nutrition-recipe-title">Gợi Ý Mẫu: Canh Đậu Phụ Cà Chua & Cá Áp Chảo</div>
                 <div class="nutrition-recipe-tags">
                   <span>Chuẩn bị: 10 phút</span>
-                  <span>Chi phí: ≈ 25.000 ₫ (~0.95 €)</span>
-                  <span>Đạm: 24g • Xơ: 5g</span>
+                  <span>Chi phí: ≈ 22.000 ₫ (~0.85 €)</span>
+                  <span>Đạm: 22g • Xơ: 5g</span>
                 </div>
                 <p class="nutrition-recipe-desc">
-                  1 bát canh rong biển nấu đậu hũ non và nấm kim châm thanh nhẹ, ăn kèm cá điêu hồng áp chảo. Kết thúc bữa tối trước 19:30 để ruột nghỉ ngơi.
+                  1 bát canh đậu phụ cà chua thanh mát ăn kèm cá phi lê áp chảo và đĩa bí ngòi luộc. Bữa tối thanh nhẹ kết thúc trước 19:30 để ruột nghỉ ngơi và ngủ sâu giấc.
                 </p>
               </div>
             </div>
@@ -3683,7 +3720,7 @@
               <strong>1. Bengen 4% Rule (Cổ điển):</strong> Rút 4% danh mục năm đầu, các năm sau giữ nguyên sức mua bằng cách điều chỉnh đúng theo mức lạm phát.
             </div>
             <div>
-              <strong>2. Guyton-Klinger (Lan can động):</strong> Nếu thị trường giảm mạnh khiến tỷ lệ rút vượt ngưỡng an toàn (> SWR × 1.2), tự động cắt giảm 10% chi tiêu; nếu thị trường bùng nổ (< SWR × 0.8), tăng thêm 10% chi tiêu hưởng thụ.
+              <strong>2. Guyton-Klinger (Lan can động):</strong> Nếu thị trường giảm mạnh khiến tỷ lệ rút vượt ngưỡng an toàn (&gt; SWR × 1.2), tự động cắt giảm 10% chi tiêu; nếu thị trường bùng nổ (&lt; SWR × 0.8), tăng thêm 10% chi tiêu hưởng thụ.
             </div>
             <div>
               <strong>3. VPW (Variable Percentage Withdrawal):</strong> Tỷ lệ rút tăng dần theo tuổi: Tỷ lệ rút = 1 / (Tuổi thọ kỳ vọng - Tuổi hiện tại + 1) + 2%. Đảm bảo tối đa hóa tận hưởng trọn vẹn tài sản cuối đời.
@@ -3987,14 +4024,14 @@
 
   <!-- Application Logic Modules -->
   <script src="js/i18n.js?v=20261015_v102"></script>
-  <script src="js/engine.js?v=20261015_v100"></script>
+  <script src="js/engine.js?v=20261015_v107"></script>
   <script src="js/taxOptimizer.js?v=20261013_v3"></script>
   <script src="js/monteCarlo.js?v=20261013_v3"></script>
   <script src="js/scenarios.js?v=20261013_v2"></script>
-  <script src="js/geminiAdvisor.js?v=20261013_v6"></script>
+  <script src="js/geminiAdvisor.js?v=20261015_v104"></script>
   <script src="js/patrimoine.js?v=20261014_v94"></script>
   <script src="js/export.js?v=20261013_v2"></script>
   <script src="js/auth.js?v=20261013_v2"></script>
-  <script src="js/ui.js?v=20261015_v102"></script>
+  <script src="js/ui.js?v=20261015_v108"></script>
 </body>
 </html>

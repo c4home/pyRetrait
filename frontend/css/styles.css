@@ -1778,8 +1778,8 @@ code, kbd, samp {
 /* Special Expense Item: Kế Hoạch Con Cái & Gia Đình */
 .expense-item-family {
   background: var(--bg-card);
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  border-left: 3px solid #6366f1;
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  border-left: 3px solid #f43f5e;
   border-radius: var(--radius-sm);
   padding: 0.75rem 0.95rem;
   margin-bottom: 0.65rem;
@@ -1787,8 +1787,8 @@ code, kbd, samp {
 }
 
 .expense-item-family:hover {
-  border-color: rgba(99, 102, 241, 0.55);
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.12);
+  border-color: rgba(244, 63, 94, 0.55);
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.12);
 }
 
 .family-stream-config-box {
@@ -5485,14 +5485,14 @@ code, kbd, samp {
 
 [data-theme="light"] .expense-item-family {
   background: #ffffff !important;
-  border: 1px solid #c7d2fe !important;
-  border-left: 3px solid #4f46e5 !important;
+  border: 1px solid #fecdd3 !important;
+  border-left: 3px solid #e11d48 !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 [data-theme="light"] .expense-item-family:hover {
-  background: #f5f7ff !important;
-  border-color: #a5b4fc !important;
+  background: #fff1f2 !important;
+  border-color: #fda4af !important;
 }
 
 [data-theme="light"] .family-stream-config-box {
@@ -5501,19 +5501,19 @@ code, kbd, samp {
 }
 
 [data-theme="light"] #lbl-family-stream-monthly {
-  color: #4f46e5 !important;
+  color: #e11d48 !important;
 }
 
 [data-theme="light"] #badge-family-stream-status {
-  background: #eef2ff !important;
-  color: #4338ca !important;
-  border-color: #c7d2fe !important;
+  background: #fff1f2 !important;
+  color: #e11d48 !important;
+  border-color: #fecdd3 !important;
 }
 
 [data-theme="light"] #lbl-family-stream-badge {
-  background: #eef2ff !important;
-  color: #4338ca !important;
-  border-color: #c7d2fe !important;
+  background: #fff1f2 !important;
+  color: #e11d48 !important;
+  border-color: #fecdd3 !important;
 }
 
 [data-theme="light"] .expense-item-senior {
@@ -6412,8 +6412,8 @@ code, kbd, samp {
    ========================================================================== */
 .expense-item-legacy {
   background: var(--bg-card);
-  border: 1px solid rgba(245, 158, 11, 0.25);
-  border-left: 3px solid #f59e0b;
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  border-left: 3px solid #f43f5e;
   border-radius: var(--radius-sm);
   padding: 0.75rem 0.95rem;
   margin-bottom: 0.65rem;
@@ -6421,8 +6421,8 @@ code, kbd, samp {
 }
 
 .expense-item-legacy:hover {
-  border-color: rgba(245, 158, 11, 0.55);
-  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.12);
+  border-color: rgba(244, 63, 94, 0.55);
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.12);
 }
 
 .estate-legacy-config-box {
@@ -6435,14 +6435,14 @@ code, kbd, samp {
 
 [data-theme="light"] .expense-item-legacy {
   background: #ffffff !important;
-  border: 1px solid #fed7aa !important;
-  border-left: 3px solid #d97706 !important;
+  border: 1px solid #fecdd3 !important;
+  border-left: 3px solid #e11d48 !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 [data-theme="light"] .expense-item-legacy:hover {
-  background: #fffbeb !important;
-  border-color: #fcd34d !important;
+  background: #fff1f2 !important;
+  border-color: #fda4af !important;
 }
 
 [data-theme="light"] .estate-legacy-config-box {
