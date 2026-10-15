@@ -20,7 +20,7 @@
   </script>
   
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=20261015_v116">
+  <link rel="stylesheet" href="css/styles.css?v=20261015_v117">
 </head>
 <body>
   <!-- Top Navigation Bar -->
@@ -115,14 +115,8 @@
         </button>
         <button class="nav-item" data-tab="tab-insights">
           <div class="nav-text">
-            <span class="nav-label" data-i18n="nav_insights">Monte Carlo & Rủi ro</span>
-            <span class="nav-sub" data-i18n="nav_insights_sub">Có nguy cơ cạn sạch tiền trước tuổi già không?</span>
-          </div>
-        </button>
-        <button class="nav-item" data-tab="tab-scenarios">
-          <div class="nav-text">
-            <span class="nav-label" data-i18n="nav_scenarios">Kịch bản What-If</span>
-            <span class="nav-sub" data-i18n="nav_scenarios_sub">Sẽ ra sao nếu bị bệnh hay thị trường khủng hoảng?</span>
+            <span class="nav-label" data-i18n="nav_insights">Quản Lý Rủi Ro</span>
+            <span class="nav-sub" data-i18n="nav_insights_sub">Kế hoạch có trụ vững trước rủi ro và biến cố không?</span>
           </div>
         </button>
         <button class="nav-item" data-tab="tab-estate">
@@ -2029,31 +2023,41 @@
         </div>
       </section>
 
-      <!-- TAB 4: DEEPER INSIGHTS & MONTE CARLO -->
+      <!-- TAB 2: QUẢN LÝ RỦI RO (MONTE CARLO & WHAT-IF STRESS TEST) -->
       <section class="tab-pane" id="tab-insights">
-        <!-- Banner Triết Lý & Câu Hỏi Cốt Lõi: Monte Carlo & Sức Bền Danh Mục -->
+        <!-- Banner Triết Lý & Câu Hỏi Cốt Lõi: Quản Lý Rủi Ro Toàn Diện -->
         <div class="tab-hero-banner">
           <div class="tab-hero-header">
             <div class="tab-hero-title">
-              Kiểm Tra Sức Bền Danh Mục & Rủi Ro Thị Trường (Monte Carlo)
+              Quản Lý Rủi Ro & Thử Thách Sức Bền Kế Hoạch (Stress Test)
             </div>
             <p class="tab-hero-sub">
-              Thị trường tài chính không tăng trưởng theo đường thẳng. Mô phỏng 1,000 kịch bản ngẫu nhiên giúp bạn kiểm tra danh mục trước những biến động khắc nghiệt nhất.
+              Kế hoạch tài chính cá nhân chỉ thực sự an toàn khi vượt qua được cả 2 bài kiểm tra khắc nghiệt: Rủi ro biến động thị trường ngẫu nhiên (Monte Carlo) và Biến cố cuộc đời bất ngờ (What-If Stress Test).
             </p>
           </div>
           <div class="tab-hero-qa-grid">
             <div class="tab-hero-qa-item">
-              <span class="tab-hero-q">Xác suất danh mục tồn tại suốt đời là bao nhiêu?</span>
-              <p class="tab-hero-a">Đo lường tỷ lệ thành công (Success Rate) đến năm 85–100 tuổi, nhận diện các rủi ro cạn kiệt tài sản qua phân vị P10, P50, P90.</p>
+              <span class="tab-hero-q">Xác suất danh mục trụ vững suốt đời là bao nhiêu?</span>
+              <p class="tab-hero-a">Mô phỏng 1,000 chu kỳ thị trường ngẫu nhiên, đo lường tỷ lệ thành công và mức độ an toàn qua các phân vị P10, P50, P90.</p>
             </div>
             <div class="tab-hero-qa-item">
               <span class="tab-hero-q">Làm sao sống sót qua rủi ro chuỗi lợi nhuận (SORR)?</span>
-              <p class="tab-hero-a">Nhận diện và phòng thủ nguy cơ thị trường suy thoái sâu ngay những năm đầu vừa bước vào kỳ nghỉ hưu (Sequence of Returns Risk).</p>
+              <p class="tab-hero-a">Đánh giá nguy cơ thị trường suy thoái sâu ngay những năm đầu nghỉ hưu và cách thiết lập quỹ đệm tiền mặt phòng vệ.</p>
             </div>
             <div class="tab-hero-qa-item">
-              <span class="tab-hero-q">Nên chọn chiến lược rút tiền nào để an toàn nhất?</span>
-              <p class="tab-hero-a">So sánh trực quan giữa 4 chiến lược: Bengen 4%, Quy tắc Lan can Guyton-Klinger, Tỷ lệ Động VPW và Tỷ lệ Cố định.</p>
+              <span class="tab-hero-q">Kế hoạch có bị phá vỡ trước các cú sốc cuộc đời?</span>
+              <p class="tab-hero-a">Thử nghiệm sức chịu đựng trước lạm phát tăng cao, chi phí y tế lớn, mất việc sớm hoặc thị trường suy thoái kéo dài.</p>
             </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TẦNG 1: RỦI RO THỊ TRƯỜNG & PHÂN PHỐI XÁC SUẤT (MONTE CARLO) -->
+        <!-- ========================================== -->
+        <div class="risk-tier-divider">
+          <div class="risk-tier-badge-container">
+            <span class="risk-tier-badge badge-tier1">Tầng 1 • Rủi Ro Thị Trường</span>
+            <span class="risk-tier-subtitle">Mô Phỏng Monte Carlo 1,000 Kịch Bản Ngẫu Nhiên & Chuỗi Lợi Nhuận (SORR)</span>
           </div>
         </div>
 
@@ -2108,7 +2112,7 @@
           <div class="tab-split-grid">
             <!-- BÊN TRÁI: Khối Thiết lập Mô phỏng Monte Carlo -->
             <div class="card tab-split-left-card">
-              <h3 class="card-title"> Thiết lập Mô phỏng Monte Carlo (1,000 Lần)</h3>
+              <h3 class="card-title">Thiết lập Mô phỏng Monte Carlo (1,000 Lần)</h3>
               <p class="card-desc">Thực tế thị trường không tăng trưởng đều 8%/năm. Monte Carlo kiểm nghiệm 1,000 chu kỳ thị trường ngẫu nhiên để tìm ra rủi ro suy thoái sớm (Sequence of Returns Risk).</p>
 
               <div class="form-group">
@@ -2127,11 +2131,11 @@
               </div>
 
               <button class="btn btn-primary btn-block" id="btn-run-monte-carlo">
-                 Chạy lại Mô phỏng Monte Carlo
+                Chạy lại Mô phỏng Monte Carlo
               </button>
 
               <div class="form-divider"></div>
-              <h4 class="card-subtitle"> Sequence of Returns Risk (SRR)</h4>
+              <h4 class="card-subtitle">Sequence of Returns Risk (SRR)</h4>
               <p class="card-desc">Nếu thị trường sụt giảm ngay trong 2-3 năm đầu sau khi nghỉ hưu, danh mục sẽ bị tổn thương nặng nề nhất.</p>
               
               <div class="srr-status-box" id="srr-status-box">
@@ -2161,33 +2165,14 @@
             </div>
           </div>
         </div>
-      </section>
 
-      <!-- TAB 5: WHAT-IF SCENARIOS -->
-      <section class="tab-pane" id="tab-scenarios">
-        <!-- Banner Triết Lý & Câu Hỏi Cốt Lõi: Kịch Bản What-If & Biến Cố -->
-        <div class="tab-hero-banner">
-          <div class="tab-hero-header">
-            <div class="tab-hero-title">
-              Thử Nghiệm Kịch Bản What-If & Phòng Vệ Biến Cố Cuộc Đời
-            </div>
-            <p class="tab-hero-sub">
-              Đặt kế hoạch hưu trí dưới các bài kiểm tra áp lực (Stress Test) trước những cú sốc kinh tế bất ngờ và những quyết định lớn của cuộc đời.
-            </p>
-          </div>
-          <div class="tab-hero-qa-grid">
-            <div class="tab-hero-qa-item">
-              <span class="tab-hero-q">Sẽ ra sao nếu lạm phát bùng nổ hoặc lợi nhuận sụt giảm?</span>
-              <p class="tab-hero-a">Đo lường mức độ suy giảm tài sản khi lạm phát vượt dự tính hoặc thị trường chứng khoán đi ngang kéo dài nhiều năm.</p>
-            </div>
-            <div class="tab-hero-qa-item">
-              <span class="tab-hero-q">Kế hoạch có trụ vững nếu mất việc sớm hay mua thêm BĐS?</span>
-              <p class="tab-hero-a">Đánh giá tác động tài chính khi nghỉ việc trước hạn, chi một khoản lớn mua nhà hoặc phát sinh biến cố gia đình.</p>
-            </div>
-            <div class="tab-hero-qa-item">
-              <span class="tab-hero-q">Biến số nào là "tử huyệt" cần ưu tiên lập quỹ phòng thủ?</span>
-              <p class="tab-hero-a">Xác định độ nhạy của kế hoạch để chủ động điều chỉnh chi tiêu, dự trữ tiền mặt và phòng vệ tài chính từ sớm.</p>
-            </div>
+        <!-- ========================================== -->
+        <!-- TẦNG 2: BIẾN CỐ CUỘC ĐỜI & THỬ THÁCH SỨC BỀN (WHAT-IF STRESS TEST) -->
+        <!-- ========================================== -->
+        <div class="risk-tier-divider" style="margin-top: 2.25rem;">
+          <div class="risk-tier-badge-container">
+            <span class="risk-tier-badge badge-tier2">Tầng 2 • Biến Cố Cuộc Đời</span>
+            <span class="risk-tier-subtitle">Thử Thách Sức Bền Kế Hoạch Trước 5 Kịch Bản Biến Cố Kinh Tế & Gia Đình (What-If Stress Test)</span>
           </div>
         </div>
 
@@ -2214,7 +2199,7 @@
             <!-- BÊN TRÁI: Giải Thích & So Sánh 5 Đường Kịch Bản -->
             <div class="card withdrawals-strategy-card">
               <div>
-                <h3 class="card-title" style="margin: 0;"> Giải Thích & So Sánh Các Đường Kịch Bản</h3>
+                <h3 class="card-title" style="margin: 0;">Giải Thích & So Sánh Các Đường Kịch Bản</h3>
               </div>
 
               <div class="strategy-options" id="scenario-lines-explanation">
@@ -4001,7 +3986,7 @@
   </div>
 
   <!-- Application Logic Modules -->
-  <script src="js/i18n.js?v=20261015_v101"></script>
+  <script src="js/i18n.js?v=20261015_v102"></script>
   <script src="js/engine.js?v=20261015_v100"></script>
   <script src="js/taxOptimizer.js?v=20261013_v3"></script>
   <script src="js/monteCarlo.js?v=20261013_v3"></script>
@@ -4010,6 +3995,6 @@
   <script src="js/patrimoine.js?v=20261014_v94"></script>
   <script src="js/export.js?v=20261013_v2"></script>
   <script src="js/auth.js?v=20261013_v2"></script>
-  <script src="js/ui.js?v=20261015_v100"></script>
+  <script src="js/ui.js?v=20261015_v102"></script>
 </body>
 </html>

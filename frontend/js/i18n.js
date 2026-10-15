@@ -37,8 +37,8 @@
       // Navigation Sidebar
       "nav_projections": "Dòng tiền & Tài sản",
       "nav_projections_sub": "Thu nhập có đủ chi tiêu hay không?",
-      "nav_insights": "Monte Carlo & Rủi ro",
-      "nav_insights_sub": "Có nguy cơ cạn sạch tiền trước tuổi già không?",
+      "nav_insights": "Quản Lý Rủi Ro",
+      "nav_insights_sub": "Kế hoạch có trụ vững trước rủi ro và biến cố không?",
       "nav_scenarios": "Kịch bản What-If",
       "nav_scenarios_sub": "Sẽ ra sao nếu bị bệnh hay thị trường khủng hoảng?",
       "nav_patrimoine": "Quản lý BĐS & Đội xe",
@@ -168,8 +168,8 @@
       // Navigation Sidebar
       "nav_projections": "Cash Flow & Wealth",
       "nav_projections_sub": "Will your income cover all expenses?",
-      "nav_insights": "Monte Carlo & Risk",
-      "nav_insights_sub": "Will your portfolio survive market crashes?",
+      "nav_insights": "Risk Management",
+      "nav_insights_sub": "Will your plan survive market shocks & crises?",
       "nav_scenarios": "What-If Scenarios",
       "nav_scenarios_sub": "What if you get sick or markets crash?",
       "nav_patrimoine": "Real Estate & Cars",
@@ -299,8 +299,8 @@
       // Navigation Sidebar
       "nav_projections": "Flux & Patrimoine",
       "nav_projections_sub": "Vos revenus couvriront-ils vos dépenses ?",
-      "nav_insights": "Monte Carlo & Risques",
-      "nav_insights_sub": "Votre capital résistera-t-il aux krachs boursiers ?",
+      "nav_insights": "Gestion des Risques",
+      "nav_insights_sub": "Le plan résistera-t-il aux crises et aléas ?",
       "nav_scenarios": "Scénarios What-If",
       "nav_scenarios_sub": "Que se passe-t-il en cas de maladie ou de crise ?",
       "nav_patrimoine": "Immobilier & Flotte Auto",

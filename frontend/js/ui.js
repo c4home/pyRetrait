@@ -1963,7 +1963,10 @@
 
   function renderActiveTab(tabId) {
     if (tabId === "tab-taxes") renderTaxTab();
-    else if (tabId === "tab-insights") renderMonteCarloTab();
+    else if (tabId === "tab-insights") {
+      renderMonteCarloTab();
+      renderScenarioTab();
+    }
     else if (tabId === "tab-scenarios") renderScenarioTab();
     else if (tabId === "tab-estate") renderEstateTab();
   }

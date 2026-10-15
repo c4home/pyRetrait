@@ -7791,6 +7791,67 @@ code, kbd, samp {
   color: var(--text-muted);
 }
 
+/* ==========================================================================
+   Tab Quản Lý Rủi Ro: Bố Cục 2 Tầng Dọc Liền Mạch (Sequential 2-Tier Dashboard)
+   ========================================================================== */
+.risk-tier-divider {
+  margin: 1.5rem 0 1rem 0;
+  padding-top: 1.25rem;
+  border-top: 1px dashed var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
 
+.risk-tier-badge-container {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
 
+.risk-tier-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
 
+.risk-tier-badge.badge-tier1 {
+  background: rgba(14, 165, 233, 0.15);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(14, 165, 233, 0.35);
+}
+
+.risk-tier-badge.badge-tier2 {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+}
+
+.risk-tier-subtitle {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+}
+
+[data-theme="light"] .risk-tier-badge.badge-tier1 {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+  border-color: #bae6fd !important;
+}
+
+[data-theme="light"] .risk-tier-badge.badge-tier2 {
+  background: #f3e8ff !important;
+  color: #6d28d9 !important;
+  border-color: #e9d5ff !important;
+}
+
+[data-theme="light"] .risk-tier-subtitle {
+  color: #0f172a !important;
+}
