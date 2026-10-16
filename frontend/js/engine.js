@@ -262,8 +262,267 @@ window.RetirementEngine = (function() {
     };
   }
 
+  /**
+   * Đánh giá Lưới An Toàn 3 Biến Cố Khắc Nghiệt (Triple-Shock Stress Resilience)
+   * Chạy độc lập 3 kịch bản khủng hoảng:
+   * 1. market_crash: Khủng hoảng thị trường sớm (-35% trong 2 năm đầu nghỉ hưu - rủi ro SORR)
+   * 2. high_inflation: Bão giá lạm phát phi mã (+30% chi phí sống trong 5 năm đầu)
+   * 3. medical_shock: Cú sốc chi phí y tế đột xuất (500 triệu VND ở tuổi 65)
+   */
+  function evaluateStressResilience(plan) {
+    if (!plan) return null;
+    const scenarios = [
+      {
+        id: 'market_crash',
+        key: 'market_crash',
+        nameVi: 'Khủng hoảng Thị trường Sớm (-35% Năm 1 & 2)',
+        nameEn: 'Early Market Crash (-35% Yr 1 & 2)',
+        nameFr: 'Krach Boursier Précoce (-35% An 1 & 2)',
+        descVi: 'Mô phỏng rủi ro trình tự lợi nhuận (SORR): thị trường giảm 35% ngay khi bạn vừa bước vào hưu trí.',
+        descEn: 'Sequence of returns risk: market drops 35% right after retirement.',
+        descFr: 'Risque de séquence des rendements: chute de 35% dès le début de la retraite.',
+        adviceVi: 'Lập đệm tiền mặt dự phòng 2–3 năm chi tiêu hoặc dùng chiến lược rút tiền linh hoạt (Guyton-Klinger) để không phải bán cắt lỗ khi thị trường chạm đáy.',
+        adviceEn: 'Build a 2–3 year cash cushion or switch to Guyton-Klinger dynamic withdrawals to avoid selling at market bottom.',
+        adviceFr: 'Constituez un matelas de sécurité de 2–3 ans ou utilisez Guyton-Klinger pour éviter de vendre à perte au creux du marché.'
+      },
+      {
+        id: 'high_inflation',
+        key: 'high_inflation',
+        nameVi: 'Lạm phát Phi mã (+30% Chi phí trong 5 năm)',
+        nameEn: 'High Inflation Spike (+30% Expenses for 5 Yrs)',
+        nameFr: 'Flambée Inflationniste (+30% Dépenses pdt 5 Ans)',
+        descVi: 'Chi phí sinh hoạt tăng vọt 30% liên tục 5 năm đầu do bất ổn kinh tế vĩ mô hoặc chuỗi cung ứng.',
+        descEn: 'Living expenses jump 30% for 5 consecutive years due to macroeconomic shocks.',
+        descFr: 'Les dépenses bondissent de 30% pendant 5 ans consécutifs en raison des chocs macroéconomiques.',
+        adviceVi: 'Chủ động thắt chặt chi tiêu trong các năm bão giá (chuyển sớm sang giai đoạn Slow-Go) và phân bổ tài sản phòng thủ lạm phát (BĐS, cổ phiếu).',
+        adviceEn: 'Flexibly tighten spending during inflation spikes and allocate to inflation-resilient assets (Real Estate, equities).',
+        adviceFr: 'Resserrez vos dépenses pendant les chocs d\'inflation et diversifiez vers des actifs résilients (immobilier, actions).'
+      },
+      {
+        id: 'medical_shock',
+        key: 'medical_shock',
+        nameVi: 'Cú sốc Chi phí Y tế Đột xuất (500Tr ₫ ở tuổi 65)',
+        nameEn: 'Medical Expense Shock (€18k at Age 65)',
+        nameFr: 'Choc de Dépenses de Santé (18k € à 65 ans)',
+        descVi: 'Phát sinh một khoản viện phí / y tế đặc biệt quy mô lớn ngoài bảo hiểm y tế cơ bản.',
+        descEn: 'A sudden large medical bill outside basic health coverage.',
+        descFr: 'Une dépense médicale imprévue majeure non couverte par la sécurité sociale.',
+        adviceVi: 'Tham gia hợp đồng bảo hiểm sức khỏe tư nhân có quyền lợi nội trú cao để chuyển giao rủi ro tài chính này cho đơn vị bảo hiểm.',
+        adviceEn: 'Maintain private health insurance with strong inpatient coverage to transfer catastrophic medical risks.',
+        adviceFr: 'Souscrivez une mutuelle santé privée avec un bon plafond d\'hospitalisation pour transférer ce risque financier.'
+      }
+    ];
+
+    let passedCount = 0;
+    const scenarioResults = scenarios.map(sc => {
+      const stressProj = runProjection(plan, sc.key, true);
+      let passed = true;
+      let failureReason = null; // 'floor_breach' | 'spending_cut' | 'depleted'
+      let failureAge = null;
+      let capitalGap = 0;
+      let delayYearsGap = 0;
+
+      if (!stressProj || !stressProj.survived || (stressProj.finalPortfolio !== undefined && stressProj.finalPortfolio <= 0)) {
+        passed = false;
+        failureReason = 'depleted';
+      }
+
+      // Kiểm tra Multi-Gate qua toàn bộ các năm nghỉ hưu:
+      // Gate 1: Sàn Tài sản An toàn >= 5 năm chi tiêu hiện hành
+      // Gate 2: Mức sống không bị cắt giảm quá 20% (chi tiêu thực tế >= 80% chi tiêu kế hoạch)
+      // Gate 3: Danh mục không cạn kiệt (portfolioEnd > 0)
+      if (stressProj && Array.isArray(stressProj.timeline)) {
+        for (let i = 0; i < stressProj.timeline.length; i++) {
+          const row = stressProj.timeline[i];
+          if (!row.isRetired) continue;
+
+          // Gate 3: Cạn kiệt hoàn toàn vốn
+          if (row.portfolioEnd <= 0) {
+            passed = false;
+            failureReason = 'depleted';
+            failureAge = row.age;
+            break;
+          }
+
+          // Gate 1: Sàn Tài sản An Toàn >= 5 năm chi tiêu hiện hành
+          const annualExp = row.expenses || 0;
+          const safetyFloor = annualExp * 5;
+          if (row.portfolioEnd < safetyFloor) {
+            passed = false;
+            failureReason = 'floor_breach';
+            failureAge = row.age;
+            break;
+          }
+
+          // Gate 2: Giới hạn cắt giảm mức sống (chi tiêu thực tế không tụt quá 20%)
+          const actualSpending = (row.withdrawal || 0) + Math.max(0, (row.income || 0) - (row.tax || 0));
+          if (annualExp > 0 && actualSpending < annualExp * 0.80) {
+            passed = false;
+            failureReason = 'spending_cut';
+            failureAge = row.age;
+            break;
+          }
+        }
+      }
+
+      if (passed) {
+        passedCount++;
+      } else {
+        // Ước tính khoảng thiếu hụt vốn (Capital Gap) chiết khấu về hiện tại
+        const planCurAge = Number(plan.currentAge) || 29;
+        const yearsToFail = Math.max(1, (failureAge || 60) - planCurAge);
+        let deficitAtFail = 0;
+        if (stressProj && Array.isArray(stressProj.timeline)) {
+          const failRow = stressProj.timeline.find(r => r.age === failureAge);
+          if (failRow) {
+            const floor = (failRow.expenses || 0) * 5;
+            deficitAtFail = Math.max(0, floor - (failRow.portfolioEnd || 0));
+          }
+        }
+        const annualizedBase = (Number(plan.retirementExpenses) || 12000) * 2.0;
+        if (deficitAtFail <= 0) deficitAtFail = annualizedBase;
+        capitalGap = Math.round(Math.max(annualizedBase, deficitAtFail / Math.pow(1.04, yearsToFail)));
+
+        // Ước tính số năm cần lùi tuổi hưu (Delay Retirement Years)
+        const annSavings = Number(plan.annualSavings) || 10000;
+        delayYearsGap = Math.min(8, Math.max(1, Math.ceil(capitalGap / Math.max(6000, annSavings * 1.6))));
+      }
+
+      return {
+        id: sc.id,
+        key: sc.key,
+        nameVi: sc.nameVi,
+        nameEn: sc.nameEn,
+        nameFr: sc.nameFr,
+        descVi: sc.descVi,
+        descEn: sc.descEn,
+        descFr: sc.descFr,
+        adviceVi: sc.adviceVi,
+        adviceEn: sc.adviceEn,
+        adviceFr: sc.adviceFr,
+        passed,
+        failureReason,
+        failureAge,
+        capitalGap,
+        delayYearsGap,
+        finalPortfolio: stressProj ? stressProj.finalPortfolio : 0
+      };
+    });
+
+    const isBulletproof = passedCount === scenarios.length;
+    let badge = 'fragile';
+    if (isBulletproof) {
+      badge = 'bulletproof';
+    } else if (passedCount >= 1) {
+      badge = 'standard';
+    }
+
+    return {
+      passedCount,
+      totalCount: scenarios.length,
+      isBulletproof,
+      badge,
+      scenarios: scenarioResults
+    };
+  }
+
+  /**
+   * Tìm Tuổi Nghỉ Hưu Tối Ưu / Tuổi Gợi Ý (Optimal / Suggested Retirement Age)
+   * Tiêu chuẩn khắt khe: Phải ĐÁP ỨNG TOÀN BỘ 4 ĐIỀU KIỆN ĐẠT TỰ DO TÀI CHÍNH:
+   * 1. Tiền cần bù đắp mỗi năm: Chi tiêu hưu - Lương hưu - Thu nhập thụ động
+   * 2. Tài sản mục tiêu cần tích lũy: Tiền cần bù đắp × Hệ số an toàn (25 - 30 lần tùy thời lượng hưu)
+   * 3. Chịu được biến cố thị trường: 1,000 kịch bản mô phỏng Monte Carlo đạt tỷ lệ thành công ≥ 80%
+   * 4. Chịu được biến cố lớn cuộc đời: Vượt qua cả 3 cú sốc (Bệnh tật, Khủng hoảng, Lạm phát) với Sàn tài sản ≥ 5 năm & Mức sống ≥ 80% (isBulletproof)
+   * Và đảm bảo dòng tiền cơ sở không cạn kiệt (survived: true).
+   */
+  function findOptimalRetirementAge(plan) {
+    if (!plan) return null;
+    const currentAge = Number(plan.currentAge) || 29;
+    const lifeExpectancy = Number(plan.lifeExpectancy) || 85;
+    const minSearchAge = currentAge;
+    const maxSearchAge = Math.min(lifeExpectancy - 2, 75);
+
+    const mcSim = (typeof window !== 'undefined' && window.MonteCarloSimulator) 
+      ? window.MonteCarloSimulator 
+      : (typeof MonteCarloSimulator !== 'undefined' ? MonteCarloSimulator : null);
+
+    let bestCandidate = null;
+
+    for (let candAge = minSearchAge; candAge <= maxSearchAge; candAge++) {
+      const candPlan = { ...plan, retirementAge: candAge };
+
+      // Nấc 1: Chạy projection cơ sở cho tuổi thử nghiệm (bỏ qua đệ quy optimal và stress)
+      const candProj = runProjection(candPlan, null, true, true);
+      if (!candProj || !candProj.survived || (candProj.finalPortfolio !== undefined && candProj.finalPortfolio <= 0)) {
+        continue;
+      }
+
+      // Nấc 2: Kiểm tra Điều kiện 1 & 2 (Đủ Nest Egg an toàn tương ứng với thời lượng hưu)
+      const horizon = Math.max(1, lifeExpectancy - candAge);
+      const reqMult = horizon > 35 ? 30 : (horizon > 30 ? 28 : 25);
+      
+      const baseRetireExp = Number(plan.retirementExpenses) || 12000;
+      let passiveAtRetire = 0;
+      const ssAge = Number(plan.socialSecurityAge) || 64;
+      if (candAge >= ssAge) {
+        passiveAtRetire += Number(plan.socialSecurityAnnual) || 0;
+      }
+      if (Array.isArray(plan.incomes)) {
+        plan.incomes.forEach(inc => {
+          if (inc.enabled === false) return;
+          const sAge = Number(inc.startAge) || currentAge;
+          const eAge = Number(inc.endAge) || lifeExpectancy;
+          const name = (inc.name || "").toLowerCase();
+          const isSalary = name.includes("lương tại") || name.includes("lương chính") || (sAge < candAge && eAge <= candAge);
+          if (!isSalary && candAge >= sAge && candAge <= eAge) {
+            passiveAtRetire += Number(inc.amount) || 0;
+          }
+        });
+      }
+      const netDeficit = Math.max(0, baseRetireExp - passiveAtRetire);
+      const reqNestEgg = Math.round(netDeficit > 0 ? (netDeficit * reqMult) : (baseRetireExp * 10));
+
+      // Lấy tài sản lúc bắt đầu bước vào hưu trí tại tuổi candAge
+      const prevRow = candProj.timeline.find(r => r.age === candAge - 1);
+      const currRow = candProj.timeline.find(r => r.age === candAge);
+      const portAtRetire = prevRow ? prevRow.portfolioEnd : (currRow ? (currRow.portfolioEnd + (currRow.withdrawal || 0)) : 0);
+
+      if (portAtRetire < reqNestEgg) {
+        continue;
+      }
+
+      // Nấc 3: Kiểm tra Điều kiện 4 (Stress Resilience - 3 Worst-case Shocks: Sàn ≥ 5 năm & Mức sống ≥ 80%)
+      const candStress = evaluateStressResilience(candPlan);
+      if (!candStress || !candStress.isBulletproof) {
+        if (!bestCandidate && candStress && candStress.passedCount >= 2) {
+          bestCandidate = candAge;
+        }
+        continue;
+      }
+
+      // Nấc 4: Kiểm tra Điều kiện 3 (Monte Carlo simulation ≥ 80%)
+      if (mcSim && typeof mcSim.runSimulation === 'function') {
+        try {
+          const mcRes = mcSim.runSimulation(candPlan, 300, 15.0);
+          const successRate = parseFloat(mcRes.successRate);
+          if (!isNaN(successRate) && successRate < 80.0) {
+            if (!bestCandidate) bestCandidate = candAge;
+            continue;
+          }
+        } catch (e) {
+          console.warn("Lỗi tính Monte Carlo khi tìm tuổi tối ưu:", e);
+        }
+      }
+
+      // Đạt trọn vẹn tất cả 4 điều kiện!
+      return candAge;
+    }
+
+    return bestCandidate;
+  }
+
   // Calculate year-by-year cash flows and net worth trajectory
-  function runProjection(plan, overrideScenario = null) {
+  function runProjection(plan, overrideScenario = null, skipStressResilience = false, skipOptimalSearch = false) {
     const currentAge = Number(plan.currentAge) || 29;
     const retireAge = Number(plan.retirementAge) || 42;
     const lifeExpectancy = Number(plan.lifeExpectancy) || 85;
@@ -548,7 +807,9 @@ window.RetirementEngine = (function() {
           currentExpenses *= 1.30; // 30% jump in expenses
         } else if (overrideScenario === 'medical_shock' && age === 65) {
           const fx = currentEurVndRate || 27500;
-          currentExpenses += (500_000_000 / fx); // 500tr VND (~18k EUR)
+          const medicalShockAmt = 500_000_000 / fx; // 500tr VND (~18k EUR)
+          currentExpenses += medicalShockAmt;
+          portfolio = Math.max(0, portfolio - medicalShockAmt);
         } else if (overrideScenario === 'downsizing' && age === 60) {
           const fx = currentEurVndRate || 27500;
           portfolio += (2_000_000_000 / fx); // 2 tỷ VND (~73k EUR)
@@ -672,7 +933,7 @@ window.RetirementEngine = (function() {
           // Passive income only partially covers expenses. Net deficit must come from portfolio
           const deficit = currentExpenses - incomeAfterTax;
           actualWithdrawal = isStrategyActive
-            ? Math.min(portfolio, withdrawalAmount)
+            ? Math.min(portfolio, Math.max(withdrawalAmount, deficit))
             : Math.min(portfolio, deficit);
           portfolio = Math.max(0, (portfolio - actualWithdrawal) * (1.0 + returnRate));
           netSavingsOrWithdrawal = -actualWithdrawal;
@@ -737,10 +998,32 @@ window.RetirementEngine = (function() {
       });
     }
 
-    // Key metrics calculations
+    // Key metrics calculations: Chuẩn hóa theo 4 Điều Kiện Đạt Tự Do Tài Chính
     const finalPortfolio = timeline[timeline.length - 1].portfolioEnd;
-    const effectiveRetireBase = baseRetireExpenses;
-    const fireTargetNestEgg = Math.round(effectiveRetireBase * 25); // 25x rule based directly on actual retirement expenses
+    
+    // 1. Tiền cần bù đắp mỗi năm = Chi tiêu hưu − Lương hưu − Thu nhập thụ động
+    const ssAge = Number(plan.socialSecurityAge) || 64;
+    let passiveAtRetireNow = 0;
+    if (retireAge >= ssAge) {
+      passiveAtRetireNow += Number(plan.socialSecurityAnnual) || 0;
+    }
+    if (Array.isArray(plan.incomes)) {
+      plan.incomes.forEach(inc => {
+        if (inc.enabled === false) return;
+        const sAge = Number(inc.startAge) || currentAge;
+        const eAge = Number(inc.endAge) || lifeExpectancy;
+        const name = (inc.name || "").toLowerCase();
+        const isSalary = name.includes("lương tại") || name.includes("lương chính") || (sAge < retireAge && eAge <= retireAge);
+        if (!isSalary && retireAge >= sAge && retireAge <= eAge) {
+          passiveAtRetireNow += Number(inc.amount) || 0;
+        }
+      });
+    }
+    const netDeficitNow = Math.max(0, baseRetireExpenses - passiveAtRetireNow);
+    const horizonNow = Math.max(1, lifeExpectancy - retireAge);
+    const safetyMultNow = horizonNow > 35 ? 30 : (horizonNow > 30 ? 28 : 25);
+    const fireTargetNestEgg = Math.round(netDeficitNow > 0 ? (netDeficitNow * safetyMultNow) : (baseRetireExpenses * 10));
+
     const safeAnnualSpend = Math.max(0, (initialRetirePortfolio || 0) * initialSWR);
     const yearsToFIRE = Math.max(0, retireAge - currentAge);
 
@@ -753,135 +1036,10 @@ window.RetirementEngine = (function() {
       }
     }
 
-    // Tính Tuổi Nghỉ Hưu Tối Ưu (Optimal FIRE Age):
-    // Nâng cấp: Thay vì chỉ dừng lại ở điều kiện danh nghĩa 25x (vốn chỉ an toàn cho kỳ hưu trí ngắn 30 năm),
-    // thuật toán tìm độ tuổi hưu an toàn thực sự đáp ứng 2 điều kiện:
-    // 1. Xác suất thành công Monte Carlo P_success >= 80% (chuẩn CFP / FP Canada / Vanguard).
-    // 2. Quy mô Nest Egg đạt chuẩn theo độ dài hưu trí (Horizon-adjusted SWR):
-    //    - Horizon > 35 năm: tối thiểu 30x chi tiêu (SWR ~3.3%)
-    //    - Horizon 30 - 35 năm: tối thiểu 28x chi tiêu (SWR ~3.57%)
-    //    - Horizon <= 30 năm: tối thiểu 25x chi tiêu (SWR 4.0%)
+    // Tính Tuổi Nghỉ Hưu Tối Ưu / Tuổi Gợi Ý (Đáp ứng trọn vẹn TẤT CẢ các điều kiện)
     let optimalFireAge = null;
-    const minSearchAge = Math.max(currentAge, fireAge || currentAge);
-    const maxSearchAge = Math.min(lifeExpectancy - 2, 75);
-
-    // Bước 1: Mô phỏng Monte Carlo Stochastic Search (nếu có MonteCarloSimulator)
-    if (typeof window !== 'undefined' && window.MonteCarloSimulator && typeof window.MonteCarloSimulator.runSimulation === 'function') {
-      try {
-        let bestAge = null;
-        let bestRate = 0;
-        for (let testAge = minSearchAge; testAge <= maxSearchAge; testAge++) {
-          const testPlan = Object.assign({}, plan, { retirementAge: testAge });
-          if (Array.isArray(testPlan.incomes)) {
-            testPlan.incomes = testPlan.incomes.map(inc => {
-              const copy = Object.assign({}, inc);
-              const name = (copy.name || '').toLowerCase();
-              if (copy.isSalary || name.includes('lương') || name.includes('salary') || name.includes('impôt') || name.includes('impot')) {
-                copy.endAge = testAge;
-              }
-              return copy;
-            });
-          }
-
-          // Chạy 200 lượt mô phỏng nhanh
-          const mcRes = window.MonteCarloSimulator.runSimulation(testPlan, 200, 15.0);
-          const sRate = Number(mcRes.successRate) || 0;
-
-          if (sRate > bestRate) {
-            bestRate = sRate;
-            bestAge = testAge;
-          }
-
-          // Tiêu chuẩn FIRE an toàn: Xác suất thành công Monte Carlo bắt buộc đạt tối thiểu 80.0%
-          if (sRate >= 80.0) {
-            optimalFireAge = testAge;
-            break;
-          }
-        }
-        if (!optimalFireAge && bestRate >= 70.0) {
-          optimalFireAge = bestAge;
-        }
-      } catch (errOpt) {
-        console.warn("Lỗi tính optimalFireAge qua Monte Carlo:", errOpt);
-      }
-    }
-
-    // Bước 2: Fallback Tất Định theo Horizon-adjusted Nest Egg (30x cho >35 năm, 28x cho 30-35 năm, 25x cho <=30 năm)
-    if (!optimalFireAge) {
-      for (let testAge = minSearchAge; testAge <= maxSearchAge; testAge++) {
-        const horizon = Math.max(1, lifeExpectancy - testAge);
-        const reqMult = horizon > 35 ? 30 : (horizon > 30 ? 28 : 25);
-        const reqNestEgg = effectiveRetireBase * reqMult;
-
-        for (let k = 0; k < timeline.length; k++) {
-          if (timeline[k].age === testAge && timeline[k].portfolioEnd >= reqNestEgg) {
-            optimalFireAge = testAge;
-            break;
-          }
-        }
-        if (optimalFireAge) break;
-      }
-    }
-
-    // Bước 3: Nếu timeline hiện tại chưa đạt (ngắt sớm), tiếp tục mô phỏng tích lũy từ currentAge
-    if (!optimalFireAge) {
-      let simPortfolio = initialSavings;
-      let simCumInf = 1.0;
-      for (let simAge = currentAge; simAge <= lifeExpectancy; simAge++) {
-        if (simAge > currentAge) {
-          const infRate = (plan.inflationRate ? Number(plan.inflationRate) : 2.5) / 100.0;
-          simCumInf *= (1.0 + infRate);
-        }
-        let simIncome = 0;
-        if (Array.isArray(plan.incomes)) {
-          plan.incomes.forEach(stream => {
-            if (stream.enabled === false) return;
-            const sAge = Number(stream.startAge) || currentAge;
-            if (simAge >= sAge) {
-              const streamGrowth = (stream.growth !== undefined && stream.growth !== null && !isNaN(Number(stream.growth)))
-                ? Number(stream.growth) / 100.0
-                : 0.04;
-              simIncome += (Number(stream.amount) || 0) * Math.pow(1.0 + streamGrowth, simAge - sAge);
-            }
-          });
-        }
-        const effectiveTaxRate = (Number(plan.taxRate) || 12.0) / 100.0;
-        const simTax = simIncome * effectiveTaxRate * 0.7;
-        const simIncomeNet = Math.max(0, simIncome - simTax);
-        let simNetSavings = 0;
-        let simExpSum = 0;
-        if (Array.isArray(plan.expenses) && plan.expenses.length > 0) {
-          plan.expenses.forEach(exp => {
-            if (exp.enabled === false) return;
-            const start = (exp.startAge !== undefined && exp.startAge !== null && !isNaN(Number(exp.startAge)))
-              ? Number(exp.startAge) : currentAge;
-            const end = (exp.endAge !== undefined && exp.endAge !== null && !isNaN(Number(exp.endAge)))
-              ? Number(exp.endAge) : 85;
-            if (simAge >= start && simAge <= end) {
-              const expGrowth = (exp.growth !== undefined && exp.growth !== null && !isNaN(Number(exp.growth)))
-                ? Number(exp.growth) / 100.0 : 0.0;
-              simExpSum += (Number(exp.amount) || 0) * Math.pow(1.0 + expGrowth, simAge - start);
-            }
-          });
-        }
-        if (simExpSum > 0) {
-          simNetSavings = simIncomeNet - simExpSum;
-        } else if (simIncome > 0 && plan.savingsRate !== undefined && Number(plan.savingsRate) > 0) {
-          simNetSavings = simIncomeNet * (Number(plan.savingsRate) / 100.0);
-        } else {
-          simNetSavings = (Number(plan.annualSavings) || 10_000) * simCumInf;
-        }
-
-        const horizon = Math.max(1, lifeExpectancy - simAge);
-        const reqMult = horizon > 35 ? 30 : (horizon > 30 ? 28 : 25);
-        const reqNestEgg = effectiveRetireBase * reqMult;
-
-        if (simPortfolio >= reqNestEgg) {
-          optimalFireAge = simAge;
-          break;
-        }
-        simPortfolio = (simPortfolio + simNetSavings) * (1.0 + returnPre);
-      }
+    if (!overrideScenario && !skipStressResilience && !skipOptimalSearch) {
+      optimalFireAge = findOptimalRetirementAge(plan);
     }
 
     if (!optimalFireAge) {
@@ -1096,6 +1254,15 @@ window.RetirementEngine = (function() {
     if (yearsToFIRE <= 15) score += 10;
     score = Math.min(99, Math.max(20, score));
 
+    // Stress Resilience Evaluation (3 Worst-case Shocks)
+    let stressResilience = null;
+    if (!skipStressResilience && !overrideScenario) {
+      stressResilience = evaluateStressResilience(plan);
+      if (stressResilience && stressResilience.isBulletproof) {
+        score = Math.min(99, score + 5);
+      }
+    }
+
     return {
       timeline,
       currentAge,
@@ -1109,6 +1276,7 @@ window.RetirementEngine = (function() {
       finalPortfolio,
       finalTotalNetWorth: timeline[timeline.length - 1].totalNetWorth,
       fireTargetNestEgg,
+      safetyMultiplier: safetyMultNow,
       safeAnnualSpend,
       yearsToFIRE,
       totalTaxesPaid,
@@ -1122,7 +1290,8 @@ window.RetirementEngine = (function() {
       weightedReturnPost,
       birthYear,
       currentCalendarYear,
-      totalWaterfallTaxSaved
+      totalWaterfallTaxSaved,
+      stressResilience
     };
   }
 
@@ -1131,6 +1300,8 @@ window.RetirementEngine = (function() {
     getCurrencySymbol,
     calculateWeightedReturn,
     calculateMortgageSchedule,
+    evaluateStressResilience,
+    findOptimalRetirementAge,
     runProjection
   };
 })();

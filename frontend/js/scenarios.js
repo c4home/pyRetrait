@@ -7,7 +7,7 @@ window.ScenarioManager = (function() {
 
   const SCENARIO_DESCRIPTIONS = {
     baseline: {
-      title: "Kịch bản Cơ sở (Baseline Scenario)",
+      title: "Kịch bản Cơ sở",
       desc: "Điều kiện kinh tế bình thường, lạm phát và lợi nhuận diễn biến theo kỳ vọng lịch sử.",
       assessment: "Kế hoạch diễn ra suôn sẻ, dòng tiền thặng dư dồi dào và vượt qua mọi mục tiêu tài chính."
     },

@@ -1,0 +1,43 @@
+{
+  "apartments": {
+    "Trois Cocus 124000 euros": {
+      "address": "30 bis chemin des Izards",
+      "start_year": 2023,
+      "surface": 56,
+      "typology": "T3 (3 pi\u00e8ces)",
+      "dpe_rating": "C",
+      "district_tier": "Quartier R\u00e9sidentiel",
+      "renovation_state": "Bon \u00e9tat",
+      "property_price": 124000,
+      "property_type": "ancien",
+      "auto_calc_notary": true,
+      "notary_fees": 9300,
+      "renovation_cost": 0,
+      "furniture_cost": 2000,
+      "monthly_rent": 900,
+      "vacancy_pct": 5,
+      "annual_coop": 1800,
+      "annual_tf": 1100,
+      "annual_pno": 150,
+      "annual_maintenance": 300,
+      "annual_mgmt_pct": 0,
+      "monthly_loan_payment": 646,
+      "auto_calc_bank": true,
+      "down_payment_input": 5000,
+      "loan_duration": 20,
+      "annual_interest_rate": 2.45,
+      "annual_insurance_rate": 0.3,
+      "user_tmi": 30
+    }
+  },
+  "turo": {
+    "num_cars": 3,
+    "price": 5000,
+    "gross_gain": 1800,
+    "decote": 6,
+    "insurance": 350,
+    "repairs": 350,
+    "holding_years": 10
+  },
+  "wealth": {}
+}

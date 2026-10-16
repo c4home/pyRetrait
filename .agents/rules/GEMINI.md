@@ -18,6 +18,10 @@
     - Gọi hàm helper trong JavaScript: `window.I18n.t(key, fallback)` đối với các chuỗi sinh động (dynamic HTML, nhãn biểu đồ, tooltip).
   - Khi thêm bất kỳ tính năng, nút bấm, biểu đồ hoặc thẻ nội dung mới lên giao diện, **bắt buộc phải bổ sung đầy đủ bản dịch cho các ngôn ngữ đang hoạt động** trong từ điển của `i18n.js`.
   - Trạng thái ngôn ngữ được lưu tự động trong `localStorage` (key: `pyretrait_lang`) và kích hoạt sự kiện `pyretrait:language-changed` để cập nhật giao diện tức thì mà không cần tải lại trang.
+  - **Tối Ưu Hóa Token Khi Kiểm Thử (Testing & Verification Rule):**
+    - **Tuyệt đối KHÔNG kiểm tra đồng thời cả Tiếng Việt và chuyển đổi sang English / French (`Dont Check both Vietnamese and when switching to English / French`):**
+    - Mặc định chỉ kiểm tra UI và tính năng trên ngôn ngữ chính là **Tiếng Việt (`vi`)**.
+    - Bản dịch tiếng Anh (`en`) và tiếng Pháp (`fr`) được bảo đảm bằng kiểm tra tĩnh (static code inspection) trong từ điển `i18n.js`. Tuyệt đối không ra lệnh cho browser subagent/tester chuyển qua lại giữa các ngôn ngữ (`VI -> EN -> FR`) trong cùng một phiên test để tránh lãng phí token và thời gian không cần thiết (trừ khi người dùng yêu cầu đích danh).
 - **Quy Chuẩn Ngôn Ngữ Phổ Thông Cho Đại Chúng (Plain Language & Mass Audience UX — Phục Vụ 100,000+ Người Dùng):**
   - **Tư duy tiếp cận đại chúng:** Ứng dụng hướng tới phục vụ 100,000+ người dùng phổ thông, đa dạng lứa tuổi, nghề nghiệp và trình độ học vấn. Mọi nội dung hiển thị phải dễ hiểu, trong sáng và mang tính ứng dụng thực tế ngay lập tức.
   - **Tối thiểu hóa thuật ngữ kỹ thuật (technical jargon):** Tuyệt đối không lạm dụng các thuật ngữ hàn lâm, đao to búa lớn của phòng thí nghiệm hoặc giới y khoa / tài chính chuyên sâu (như *Zone 2*, *Glymphatic*, *Sarcopenia*, *Autophagy*, *Polyphenol*, *Sulforaphane*, *Apigenin*, *Nocturia*, *GI thấp*...).
@@ -261,6 +265,9 @@
 - Khi sửa `ui.js` (file rất lớn ~238KB), **chỉ sửa đúng đoạn cần thiết** bằng `multi_replace_file_content`; không viết lại toàn bộ file.
 - Mỗi thay đổi logic tính toán phải đi kèm ví dụ kiểm chứng số học cụ thể trong comment.
 - **Không xóa tính năng hiện có** nếu người dùng không yêu cầu — kể cả khi refactor.
+- **Tối Ưu Token Khi Dùng Browser Subagent & Kiểm Thử Giao Diện:**
+  - **Cấm kiểm tra lặp đa ngôn ngữ (`Dont Check both Vietnamese and when switching to English / French`):** Khi giao việc cho `browser_subagent` để kiểm tra màn hình/thẻ UI, chỉ được yêu cầu kiểm tra ở ngôn ngữ mặc định (Tiếng Việt). Tuyệt đối không thêm chỉ dẫn bắt subagent phải đổi sang English hay French rồi kiểm tra lại, trừ khi người dùng yêu cầu đích danh.
+  - Tối giản số bước hành động của `browser_subagent`: Định nghĩa mục tiêu trực diện, kiểm tra đúng thành phần cần thiết rồi kết thúc ngay, tránh reload hoặc chuyển tab không liên quan gây tốn token.
 
 ---
 
