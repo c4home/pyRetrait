@@ -154,8 +154,8 @@
           if (localSaved) {
             try {
               const localParsed = JSON.parse(localSaved);
-              // If local edits were saved with a newer timestamp than cloud, preserve local edits and sync to cloud
-              if (localParsed && localParsed.updatedAt && cloudPlans && cloudPlans.updatedAt && localParsed.updatedAt > cloudPlans.updatedAt) {
+              // If local edits were saved with a newer or equal timestamp than cloud, preserve local edits and sync to cloud
+              if (localParsed && localParsed.updatedAt && (!cloudPlans || !cloudPlans.updatedAt || localParsed.updatedAt >= cloudPlans.updatedAt)) {
                 state.plansData = localParsed;
                 useCloud = false;
                 fetch("/api/plans", {
@@ -294,7 +294,8 @@
     savePlansToStorage();
   }
 
-  function savePlansToStorage() {
+  let saveCloudTimeout = null;
+  function savePlansToStorage(immediateCloud = true) {
     if (state.plansData) {
       state.plansData.updatedAt = Date.now();
     }
@@ -302,14 +303,32 @@
     // Only sync to backend cloud database if user is logged in!
     // Guest users keep their modifications 100% private to their own browser localStorage.
     if (window.Auth && window.Auth.isLoggedIn()) {
-      const headers = window.Auth.getAuthHeaders();
-      fetch("/api/plans", {
-        method: "POST",
-        headers,
-        body: JSON.stringify(state.plansData),
-        keepalive: true
-      }).catch(() => {});
+      if (immediateCloud) {
+        if (saveCloudTimeout) clearTimeout(saveCloudTimeout);
+        const headers = window.Auth.getAuthHeaders();
+        fetch("/api/plans", {
+          method: "POST",
+          headers,
+          body: JSON.stringify(state.plansData),
+          keepalive: true
+        }).catch(() => {});
+      } else {
+        if (saveCloudTimeout) clearTimeout(saveCloudTimeout);
+        saveCloudTimeout = setTimeout(() => {
+          const headers = window.Auth.getAuthHeaders();
+          fetch("/api/plans", {
+            method: "POST",
+            headers,
+            body: JSON.stringify(state.plansData),
+            keepalive: true
+          }).catch(() => {});
+        }, 350);
+      }
     }
+  }
+
+  function debouncedSavePlansToStorage() {
+    savePlansToStorage(false);
   }
 
   function getActivePlan() {
@@ -749,9 +768,9 @@
       if (e.target.id === "confirm-modal") closeConfirmDialog();
     });
 
-    // Refresh buttons click delegation
+    // Refresh and Generate buttons click delegation (On-Demand only)
     document.addEventListener("click", (e) => {
-      const btn = e.target.closest(".btn-gemini-refresh");
+      const btn = e.target.closest(".btn-gemini-refresh, .btn-gemini-trigger");
       if (btn) {
         const chartId = btn.getAttribute("data-chart");
         if (chartId && window.GeminiAdvisor) {
@@ -866,7 +885,7 @@
           savePlansToStorage();
           updateAll();
           if (window.GeminiAdvisor) {
-            window.GeminiAdvisor.updateChartBox("chart-projections", "Kế hoạch Tài chính & Dòng tiền Hưu trí", {}, true);
+            window.GeminiAdvisor.updateChartBox("chart-projections", "Kế hoạch Tài chính & Dòng tiền Hưu trí", {}, false);
           }
         }
       });
@@ -1599,14 +1618,22 @@
       }
     });
 
-    // Asset Allocation Sliders (Tổng 4 cột không được vượt quá 100%, nhưng không cần đầy đủ 100%)
+    // Asset Allocation Sliders (Tự động cân đối tỷ lệ mượt mà, tổng không vượt quá 100%)
     const allocSliderIds = ['inp-alloc-stocks', 'inp-alloc-bonds', 'inp-alloc-re', 'inp-alloc-cash'];
     allocSliderIds.forEach(id => {
       const el = document.getElementById(id);
       if (el) {
         ['input', 'change'].forEach(evt => {
           el.addEventListener(evt, () => {
-            let currentVal = Number(el.value) || 0;
+            let newVal = Math.min(100, Math.max(0, Number(el.value) || 0));
+            el.value = newVal;
+
+            const plan = getActivePlan();
+            if (!plan.assetAllocation) {
+              plan.assetAllocation = { stocks: 60, bonds: 20, realEstate: 20, cash: 0 };
+            }
+
+            // Tính tổng các slider khác
             let otherSum = 0;
             allocSliderIds.forEach(otherId => {
               if (otherId !== id) {
@@ -1615,14 +1642,49 @@
               }
             });
 
-            // Không cho phép tổng 4 cột vượt quá 100%
-            if (currentVal + otherSum > 100) {
-              currentVal = Math.max(0, 100 - otherSum);
-              el.value = currentVal;
+            // Nếu tổng vượt quá 100%, tự động giảm các slider khác một cách thông minh
+            if (newVal + otherSum > 100) {
+              let excess = (newVal + otherSum) - 100;
+              // Thứ tự ưu tiên giảm: Stocks -> Cash -> RealEstate -> Bonds (hoặc các slider khác có giá trị > 0)
+              const otherSliders = allocSliderIds
+                .filter(oId => oId !== id)
+                .map(oId => document.getElementById(oId))
+                .filter(oEl => oEl && Number(oEl.value) > 0);
+
+              for (const oEl of otherSliders) {
+                if (excess <= 0) break;
+                const curOther = Number(oEl.value) || 0;
+                const deduct = Math.min(curOther, excess);
+                oEl.value = curOther - deduct;
+                excess -= deduct;
+              }
+
+              // Nếu vẫn còn thừa (trường hợp hiếm), giới hạn newVal
+              if (excess > 0) {
+                newVal = Math.max(0, newVal - excess);
+                el.value = newVal;
+              }
             }
 
-            updateAssetAllocationUI();
-            savePlansToStorage();
+            // Cập nhật trực tiếp vào data model plan.assetAllocation
+            const stocksEl = document.getElementById("inp-alloc-stocks");
+            const bondsEl = document.getElementById("inp-alloc-bonds");
+            const reEl = document.getElementById("inp-alloc-re");
+            const cashEl = document.getElementById("inp-alloc-cash");
+
+            plan.assetAllocation = {
+              stocks: stocksEl ? Number(stocksEl.value) : 60,
+              bonds: bondsEl ? Number(bondsEl.value) : 20,
+              realEstate: reEl ? Number(reEl.value) : 20,
+              cash: cashEl ? Number(cashEl.value) : 0
+            };
+
+            updateAssetAllocationUI(plan, false);
+            if (evt === 'input') {
+              debouncedSavePlansToStorage();
+            } else {
+              savePlansToStorage(true);
+            }
             updateAll();
           });
         });
@@ -1720,6 +1782,7 @@
         savePlansToStorage();
         updateWithdrawalStrategyCards(plan);
         updateAll();
+        renderWithdrawalComparison();
       });
     }
 
@@ -1737,6 +1800,22 @@
             body.style.display = "none";
             btnEditStrat.innerText = "Mở rộng";
           }
+        }
+      });
+    }
+
+    const btnToggleMatrix = document.getElementById("btn-toggle-strat-matrix");
+    if (btnToggleMatrix) {
+      btnToggleMatrix.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const container = document.getElementById("container-strat-matrix");
+        if (container) {
+          const isHidden = container.style.display === "none";
+          container.style.display = isHidden ? "block" : "none";
+          btnToggleMatrix.innerText = isHidden
+            ? "📊 Ẩn Bảng So Sánh 4 Chiến Lược ▲"
+            : "📊 Bảng So Sánh 4 Chiến Lược (Điểm mạnh / Nhược điểm / Phù hợp) ▾";
         }
       });
     }
@@ -2134,13 +2213,14 @@
     }
 
     // 1. Asset Allocation Sync
-    if (p.assetAllocation) {
-      setVal("inp-alloc-stocks", p.assetAllocation.stocks !== undefined ? p.assetAllocation.stocks : 60);
-      setVal("inp-alloc-bonds", p.assetAllocation.bonds !== undefined ? p.assetAllocation.bonds : 20);
-      setVal("inp-alloc-re", p.assetAllocation.realEstate !== undefined ? p.assetAllocation.realEstate : 20);
-      setVal("inp-alloc-cash", p.assetAllocation.cash !== undefined ? p.assetAllocation.cash : 0);
+    if (!p.assetAllocation) {
+      p.assetAllocation = { stocks: 60, bonds: 20, realEstate: 20, cash: 0 };
     }
-    updateAssetAllocationUI(p);
+    setVal("inp-alloc-stocks", p.assetAllocation.stocks !== undefined ? p.assetAllocation.stocks : 60);
+    setVal("inp-alloc-bonds", p.assetAllocation.bonds !== undefined ? p.assetAllocation.bonds : 20);
+    setVal("inp-alloc-re", p.assetAllocation.realEstate !== undefined ? p.assetAllocation.realEstate : 20);
+    setVal("inp-alloc-cash", p.assetAllocation.cash !== undefined ? p.assetAllocation.cash : 0);
+    updateAssetAllocationUI(p, false);
 
     // 2. Dual Inflation & Forex Sync
     if (p.dualInflation) {
@@ -2172,17 +2252,34 @@
     updateCashflowBalanceUI(p);
   }
 
-  function updateAssetAllocationUI(p) {
+  function updateAssetAllocationUI(p, fromInputs = false) {
     if (!p) p = getActivePlan();
     const stocksEl = document.getElementById("inp-alloc-stocks");
     const bondsEl = document.getElementById("inp-alloc-bonds");
     const reEl = document.getElementById("inp-alloc-re");
     const cashEl = document.getElementById("inp-alloc-cash");
 
-    const stocks = (stocksEl && stocksEl.value !== "") ? Number(stocksEl.value) : (p.assetAllocation?.stocks ?? 60);
-    const bonds = (bondsEl && bondsEl.value !== "") ? Number(bondsEl.value) : (p.assetAllocation?.bonds ?? 20);
-    const re = (reEl && reEl.value !== "") ? Number(reEl.value) : (p.assetAllocation?.realEstate ?? 20);
-    const cash = (cashEl && cashEl.value !== "") ? Number(cashEl.value) : (p.assetAllocation?.cash ?? 0);
+    let stocks, bonds, re, cash;
+    if (fromInputs) {
+      stocks = (stocksEl && stocksEl.value !== "") ? Number(stocksEl.value) : (p.assetAllocation?.stocks ?? 60);
+      bonds = (bondsEl && bondsEl.value !== "") ? Number(bondsEl.value) : (p.assetAllocation?.bonds ?? 20);
+      re = (reEl && reEl.value !== "") ? Number(reEl.value) : (p.assetAllocation?.realEstate ?? 20);
+      cash = (cashEl && cashEl.value !== "") ? Number(cashEl.value) : (p.assetAllocation?.cash ?? 0);
+      p.assetAllocation = { stocks, bonds, realEstate: re, cash };
+    } else {
+      if (!p.assetAllocation) {
+        p.assetAllocation = { stocks: 60, bonds: 20, realEstate: 20, cash: 0 };
+      }
+      stocks = p.assetAllocation.stocks !== undefined ? Number(p.assetAllocation.stocks) : 60;
+      bonds = p.assetAllocation.bonds !== undefined ? Number(p.assetAllocation.bonds) : 20;
+      re = p.assetAllocation.realEstate !== undefined ? Number(p.assetAllocation.realEstate) : 20;
+      cash = p.assetAllocation.cash !== undefined ? Number(p.assetAllocation.cash) : 0;
+
+      if (stocksEl && Number(stocksEl.value) !== stocks) stocksEl.value = stocks;
+      if (bondsEl && Number(bondsEl.value) !== bonds) bondsEl.value = bonds;
+      if (reEl && Number(reEl.value) !== re) reEl.value = re;
+      if (cashEl && Number(cashEl.value) !== cash) cashEl.value = cash;
+    }
 
     const lblStocks = document.getElementById("lbl-alloc-stocks");
     const lblBonds = document.getElementById("lbl-alloc-bonds");
@@ -5826,7 +5923,7 @@
       // Từ tuổi nghỉ hưu trở đi: phân nhánh độc lập theo từng chiến lược
       strategies.forEach(strat => {
         const isChosen = (strat.key === chosenStrat);
-        const tempPlan = { ...activePlan, withdrawalStrategy: strat.key };
+        const tempPlan = { ...activePlan, withdrawalStrategy: strat.key, enableWithdrawalStrategy: true };
         const res = window.RetirementEngine.runProjection(tempPlan);
 
         const stratData = proj.timeline.map(p => {

@@ -109,7 +109,7 @@ window.MonteCarloSimulator = (function() {
 
           // Support Guyton-Klinger guardrail flexibility if configured (10% cut in market downturns)
           let actualSpend = netDeficit;
-          if (plan.withdrawalStrategy === 'guyton_klinger' && r < -0.05) {
+          if (plan.enableWithdrawalStrategy !== false && plan.withdrawalStrategy === 'guyton_klinger' && r < -0.05) {
             actualSpend = netDeficit * 0.90;
           }
 

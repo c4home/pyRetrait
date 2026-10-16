@@ -20,8 +20,8 @@
   const translations = {
     vi: {
       // Topbar Header
-      "app_title": "pyRetrait — Hoạch định Độc lập Tài chính & Nghỉ hưu sớm (FIRE)",
-      "brand_tagline": "Độc Lập Tài Chính",
+      "app_title": "pyRetrait — Hoạch định Tự do Tài chính & Nghỉ hưu sớm",
+      "brand_tagline": "Tự Do Tài Chính",
       "plan_select_label": "Kế hoạch:",
       "quick_setup": "Thiết lập nhanh",
       "new_plan": "+ Mới",
@@ -94,8 +94,8 @@
       "param_tax_rate": "Thuế suất dự kiến (%)",
 
       // Charts
-      "chart_networth_title": "Biểu đồ Tăng trưởng Tài sản Ròng (Net Worth Trajectory)",
-      "chart_cashflow_title": "Dòng tiền Hàng năm (Cash-Flow Projections)",
+      "chart_networth_title": "Biểu đồ Tăng trưởng Tài sản Ròng",
+      "chart_cashflow_title": "Dòng tiền Hàng năm",
       "chart_income_label": "Thu nhập Hàng năm",
       "chart_expense_label": "Chi tiêu Sinh hoạt",
       "chart_fire_target": "Mục tiêu FIRE Nest Egg",
@@ -146,12 +146,27 @@
       "intro_btn_start": "Bắt Đầu Hoạch Định Ngay",
       "intro_footer_note": "Hoàn toàn miễn phí • Tính toán 100% trên trình duyệt của bạn • Dữ liệu bảo mật tuyệt đối",
       "lbl_alloc_cash": "Tiền mặt / Thanh khoản chờ đầu tư (Tài khoản thanh toán, Cash)",
-      "lbl_alloc_cash_short": "TM"
+      "lbl_alloc_cash_short": "TM",
+
+      // Gemini AI On-Demand & Warnings
+      "gemini_warning_title": "Thông số kế hoạch đã có thay đổi",
+      "gemini_warning_desc": "Nhận xét bên dưới được tạo từ dữ liệu cũ. Nhấn nút để phân tích lại theo thông số mới nhất.",
+      "gemini_btn_update": "Cập nhật nhận xét AI",
+      "gemini_btn_generate": "Tạo nhận xét AI (Gemini)",
+      "gemini_empty_title": "Chưa tạo nhận xét AI cho biểu đồ này",
+      "gemini_empty_desc": "Nhấn nút để Gemini AI phân tích chuyên sâu các chỉ số và đưa ra khuyến nghị chiến lược.",
+      "gemini_loading": "Đang phân tích dữ liệu chuyên sâu với Gemini AI...",
+      "gemini_stale_time": "Chưa cập nhật",
+      "gemini_ready_badge": "Sẵn sàng",
+      "gemini_btn_reanalyze": "Phân tích lại",
+      "gemini_btn_reanalyze_title": "Nhấn để yêu cầu Gemini AI phân tích lại",
+      "gemini_btn_analyzing": "Đang phân tích...",
+      "gemini_updated_at": "Cập nhật lúc:"
     },
 
     en: {
       // Topbar Header
-      "app_title": "pyRetrait — Financial Independence & Early Retirement (FIRE) Planner",
+      "app_title": "pyRetrait — Financial Independence & Early Retirement Planner",
       "brand_tagline": "Financial Independence",
       "plan_select_label": "Plan:",
       "quick_setup": "Quick Setup",
@@ -277,12 +292,27 @@
       "intro_btn_start": "Get Started Now",
       "intro_footer_note": "100% Free • Runs locally in your browser • Absolute data privacy",
       "lbl_alloc_cash": "Cash / Uninvested Liquidity (Checking account, Cash)",
-      "lbl_alloc_cash_short": "Cash"
+      "lbl_alloc_cash_short": "Cash",
+
+      // Gemini AI On-Demand & Warnings
+      "gemini_warning_title": "Plan parameters have changed",
+      "gemini_warning_desc": "The analysis below is based on previous parameters. Click to re-analyze with current data.",
+      "gemini_btn_update": "Update AI Insight",
+      "gemini_btn_generate": "Generate AI Insight (Gemini)",
+      "gemini_empty_title": "No AI insight generated yet for this chart",
+      "gemini_empty_desc": "Click the button to receive an in-depth financial analysis and strategic recommendations from Gemini.",
+      "gemini_loading": "Analyzing financial data in depth with Gemini AI...",
+      "gemini_stale_time": "Outdated",
+      "gemini_ready_badge": "Ready",
+      "gemini_btn_reanalyze": "Re-analyze",
+      "gemini_btn_reanalyze_title": "Click to re-analyze with Gemini AI",
+      "gemini_btn_analyzing": "Analyzing...",
+      "gemini_updated_at": "Updated at:"
     },
 
     fr: {
       // Topbar Header
-      "app_title": "pyRetrait — Planificateur d'Indépendance Financière & Retraite Anticipée (FIRE)",
+      "app_title": "pyRetrait — Planificateur d'Indépendance Financière & Retraite Anticipée",
       "brand_tagline": "Indépendance Financière",
       "plan_select_label": "Plan :",
       "quick_setup": "Configuration Rapide",
@@ -408,7 +438,22 @@
       "intro_btn_start": "Commencer Dès Maintenant",
       "intro_footer_note": "100% Gratuit • Calculs locaux dans votre navigateur • Confidentialité absolue",
       "lbl_alloc_cash": "Liquidités / Trésorerie non investie (Compte courant, Cash)",
-      "lbl_alloc_cash_short": "Liq"
+      "lbl_alloc_cash_short": "Liq",
+
+      // Gemini AI On-Demand & Warnings
+      "gemini_warning_title": "Les paramètres du plan ont changé",
+      "gemini_warning_desc": "L'analyse ci-dessous est basée sur d'anciennes données. Cliquez pour réanalyser avec les données actuelles.",
+      "gemini_btn_update": "Mettre à jour l'analyse IA",
+      "gemini_btn_generate": "Générer l'analyse IA (Gemini)",
+      "gemini_empty_title": "Aucune analyse IA générée pour ce graphique",
+      "gemini_empty_desc": "Cliquez pour obtenir une analyse financière approfondie et des recommandations de Gemini.",
+      "gemini_loading": "Analyse approfondie en cours avec Gemini AI...",
+      "gemini_stale_time": "Non actualisé",
+      "gemini_ready_badge": "Prêt",
+      "gemini_btn_reanalyze": "Réanalyser",
+      "gemini_btn_reanalyze_title": "Cliquez pour réanalyser avec Gemini AI",
+      "gemini_btn_analyzing": "Analyse en cours...",
+      "gemini_updated_at": "Mis à jour à :"
     }
   };
 

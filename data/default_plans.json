@@ -106,9 +106,10 @@
       },
       "savingsRate": 33.33,
       "assetAllocation": {
-        "stocks": 0,
-        "bonds": 15,
-        "realEstate": 30
+        "stocks": 60,
+        "bonds": 20,
+        "realEstate": 20,
+        "cash": 0
       },
       "dualInflation": {
         "enabled": true,
@@ -184,6 +185,12 @@
         "annualPreMedicare": 30000000,
         "annualPostMedicare": 15000000,
         "acaOptimization": true
+      },
+      "assetAllocation": {
+        "stocks": 60,
+        "bonds": 20,
+        "realEstate": 20,
+        "cash": 0
       }
     },
     "plan_aggressive": {
@@ -243,6 +250,12 @@
         "annualPreMedicare": 40000000,
         "annualPostMedicare": 20000000,
         "acaOptimization": false
+      },
+      "assetAllocation": {
+        "stocks": 80,
+        "bonds": 10,
+        "realEstate": 10,
+        "cash": 0
       }
     }
   }

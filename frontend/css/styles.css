@@ -1852,6 +1852,117 @@ code, kbd, samp {
   padding: 0.12rem 0.4rem;
 }
 
+/* Strategy Pros, Cons & Suitability Breakdown */
+.strategy-pros-cons-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+  padding: 0.4rem 0.55rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  font-family: var(--font-sans);
+}
+
+.spc-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.69rem;
+  line-height: 1.35;
+}
+
+.spc-tag {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.spc-pro {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.spc-con {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.spc-fit {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+[data-theme="light"] .spc-pro {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+[data-theme="light"] .spc-con {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+[data-theme="light"] .spc-fit {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.spc-text {
+  color: var(--text-muted);
+  flex: 1;
+}
+
+/* Strategy Comparison Matrix Table */
+.strategy-matrix-container {
+  margin-top: 0.55rem;
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+
+.strategy-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  font-family: var(--font-sans);
+}
+
+.strategy-matrix-table th {
+  background: var(--bg-card-hover);
+  color: var(--text-main);
+  font-weight: 600;
+  padding: 0.45rem 0.55rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.strategy-matrix-table td {
+  padding: 0.45rem 0.55rem;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: top;
+  color: var(--text-muted);
+}
+
+.strategy-matrix-table tr:last-child td {
+  border-bottom: none;
+}
+
+.strategy-matrix-table tr:hover td {
+  background: rgba(56, 189, 248, 0.04);
+}
+
+[data-theme="light"] .strategy-matrix-table tr:hover td {
+  background: rgba(2, 132, 199, 0.04);
+}
+
 /* Special Expense Item: Lạm phát 2 Chặng & Tỷ giá EUR/VND */
 .expense-item-inflation {
   background: var(--bg-card);
@@ -3738,6 +3849,228 @@ code, kbd, samp {
   margin: 0.8rem 0;
 }
 
+/* Gemini Section Card Header & Aligned Actions */
+.gemini-projections-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 0.75rem;
+}
+
+[data-theme="light"] .gemini-projections-card-header {
+  border-bottom-color: #f1f5f9;
+}
+
+.gemini-header-main-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.gemini-title-with-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.gemini-section-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.gemini-header-action-wrapper {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* Nút Action trên Header: Tự động đổi trạng thái (Tạo nhận xét / Phân tích lại / Cập nhật) */
+.btn-gemini-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.btn-gemini-refresh:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--primary);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.btn-gemini-refresh.btn-gemini-cta {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.btn-gemini-refresh.btn-gemini-cta:hover {
+  background: linear-gradient(135deg, #047857 0%, #059669 100%);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.45);
+}
+
+.btn-gemini-refresh.btn-gemini-stale {
+  background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.btn-gemini-refresh.btn-gemini-stale:hover {
+  background: linear-gradient(135deg, #b45309 0%, #d97706 100%);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.45);
+}
+
+[data-theme="light"] .btn-gemini-refresh {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+[data-theme="light"] .btn-gemini-refresh:hover {
+  background: #ecfdf5;
+  border-color: #10b981;
+  color: #059669;
+}
+
+[data-theme="light"] .btn-gemini-refresh.btn-gemini-cta {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #ffffff;
+}
+
+[data-theme="light"] .btn-gemini-refresh.btn-gemini-stale {
+  background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+  color: #ffffff;
+}
+
+/* Warning Inline khi biến thay đổi (Gọn gàng, tiết kiệm diện tích, không nút thừa) */
+.gemini-warning-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-left: 3px solid #f59e0b;
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.85rem;
+  margin-bottom: 0.85rem;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  color: var(--text-main);
+  line-height: 1.45;
+  animation: geminiFadeIn 0.3s ease-out;
+}
+
+.gemini-warning-inline .gemini-warning-icon {
+  font-size: 1.15rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.gemini-warning-inline strong {
+  color: #fbbf24;
+}
+
+[data-theme="light"] .gemini-warning-inline {
+  background: #fffbeb;
+  border-color: #fde68a;
+  border-left-color: #f59e0b;
+  color: #78350f;
+}
+
+[data-theme="light"] .gemini-warning-inline strong {
+  color: #b45309;
+}
+
+.gemini-stale-content {
+  opacity: 0.9;
+  position: relative;
+}
+
+/* Empty State Inline khi chưa tạo nhận xét (Gọn gàng, tinh tế, tiết kiệm diện tích) */
+.gemini-empty-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  animation: geminiFadeIn 0.3s ease-out;
+}
+
+.gemini-empty-inline .gemini-empty-sparkle {
+  font-size: 1.35rem;
+  flex-shrink: 0;
+  animation: geminiPulse 2s infinite ease-in-out;
+}
+
+.gemini-empty-inline strong {
+  color: var(--text-main);
+}
+
+[data-theme="light"] .gemini-empty-inline {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+[data-theme="light"] .gemini-empty-inline strong {
+  color: #0f172a;
+}
+
+/* Refreshing animation cho nút refresh */
+.btn-gemini-refresh.is-refreshing {
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.btn-gemini-refresh.is-refreshing::after {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: geminiSpin 0.7s linear infinite;
+  margin-left: 0.35rem;
+}
+
+@media (max-width: 640px) {
+  .gemini-projections-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .btn-gemini-refresh {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* Gemini AI Box in Light Mode */
 [data-theme="light"] .gemini-insight-box {
   background: #ffffff;
@@ -3831,6 +4164,32 @@ code, kbd, samp {
 
 [data-theme="light"] .gemini-divider {
   border-top-color: #e2e8f0;
+}
+
+[data-theme="light"] .gemini-warning-banner {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+[data-theme="light"] .gemini-warning-title {
+  color: #b45309;
+}
+
+[data-theme="light"] .gemini-warning-desc {
+  color: #78350f;
+}
+
+[data-theme="light"] .gemini-empty-state {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .gemini-empty-title {
+  color: #0f172a;
+}
+
+[data-theme="light"] .gemini-empty-desc {
+  color: #475569;
 }
 
 /* Gemini API Key Modal */

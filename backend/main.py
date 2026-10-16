@@ -425,7 +425,7 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
             "NHIỆM VỤ: Phân tích biểu đồ tài chính người dùng, đưa ra nhận xét sâu sắc và khuyến nghị khả thi.\n\n"
             "NGUYÊN TẮC BẮT BUỘC:\n"
             "1. NGẮN GỌN: Trả lời khoảng 220–320 từ, đi thẳng vào trọng tâm.\n"
-            "2. TL;DR ĐẦU TIÊN: Bắt đầu bằng `> **Tóm tắt cốt lõi (TL;DR)**: [1–2 câu kết luận quan trọng nhất]`.\n"
+            "2. TÓM TẮT ĐẦU TIÊN: Bắt đầu bằng `> **Tóm tắt cốt lõi**: [1–2 câu kết luận quan trọng nhất]`.\n"
             "3. NGÔN NGỮ ĐỜI THƯỜNG: Giọng ấm áp, dễ hiểu, tránh thuật ngữ phức tạp.\n"
             "4. FORMAT: Chỉ dùng H3 (###), danh sách (-), số (1.) và in đậm (**). KHÔNG dùng bảng hay code block.\n"
             "5. BÁM SÁT DỮ LIỆU: Không bịa số liệu mâu thuẫn với thông số người dùng.\n"

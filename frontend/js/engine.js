@@ -672,7 +672,7 @@ window.RetirementEngine = (function() {
           // Passive income only partially covers expenses. Net deficit must come from portfolio
           const deficit = currentExpenses - incomeAfterTax;
           actualWithdrawal = isStrategyActive
-            ? Math.min(portfolio, Math.max(deficit, withdrawalAmount))
+            ? Math.min(portfolio, withdrawalAmount)
             : Math.min(portfolio, deficit);
           portfolio = Math.max(0, (portfolio - actualWithdrawal) * (1.0 + returnRate));
           netSavingsOrWithdrawal = -actualWithdrawal;

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>pyRetrait — Hoạch định Độc lập Tài chính & Nghỉ hưu sớm (FIRE)</title>
+  <title>pyRetrait — Hoạch định Tự do Tài chính & Nghỉ hưu sớm</title>
   <meta name="description" content="Công cụ cao cấp mô phỏng dòng tiền, tối ưu hóa thuế, chiến lược rút tiền, phân tích Monte Carlo, kịch bản What-If và lập kế hoạch hưu trí độc lập.">
   
   <!-- Google Fonts: Inter & Outfit -->
@@ -20,7 +20,7 @@
   </script>
   
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=20261015_v121">
+  <link rel="stylesheet" href="css/styles.css?v=20261016_v125">
 </head>
 <body>
   <!-- Top Navigation Bar -->
@@ -28,7 +28,7 @@
     <div class="brand">
       <div class="brand-text">
         <span class="brand-name">pyRetrait</span>
-        <span class="brand-tagline" data-i18n="brand_tagline">Độc Lập Tài Chính</span>
+        <span class="brand-tagline" data-i18n="brand_tagline">Tự Do Tài Chính</span>
       </div>
     </div>
 
@@ -161,7 +161,7 @@
         </div>
         <div class="formula-inline-box formula-success" style="margin-top: 0.5rem; font-size: 0.72rem; padding: 0.5rem 0.6rem; border-radius: var(--radius-md);">
           <div class="formula-tag" style="margin-bottom: 0.35rem; font-size: 0.72rem; font-weight: 700;">
-            Điều Kiện Đạt Độc Lập Tài Chính
+            Điều Kiện Đạt Tự Do Tài Chính
           </div>
           <div style="display: flex; flex-direction: column; gap: 0.3rem; line-height: 1.45;">
             <div>
@@ -236,7 +236,7 @@
         <div class="tab-hero-banner">
           <div class="tab-hero-header">
             <div class="tab-hero-title">
-              Hoạch Định Dòng Tiền & Quỹ Độc Lập Tài Chính (FIRE)
+              Hoạch Định Dòng Tiền & Quỹ Tự Do Tài Chính
             </div>
             <p class="tab-hero-sub">
               Bức tranh toàn cảnh về sự tích lũy tài sản ròng, nguồn thu nhập thụ động, lương hưu và lộ trình chi tiêu theo từng giai đoạn cuộc đời.
@@ -711,6 +711,12 @@
                             <div class="formula-inline-box" style="margin-top: 0.25rem; padding: 0.2rem 0.45rem; font-size: 0.7rem;">
                               <code>Rút(t) = [Danh mục(0) × SWR] × (1 + lạm phát)^t</code>
                             </div>
+                            <!-- Tiêu chí Đánh giá: Điểm mạnh - Nhược điểm - Phù hợp -->
+                            <div class="strategy-pros-cons-box">
+                              <div class="spc-row"><strong class="spc-tag spc-pro">Điểm mạnh:</strong> <span class="spc-text">Chi tiêu ổn định tuyệt đối và có thể dự đoán chính xác như nhận lương hưu cố định hàng tháng.</span></div>
+                              <div class="spc-row"><strong class="spc-tag spc-con">Nhược điểm / Đánh đổi:</strong> <span class="spc-text">Cứng nhắc; dễ cạn tiền nếu gặp chuỗi năm thị trường xấu ngay đầu giai đoạn nghỉ hưu (rủi ro Sequence of Returns).</span></div>
+                              <div class="spc-row"><strong class="spc-tag spc-fit">Phù hợp với ai:</strong> <span class="spc-text">Người muốn thu nhập đều đặn, không muốn thay đổi thói quen chi tiêu theo biến động thị trường.</span></div>
+                            </div>
                           </div>
                         </label>
 
@@ -731,6 +737,12 @@
                               <code>• Rút thực tế &gt; 1.2 × SWR: Cắt giảm 10% chi tiêu</code><br>
                               <code>• Rút thực tế &lt; 0.8 × SWR: Thưởng tăng 10% chi tiêu</code>
                             </div>
+                            <!-- Tiêu chí Đánh giá: Điểm mạnh - Nhược điểm - Phù hợp -->
+                            <div class="strategy-pros-cons-box">
+                              <div class="spc-row"><strong class="spc-tag spc-pro">Điểm mạnh:</strong> <span class="spc-text">Cho phép bắt đầu tỷ lệ rút cao hơn; tự động tăng chi tiêu khi thị trường bùng nổ và cắt giảm 10% khi thị trường sụt giảm để bảo vệ vốn gốc bền vững nhất.</span></div>
+                              <div class="spc-row"><strong class="spc-tag spc-con">Nhược điểm / Đánh đổi:</strong> <span class="spc-text">Đòi hỏi lối sống linh hoạt; bắt buộc phải cắt giảm 10% chi tiêu sinh hoạt khi thị trường sụt giảm sâu.</span></div>
+                              <div class="spc-row"><strong class="spc-tag spc-fit">Phù hợp với ai:</strong> <span class="spc-text">Người có ngân sách chi tiêu linh hoạt (dễ dàng hoãn du lịch, cắt giảm mua sắm xa xỉ trong những năm thị trường suy thoái).</span></div>
+                            </div>
                           </div>
                         </label>
 
@@ -749,6 +761,12 @@
                             </div>
                             <div class="formula-inline-box formula-purple" style="margin-top: 0.25rem; padding: 0.2rem 0.45rem; font-size: 0.7rem;">
                               <code>Tỷ lệ rút(t) = 1 / (Tuổi thọ - Tuổi(t) + 1) + 2%</code>
+                            </div>
+                            <!-- Tiêu chí Đánh giá: Điểm mạnh - Nhược điểm - Phù hợp -->
+                            <div class="strategy-pros-cons-box">
+                              <div class="spc-row"><strong class="spc-tag spc-pro">Điểm mạnh:</strong> <span class="spc-text">Tỷ lệ rút tăng dần theo tuổi thọ; giúp tận dụng tối đa tài sản để hưởng thụ cuộc sống ("Die with Zero").</span></div>
+                              <div class="spc-row"><strong class="spc-tag spc-con">Nhược điểm / Đánh đổi:</strong> <span class="spc-text">Số tiền rút dao động theo từng năm; để lại rất ít hoặc không có tài sản thừa kế cho thế hệ sau.</span></div>
+                              <div class="spc-row"><strong class="spc-tag spc-fit">Phù hợp với ai:</strong> <span class="spc-text">Người theo triết lý "hưởng thụ hết trước khi qua đời", không đặt nặng việc để lại khối tài sản thừa kế lớn cho con cháu.</span></div>
                             </div>
                           </div>
                         </label>
@@ -769,8 +787,57 @@
                             <div class="formula-inline-box formula-warning" style="margin-top: 0.25rem; padding: 0.2rem 0.45rem; font-size: 0.7rem;">
                               <code>Rút(t) = Danh mục(t) × SWR cố định</code>
                             </div>
+                            <!-- Tiêu chí Đánh giá: Điểm mạnh - Nhược điểm - Phù hợp -->
+                            <div class="strategy-pros-cons-box">
+                              <div class="spc-row"><strong class="spc-tag spc-pro">Điểm mạnh:</strong> <span class="spc-text">Tuyệt đối không bao giờ cạn tiền (vì luôn chỉ rút tỷ lệ % trên số tiền thực tế còn lại trong tài khoản).</span></div>
+                              <div class="spc-row"><strong class="spc-tag spc-con">Nhược điểm / Đánh đổi:</strong> <span class="spc-text">Thu nhập dao động dữ dội theo thị trường (thị trường giảm 30% thì tiền chi tiêu năm đó cũng giảm 30%).</span></div>
+                              <div class="spc-row"><strong class="spc-tag spc-fit">Phù hợp với ai:</strong> <span class="spc-text">Người ưu tiên bảo toàn số vốn gốc đến cùng, chấp nhận mức sống thắt lưng buộc bụng biến động theo chu kỳ thị trường.</span></div>
+                            </div>
                           </div>
                         </label>
+                      </div>
+
+                      <!-- Nút mở rộng Bảng So Sánh Tổng Hợp 4 Chiến Lược -->
+                      <button type="button" class="btn btn-xs btn-outline" id="btn-toggle-strat-matrix" style="width: 100%; margin-top: 0.55rem; font-size: 0.72rem; display: flex; justify-content: center; align-items: center; gap: 0.35rem; padding: 0.35rem 0.5rem;">
+                        📊 Bảng So Sánh 4 Chiến Lược (Điểm mạnh / Nhược điểm / Phù hợp) ▾
+                      </button>
+                      <div id="container-strat-matrix" class="strategy-matrix-container" style="display: none; margin-top: 0.45rem;">
+                        <table class="strategy-matrix-table">
+                          <thead>
+                            <tr>
+                              <th style="width: 22%;">Chiến lược</th>
+                              <th style="width: 26%;">Điểm mạnh</th>
+                              <th style="width: 26%;">Nhược điểm / Đánh đổi</th>
+                              <th style="width: 26%;">Phù hợp với ai?</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td><strong style="color: #10b981;">Lan can Guyton-Klinger</strong><br><small style="color: var(--text-faint);">(Khuyên dùng)</small></td>
+                              <td>Bắt đầu tỷ lệ rút cao hơn; tự động siết/mở chi tiêu 10% theo thị trường; bảo vệ danh mục bền bỉ nhất.</td>
+                              <td>Đòi hỏi lối sống linh hoạt; phải cắt 10% chi tiêu sinh hoạt khi thị trường giảm sâu.</td>
+                              <td>Người có khoản chi tiêu linh hoạt (dễ hoãn du lịch, cắt giảm xa xỉ khi thị trường xấu).</td>
+                            </tr>
+                            <tr>
+                              <td><strong style="color: #3b82f6;">Quy tắc 4% (Bengen)</strong><br><small style="color: var(--text-faint);">(Cố định trượt giá)</small></td>
+                              <td>Đơn giản, chi tiêu ổn định tuyệt đối như nhận lương hưu cố định, không phải đau đầu tính toán.</td>
+                              <td>Cứng nhắc; dễ cạn tiền nếu gặp khủng hoảng thị trường ngay những năm đầu nghỉ hưu.</td>
+                              <td>Người muốn thu nhập đều đặn, không muốn thay đổi thói quen sinh hoạt theo thị trường.</td>
+                            </tr>
+                            <tr>
+                              <td><strong style="color: #8b5cf6;">Tỷ lệ Thay đổi (VPW)</strong><br><small style="color: var(--text-faint);">(Theo tuổi thọ)</small></td>
+                              <td>Tỷ lệ rút tăng dần theo tuổi; tối đa hóa việc tận hưởng tài sản ("Die with Zero").</td>
+                              <td>Thu nhập dao động lớn theo tuổi và thị trường; để lại rất ít tài sản thừa kế.</td>
+                              <td>Người theo triết lý "tiêu hết trước khi qua đời", không đặt nặng tài sản thừa kế.</td>
+                            </tr>
+                            <tr>
+                              <td><strong style="color: #f59e0b;">Tỷ lệ Cố định (Fixed %)</strong><br><small style="color: var(--text-faint);">(Trên số dư)</small></td>
+                              <td>Tuyệt đối không bao giờ cạn tiền vì luôn chỉ rút một tỷ lệ cố định trên số dư thực tế.</td>
+                              <td>Thu nhập dao động mạnh (thị trường giảm 30% thì tiền tiêu năm đó cũng giảm 30%).</td>
+                              <td>Người ưu tiên bảo toàn vốn, chấp nhận thắt lưng buộc bụng theo thị trường.</td>
+                            </tr>
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   </div>
@@ -1250,31 +1317,30 @@
               </div>
             </div>
 
-            <!-- Section Riêng: Nhận xét & Đánh giá Kế hoạch -->
+            <!-- Section Riêng: Nhận xét & Đánh giá Kế hoạch (Gọn gàng, align nút, badge cạnh tiêu đề) -->
             <div class="card gemini-advisor-section" id="section-gemini-projections" style="margin-top: 1.25rem;">
-              <div class="card-header" style="margin-bottom: 0.85rem;">
-                <h3 class="card-title" style="margin-bottom: 0.2rem;">Nhận xét & Đánh giá Kế hoạch</h3>
-                <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0;">Trí tuệ nhân tạo nhận xét chuyên sâu về quỹ đạo tài sản và cân đối dòng tiền hưu trí.</p>
+              <div class="card-header gemini-projections-card-header">
+                <div class="gemini-header-main-group">
+                  <div class="gemini-title-with-badges">
+                    <h3 class="card-title" style="margin: 0; font-size: 0.96rem; font-weight: 700;">Nhận xét & Đánh giá Kế hoạch</h3>
+                    <span class="gemini-badge-group">
+                      <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-projections" data-i18n="gemini_ready_badge">Sẵn sàng</span>
+                      <span class="gemini-header-time" id="gemini-time-chart-projections"></span>
+                    </span>
+                  </div>
+                  <p class="gemini-section-subtitle">Trí tuệ nhân tạo nhận xét chuyên sâu về quỹ đạo tài sản và cân đối dòng tiền hưu trí.</p>
+                </div>
+                <div class="gemini-header-action-wrapper">
+                  <button type="button" class="btn-gemini-refresh btn-gemini-cta" data-chart="chart-projections" data-i18n-title="gemini_btn_reanalyze_title" title="Tạo nhận xét AI">
+                    <span class="btn-gemini-label" data-i18n="gemini_btn_generate">Tạo nhận xét AI</span>
+                  </button>
+                </div>
               </div>
-              <div class="gemini-insights-grid">
-                <!-- Unified Box: Nhận xét & Đánh giá Kế hoạch (Chiến lược & Dòng tiền) -->
-                <div class="gemini-insight-box" id="gemini-box-chart-projections">
-                  <div class="gemini-insight-header">
-                    <div class="gemini-header-left">
-                      <span class="gemini-sparkle"></span>
-                      <span class="gemini-title">Nhận xét & Đánh giá Kế hoạch (Chiến lược & Dòng tiền)</span>
-                      <span class="gemini-badge-group">
-                        <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-projections">Gemini Intelligence</span>
-                        <span class="gemini-header-time" id="gemini-time-chart-projections"></span>
-                      </span>
-                    </div>
-                    <button type="button" class="btn-gemini-refresh" data-chart="chart-projections" title="Phân tích lại">
-                      Phân tích lại
-                    </button>
-                  </div>
-                  <div class="gemini-insight-content" id="gemini-content-chart-projections">
-                    <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu...</div>
-                  </div>
+
+              <!-- Nhận xét được đặt trực tiếp dưới text mô tả để tiết kiệm diện tích -->
+              <div class="gemini-insight-content" id="gemini-content-chart-projections" style="margin-top: 0.25rem;">
+                <div class="gemini-empty-inline">
+                  <span>Chưa có nhận xét AI cho kế hoạch này. Nhấn nút <strong>"Tạo nhận xét AI"</strong> ở trên để Gemini AI phân tích chuyên sâu các chỉ số.</span>
                 </div>
               </div>
             </div>
@@ -1286,7 +1352,7 @@
             <div class="card chart-card">
               <div class="chart-header">
                 <div>
-                  <h3 class="card-title">Biểu đồ Tăng trưởng Tài sản Ròng (Net Worth Trajectory)</h3>
+                  <h3 class="card-title">Biểu đồ Tăng trưởng Tài sản Ròng</h3>
                   <p class="chart-desc">Phân lớp trực quan giữa Tổng Tài sản Ròng (gồm BĐS) và Danh mục Thanh khoản rút tiền hưu trí.</p>
                 </div>
                 <div class="chart-actions">
@@ -1319,7 +1385,7 @@
             <div class="card chart-card">
               <div class="chart-header">
                 <div>
-                  <h3 class="card-title">Dòng tiền Hàng năm (Cash-Flow Projections)</h3>
+                  <h3 class="card-title">Dòng tiền Hàng năm</h3>
                   <p class="chart-desc">Cân đối thu nhập chủ động, thụ động, lương hưu, số tiền rút từ danh mục và chi tiêu sinh hoạt.</p>
                 </div>
               </div>
@@ -1486,19 +1552,20 @@
               <div class="gemini-insight-box" id="gemini-box-chart-tax-optimization">
                 <div class="gemini-insight-header">
                   <div class="gemini-header-left">
-                    <span class="gemini-sparkle"></span>
                     <span class="gemini-title">Nhận xét Chiến lược Tối ưu Thuế</span>
                     <span class="gemini-badge-group">
-                      <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-tax-optimization">Gemini Intelligence</span>
+                      <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-tax-optimization" data-i18n="gemini_ready_badge">Sẵn sàng</span>
                       <span class="gemini-header-time" id="gemini-time-chart-tax-optimization"></span>
                     </span>
                   </div>
-                  <button type="button" class="btn-gemini-refresh" data-chart="chart-tax-optimization" title="Phân tích lại">
-                    Phân tích lại
+                  <button type="button" class="btn-gemini-refresh btn-gemini-cta" data-chart="chart-tax-optimization" data-i18n-title="gemini_btn_reanalyze_title" title="Tạo nhận xét AI">
+                    <span class="btn-gemini-label" data-i18n="gemini_btn_generate">Tạo nhận xét AI</span>
                   </button>
                 </div>
                 <div class="gemini-insight-content" id="gemini-content-chart-tax-optimization">
-                  <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu...</div>
+                  <div class="gemini-empty-inline">
+                    <span>Chưa tạo nhận xét AI cho tối ưu thuế. Nhấn nút <strong>"Tạo nhận xét AI"</strong> ở trên để Gemini AI phân tích chuyên sâu.</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1981,7 +2048,7 @@
                   </div>
                   <h4 class="advisor-card-title">Quy Tắc 3–6 Tháng Chuẩn FIRE: Đừng Để Tiền "Chết" Quá Nhiều</h4>
                   <p class="advisor-card-text">
-                    Lãi suất Livret A về bản chất chỉ vừa đủ bù đắp lạm phát (lãi suất thực tế xấp xỉ 0%). Giữ quá nhiều tiền mặt sẽ làm chậm đáng kể tiến độ độc lập tài chính.
+                    Lãi suất Livret A về bản chất chỉ vừa đủ bù đắp lạm phát (lãi suất thực tế xấp xỉ 0%). Giữ quá nhiều tiền mặt sẽ làm chậm đáng kể tiến độ tự do tài chính.
                   </p>
                   <div class="pea-callout-box">
                     <strong>Chiến thuật FIRE:</strong> Chỉ giữ đúng <strong>3 đến 6 tháng chi phí sinh hoạt thiết yếu</strong> (10.000 € – 25.000 €) trên Livret A / LDDS / LEP để làm đệm an toàn khẩn cấp. Toàn bộ tiền thặng dư vượt quá mức này nên rót tự động vào <strong>PEA</strong> và <strong>Assurance-Vie</strong>.
@@ -2148,19 +2215,20 @@
             <div class="gemini-insight-box tab-split-gemini-card" id="gemini-box-chart-monte-carlo">
               <div class="gemini-insight-header">
                 <div class="gemini-header-left">
-                  <span class="gemini-sparkle"></span>
                   <span class="gemini-title">Đánh giá Rủi ro & Xác suất Monte Carlo</span>
                   <span class="gemini-badge-group">
-                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-monte-carlo">Gemini Intelligence</span>
+                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-monte-carlo" data-i18n="gemini_ready_badge">Sẵn sàng</span>
                     <span class="gemini-header-time" id="gemini-time-chart-monte-carlo"></span>
                   </span>
                 </div>
-                <button type="button" class="btn-gemini-refresh" data-chart="chart-monte-carlo" title="Phân tích lại">
-                  Phân tích lại
+                <button type="button" class="btn-gemini-refresh btn-gemini-cta" data-chart="chart-monte-carlo" data-i18n-title="gemini_btn_reanalyze_title" title="Tạo nhận xét AI">
+                  <span class="btn-gemini-label" data-i18n="gemini_btn_generate">Tạo nhận xét AI</span>
                 </button>
               </div>
               <div class="gemini-insight-content" id="gemini-content-chart-monte-carlo">
-                <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu...</div>
+                <div class="gemini-empty-inline">
+                  <span>Chưa tạo nhận xét AI cho phân tích Monte Carlo. Nhấn nút <strong>"Tạo nhận xét AI"</strong> ở trên để Gemini AI phân tích.</span>
+                </div>
               </div>
             </div>
           </div>
@@ -2211,19 +2279,20 @@
             <div class="gemini-insight-box withdrawals-gemini-card" id="gemini-box-chart-scenarios">
               <div class="gemini-insight-header">
                 <div class="gemini-header-left">
-                  <span class="gemini-sparkle"></span>
                   <span class="gemini-title">Đánh giá Toàn cảnh 5 Kịch bản Biến cố</span>
                   <span class="gemini-badge-group">
-                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-scenarios">Gemini Intelligence</span>
+                    <span class="gemini-engine-badge badge-engine" id="gemini-badge-chart-scenarios" data-i18n="gemini_ready_badge">Sẵn sàng</span>
                     <span class="gemini-header-time" id="gemini-time-chart-scenarios"></span>
                   </span>
                 </div>
-                <button type="button" class="btn-gemini-refresh" data-chart="chart-scenarios" title="Phân tích lại">
-                  Phân tích lại
+                <button type="button" class="btn-gemini-refresh btn-gemini-cta" data-chart="chart-scenarios" data-i18n-title="gemini_btn_reanalyze_title" title="Tạo nhận xét AI">
+                  <span class="btn-gemini-label" data-i18n="gemini_btn_generate">Tạo nhận xét AI</span>
                 </button>
               </div>
               <div class="gemini-insight-content" id="gemini-content-chart-scenarios">
-                <div class="gemini-loading"><span class="gemini-spinner"></span> Đang tạo nhận xét chuyên sâu...</div>
+                <div class="gemini-empty-inline">
+                  <span>Chưa tạo nhận xét AI cho 5 kịch bản biến cố. Nhấn nút <strong>"Tạo nhận xét AI"</strong> ở trên để Gemini AI phân tích.</span>
+                </div>
               </div>
             </div>
           </div>
@@ -3715,18 +3784,41 @@
           <h4 style="color: #a855f7; margin: 0 0 0.5rem 0; font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem;">
             <span> 5. Bốn Chiến Lược Rút Tiền Khi Nghỉ Hưu (Withdrawal Strategies)</span>
           </h4>
-          <div style="font-size: 0.8rem; color: var(--text-main); display: flex; flex-direction: column; gap: 0.5rem;">
-            <div>
-              <strong>1. Bengen 4% Rule (Cổ điển):</strong> Rút 4% danh mục năm đầu, các năm sau giữ nguyên sức mua bằng cách điều chỉnh đúng theo mức lạm phát.
+          <div style="font-size: 0.8rem; color: var(--text-main); display: flex; flex-direction: column; gap: 0.65rem;">
+            <div style="background: var(--bg-card); padding: 0.5rem 0.65rem; border-radius: 5px; border: 1px solid var(--border-subtle);">
+              <div style="color: #10b981; font-weight: 700; margin-bottom: 0.2rem;">1. Lan can Guyton-Klinger (Khuyên dùng):</div>
+              <div style="color: var(--text-muted); font-size: 0.76rem; line-height: 1.4;">
+                • <strong>Điểm mạnh:</strong> Cho phép bắt đầu tỷ lệ rút cao hơn; tự động tăng chi tiêu khi thị trường bùng nổ và cắt giảm 10% khi thị trường sụt giảm sâu để bảo vệ danh mục bền vững nhất.<br>
+                • <strong>Nhược điểm / Đánh đổi:</strong> Đòi hỏi lối sống linh hoạt; bắt buộc phải cắt giảm 10% chi tiêu sinh hoạt khi thị trường rơi vào khủng hoảng.<br>
+                • <strong>Phù hợp với ai:</strong> Người có ngân sách chi tiêu linh hoạt (dễ dàng hoãn du lịch, cắt giảm mua sắm xa xỉ trong những năm thị trường suy thoái).
+              </div>
             </div>
-            <div>
-              <strong>2. Guyton-Klinger (Lan can động):</strong> Nếu thị trường giảm mạnh khiến tỷ lệ rút vượt ngưỡng an toàn (&gt; SWR × 1.2), tự động cắt giảm 10% chi tiêu; nếu thị trường bùng nổ (&lt; SWR × 0.8), tăng thêm 10% chi tiêu hưởng thụ.
+
+            <div style="background: var(--bg-card); padding: 0.5rem 0.65rem; border-radius: 5px; border: 1px solid var(--border-subtle);">
+              <div style="color: #3b82f6; font-weight: 700; margin-bottom: 0.2rem;">2. Quy tắc 4% Cố định (Bengen Rule):</div>
+              <div style="color: var(--text-muted); font-size: 0.76rem; line-height: 1.4;">
+                • <strong>Điểm mạnh:</strong> Đơn giản, chi tiêu ổn định tuyệt đối và có thể dự đoán chính xác như nhận lương hưu cố định hàng tháng.<br>
+                • <strong>Nhược điểm / Đánh đổi:</strong> Cứng nhắc; dễ cạn tiền nếu gặp chuỗi năm thị trường xấu ngay đầu giai đoạn nghỉ hưu (rủi ro Sequence of Returns).<br>
+                • <strong>Phù hợp với ai:</strong> Người muốn thu nhập đều đặn, không muốn thay đổi thói quen chi tiêu theo biến động thị trường.
+              </div>
             </div>
-            <div>
-              <strong>3. VPW (Variable Percentage Withdrawal):</strong> Tỷ lệ rút tăng dần theo tuổi: Tỷ lệ rút = 1 / (Tuổi thọ kỳ vọng - Tuổi hiện tại + 1) + 2%. Đảm bảo tối đa hóa tận hưởng trọn vẹn tài sản cuối đời.
+
+            <div style="background: var(--bg-card); padding: 0.5rem 0.65rem; border-radius: 5px; border: 1px solid var(--border-subtle);">
+              <div style="color: #8b5cf6; font-weight: 700; margin-bottom: 0.2rem;">3. Tỷ lệ Thay đổi theo Tuổi (VPW - Variable Percentage Withdrawal):</div>
+              <div style="color: var(--text-muted); font-size: 0.76rem; line-height: 1.4;">
+                • <strong>Điểm mạnh:</strong> Tỷ lệ rút tăng dần theo tuổi thọ; giúp tận dụng tối đa tài sản để hưởng thụ cuộc sống ("Die with Zero").<br>
+                • <strong>Nhược điểm / Đánh đổi:</strong> Số tiền rút dao động theo từng năm; để lại rất ít hoặc không có tài sản thừa kế cho thế hệ sau.<br>
+                • <strong>Phù hợp với ai:</strong> Người theo triết lý "tiêu hết trước khi qua đời", không đặt nặng việc để lại khối tài sản thừa kế lớn cho con cháu.
+              </div>
             </div>
-            <div>
-              <strong>4. Fixed % (Tỷ lệ cố định):</strong> Luôn rút đúng X% trên tổng tài sản còn lại ở từng năm (Ví dụ: 4% của số dư hiện có).
+
+            <div style="background: var(--bg-card); padding: 0.5rem 0.65rem; border-radius: 5px; border: 1px solid var(--border-subtle);">
+              <div style="color: #f59e0b; font-weight: 700; margin-bottom: 0.2rem;">4. Tỷ lệ Cố định trên Danh mục (Fixed %):</div>
+              <div style="color: var(--text-muted); font-size: 0.76rem; line-height: 1.4;">
+                • <strong>Điểm mạnh:</strong> Tuyệt đối không bao giờ cạn tiền (vì luôn chỉ rút tỷ lệ % trên số tiền thực tế còn lại trong tài khoản).<br>
+                • <strong>Nhược điểm / Đánh đổi:</strong> Thu nhập dao động dữ dội theo thị trường (thị trường giảm 30% thì tiền chi tiêu năm đó cũng giảm 30%).<br>
+                • <strong>Phù hợp với ai:</strong> Người ưu tiên bảo toàn số vốn gốc đến cùng, chấp nhận mức sống thắt lưng buộc bụng biến động theo chu kỳ thị trường.
+              </div>
             </div>
           </div>
         </div>
@@ -4023,15 +4115,15 @@
   </div>
 
   <!-- Application Logic Modules -->
-  <script src="js/i18n.js?v=20261015_v102"></script>
-  <script src="js/engine.js?v=20261015_v107"></script>
+  <script src="js/i18n.js?v=20261016_v105"></script>
+  <script src="js/engine.js?v=20261015_v108"></script>
   <script src="js/taxOptimizer.js?v=20261013_v3"></script>
-  <script src="js/monteCarlo.js?v=20261013_v3"></script>
+  <script src="js/monteCarlo.js?v=20261015_v4"></script>
   <script src="js/scenarios.js?v=20261013_v2"></script>
-  <script src="js/geminiAdvisor.js?v=20261015_v104"></script>
+  <script src="js/geminiAdvisor.js?v=20261016_v107"></script>
   <script src="js/patrimoine.js?v=20261014_v94"></script>
   <script src="js/export.js?v=20261013_v2"></script>
   <script src="js/auth.js?v=20261013_v2"></script>
-  <script src="js/ui.js?v=20261015_v108"></script>
+  <script src="js/ui.js?v=20261016_v111"></script>
 </body>
 </html>
