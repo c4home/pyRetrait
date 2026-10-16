@@ -1,20 +1,9 @@
 /**
- * pyRetrait — Tax Optimization, Roth Conversion Ladder, Capital Gains & ACA Subsidy Engine
+ * pyRetrait — Tax Optimization & French-Vietnam Fiscal Engine
  */
 
 window.TaxOptimizer = (function() {
   'use strict';
-
-  // US Federal Tax Brackets (Single / Married Filing Jointly simplified reference)
-  const US_TAX_BRACKETS_SINGLE = [
-    { cap: 11600, rate: 0.10 },
-    { cap: 47150, rate: 0.12 },
-    { cap: 100525, rate: 0.22 },
-    { cap: 191950, rate: 0.24 },
-    { cap: 243725, rate: 0.32 },
-    { cap: 609350, rate: 0.35 },
-    { cap: Infinity, rate: 0.37 }
-  ];
 
   // International / Vietnam progressive or flat rates
   const VN_TAX_BRACKETS = [
@@ -42,7 +31,7 @@ window.TaxOptimizer = (function() {
   /**
    * Calculate progressive tax on given taxable income
    * @param {number} taxableIncome - Thu nhập chịu thuế gộp
-   * @param {string} regime - Chế độ thuế ('france_vietnam', 'international', 'us')
+   * @param {string} regime - Chế độ thuế ('france_vietnam', 'international')
    * @param {Object|number} options - Tùy chọn (customTaxRate, currency, exchangeRateEurVnd)
    */
   function calculateProgressiveTax(taxableIncome, regime = 'france_vietnam', options = {}) {
@@ -83,26 +72,6 @@ window.TaxOptimizer = (function() {
       if (currency === 'VND') return taxEur * fx;
       if (currency === 'USD') return taxEur * 1.10;
       return taxEur;
-    }
-
-    // 3. Chế độ Mỹ:
-    if (regime === 'us') {
-      const incomeUsd = (currency === 'VND') ? (taxableIncome / (fx * 1.10)) : (currency === 'EUR' ? taxableIncome * 1.10 : taxableIncome);
-      let taxUsd = 0;
-      let prevCap = 0;
-      for (let i = 0; i < US_TAX_BRACKETS_SINGLE.length; i++) {
-        const { cap, rate } = US_TAX_BRACKETS_SINGLE[i];
-        if (incomeUsd > prevCap) {
-          const chunk = Math.min(incomeUsd - prevCap, cap - prevCap);
-          taxUsd += chunk * rate;
-          prevCap = cap;
-        } else {
-          break;
-        }
-      }
-      if (currency === 'VND') return taxUsd * fx * 1.10;
-      if (currency === 'EUR') return taxUsd / 1.10;
-      return taxUsd;
     }
 
     return taxableIncome * 0.10;
@@ -284,105 +253,6 @@ window.TaxOptimizer = (function() {
   }
 
   /**
-   * Plan Roth Conversion Ladder during low-income retirement gap years
-   * (e.g. from retirement age up to age 65/70 when SS/RMD starts)
-   */
-  function planRothConversions(plan, projection) {
-    const currentAge = Number(plan.currentAge) || 32;
-    const retireAge = Number(plan.retirementAge) || 45;
-    const rmdAge = 72; // Required Minimum Distribution age
-    const maxAnnualConversion = Number(plan.rothConversion?.maxAnnualConversion) || 200_000_000;
-    const targetBracket = (Number(plan.rothConversion?.targetBracket) || 12.0) / 100.0;
-    const currency = plan.currency || 'VND';
-
-    const conversionSchedule = [];
-    let cumulativeTaxSavings = 0;
-    let totalConverted = 0;
-
-    projection.timeline.forEach(yearData => {
-      const age = yearData.age;
-      // Focus on the golden window between retirement and RMD age (65-72)
-      if (age >= retireAge && age < rmdAge) {
-        const otherTaxableIncome = yearData.income;
-        // Optimal amount to convert to fill the lower tax bracket
-        const targetIncomeCeiling = currency === 'VND' ? 384_000_000 : 47_150; // top of favorable bracket
-        const roomInBracket = Math.max(0, targetIncomeCeiling - otherTaxableIncome);
-        const conversionAmount = Math.min(roomInBracket, maxAnnualConversion);
-
-        // Tax paid now at low bracket vs estimated future tax avoided at 25-30% RMD bracket
-        const taxPaidNow = conversionAmount * targetBracket;
-        const futureTaxAvoided = conversionAmount * 0.25;
-        const netTaxSaved = Math.max(0, futureTaxAvoided - taxPaidNow);
-
-        totalConverted += conversionAmount;
-        cumulativeTaxSavings += netTaxSaved;
-
-        conversionSchedule.push({
-          age,
-          conversionAmount,
-          taxPaidNow,
-          futureTaxAvoided,
-          netTaxSaved,
-          cumulativeSavings: cumulativeTaxSavings
-        });
-      }
-    });
-
-    return {
-      schedule: conversionSchedule,
-      totalConverted,
-      cumulativeTaxSavings,
-      goldenWindowStart: retireAge,
-      goldenWindowEnd: Math.min(rmdAge, retireAge + 15)
-    };
-  }
-
-  /**
-   * Analyze Capital Gains Harvesting Opportunities (0% LTCG rate utilization)
-   */
-  function detectCapitalGainsHarvesting(plan, projection) {
-    const opportunities = [];
-    const threshold = plan.currency === 'USD' ? 47_025 : 200_000_000;
-
-    projection.timeline.forEach(year => {
-      if (year.isRetired && year.income < threshold) {
-        const potentialRoom = threshold - year.income;
-        opportunities.push({
-          age: year.age,
-          availableHarvestRoom: potentialRoom,
-          taxSavedEstimate: potentialRoom * 0.15
-        });
-      }
-    });
-
-    return opportunities;
-  }
-
-  /**
-   * ACA Subsidy Optimization: Keeps MAGI within eligibility window (100% - 400% FPL)
-   */
-  function estimateAcaSubsidies(plan, projection) {
-    let totalSubsidySaved = 0;
-    const acaYears = [];
-
-    projection.timeline.forEach(year => {
-      if (year.isRetired && year.age < 65) {
-        const annualSubsidy = plan.currency === 'USD' ? 7_200 : (plan.currency === 'EUR' ? 6_000 : 80_000_000);
-        totalSubsidySaved += annualSubsidy;
-        acaYears.push({
-          age: year.age,
-          annualSubsidy
-        });
-      }
-    });
-
-    return {
-      totalSubsidySaved,
-      acaYears
-    };
-  }
-
-  /**
    * Tax-Efficient French Account Withdrawal Waterfall
    * Priority:
    * 1. Livret A / Cash (100% tax free, low yield)
@@ -458,9 +328,6 @@ window.TaxOptimizer = (function() {
     calculateProgressiveTax,
     calculateTaxDetailed,
     calculateFrenchPension,
-    planRothConversions,
-    detectCapitalGainsHarvesting,
-    estimateAcaSubsidies,
     simulateWithdrawalWaterfall
   };
 })();

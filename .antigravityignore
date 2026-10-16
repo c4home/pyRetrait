@@ -1,0 +1,32 @@
+# Antigravity Ignore — Loại bỏ các file nhị phân, thư viện nén và dữ liệu dump lớn
+# giúp tiết kiệm tối đa Token ngữ cảnh và tăng tốc độ tìm kiếm.
+
+# SQLite Databases
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+backend/*.db
+data/*.db
+
+# Minified Third-Party Libraries
+frontend/js/chart.umd.min.js
+*.min.js
+*.min.css
+
+# Python & Tooling Caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Large User Dump / Test Snapshots
+data_user3_plans.json
+data_user3_patrimoine.json
+
+# OS & Editor Metadata
+.DS_Store
+.vscode/
+.idea/

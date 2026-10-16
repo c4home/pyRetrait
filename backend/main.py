@@ -30,23 +30,42 @@ from backend.auth import (
 
 init_db()
 
+IS_PROD = os.environ.get("ENV", "").lower() in ("prod", "production")
+
 app = FastAPI(
     title="pyRetrait - Advanced FIRE & Retirement Planning Engine",
     description="Comprehensive financial independence and early retirement platform",
-    version="2.0.0"
+    version="2.0.0",
+    docs_url=None if IS_PROD else "/docs",
+    redoc_url=None if IS_PROD else "/redoc",
+    openapi_url=None if IS_PROD else "/openapi.json",
 )
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_cors_origins(),
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
+MAX_PAYLOAD_BYTES = 2 * 1024 * 1024  # Giới hạn payload tối đa 2MB chống tấn công DoS làm đầy ổ cứng/RAM
+
 @app.middleware("http")
-async def add_no_cache_headers(request: Request, call_next):
+async def add_security_and_cache_headers(request: Request, call_next):
+    # Chặn payload quá lớn ngay từ tầng HTTP header
+    content_length = request.headers.get("content-length")
+    if content_length and content_length.isdigit() and int(content_length) > MAX_PAYLOAD_BYTES:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=413, content={"detail": "Dữ liệu gửi lên vượt quá giới hạn an toàn (2MB)"})
+
     response = await call_next(request)
+    # OWASP Security Headers bắt buộc trên Server
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+
     if (
         request.url.path == "/"
         or request.url.path.endswith(".html")

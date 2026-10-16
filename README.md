@@ -92,15 +92,25 @@ pyRetrait/
 │   ├── css/
 │   │   └── styles.css     # Dark mode, glassmorphism, responsive modal scrolling & pinned layout
 │   └── js/
-│       ├── chart.umd.min.js # Thư viện Chart.js cục bộ (Local-first, không phụ thuộc CDN)
-│       ├── engine.js       # Thuật toán tính dòng tiền, Bengen, Guyton-Klinger, VPW
-│       ├── taxOptimizer.js # Tối ưu hóa thuế, Lương hưu Pháp, Roth Ladder, ACA Subsidies
-│       ├── monteCarlo.js   # Mô phỏng Monte Carlo xác định (Mulberry32 PRNG seed 42)
-│       ├── scenarios.js    # Kịch bản What-If & Stress Test
-│       ├── patrimoine.js   # Quản lý BĐS Pháp LMNP, Đội xe Turo & Đồng bộ 1-click vào FIRE
-│       ├── auth.js         # Quản lý đăng nhập/đăng ký Cloud, đồng bộ Guest mode
-│       ├── export.js       # Xuất CSV, in PDF tóm tắt, sao lưu JSON
-│       └── ui.js           # Xử lý tương tác, modal quản lý sự kiện, reactive Chart.js
+│       ├── chart.umd.min.js    # Thư viện Chart.js cục bộ (Local-first, không phụ thuộc CDN)
+│       ├── state.js            # Tầng 2: Quản lý State tập trung (AppState), LocalStorage, Cloud Sync & Event Bus
+│       ├── i18n.js             # Tầng 2: Từ điển đa ngôn ngữ (Tiếng Việt, English, Français)
+│       ├── engine.js           # Tầng 1: Thuật toán tính dòng tiền, Bengen, Guyton-Klinger, VPW
+│       ├── taxOptimizer.js     # Tầng 1: Tối ưu hóa thuế, Lương hưu Pháp, Roth Ladder, ACA Subsidies
+│       ├── monteCarlo.js       # Tầng 1: Mô phỏng Monte Carlo xác định (Mulberry32 PRNG seed 42)
+│       ├── scenarios.js        # Tầng 1: Kịch bản What-If & Stress Test
+│       ├── patrimoine.js       # Tầng 1: Quản lý BĐS Pháp LMNP, Đội xe Turo & Đồng bộ 1-click vào FIRE
+│       ├── geminiAdvisor.js    # Tầng 2: Tích hợp Gemini AI Advisor & Data-Fingerprint Cache
+│       ├── auth.js             # Tầng 2: Quản lý đăng nhập/đăng ký Cloud, đồng bộ Guest mode
+│       ├── export.js           # Tầng 2: Xuất CSV, in PDF tóm tắt, sao lưu JSON
+│       ├── ui-modals.js        # Tầng 3: Quản lý toàn bộ Modal & 4-Step Quick Setup Wizard
+│       ├── ui-tab1-charts.js   # Tầng 3 (Tab 1A): Biểu đồ Tài sản/Dòng tiền, Cột mốc, Monte Carlo, Biến cố & Bảng năm
+│       ├── ui-tab1-streams.js  # Tầng 3 (Tab 1B): Luồng Thu/Chi, Phân bổ tài sản, Lạm phát kép & 4 Chiến lược rút vốn
+│       ├── ui-tab2-health.js   # Tầng 3 (Tab 2): Tuổi sinh học, Healthspan, Chăm sóc tuổi già, Con cái CAF & Y tế Pháp-VN
+│       ├── ui-tab3-taxes.js    # Tầng 3 (Tab 3): Tối ưu Thuế Pháp/Việt/Mỹ, PEA/AV/Livret A, Lương hưu & BĐS LMNP
+│       ├── community-seed.js   # 6 Kịch bản thực chiến offline chuẩn mực
+│       ├── community.js        # Tầng 3 (Tab 4): Chợ Kịch bản Cộng đồng, Smart Forking, Filter & Upvote
+│       └── ui.js               # Tầng 3: Nhạc trưởng điều phối trung tâm (initApp, switchTab, updateAll, Tiền tệ, Theme)
 └── data/
     ├── pyretrait.db       # Cơ sở dữ liệu SQLite lưu trữ người dùng & kế hoạch đám mây
     ├── plans.json         # Dữ liệu mẫu / kế hoạch mặc định cục bộ

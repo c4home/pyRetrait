@@ -789,15 +789,6 @@ window.RetirementEngine = (function() {
         }
       }
 
-      // Healthcare cost adjustments
-      if (plan.healthcare && plan.healthcare.enabled) {
-        if (isRetired && age < 65) {
-          currentExpenses += (Number(plan.healthcare.annualPreMedicare) || (cur === 'EUR' ? 1200 : 30_000_000)) * cumInflation;
-        } else if (isRetired && age >= 65) {
-          currentExpenses += (Number(plan.healthcare.annualPostMedicare) || (cur === 'EUR' ? 600 : 15_000_000)) * cumInflation;
-        }
-      }
-
       // Apply Scenario Overrides (Market crash, High inflation, Medical Shock, Downsizing)
       let scenarioReturnModifier = 0.0;
       if (overrideScenario) {
@@ -840,7 +831,7 @@ window.RetirementEngine = (function() {
       if (window.TaxOptimizer && window.TaxOptimizer.calculateProgressiveTax) {
         estimatedTax = window.TaxOptimizer.calculateProgressiveTax(annualIncome, plan.taxRegime || 'france_vietnam', {
           customTaxRate: plan.taxRate,
-          currency: plan.currency || cur,
+          currency: plan.currency || 'EUR',
           exchangeRateEurVnd: currentEurVndRate
         });
       } else {

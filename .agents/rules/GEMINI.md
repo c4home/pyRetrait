@@ -44,21 +44,28 @@
 - Backend FastAPI chỉ đảm nhiệm: xác thực người dùng (JWT), lưu/đồng bộ kế hoạch lên SQLite, và expose `/api/...` endpoints.
 - **Không bao giờ chuyển logic tính toán cốt lõi (dòng tiền, Monte Carlo, thuế) sang backend.**
 
-### Phân Chia File Frontend
-| File | Trách nhiệm |
-|------|-------------|
-| `i18n.js` | Quản lý đa ngôn ngữ (i18n), từ điển dịch Tiếng Việt, Anh, Pháp |
-| `engine.js` | Toàn bộ engine tính toán dòng tiền, chiến lược rút tiền |
-| `monteCarlo.js` | Mô phỏng Monte Carlo (Mulberry32 seed=42) |
-| `patrimoine.js` | Quản lý tài sản, BĐS, LMNP, Turo |
-| `taxOptimizer.js` | Thuế lũy tiến Pháp / Mỹ / Việt Nam, Roth Conversion |
-| `scenarios.js` | Kịch bản What-If |
-| `geminiAdvisor.js` | Tích hợp Gemini AI Advisor |
-| `auth.js` | Đăng nhập / đăng ký / JWT |
-| `ui.js` | Toàn bộ render UI, event handlers, Chart.js |
-| `export.js` | Xuất CSV / PDF / JSON |
+### Phân Chia File Frontend (Kiến Trúc 3 Tầng Chống File Khổng Lồ)
+| File | Tầng | Trách nhiệm |
+|------|------|-------------|
+| `engine.js` | Tầng 1 (Core Engine) | Toàn bộ engine tính toán dòng tiền, chiến lược rút tiền, Stress Test, Optimal Age |
+| `monteCarlo.js` | Tầng 1 (Core Engine) | Mô phỏng Monte Carlo (Mulberry32 seed=42) |
+| `taxOptimizer.js` | Tầng 1 (Core Engine) | Thuế lũy tiến Pháp / Mỹ / Việt Nam, Lương hưu Décote, Thác rút tiền |
+| `patrimoine.js` | Tầng 1 (Core Engine) | Quản lý tài sản, BĐS LMNP Pháp, Điểm hòa vốn, Turo |
+| `scenarios.js` | Tầng 1 (Core Engine) | Kịch bản What-If & Stress Test |
+| `state.js` | Tầng 2 (State & Sync) | Quản lý State tập trung (`AppState`), `localStorage`, Cloud Sync & Event Bus |
+| `i18n.js` | Tầng 2 (State & Sync) | Quản lý đa ngôn ngữ (i18n), từ điển dịch Tiếng Việt, Anh, Pháp |
+| `auth.js` | Tầng 2 (State & Sync) | Đăng nhập / đăng ký / JWT |
+| `geminiAdvisor.js` | Tầng 2 (State & Sync) | Tích hợp Gemini AI Advisor & Data-Fingerprint Cache |
+| `export.js` | Tầng 2 (State & Sync) | Xuất CSV / PDF / JSON |
+| `ui.js` | Tầng 3 (UI Orchestrator) | Nhạc trưởng điều phối trung tâm (`initApp`, `bindEvents`, `switchTab`, `updateAll`, Tiền tệ, Theme) |
+| `ui-tab1-charts.js` | Tầng 3 (UI Tab 1A) | Biểu đồ Tài sản & Dòng tiền, Cột mốc, Monte Carlo Fan Chart, Kịch bản Biến cố, Bảng dự phóng |
+| `ui-tab1-streams.js` | Tầng 3 (UI Tab 1B) | Luồng Thu/Chi theo giai đoạn, Cân đối thu chi, Phân bổ tài sản, Lạm phát kép & 4 Chiến lược rút vốn |
+| `ui-tab2-health.js` | Tầng 3 (UI Tab 2) | Tuổi sinh học, Healthspan, Chăm sóc tuổi già (78t+), Con cái & CAF, Di sản & Y tế Pháp-Việt |
+| `ui-tab3-taxes.js` | Tầng 3 (UI Tab 3) | Tối ưu Thuế Pháp/Việt/Mỹ, Tài khoản Pháp (PEA/AV/Livret A), Lương hưu CNAV/BHXH VN & BĐS LMNP |
+| `ui-modals.js` | Tầng 3 (UI Modals) | Toàn bộ Hộp thoại Modal (Confirm, Formula Guide, Thu/Chi, Cột mốc, Kế hoạch) & 4-Step Wizard |
+| `community.js` | Tầng 3 (UI Tab 4) | Chợ Kịch bản Cộng đồng, Smart Forking, Filter & Upvote (cùng `community-seed.js`) |
 
-- **Không được gộp logic từ các file khác vào `ui.js`** — `ui.js` chỉ được gọi các hàm từ các module khác.
+- **Không được gộp logic tính toán hoặc render của các Tab con vào `ui.js`** — `ui.js` chỉ đóng vai trò nhạc trưởng điều phối và gọi các hàm từ các module tương ứng.
 
 ---
 
@@ -262,12 +269,22 @@
 
 - Khi được yêu cầu thêm tính năng mới, **luôn hỏi lại** nếu tính năng có thể ảnh hưởng đến kết quả tính toán tài chính để tránh sai số.
 - Trước khi sửa `engine.js` hoặc `monteCarlo.js`, **đọc lại toàn bộ hàm liên quan** để hiểu context; không patch một phần nhỏ mà bỏ sót tác động dây chuyền.
-- Khi sửa `ui.js` (file rất lớn ~238KB), **chỉ sửa đúng đoạn cần thiết** bằng `multi_replace_file_content`; không viết lại toàn bộ file.
+- Khi sửa các file UI (`ui.js`, `ui-tab1-charts.js`, `ui-tab1-streams.js`, `ui-tab2-health.js`, `ui-tab3-taxes.js`, `ui-modals.js`), **chỉ mở và sửa đúng file của Tab cần thiết**; không viết lại toàn bộ file.
 - Mỗi thay đổi logic tính toán phải đi kèm ví dụ kiểm chứng số học cụ thể trong comment.
 - **Không xóa tính năng hiện có** nếu người dùng không yêu cầu — kể cả khi refactor.
-- **Tối Ưu Token Khi Dùng Browser Subagent & Kiểm Thử Giao Diện:**
-  - **Cấm kiểm tra lặp đa ngôn ngữ (`Dont Check both Vietnamese and when switching to English / French`):** Khi giao việc cho `browser_subagent` để kiểm tra màn hình/thẻ UI, chỉ được yêu cầu kiểm tra ở ngôn ngữ mặc định (Tiếng Việt). Tuyệt đối không thêm chỉ dẫn bắt subagent phải đổi sang English hay French rồi kiểm tra lại, trừ khi người dùng yêu cầu đích danh.
-  - Tối giản số bước hành động của `browser_subagent`: Định nghĩa mục tiêu trực diện, kiểm tra đúng thành phần cần thiết rồi kết thúc ngay, tránh reload hoặc chuyển tab không liên quan gây tốn token.
+- **Kiểm Soát Chặt `browser_subagent` & Ưu Tiên Kiểm Thử Bằng `./verify_js.sh` — Bắt Buộc:**
+  - **CẤM tự ý gọi `browser_subagent`:** Tuyệt đối KHÔNG tự động khởi chạy `browser_subagent` hay mở trình duyệt để kiểm tra sau khi sửa code (vì mỗi lần chụp ảnh màn hình ngốn 40.000–90.000 token). Chỉ được phép gọi `browser_subagent` khi người dùng **yêu cầu rõ ràng trong câu lệnh** (ví dụ: *"kiểm tra bằng browser"*, *"mở trình duyệt chụp màn hình"*).
+  - **Kiểm thử tự động & tự động cập nhật `docs/CODEBASE_MAP.md` bằng `./verify_js.sh` (chỉ tốn ~150 token và 0.15 giây):**
+    - Sau khi sửa bất kỳ file nào (`ui.js`, `ui-tab1-charts.js`, `ui-tab1-streams.js`, `ui-tab2-health.js`, `ui-tab3-taxes.js`, `ui-modals.js`, `index.html`, `styles.css`, `engine.js`, `patrimoine.js`, `taxOptimizer.js`, `monteCarlo.js`, `i18n.js`), chạy lệnh `./verify_js.sh` (hoặc `./verify_js.sh "<biểu_thức_JS>"`). Script sẽ tự động kiểm tra cú pháp toàn bộ 16 file JS, kiểm chứng kết quả toán học, và **tự động quét lại toàn bộ tọa độ dòng mới vào `docs/CODEBASE_MAP.md` với chi phí 0 token** (AI không bao giờ phải sửa `docs/CODEBASE_MAP.md` bằng tay).
+  - **Khi người dùng yêu cầu dùng `browser_subagent`:**
+    - Chỉ kiểm tra ở ngôn ngữ mặc định (**Tiếng Việt `vi`**), tuyệt đối không chuyển qua lại `VI -> EN -> FR`.
+    - Đi thẳng vào đúng thành phần cần xem, chụp tối đa 1 ảnh rồi kết thúc ngay.
+- **Quy Trình Tiết Kiệm Token & Chống Context Hunting (Bắt Buộc):**
+  - **Tra cứu bản đồ dòng code trước khi mở file lớn:** Trước khi đọc hoặc sửa các file lớn (`ui.js`, `ui-tab1-charts.js`, `ui-tab1-streams.js`, `ui-tab2-health.js`, `ui-tab3-taxes.js`, `ui-modals.js`, `index.html`, `styles.css`, `i18n.js`, `engine.js`, `patrimoine.js`, `taxOptimizer.js`, `monteCarlo.js`, `geminiAdvisor.js`), **bắt buộc tham chiếu `docs/CODEBASE_MAP.md`** để biết chính xác tọa độ dòng (`StartLine` - `EndLine`) của hàm, thẻ HTML, phân mục CSS hoặc khối từ điển cần tìm. Tuyệt đối không đọc tuần tự từng khối 800 dòng từ đầu file đến cuối file.
+  - **Cấm đọc lại file sau khi vừa sửa xong (No Redundant Post-Edit Read):** Khi `replace_file_content` đã báo thành công và `./verify_js.sh` đã kiểm tra cú pháp OK, tuyệt đối KHÔNG gọi thêm `view_file` chỉ để nhìn lại đoạn code vừa sửa.
+  - **Cập nhật đa ngôn ngữ `i18n.js` gọn trong 1 lượt:** Khi thêm key dịch mới vào `frontend/js/i18n.js`, tra cứu tọa độ dòng của 3 khối `vi`, `en`, `fr` trong `docs/CODEBASE_MAP.md` để chèn đồng thời trong 1 chu kỳ, tránh đọc đi đọc lại toàn bộ file `i18n.js`.
+  - **Kiến trúc gốc & Kế hoạch thực thi:** Luôn tuân thủ cấu trúc dữ liệu trong `PROJECT_BLUEPRINT.md` và danh sách công việc trong `docs/plans/` (ví dụ: `docs/plans/upgrade_health_finance_model.md`). Khi hoàn thành một Task trong file plan, đánh dấu `[x]` ngay vào file plan đó rồi chạy `./verify_js.sh` để tự động đồng bộ `docs/CODEBASE_MAP.md`.
+  - **Danh sách file cấm đọc:** Tuyệt đối không dùng công cụ đọc/tìm kiếm trên các file đã chặn trong `.antigravityignore` (`frontend/js/chart.umd.min.js`, `backend/*.db`, `data/*.db`).
 
 ---
 

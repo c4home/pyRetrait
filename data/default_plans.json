@@ -93,16 +93,8 @@
         "slowgoFactor": 0.9,
         "nogoFactor": 0.8
       },
-      "rothConversion": {
-        "enabled": false,
-        "targetBracket": 12,
-        "maxAnnualConversion": 0
-      },
       "healthcare": {
-        "enabled": true,
-        "annualPreMedicare": 800,
-        "annualPostMedicare": 1500,
-        "acaOptimization": false
+        "enabled": true
       },
       "savingsRate": 33.33,
       "assetAllocation": {
@@ -175,16 +167,8 @@
         "slowgoFactor": 0.9,
         "nogoFactor": 0.8
       },
-      "rothConversion": {
-        "enabled": true,
-        "targetBracket": 15,
-        "maxAnnualConversion": 200000000
-      },
       "healthcare": {
-        "enabled": true,
-        "annualPreMedicare": 30000000,
-        "annualPostMedicare": 15000000,
-        "acaOptimization": true
+        "enabled": true
       },
       "assetAllocation": {
         "stocks": 60,
@@ -240,16 +224,8 @@
         "slowgoFactor": 0.85,
         "nogoFactor": 0.75
       },
-      "rothConversion": {
-        "enabled": false,
-        "targetBracket": 12,
-        "maxAnnualConversion": 0
-      },
       "healthcare": {
-        "enabled": true,
-        "annualPreMedicare": 40000000,
-        "annualPostMedicare": 20000000,
-        "acaOptimization": false
+        "enabled": true
       },
       "assetAllocation": {
         "stocks": 80,

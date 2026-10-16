@@ -1,0 +1,1471 @@
+/**
+ * pyRetrait — Tầng 3: UI Module Quản lý Modal, Hộp Thoại & Thiết Lập Nhanh (ui-modals.js)
+ * Tập trung toàn bộ logic popup: Confirm Dialog, Formula Guide, Feature Intro,
+ * Modal Nguồn thu / Khoản chi / Cột mốc / Số dư thực tế / Kế hoạch & Quick Setup Wizard 4 bước.
+ */
+
+(function() {
+  'use strict';
+
+  // Shared State & Helpers Bridge (Tầng 2 & Tầng 3)
+  const state = (window.AppState && window.AppState.state) || window.__pyRetraitFallbackState;
+  const STORAGE_KEY = (window.AppState && window.AppState.STORAGE_KEY) || "pyRetrait_plans_v2";
+
+  function getVal(id) {
+    const el = document.getElementById(id);
+    return el ? el.value : "";
+  }
+
+  function parseVal(id, fallback = 0) {
+    const el = document.getElementById(id);
+    if (!el) return fallback;
+    const v = parseFloat(el.value);
+    return isNaN(v) ? fallback : v;
+  }
+
+  function setVal(id, val) {
+    const el = document.getElementById(id);
+    if (el && val !== undefined && val !== null) el.value = val;
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  const ageAxisTicks = () => {
+    const isLight = document.documentElement.getAttribute("data-theme") === "light";
+    return {
+      color: isLight ? '#475569' : '#94a3b8',
+      font: { size: 9, family: 'Inter, sans-serif' },
+      maxRotation: 0,
+      minRotation: 0,
+      autoSkip: true,
+      autoSkipPadding: 4
+    };
+  };
+
+  function getActivePlan() {
+    if (window.AppState && typeof window.AppState.getActivePlan === 'function') {
+      return window.AppState.getActivePlan();
+    }
+    const plan = state.plansData.plans[state.plansData.activePlanId];
+    return plan || Object.values(state.plansData.plans)[0];
+  }
+
+  function savePlansToStorage(immediateCloud = true) {
+    if (window.AppState && typeof window.AppState.savePlansToStorage === 'function') {
+      return window.AppState.savePlansToStorage(immediateCloud);
+    }
+    if (state.plansData) {
+      state.plansData.updatedAt = Date.now();
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.plansData));
+  }
+
+  function debouncedSavePlansToStorage() {
+    if (window.AppState && typeof window.AppState.debouncedSavePlansToStorage === 'function') {
+      return window.AppState.debouncedSavePlansToStorage();
+    }
+    savePlansToStorage(false);
+  }
+
+
+  let confirmCallback = null;
+
+  /**
+   * Hiển thị hộp thoại xác nhận toàn cục (Confirm Dialog)
+   */
+  function showConfirmDialog({ 
+    icon = "", 
+    title = "Xác nhận thao tác", 
+    message = "Bạn có chắc chắn muốn thực hiện?", 
+    confirmText = "Xác nhận", 
+    onConfirm 
+  }) {
+    const modal = document.getElementById("confirm-modal");
+    if (!modal) {
+      if (window.confirm(message.replace(/<[^>]*>?/gm, ''))) {
+        if (onConfirm) onConfirm();
+      }
+      return;
+    }
+    const iconEl = document.getElementById("confirm-modal-icon");
+    const titleEl = document.getElementById("confirm-modal-title");
+    const msgEl = document.getElementById("confirm-modal-message");
+    const btnOk = document.getElementById("btn-confirm-ok");
+
+    if (iconEl) iconEl.innerText = icon;
+    if (titleEl) titleEl.innerText = title;
+    if (msgEl) msgEl.innerHTML = message;
+    if (btnOk) btnOk.innerText = confirmText;
+
+    confirmCallback = onConfirm;
+    modal.style.display = "flex";
+  }
+
+  /**
+   * Đóng hộp thoại xác nhận
+   */
+  function closeConfirmDialog() {
+    const modal = document.getElementById("confirm-modal");
+    if (modal) modal.style.display = "none";
+    confirmCallback = null;
+  }
+
+  /**
+   * Mở modal tra cứu công thức tài chính
+   */
+  function openFormulaModal(e) {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    const modal = document.getElementById("modal-formula-guide");
+    if (modal) modal.style.display = "flex";
+  }
+
+  /**
+   * Đóng modal tra cứu công thức tài chính
+   */
+  function closeFormulaModal() {
+    const modal = document.getElementById("modal-formula-guide");
+    if (modal) modal.style.display = "none";
+  }
+
+  /**
+   * Mở modal giới thiệu năng lực & tính năng nổi bật (Intro Tour)
+   */
+  function openFeatureIntroModal() {
+    const modal = document.getElementById("feature-intro-modal");
+    if (modal) modal.style.display = "flex";
+  }
+
+  /**
+   * Đóng modal giới thiệu
+   */
+  function closeFeatureIntroModal() {
+    const modal = document.getElementById("feature-intro-modal");
+    if (modal) {
+      modal.style.display = "none";
+      try {
+        localStorage.setItem("pyretrait_intro_seen", "true");
+      } catch (e) {
+        console.warn("Could not write to localStorage:", e);
+      }
+    }
+  }
+
+  /**
+   * Đăng ký sự kiện cho tất cả modal
+   */
+  function initModals() {
+    // 1. Confirm Dialog Listeners
+    const btnConfirmCancel = document.getElementById("btn-confirm-cancel");
+    const btnConfirmOk = document.getElementById("btn-confirm-ok");
+    const confirmModal = document.getElementById("confirm-modal");
+
+    if (btnConfirmCancel) btnConfirmCancel.addEventListener("click", closeConfirmDialog);
+    if (btnConfirmOk) {
+      btnConfirmOk.addEventListener("click", () => {
+        const cb = confirmCallback;
+        closeConfirmDialog();
+        if (cb) cb();
+      });
+    }
+    if (confirmModal) {
+      confirmModal.addEventListener("click", (e) => {
+        if (e.target.id === "confirm-modal") closeConfirmDialog();
+      });
+    }
+
+    // 2. Formula Modal Listeners
+    const btnShowFormula = document.getElementById("btn-show-formula-guide");
+    const btnCloseFormula = document.getElementById("btn-close-formula-modal");
+    const btnCloseFormulaFooter = document.getElementById("btn-close-formula-modal-footer");
+    const linkOpenFormulaAlloc = document.getElementById("link-open-formula-alloc");
+    const btnHeaderFormula = document.getElementById("btn-header-formula-guide");
+    const modalFormula = document.getElementById("modal-formula-guide");
+
+    if (btnShowFormula) btnShowFormula.addEventListener("click", openFormulaModal);
+    if (linkOpenFormulaAlloc) linkOpenFormulaAlloc.addEventListener("click", openFormulaModal);
+    if (btnHeaderFormula) btnHeaderFormula.addEventListener("click", openFormulaModal);
+    document.querySelectorAll(".btn-open-formula-modal").forEach(el => {
+      el.addEventListener("click", openFormulaModal);
+    });
+    if (btnCloseFormula) btnCloseFormula.addEventListener("click", closeFormulaModal);
+    if (btnCloseFormulaFooter) btnCloseFormulaFooter.addEventListener("click", closeFormulaModal);
+    if (modalFormula) {
+      modalFormula.addEventListener("click", (e) => {
+        if (e.target === modalFormula) closeFormulaModal();
+      });
+    }
+
+    // 3. Feature Discovery Intro Modal Listeners
+    const modalFeatureIntro = document.getElementById("feature-intro-modal");
+    const btnOpenFeatureIntro = document.getElementById("btn-header-feature-intro");
+    const btnCloseFeatureIntro = document.getElementById("btn-close-feature-intro");
+    const btnIntroStart = document.getElementById("btn-intro-start");
+
+    if (btnOpenFeatureIntro) btnOpenFeatureIntro.addEventListener("click", openFeatureIntroModal);
+    if (btnCloseFeatureIntro) btnCloseFeatureIntro.addEventListener("click", closeFeatureIntroModal);
+    if (btnIntroStart) btnIntroStart.addEventListener("click", closeFeatureIntroModal);
+    if (modalFeatureIntro) {
+      modalFeatureIntro.addEventListener("click", (e) => {
+        if (e.target === modalFeatureIntro) closeFeatureIntroModal();
+      });
+    }
+
+    // Tự động mở modal giới thiệu cho người dùng mới lần đầu
+    try {
+      if (!localStorage.getItem("pyretrait_intro_seen")) {
+        setTimeout(() => {
+          openFeatureIntroModal();
+        }, 600);
+      }
+    } catch (e) {}
+  }
+
+  // -------------------------------------------------------------
+  // Sự kiện tương tác của các Modal & Cửa sổ Thiết lập nhanh
+  // -------------------------------------------------------------
+  function bindModalEvents() {
+    try {
+      initQuickSetupWizard();
+    } catch (e) {
+      console.warn("initQuickSetupWizard error:", e);
+    }
+
+    // Add / Edit Income Stream
+    document.getElementById("btn-add-income").addEventListener("click", () => openIncomeModal(-1));
+    document.getElementById("btn-close-income-modal").addEventListener("click", closeIncomeModal);
+    document.getElementById("btn-cancel-income-modal").addEventListener("click", closeIncomeModal);
+    document.getElementById("btn-save-income-modal").addEventListener("click", saveIncomeFromModal);
+
+    // Add / Edit Expense Stream & Crédits
+    const btnAddExp = document.getElementById("btn-add-expense");
+    if (btnAddExp) btnAddExp.addEventListener("click", () => openExpenseModal(-1));
+    const btnSyncMortExp = document.getElementById("btn-sync-mortgage-expenses");
+    if (btnSyncMortExp) btnSyncMortExp.addEventListener("click", () => {
+      const plan = getActivePlan();
+      syncMortgageToExpenseStreams(plan, true);
+    });
+    const btnCloseExpModal = document.getElementById("btn-close-expense-modal");
+    if (btnCloseExpModal) btnCloseExpModal.addEventListener("click", closeExpenseModal);
+    const btnCancelExpModal = document.getElementById("btn-cancel-expense-modal");
+    if (btnCancelExpModal) btnCancelExpModal.addEventListener("click", closeExpenseModal);
+    const btnSaveExpModal = document.getElementById("btn-save-expense-modal");
+    if (btnSaveExpModal) btnSaveExpModal.addEventListener("click", saveExpenseFromModal);
+
+    // 2-Way Sync between Monthly and Yearly Expense in modal
+    const inpModalExpMonthly = document.getElementById("inp-expense-amount-monthly");
+    const inpModalExpAnnual = document.getElementById("inp-expense-amount");
+    if (inpModalExpMonthly && inpModalExpAnnual) {
+      inpModalExpMonthly.addEventListener("input", () => {
+        const m = Number(inpModalExpMonthly.value) || 0;
+        inpModalExpAnnual.value = m * 12;
+      });
+      inpModalExpAnnual.addEventListener("input", () => {
+        const a = Number(inpModalExpAnnual.value) || 0;
+        inpModalExpMonthly.value = Math.round(a / 12);
+      });
+    }
+
+    // Quick preset buttons in expense modal
+    document.querySelectorAll(".btn-preset-expense").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const name = btn.getAttribute("data-name");
+        const growth = btn.getAttribute("data-growth");
+        const isDebt = btn.getAttribute("data-debt") === "true";
+        if (name) document.getElementById("inp-expense-name").value = name;
+        if (growth !== null) document.getElementById("inp-expense-growth").value = growth;
+        const chkDebt = document.getElementById("inp-expense-is-debt");
+        if (chkDebt) chkDebt.checked = isDebt;
+        syncExpenseGrowthVisibility();
+      });
+    });
+    const chkExpDebt = document.getElementById("inp-expense-is-debt");
+    if (chkExpDebt) chkExpDebt.addEventListener("change", syncExpenseGrowthVisibility);
+
+    // Plan Modal Events
+    document.getElementById("btn-close-modal").addEventListener("click", closeModal);
+    document.getElementById("btn-cancel-modal").addEventListener("click", closeModal);
+    document.getElementById("btn-save-new-plan").addEventListener("click", saveNewPlanFromModal);
+
+    // Life Milestones Modal Events
+    const btnManageMs = document.getElementById("btn-manage-milestones");
+    if (btnManageMs) btnManageMs.addEventListener("click", openMilestoneModal);
+    const btnCloseMs = document.getElementById("btn-close-milestone-modal");
+    if (btnCloseMs) btnCloseMs.addEventListener("click", closeMilestoneModal);
+    const btnCloseMsFooter = document.getElementById("btn-close-milestone-modal-footer");
+    if (btnCloseMsFooter) btnCloseMsFooter.addEventListener("click", closeMilestoneModal);
+    const btnAddCustomMs = document.getElementById("btn-add-custom-milestone");
+    if (btnAddCustomMs) btnAddCustomMs.addEventListener("click", () => showMilestoneForm(null, -1));
+    const btnCancelMsForm = document.getElementById("btn-cancel-ms-form");
+    if (btnCancelMsForm) btnCancelMsForm.addEventListener("click", hideMilestoneForm);
+    const btnSaveMsForm = document.getElementById("btn-save-ms-form");
+    if (btnSaveMsForm) btnSaveMsForm.addEventListener("click", saveMilestoneFromForm);
+
+    const modalMs = document.getElementById("milestone-modal");
+    if (modalMs) {
+      modalMs.addEventListener("click", (e) => {
+        if (e.target === modalMs) closeMilestoneModal();
+      });
+    }
+
+    // Actual Net Worth Modal Events
+    const btnManageActual = document.getElementById("btn-manage-actual-networth");
+    if (btnManageActual) btnManageActual.addEventListener("click", openActualNetWorthModal);
+    const btnCloseActual = document.getElementById("btn-close-actual-modal");
+    if (btnCloseActual) btnCloseActual.addEventListener("click", closeActualNetWorthModal);
+    const btnCloseActualFooter = document.getElementById("btn-close-actual-modal-footer");
+    if (btnCloseActualFooter) btnCloseActualFooter.addEventListener("click", closeActualNetWorthModal);
+    const btnAddActual = document.getElementById("btn-add-actual-record");
+    if (btnAddActual) btnAddActual.addEventListener("click", addActualRecordFromForm);
+    const btnFetchPatrimoine = document.getElementById("btn-fetch-patrimoine-balance");
+    if (btnFetchPatrimoine) btnFetchPatrimoine.addEventListener("click", fetchPatrimoineBalanceForActual);
+
+    const modalActual = document.getElementById("actual-networth-modal");
+    if (modalActual) {
+      modalActual.addEventListener("click", (e) => {
+        if (e.target === modalActual) closeActualNetWorthModal();
+      });
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        if (modalMs && modalMs.style.display === "flex") {
+          closeMilestoneModal();
+        }
+        if (modalActual && modalActual.style.display === "flex") {
+          closeActualNetWorthModal();
+        }
+      }
+    });
+
+    // Gemini AI Settings Modal & Refresh handlers
+    const btnGeminiSettings = document.getElementById("btn-gemini-settings");
+    const modalGemini = document.getElementById("modal-gemini-settings");
+    const btnCloseGemini = document.getElementById("btn-close-gemini-modal");
+    const btnCancelGemini = document.getElementById("btn-cancel-gemini-modal");
+    const btnSaveGemini = document.getElementById("btn-save-gemini-key");
+    const inpGeminiKey = document.getElementById("inp-gemini-api-key");
+    const statusGemini = document.getElementById("gemini-key-status");
+    const selGeminiModel = document.getElementById("sel-gemini-model");
+    const inpCustomModel = document.getElementById("inp-custom-gemini-model");
+    const btnFetchModels = document.getElementById("btn-fetch-gemini-models");
+
+    if (selGeminiModel) {
+      selGeminiModel.addEventListener("change", () => {
+        if (inpCustomModel) {
+          inpCustomModel.style.display = selGeminiModel.value === "custom" ? "block" : "none";
+        }
+      });
+    }
+
+    if (btnFetchModels) {
+      btnFetchModels.addEventListener("click", async () => {
+        const key = inpGeminiKey ? inpGeminiKey.value.trim() : "";
+        btnFetchModels.innerText = "Đang dò tìm...";
+        try {
+          const res = await fetch(`/api/ai/models?api_key=${encodeURIComponent(key)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data.models) && data.models.length > 0 && selGeminiModel) {
+              const currentVal = selGeminiModel.value;
+              selGeminiModel.innerHTML = data.models.map(m => `
+                <option value="${m}">${m} ${m.includes('3.8') ? '(Mới nhất)' : ''}</option>
+              `).join("") + '<option value="custom">Nhập model tùy chỉnh (Future Model)...</option>';
+              if (data.models.includes(currentVal)) {
+                selGeminiModel.value = currentVal;
+              }
+              btnFetchModels.innerText = `Đã tìm thấy ${data.models.length} model`;
+            }
+          }
+        } catch (err) {
+          btnFetchModels.innerText = "Lỗi dò tìm";
+        }
+        setTimeout(() => { if (btnFetchModels) btnFetchModels.innerText = "Dò tìm model mới từ Google"; }, 2500);
+      });
+    }
+
+    if (btnGeminiSettings) {
+      btnGeminiSettings.addEventListener("click", async () => {
+        if (modalGemini) modalGemini.style.display = "flex";
+        try {
+          const res = await fetch("/api/ai/settings");
+          if (res.ok) {
+            const data = await res.json();
+            if (data.has_api_key && statusGemini) {
+              const srcNotice = data.source === "env" ? "qua file .env" : "API cá nhân";
+              statusGemini.innerText = `Đã kết nối Google Gemini (${srcNotice}: ${data.masked_key || "Active"})`;
+              statusGemini.className = "gemini-key-status status-active";
+              if (data.source === "env" && inpGeminiKey) {
+                inpGeminiKey.placeholder = "Đã nạp tự động từ .env (để trống nếu muốn tiếp tục dùng .env)";
+              }
+            }
+            if (data.selected_model && selGeminiModel) {
+              const exists = Array.from(selGeminiModel.options).some(o => o.value === data.selected_model);
+              if (exists) {
+                selGeminiModel.value = data.selected_model;
+                if (inpCustomModel) inpCustomModel.style.display = "none";
+              } else {
+                selGeminiModel.value = "custom";
+                if (inpCustomModel) {
+                  inpCustomModel.value = data.selected_model;
+                  inpCustomModel.style.display = "block";
+                }
+              }
+            }
+          }
+        } catch (e) {}
+      });
+    }
+
+    const closeGeminiModal = () => {
+      if (modalGemini) modalGemini.style.display = "none";
+    };
+    if (btnCloseGemini) btnCloseGemini.addEventListener("click", closeGeminiModal);
+    if (btnCancelGemini) btnCancelGemini.addEventListener("click", closeGeminiModal);
+
+    if (btnSaveGemini) {
+      btnSaveGemini.addEventListener("click", async () => {
+        const key = inpGeminiKey ? inpGeminiKey.value.trim() : "";
+        let model = selGeminiModel ? selGeminiModel.value : "gemini-3.8-flash";
+        if (model === "custom" && inpCustomModel && inpCustomModel.value.trim()) {
+          model = inpCustomModel.value.trim();
+        }
+        try {
+          const res = await fetch("/api/ai/settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ gemini_api_key: key, gemini_model: model })
+          });
+          if (res.ok) {
+            if (statusGemini) {
+              statusGemini.innerText = `Đã lưu: ${model} (${key ? "API Key cá nhân" : "Tích hợp sẵn"})`;
+              statusGemini.className = "gemini-key-status status-active";
+            }
+            if (window.GeminiAdvisor) window.GeminiAdvisor.clearCache();
+            setTimeout(closeGeminiModal, 700);
+            updateAll();
+          }
+        } catch (e) {
+          alert("Lỗi lưu cấu hình Gemini: " + e.message);
+        }
+      });
+    }
+
+    // Khởi tạo các Modal & Hộp thoại tập trung qua Tầng 3: ui-modals.js
+    if (window.ModalsUI && typeof window.ModalsUI.init === 'function') {
+      window.ModalsUI.init();
+    }
+  }
+
+  function openExpenseModal(idx = -1) {
+    const plan = getActivePlan();
+    const modal = document.getElementById("expense-modal");
+    const title = document.getElementById("expense-modal-title");
+    const curSymbol = window.RetirementEngine.getCurrencySymbol(state.currency);
+    const unit = document.getElementById("modal-expense-unit");
+    const unitMonthly = document.getElementById("modal-expense-unit-monthly");
+    if (unit) unit.innerText = curSymbol;
+    if (unitMonthly) unitMonthly.innerText = curSymbol;
+
+    document.getElementById("inp-expense-idx").value = idx;
+
+    if (idx >= 0 && plan.expenses && plan.expenses[idx]) {
+      const exp = plan.expenses[idx];
+      title.innerHTML = `Chỉnh Sửa: ${exp.name}`;
+      document.getElementById("inp-expense-name").value = exp.name;
+      document.getElementById("inp-expense-amount").value = exp.amount;
+      document.getElementById("inp-expense-amount-monthly").value = Math.round(Number(exp.amount) / 12);
+      document.getElementById("inp-expense-start").value = exp.startAge;
+      document.getElementById("inp-expense-end").value = exp.endAge;
+      document.getElementById("inp-expense-growth").value = exp.growth !== undefined ? exp.growth : 0;
+      const chkDebt = document.getElementById("inp-expense-is-debt");
+      if (chkDebt) chkDebt.checked = exp.isDebt !== false;
+    } else {
+      title.innerHTML = `Thêm Khoản Chi / Nợ Vay Mới`;
+      document.getElementById("inp-expense-name").value = "";
+      const defaultMonthly = state.currency === 'EUR' ? 600 : (state.currency === 'USD' ? 700 : 15000000);
+      document.getElementById("inp-expense-amount-monthly").value = defaultMonthly;
+      document.getElementById("inp-expense-amount").value = defaultMonthly * 12;
+      document.getElementById("inp-expense-start").value = plan.currentAge || 29;
+      document.getElementById("inp-expense-end").value = (plan.currentAge || 29) + 20;
+      document.getElementById("inp-expense-growth").value = 0.0;
+      const chkDebt = document.getElementById("inp-expense-is-debt");
+      if (chkDebt) chkDebt.checked = true;
+    }
+
+    syncExpenseGrowthVisibility();
+    modal.style.display = "flex";
+  }
+
+  // Khoản nợ vay lãi cố định (số tiền mỗi tháng đã rõ) không cần tốc độ tăng trưởng -> ẩn ô nhập
+  function syncExpenseGrowthVisibility() {
+    const isDebt = document.getElementById("inp-expense-is-debt")?.checked ?? false;
+    const group = document.getElementById("group-expense-growth");
+    if (group) group.style.display = isDebt ? "none" : "";
+  }
+
+  function closeExpenseModal() {
+    const modal = document.getElementById("expense-modal");
+    if (modal) modal.style.display = "none";
+  }
+
+  function saveExpenseFromModal() {
+    const idx = Number(document.getElementById("inp-expense-idx").value);
+    const name = document.getElementById("inp-expense-name").value.trim();
+    if (!name) {
+      alert("Vui lòng nhập tên khoản chi hoặc nợ vay!");
+      return;
+    }
+
+    const annualVal = Number(document.getElementById("inp-expense-amount").value);
+    const monthlyVal = Number(document.getElementById("inp-expense-amount-monthly").value);
+    const amount = annualVal || (monthlyVal * 12) || 0;
+    const plan = getActivePlan();
+    const rawStart = document.getElementById("inp-expense-start").value;
+    const startAge = (rawStart !== "" && !isNaN(Number(rawStart))) ? Number(rawStart) : (plan.currentAge || 29);
+    const endAge = Number(document.getElementById("inp-expense-end").value) || 85;
+    const isDebt = document.getElementById("inp-expense-is-debt")?.checked ?? false;
+    const growth = isDebt ? 0 : (Number(document.getElementById("inp-expense-growth").value) || 0);
+
+    if (!Array.isArray(plan.expenses)) plan.expenses = [];
+
+    const expData = {
+      name,
+      amount,
+      startAge,
+      endAge,
+      growth,
+      isDebt,
+      enabled: true
+    };
+
+    if (idx >= 0 && idx < plan.expenses.length) {
+      plan.expenses[idx] = expData;
+    } else {
+      plan.expenses.push(expData);
+    }
+
+    savePlansToStorage();
+    closeExpenseModal();
+    renderExpenseStreamsList();
+    updateCashflowBalanceUI(plan);
+    updateAll();
+  }
+
+  function openIncomeModal(idx = -1) {
+    const plan = getActivePlan();
+    const modal = document.getElementById("income-modal");
+    const title = document.getElementById("income-modal-title");
+    const curSymbol = state.currency === 'VND' ? '₫' : state.currency === 'EUR' ? '€' : '$';
+    const unit = document.getElementById("modal-income-unit");
+    const unitMonthly = document.getElementById("modal-income-unit-monthly");
+    if (unit) unit.innerText = curSymbol;
+    if (unitMonthly) unitMonthly.innerText = curSymbol;
+
+    document.getElementById("inp-income-idx").value = idx;
+
+    if (idx >= 0 && plan.incomes && plan.incomes[idx]) {
+      const stream = plan.incomes[idx];
+      title.innerText = `Chỉnh Sửa: ${stream.name}`;
+      document.getElementById("inp-income-name").value = stream.name;
+      document.getElementById("inp-income-amount").value = stream.amount;
+      document.getElementById("inp-income-amount-monthly").value = Math.round(Number(stream.amount) / 12);
+      document.getElementById("inp-income-start").value = stream.startAge;
+      document.getElementById("inp-income-end").value = stream.endAge;
+      document.getElementById("inp-income-growth").value = stream.growth !== undefined ? stream.growth : 3.5;
+    } else {
+      title.innerText = "Thêm Nguồn Thu Nhập Mới";
+      document.getElementById("inp-income-name").value = "";
+      const defaultAnnual = state.currency === 'EUR' ? 12000 : state.currency === 'USD' ? 12000 : 120000000;
+      document.getElementById("inp-income-amount").value = defaultAnnual;
+      document.getElementById("inp-income-amount-monthly").value = Math.round(defaultAnnual / 12);
+      document.getElementById("inp-income-start").value = plan.currentAge || 29;
+      document.getElementById("inp-income-end").value = plan.retirementAge || 42;
+      document.getElementById("inp-income-growth").value = 3.5;
+    }
+
+    modal.style.display = "flex";
+  }
+
+  function closeIncomeModal() {
+    document.getElementById("income-modal").style.display = "none";
+  }
+
+  function saveIncomeFromModal() {
+    const idx = Number(document.getElementById("inp-income-idx").value);
+    const name = document.getElementById("inp-income-name").value.trim();
+    if (!name) {
+      alert("Vui lòng nhập tên nguồn thu nhập!");
+      return;
+    }
+
+    const annualVal = Number(document.getElementById("inp-income-amount").value);
+    const monthlyVal = Number(document.getElementById("inp-income-amount-monthly").value);
+    const amount = annualVal || (monthlyVal * 12) || 0;
+    const plan = getActivePlan();
+    const rawStart = document.getElementById("inp-income-start").value;
+    const startAge = (rawStart !== "" && !isNaN(Number(rawStart))) ? Number(rawStart) : (plan.currentAge || 29);
+    const endAge = Number(document.getElementById("inp-income-end").value) || 85;
+    const growth = Number(document.getElementById("inp-income-growth").value) || 0;
+    if (!Array.isArray(plan.incomes)) plan.incomes = [];
+
+    const streamData = {
+      name,
+      amount,
+      startAge,
+      endAge,
+      growth,
+      taxable: true
+    };
+
+    if (idx >= 0 && idx < plan.incomes.length) {
+      plan.incomes[idx] = streamData;
+    } else {
+      plan.incomes.push(streamData);
+    }
+
+    if (/lương|salary|impôt|impot/i.test(name)) {
+      plan.retirementAge = endAge;
+      setVal("inp-retire-age", endAge);
+      syncSalaryStreamsWithRetireAge(plan);
+    }
+
+    if (plan.pensionBaseAuto !== false) {
+      syncPensionBaseAuto(plan, true);
+    }
+
+    syncSavingsAndExpensesFromRate(plan);
+    savePlansToStorage();
+    closeIncomeModal();
+    renderIncomeStreamsList();
+    updateAll();
+  }
+
+  // -------------------------------------------------------------
+  // Life Milestones Modal Management
+  // -------------------------------------------------------------
+  function openMilestoneModal() {
+    const plan = getActivePlan();
+    const proj = window.RetirementEngine.runProjection(plan);
+    const modal = document.getElementById("milestone-modal");
+    const unit = document.getElementById("modal-ms-unit");
+    if (unit) unit.innerText = window.RetirementEngine.getCurrencySymbol(state.currency);
+
+    renderModalMilestonesContent(plan, proj);
+    hideMilestoneForm();
+    modal.style.display = "flex";
+  }
+
+  function closeMilestoneModal() {
+    hideMilestoneForm();
+    const modal = document.getElementById("milestone-modal");
+    if (modal) modal.style.display = "none";
+  }
+
+  function renderModalMilestonesContent(plan, proj) {
+    // 1. Render Core / System Milestones
+    const sysContainer = document.getElementById("modal-system-milestones-list");
+    if (sysContainer) {
+      sysContainer.innerHTML = "";
+      const sysMilestones = (proj.milestones || []).filter(m => m.isSystem);
+      sysMilestones.forEach(m => {
+        const card = document.createElement("div");
+        card.className = "system-milestone-card";
+        card.style.setProperty("--ms-color", m.color || "var(--primary)");
+        card.innerHTML = `
+          <div class="system-ms-icon">${m.icon}</div>
+          <div class="system-ms-info">
+            <span class="system-ms-name">${m.age} tuổi • ${m.name}</span>
+            <span class="system-ms-desc">${m.desc}</span>
+          </div>
+        `;
+        sysContainer.appendChild(card);
+      });
+    }
+
+    // 2. Render Custom Milestones
+    const customContainer = document.getElementById("modal-custom-milestones-container");
+    if (customContainer) {
+      customContainer.innerHTML = "";
+      if (!Array.isArray(plan.milestones) || plan.milestones.length === 0) {
+        customContainer.innerHTML = `<div style="font-size:0.8rem; color:var(--text-faint); padding:0.5rem 0;">Chưa có sự kiện tùy chỉnh nào. Bấm "+ Thêm Sự Kiện" bên trên để thêm mốc mua nhà, sinh con, quỹ học vấn...</div>`;
+      } else {
+        plan.milestones.forEach((ms, idx) => {
+          const item = document.createElement("div");
+          item.className = "custom-milestone-item";
+          const sign = ms.type === "income" ? "+" : ms.type === "none" ? "" : "-";
+          const amtStr = ms.type === "none" ? "Không ảnh hưởng tiền" : `${sign}${window.RetirementEngine.formatCurrency(ms.amount, state.currency, false)}`;
+          
+          const patBadge = ms.source === 'patrimoine' ? `<span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; font-size: 0.65rem; padding: 0.1rem 0.4rem; border-radius: 4px; margin-left: 0.4rem;">Đồng bộ BĐS</span>` : '';
+          item.innerHTML = `
+            <div class="custom-ms-left">
+              <span class="custom-ms-icon"></span>
+              <div class="custom-ms-details">
+                <span class="custom-ms-title">${ms.age} tuổi • ${ms.name}${patBadge}</span>
+                <span class="custom-ms-sub">${amtStr}${ms.note ? ' • ' + ms.note : ''}</span>
+              </div>
+            </div>
+            <div class="custom-ms-actions">
+              <button type="button" class="income-item-btn btn-edit-ms" data-idx="${idx}" title="Chỉnh sửa sự kiện" style="padding: 0.25rem 0.6rem; font-weight: 600;">Sửa</button>
+              <button type="button" class="income-item-btn income-item-del btn-del-ms" data-idx="${idx}" title="Xóa sự kiện" style="padding: 0.25rem 0.6rem;">Xóa</button>
+            </div>
+          `;
+          customContainer.appendChild(item);
+        });
+
+        customContainer.querySelectorAll(".btn-edit-ms").forEach(b => {
+          b.addEventListener("click", (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            const idx = Number(b.getAttribute("data-idx"));
+            showMilestoneForm(plan.milestones[idx], idx);
+          });
+        });
+
+        customContainer.querySelectorAll(".btn-del-ms").forEach(b => {
+          b.addEventListener("click", (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            const idx = Number(b.getAttribute("data-idx"));
+            const msName = plan.milestones[idx]?.name || "mốc này";
+            showConfirmDialog({
+              icon: "",
+              title: "Xác nhận xóa cột mốc",
+              message: `Bạn có chắc chắn muốn xóa cột mốc <strong>"${msName}"</strong>?`,
+              confirmText: "Xóa cột mốc",
+              onConfirm: () => {
+                plan.milestones.splice(idx, 1);
+                savePlansToStorage();
+                updateAll();
+                renderModalMilestonesContent(plan, window.RetirementEngine.runProjection(plan));
+              }
+            });
+          });
+        });
+      }
+    }
+  }
+
+  function showMilestoneForm(ms = null, idx = -1) {
+    const form = document.getElementById("milestone-edit-form");
+    const title = document.getElementById("milestone-form-title");
+    form.style.display = "block";
+
+    if (ms) {
+      title.innerText = `Chỉnh sửa: ${ms.name}`;
+      document.getElementById("inp-ms-id").value = idx;
+      document.getElementById("inp-ms-name").value = ms.name || "";
+      document.getElementById("inp-ms-age").value = ms.age || 35;
+      document.getElementById("inp-ms-icon").value = "";
+      document.getElementById("inp-ms-type").value = ms.type || "expense";
+      document.getElementById("inp-ms-amount").value = ms.amount || 30000;
+      document.getElementById("inp-ms-note").value = ms.note || "";
+    } else {
+      title.innerText = "Thêm Sự Kiện Cột Mốc Mới";
+      document.getElementById("inp-ms-id").value = -1;
+      document.getElementById("inp-ms-name").value = "";
+      document.getElementById("inp-ms-age").value = 35;
+      document.getElementById("inp-ms-icon").value = "";
+      document.getElementById("inp-ms-type").value = "expense";
+      const defaultAmt = state.currency === 'VND' ? 500000000 : 30000;
+      document.getElementById("inp-ms-amount").value = defaultAmt;
+      document.getElementById("inp-ms-note").value = "";
+    }
+    setTimeout(() => {
+      form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const nameInp = document.getElementById("inp-ms-name");
+      if (nameInp) nameInp.focus();
+    }, 60);
+  }
+
+  function hideMilestoneForm() {
+    const form = document.getElementById("milestone-edit-form");
+    if (form) form.style.display = "none";
+  }
+
+  function saveMilestoneFromForm() {
+    const name = document.getElementById("inp-ms-name").value.trim();
+    if (!name) {
+      alert("Vui lòng nhập tên sự kiện!");
+      return;
+    }
+    const idx = Number(document.getElementById("inp-ms-id").value);
+    const age = Number(document.getElementById("inp-ms-age").value) || 35;
+    const icon = "";
+    const type = document.getElementById("inp-ms-type").value || "expense";
+    const amount = Number(document.getElementById("inp-ms-amount").value) || 0;
+    const note = document.getElementById("inp-ms-note").value.trim();
+
+    const plan = getActivePlan();
+    if (!Array.isArray(plan.milestones)) plan.milestones = [];
+
+    const msObj = {
+      id: idx >= 0 && plan.milestones[idx]?.id ? plan.milestones[idx].id : ('ms_' + Date.now()),
+      name,
+      age,
+      icon,
+      type,
+      amount,
+      note,
+      enabled: true
+    };
+
+    if (idx >= 0 && idx < plan.milestones.length) {
+      plan.milestones[idx] = msObj;
+    } else {
+      plan.milestones.push(msObj);
+    }
+
+    savePlansToStorage();
+    updateAll();
+    hideMilestoneForm();
+    renderModalMilestonesContent(plan, window.RetirementEngine.runProjection(plan));
+  }
+
+  function openActualNetWorthModal() {
+    const modal = document.getElementById("actual-networth-modal");
+    if (!modal) return;
+    
+    // Update currency units in modal
+    const curSymbol = window.RetirementEngine.getCurrencySymbol(state.currency);
+    document.querySelectorAll(".unit-actual-currency").forEach(el => el.innerText = curSymbol);
+
+    // Default date to today (YYYY-MM-DD) if empty
+    const inpDate = document.getElementById("inp-actual-date");
+    if (inpDate && !inpDate.value) {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      inpDate.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    renderActualRecordsTable();
+    modal.style.display = "flex";
+  }
+
+  function closeActualNetWorthModal() {
+    const modal = document.getElementById("actual-networth-modal");
+    if (modal) modal.style.display = "none";
+  }
+
+  function renderActualRecordsTable() {
+    const tbody = document.getElementById("actual-records-table-body");
+    const countEl = document.getElementById("actual-records-count");
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+    const plan = getActivePlan();
+    if (!plan) return;
+
+    if (!Array.isArray(plan.actualRecords)) {
+      plan.actualRecords = [];
+    }
+
+    if (countEl) countEl.innerText = `${plan.actualRecords.length} mốc`;
+
+    if (plan.actualRecords.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:1.5rem 0;">Chưa có mốc số dư nào. Hãy thêm mốc mới bên trên hoặc bấm lấy nhanh từ Patrimoine!</td></tr>`;
+      return;
+    }
+
+    // Sort descending by date
+    const sorted = [...plan.actualRecords].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const curBirthYear = Number(plan.birthYear) || (new Date().getFullYear() - (Number(plan.currentAge) || 29));
+
+    sorted.forEach(rec => {
+      const tr = document.createElement("tr");
+      const d = new Date(rec.date);
+      const yr = !isNaN(d.getFullYear()) ? d.getFullYear() : '—';
+      const ageVal = !isNaN(d.getFullYear()) ? (yr - curBirthYear) : '—';
+      const formattedDate = rec.date ? rec.date.split("-").reverse().join("/") : "—";
+      const formattedAmt = window.RetirementEngine.formatCurrency(rec.amount, state.currency);
+
+      tr.innerHTML = `
+        <td style="font-weight:600; color:var(--text-main);">${formattedDate}</td>
+        <td><span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b; font-size:0.75rem;">Năm ${yr} (${ageVal}t)</span></td>
+        <td class="font-mono" style="color:#f59e0b; font-weight:700;">${formattedAmt}</td>
+        <td style="color:var(--text-muted); font-size:0.78rem;">${rec.note ? escapeHtml(rec.note) : '<em>Không có</em>'}</td>
+        <td style="text-align:right;">
+          <button type="button" class="btn btn-xs btn-ghost btn-delete-actual-rec" data-id="${rec.id}" style="color:#ef4444;" title="Xóa mốc này">Xóa</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // Attach delete listeners
+    tbody.querySelectorAll(".btn-delete-actual-rec").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const id = e.currentTarget.getAttribute("data-id");
+        if (id) deleteActualRecord(id);
+      });
+    });
+  }
+
+  function addActualRecordFromForm() {
+    const plan = getActivePlan();
+    if (!plan) return;
+
+    const inpDate = document.getElementById("inp-actual-date");
+    const inpAmount = document.getElementById("inp-actual-amount");
+    const inpNote = document.getElementById("inp-actual-note");
+
+    const date = inpDate ? inpDate.value : "";
+    const amountStr = inpAmount ? inpAmount.value.trim() : "";
+    const note = inpNote ? inpNote.value.trim() : "";
+
+    if (!date) {
+      alert("Vui lòng chọn ngày ghi nhận số dư!");
+      return;
+    }
+
+    const amount = Number(amountStr);
+    if (isNaN(amount) || amountStr === "") {
+      alert("Vui lòng nhập số tiền thực tế hợp lệ!");
+      return;
+    }
+
+    if (!Array.isArray(plan.actualRecords)) {
+      plan.actualRecords = [];
+    }
+
+    // Check if an entry with exact same date exists, ask or replace
+    const existingIdx = plan.actualRecords.findIndex(r => r.date === date);
+    if (existingIdx !== -1) {
+      if (confirm(`Đã có bản ghi cho ngày ${date}. Bạn có muốn cập nhật lại số tiền không?`)) {
+        plan.actualRecords[existingIdx].amount = amount;
+        plan.actualRecords[existingIdx].note = note;
+      } else {
+        return;
+      }
+    } else {
+      plan.actualRecords.push({
+        id: "act_" + Date.now(),
+        date,
+        amount,
+        note
+      });
+    }
+
+    savePlansToStorage();
+    renderActualRecordsTable();
+    updateAll();
+
+    // Clear amount & note input
+    if (inpAmount) inpAmount.value = "";
+    if (inpNote) inpNote.value = "";
+  }
+
+  function deleteActualRecord(id) {
+    const plan = getActivePlan();
+    if (!plan || !Array.isArray(plan.actualRecords)) return;
+
+    if (!confirm("Bạn có chắc chắn muốn xóa mốc số dư thực tế này?")) return;
+
+    plan.actualRecords = plan.actualRecords.filter(r => r.id !== id);
+    savePlansToStorage();
+    renderActualRecordsTable();
+    updateAll();
+  }
+
+  async function fetchPatrimoineBalanceForActual() {
+    const btn = document.getElementById("btn-fetch-patrimoine-balance");
+    if (btn) btn.innerText = "Đang tính toán...";
+
+    try {
+      const data = await fetchPatrimoineData();
+      const plan = getActivePlan();
+      if (!plan) throw new Error("Không tìm thấy kế hoạch đang kích hoạt");
+
+      let totalVal = 0;
+      if (data && data.summary) {
+        // Equity = Property Value - Loan Amount
+        const equity = Math.max(0, (data.summary.total_property_value || 0) - (data.summary.total_loan_amount || 0));
+        // Liquid savings from plan
+        const savingsEur = Number(plan.currentSavings) || 0;
+        const factor = eurToPlanFactor(plan);
+        totalVal = Math.round((equity + savingsEur) * factor);
+      } else {
+        totalVal = Number(plan.currentSavings) || 0;
+      }
+
+      const inpDate = document.getElementById("inp-actual-date");
+      const inpAmount = document.getElementById("inp-actual-amount");
+      const inpNote = document.getElementById("inp-actual-note");
+
+      const today = new Date().toISOString().split("T")[0];
+      if (inpDate) inpDate.value = today;
+      if (inpAmount) inpAmount.value = totalVal;
+      if (inpNote && !inpNote.value) inpNote.value = "Chốt từ Quản lý Tài sản (Patrimoine)";
+
+      if (btn) btn.innerText = "Đã lấy thành công";
+      setTimeout(() => {
+        if (btn) btn.innerText = "Lấy số dư hiện tại từ Patrimoine";
+      }, 1800);
+    } catch (err) {
+      console.warn("Lỗi lấy số dư từ Patrimoine:", err);
+      alert("Không thể lấy số dư tự động: " + err.message);
+      if (btn) btn.innerText = "Lấy số dư hiện tại từ Patrimoine";
+    }
+  }
+
+  // -------------------------------------------------------------
+  // Plan Management & Modal
+  // -------------------------------------------------------------
+  function renderPlanSelector() {
+    const sel = document.getElementById("plan-selector");
+    sel.innerHTML = Object.entries(state.plansData.plans).map(([id, p]) => `
+      <option value="${id}" ${id === state.plansData.activePlanId ? 'selected' : ''}>${p.name}</option>
+    `).join("");
+  }
+
+  function openModal(title) {
+    document.getElementById("plan-modal-title").innerText = title;
+    document.getElementById("inp-new-plan-name").value = "";
+    document.getElementById("plan-modal").style.display = "flex";
+  }
+
+  function closeModal() {
+    document.getElementById("plan-modal").style.display = "none";
+  }
+
+  function saveNewPlanFromModal() {
+    const nameInput = document.getElementById("inp-new-plan-name").value.trim();
+    if (!nameInput) {
+      alert("Vui lòng nhập tên kế hoạch!");
+      return;
+    }
+
+    const templateType = document.getElementById("inp-new-plan-template").value;
+    const newId = "plan_" + Date.now();
+    let newPlan = JSON.parse(JSON.stringify(getActivePlan()));
+    newPlan.id = newId;
+    newPlan.name = nameInput;
+
+    if (templateType === "lean") {
+      newPlan.retirementExpenses *= 0.65;
+      newPlan.initialWithdrawalRate = 3.5;
+    } else if (templateType === "fat") {
+      newPlan.retirementExpenses *= 1.5;
+      newPlan.annualSavings *= 1.3;
+    }
+
+    state.plansData.plans[newId] = newPlan;
+    state.plansData.activePlanId = newId;
+    savePlansToStorage();
+    closeModal();
+    renderPlanSelector();
+    renderActivePlanInputs();
+    updateAll();
+  }
+
+  function duplicateCurrentPlan() {
+    const cur = getActivePlan();
+    const newId = "plan_" + Date.now();
+    const clone = JSON.parse(JSON.stringify(cur));
+    clone.id = newId;
+    clone.name = cur.name + " (Bản sao)";
+
+    state.plansData.plans[newId] = clone;
+    state.plansData.activePlanId = newId;
+    savePlansToStorage();
+    renderPlanSelector();
+    renderActivePlanInputs();
+    updateAll();
+  }
+
+  function deleteCurrentPlan() {
+    const planKeys = Object.keys(state.plansData.plans);
+    if (planKeys.length <= 1) {
+      alert("Bạn phải giữ lại ít nhất một kế hoạch hưu trí, không thể xóa tất cả!");
+      return;
+    }
+
+    const cur = getActivePlan();
+    showConfirmDialog({
+      icon: "",
+      title: "Xác nhận xóa kế hoạch",
+      message: `Bạn có chắc chắn muốn xóa kế hoạch <strong>"${cur.name}"</strong>?<br><span style="font-size:0.75rem; color:#f87171; margin-top:6px; display:inline-block;">Hành động này không thể hoàn tác.</span>`,
+      confirmText: "Xóa kế hoạch",
+      onConfirm: () => {
+        delete state.plansData.plans[cur.id];
+        const remainingKeys = Object.keys(state.plansData.plans);
+        state.plansData.activePlanId = remainingKeys[0];
+        state.currency = getActivePlan().currency || 'EUR';
+
+        savePlansToStorage();
+        renderPlanSelector();
+        renderActivePlanInputs();
+        updateAll();
+      }
+    });
+  }
+
+  function handleJSONImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const importedData = JSON.parse(event.target.result);
+        if (importedData && importedData.plans) {
+          state.plansData = importedData;
+          savePlansToStorage();
+          renderPlanSelector();
+          renderActivePlanInputs();
+          updateAll();
+          alert("Nhập kế hoạch thành công!");
+        } else {
+          alert("File JSON không đúng cấu trúc của pyRetrait.");
+        }
+      } catch (err) {
+        alert("Lỗi đọc file JSON: " + err.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  /* ==========================================================================
+     Onboarding Quick Setup Wizard (Thiết Lập Nhanh 4 Bước)
+     ========================================================================== */
+  let wizardCurrentStep = 1;
+
+  function initQuickSetupWizard() {
+    const modal = document.getElementById("quick-setup-modal");
+    if (!modal) return;
+
+    // Trigger buttons (header, sidebar, callout banner)
+    document.querySelectorAll(".btn-trigger-quick-setup").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        openQuickSetupWizard();
+      });
+    });
+    const headerQuickBtn = document.getElementById("btn-quick-setup");
+    if (headerQuickBtn) {
+      headerQuickBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        openQuickSetupWizard();
+      });
+    }
+
+    // Close / Skip buttons
+    document.getElementById("btn-close-quick-setup")?.addEventListener("click", closeQuickSetupWizard);
+    document.getElementById("btn-wz-skip")?.addEventListener("click", () => {
+      localStorage.setItem("pyretrait_quick_setup_done", "true");
+      closeQuickSetupWizard();
+    });
+
+    // Modal background click
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeQuickSetupWizard();
+    });
+
+    // Step indicators click
+    document.querySelectorAll(".wizard-step-indicator").forEach(ind => {
+      ind.addEventListener("click", () => {
+        const step = Number(ind.getAttribute("data-step"));
+        if (step) showWizardStep(step);
+      });
+    });
+
+    // Navigation buttons
+    document.getElementById("btn-wz-prev")?.addEventListener("click", () => {
+      if (wizardCurrentStep > 1) {
+        showWizardStep(wizardCurrentStep - 1);
+      }
+    });
+
+    document.getElementById("btn-wz-next")?.addEventListener("click", () => {
+      if (wizardCurrentStep < 4) {
+        showWizardStep(wizardCurrentStep + 1);
+      } else {
+        applyWizardAndCalculate();
+      }
+    });
+
+    // Step 1: 2-way sync birth year and current age
+    const wzBirthYear = document.getElementById("wz-birth-year");
+    const wzCurAge = document.getElementById("wz-cur-age");
+    if (wzBirthYear && wzCurAge) {
+      wzBirthYear.addEventListener("input", () => {
+        const curYear = new Date().getFullYear();
+        const by = Number(wzBirthYear.value);
+        if (by >= 1940 && by <= curYear) {
+          wzCurAge.value = Math.max(18, curYear - by);
+        }
+      });
+      wzCurAge.addEventListener("input", () => {
+        const curYear = new Date().getFullYear();
+        const age = Number(wzCurAge.value);
+        if (age >= 18 && age <= 100) {
+          wzBirthYear.value = curYear - age;
+        }
+      });
+    }
+
+    // Quick pill buttons (for wz-retire-age and wz-savings)
+    document.querySelectorAll(".btn-quick-pill").forEach(pill => {
+      pill.addEventListener("click", () => {
+        const targetId = pill.getAttribute("data-target");
+        const val = pill.getAttribute("data-val");
+        const input = document.getElementById(targetId);
+        if (input && val !== null) {
+          input.value = val;
+          input.dispatchEvent(new Event("input"));
+          pill.parentElement.querySelectorAll(".btn-quick-pill").forEach(p => p.classList.remove("active"));
+          pill.classList.add("active");
+        }
+      });
+    });
+
+    // Step 2: Annual savings to monthly calculation text
+    const wzAnnualSav = document.getElementById("wz-annual-savings");
+    const wzMonthlySavCalc = document.getElementById("wz-monthly-savings-calc");
+    if (wzAnnualSav && wzMonthlySavCalc) {
+      wzAnnualSav.addEventListener("input", () => {
+        const annual = Number(wzAnnualSav.value) || 0;
+        const cur = state.currency || 'EUR';
+        const monthly = Math.round(annual / 12);
+        wzMonthlySavCalc.textContent = `${window.RetirementEngine.formatCurrency(monthly, cur)}/tháng`;
+      });
+    }
+
+    // Step 3: Preset cards for monthly spend
+    const wzMonthlySpend = document.getElementById("wz-monthly-spend");
+    const wzAnnualSpendCalc = document.getElementById("wz-annual-spend-calc");
+    document.querySelectorAll("#wizard-step-3 .wizard-preset-card").forEach(card => {
+      card.addEventListener("click", () => {
+        document.querySelectorAll("#wizard-step-3 .wizard-preset-card").forEach(c => c.classList.remove("active"));
+        card.classList.add("active");
+        const spend = card.getAttribute("data-spend");
+        if (spend && wzMonthlySpend) {
+          wzMonthlySpend.value = spend;
+          updateSpendCalcText();
+        }
+      });
+    });
+    if (wzMonthlySpend) {
+      wzMonthlySpend.addEventListener("input", () => {
+        updateSpendCalcText();
+        const curVal = wzMonthlySpend.value;
+        document.querySelectorAll("#wizard-step-3 .wizard-preset-card").forEach(c => {
+          if (c.getAttribute("data-spend") === curVal) {
+            c.classList.add("active");
+          } else {
+            c.classList.remove("active");
+          }
+        });
+      });
+    }
+
+    function updateSpendCalcText() {
+      if (!wzMonthlySpend || !wzAnnualSpendCalc) return;
+      const m = Number(wzMonthlySpend.value) || 0;
+      const cur = state.currency || 'EUR';
+      wzAnnualSpendCalc.textContent = `${window.RetirementEngine.formatCurrency(m * 12, cur)}/năm`;
+    }
+
+    // Step 4: Preset cards for investment return & risk
+    document.querySelectorAll("#wizard-step-4 .wizard-preset-card").forEach(card => {
+      card.addEventListener("click", () => {
+        document.querySelectorAll("#wizard-step-4 .wizard-preset-card").forEach(c => c.classList.remove("active"));
+        card.classList.add("active");
+      });
+    });
+  }
+
+  function openQuickSetupWizard() {
+    const modal = document.getElementById("quick-setup-modal");
+    if (!modal) return;
+
+    const plan = getActivePlan();
+    const cur = state.currency || plan?.currency || 'EUR';
+    const sym = cur === 'VND' ? '₫' : (cur === 'USD' ? '$' : '€');
+
+    // Update symbols in wizard modal
+    document.querySelectorAll(".wz-currency-sym").forEach(el => el.textContent = sym);
+
+    if (plan) {
+      const curYear = new Date().getFullYear();
+      const bYear = Number(plan.birthYear) || (curYear - (Number(plan.currentAge) || 29));
+      const curAge = Number(plan.currentAge) || (curYear - bYear);
+
+      const wzCurAge = document.getElementById("wz-cur-age");
+      if (wzCurAge) wzCurAge.value = curAge;
+
+      const wzBirthYear = document.getElementById("wz-birth-year");
+      if (wzBirthYear) wzBirthYear.value = bYear;
+
+      const wzRetireAge = document.getElementById("wz-retire-age");
+      if (wzRetireAge) wzRetireAge.value = plan.retirementAge || 45;
+
+      const wzLifeExp = document.getElementById("wz-life-exp");
+      if (wzLifeExp) wzLifeExp.value = plan.lifeExpectancy || 85;
+
+      const wzPlanName = document.getElementById("wz-plan-name");
+      if (wzPlanName) wzPlanName.value = plan.name || "Kế hoạch Cá nhân Mới";
+
+      const wzSavings = document.getElementById("wz-savings");
+      if (wzSavings) wzSavings.value = plan.currentSavings !== undefined ? plan.currentSavings : 50000;
+
+      const wzAnnualSav = document.getElementById("wz-annual-savings");
+      if (wzAnnualSav) {
+        wzAnnualSav.value = plan.annualSavings !== undefined ? plan.annualSavings : 12000;
+        const monthly = Math.round(Number(wzAnnualSav.value) / 12);
+        const monthlyCalc = document.getElementById("wz-monthly-savings-calc");
+        if (monthlyCalc) monthlyCalc.textContent = `${window.RetirementEngine.formatCurrency(monthly, cur)}/tháng`;
+      }
+
+      const wzMonthlySpend = document.getElementById("wz-monthly-spend");
+      const wzAnnualSpendCalc = document.getElementById("wz-annual-spend-calc");
+      const monthlySpend = plan.baseRetireMonthly || (plan.retirementExpenses ? Math.round(plan.retirementExpenses / 12) : 2500);
+      if (wzMonthlySpend) {
+        wzMonthlySpend.value = monthlySpend;
+        if (wzAnnualSpendCalc) {
+          wzAnnualSpendCalc.textContent = `${window.RetirementEngine.formatCurrency(monthlySpend * 12, cur)}/năm`;
+        }
+      }
+    }
+
+    showWizardStep(1);
+    modal.style.display = "flex";
+  }
+
+  function closeQuickSetupWizard() {
+    const modal = document.getElementById("quick-setup-modal");
+    if (modal) modal.style.display = "none";
+  }
+
+  function showWizardStep(step) {
+    wizardCurrentStep = step;
+
+    for (let i = 1; i <= 4; i++) {
+      const pane = document.getElementById(`wizard-step-${i}`);
+      if (pane) pane.classList.toggle("active", i === step);
+    }
+
+    document.querySelectorAll(".wizard-step-indicator").forEach(ind => {
+      const s = Number(ind.getAttribute("data-step"));
+      ind.classList.toggle("active", s === step);
+      ind.classList.toggle("completed", s < step);
+    });
+
+    const prevBtn = document.getElementById("btn-wz-prev");
+    if (prevBtn) prevBtn.style.visibility = step === 1 ? "hidden" : "visible";
+
+    const nextBtn = document.getElementById("btn-wz-next");
+    if (nextBtn) {
+      if (step === 4) {
+        nextBtn.textContent = "Hoàn tất & Tính toán";
+      } else {
+        nextBtn.textContent = "Tiếp tục ➔";
+      }
+    }
+  }
+
+  function applyWizardAndCalculate() {
+    const plan = getActivePlan();
+    if (!plan) return;
+
+    // Step 1
+    const curYear = new Date().getFullYear();
+    const birthYear = Number(document.getElementById("wz-birth-year")?.value) || 1997;
+    const currentAge = curYear - birthYear;
+    const retirementAge = Number(document.getElementById("wz-retire-age")?.value) || 45;
+    const lifeExpectancy = Number(document.getElementById("wz-life-exp")?.value) || 85;
+    const planName = document.getElementById("wz-plan-name")?.value.trim() || plan.name;
+
+    // Step 2
+    const currentSavings = Number(document.getElementById("wz-savings")?.value) || 0;
+    const annualSavings = Number(document.getElementById("wz-annual-savings")?.value) || 0;
+
+    // Step 3
+    const monthlySpend = Number(document.getElementById("wz-monthly-spend")?.value) || 2500;
+    const retirementExpenses = monthlySpend * 12;
+
+    // Step 4
+    const activeRisk = document.querySelector("#wizard-step-4 .wizard-preset-card.active");
+    const invReturn = Number(activeRisk?.getAttribute("data-return")) || 6.5;
+    const inflation = Number(activeRisk?.getAttribute("data-inf")) || 2.2;
+
+    // Apply to plan
+    plan.name = planName;
+    plan.birthYear = birthYear;
+    plan.currentAge = currentAge;
+    plan.retirementAge = retirementAge;
+    plan.lifeExpectancy = lifeExpectancy;
+    plan.currentSavings = currentSavings;
+    plan.annualSavings = annualSavings;
+    plan.annualExpenses = Math.round(annualSavings > 0 ? (annualSavings * 1.5) : (monthlySpend * 12));
+    plan.retirementExpenses = retirementExpenses;
+    plan.baseRetireMonthly = monthlySpend;
+    plan.investmentReturnPre = invReturn;
+    plan.investmentReturnPost = Math.max(3.0, +(invReturn - 1.5).toFixed(1));
+    plan.inflation = inflation;
+    plan.withdrawalStrategy = "guyton_klinger";
+
+    // Save and re-render
+    savePlansToStorage();
+    renderPlanSelector();
+    renderActivePlanInputs();
+    updateAll();
+
+    localStorage.setItem("pyretrait_quick_setup_done", "true");
+    closeQuickSetupWizard();
+  }
+
+  const ModalsExports = {
+    init: initModals,
+    bindEvents: bindModalEvents,
+    showConfirmDialog,
+    closeConfirmDialog,
+    openFormulaModal,
+    closeFormulaModal,
+    openFeatureIntroModal,
+    closeFeatureIntroModal,
+    openExpenseModal,
+    syncExpenseGrowthVisibility,
+    closeExpenseModal,
+    saveExpenseFromModal,
+    openIncomeModal,
+    closeIncomeModal,
+    saveIncomeFromModal,
+    openMilestoneModal,
+    closeMilestoneModal,
+    renderModalMilestonesContent,
+    showMilestoneForm,
+    hideMilestoneForm,
+    saveMilestoneFromForm,
+    openActualNetWorthModal,
+    closeActualNetWorthModal,
+    renderActualRecordsTable,
+    addActualRecordFromForm,
+    deleteActualRecord,
+    fetchPatrimoineBalanceForActual,
+    renderPlanSelector,
+    openModal,
+    closeModal,
+    saveNewPlanFromModal,
+    duplicateCurrentPlan,
+    deleteCurrentPlan,
+    handleJSONImport,
+    initQuickSetupWizard,
+    openQuickSetupWizard,
+    closeQuickSetupWizard,
+    showWizardStep,
+    applyWizardAndCalculate
+  };
+
+  window.ModalsUI = ModalsExports;
+  Object.assign(window, ModalsExports);
+
+})();
