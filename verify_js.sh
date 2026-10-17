@@ -350,7 +350,7 @@ elif [ -n "$1" ]; then
       global.window = global;
       global.localStorage = { getItem: () => null, setItem: () => {} };
       global.document = { addEventListener: () => {}, getElementById: () => null, querySelectorAll: () => [] };
-      for (const file of ['frontend/js/taxOptimizer.js', 'frontend/js/monteCarlo.js', 'frontend/js/engine.js', 'frontend/js/patrimoine.js']) {
+      for (const file of ['frontend/js/state.js', 'frontend/js/taxOptimizer.js', 'frontend/js/monteCarlo.js', 'frontend/js/engine.js', 'frontend/js/patrimoine.js', 'frontend/js/ui-modals.js']) {
         vm.runInThisContext(fs.readFileSync(file, 'utf8'), { filename: file });
       }
       const result = ($1);
@@ -361,10 +361,12 @@ elif [ -n "$1" ]; then
       var window = globalThis;
       var localStorage = { getItem: function() { return null; }, setItem: function() {} };
       var document = { addEventListener: function() {}, getElementById: function() { return null; }, querySelectorAll: function() { return []; } };
+      load('frontend/js/state.js');
       load('frontend/js/taxOptimizer.js');
       load('frontend/js/monteCarlo.js');
       load('frontend/js/engine.js');
       load('frontend/js/patrimoine.js');
+      load('frontend/js/ui-modals.js');
       var result = ($1);
       print(JSON.stringify(result, null, 2));
     "

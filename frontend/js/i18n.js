@@ -113,10 +113,18 @@
       "scenario_inflation_label": "Lạm phát Phi mã (7%/năm)",
       "scenario_medical_label": "Cú sốc Y tế (Tuổi 65)",
       "legend_actual": "Thực tế",
-      "legend_liquid_portfolio": "Danh mục Thanh khoản",
+      "legend_liquid_portfolio": "Tiền Mặt & Quỹ Đầu Tư",
       "legend_forecast_assets": "Dự báo Tài sản",
       "legend_total_networth": "Tổng Tài sản Ròng",
       "legend_networth_realestate": "Tổng Tài sản Ròng (gồm BĐS)",
+      "why_liquid_portfolio_title": "Vì sao \"Tiền Mặt & Quỹ Đầu Tư\" quan trọng hơn cả Tổng tài sản khi về hưu?",
+      "why_liquid_badge": "Chỉ số Dòng tiền Sống còn",
+      "why_liquid_point1_title": "Bất động sản không thể \"cắt ra tiêu dần\"",
+      "why_liquid_point1_desc": "Căn nhà bạn ở có thể trị giá nhiều tỷ, nhưng không thể bẻ từng viên gạch để đi chợ, trả tiền điện hay viện phí. BĐS bị khóa cứng và không tạo ra tiền mặt nếu chưa bán hoặc cho thuê.",
+      "why_liquid_point2_title": "Bình dưỡng khí nuôi sống gia đình",
+      "why_liquid_point2_desc": "Tiền mặt, tiền gửi tiết kiệm, chứng khoán, chứng chỉ quỹ... là nguồn tiền rút ra đều đặn hàng tháng để chi trả sinh hoạt mà không làm xáo trộn chỗ ở của gia đình.",
+      "why_liquid_point3_title": "Tránh bẫy \"Giàu nhà đất, thiếu tiền mặt\"",
+      "why_liquid_point3_desc": "Nếu hết tiền mặt và quỹ đầu tư quá sớm, bạn sẽ rơi vào thế bị động: buộc phải bán tháo nhà đất giá rẻ lúc thị trường đóng băng để lấy tiền sinh sống. Giữ tiền mặt và quỹ đầu tư an toàn là giữ vững tự do bền vững.",
 
       // Actions & Generic
       "btn_edit": "Sửa",
@@ -213,8 +221,22 @@
       "stress_fail_spending": "Tụt mức sống ở tuổi",
       "stress_fail_depleted": "Cạn tiền ở tuổi",
       "stress_preserved_desc": "Bảo toàn quỹ an toàn 5 năm & Mức sống",
-      "stress_floor_breached_desc": "Tài sản rơi xuống dưới mức 5 năm chi tiêu",
-      "stress_spending_cut_desc": "Chi tiêu thực tế bị bóp nghẹt dưới 80%"
+      "stress_spending_cut_desc": "Chi tiêu thực tế bị bóp nghẹt dưới 80%",
+
+      // Hồ Sơ Gia Đình & Định Hướng Nơi Sống (PPP Đa Quốc Gia)
+      "profile_modal_title": "Thiết lập Hồ sơ & Quốc gia",
+      "profile_family_type": "Quy mô gia đình",
+      "profile_single": "Cá nhân (1 người)",
+      "profile_married": "Vợ chồng (2 người)",
+      "profile_retire_mode": "Định hướng nơi sống",
+      "profile_mode_domestic": "Chỉ 1 nơi (Làm & Nghỉ cùng chỗ)",
+      "profile_mode_relocate": "Chuyển hẳn ra nước ngoài",
+      "profile_mode_hybrid": "Song hành (6 tháng / 6 tháng)",
+      "profile_work_location": "Nơi làm việc tích lũy",
+      "profile_retire_location": "Nơi nghỉ hưu sinh sống",
+      "profile_summary_edit": "Đổi hồ sơ",
+      "profile_derived_callout": "Gợi ý từ mức sống thực tế",
+      "profile_ppp_benchmarks": "Mốc tham khảo xã hội"
     },
 
     en: {
@@ -316,6 +338,14 @@
       "legend_forecast_assets": "Forecast Assets",
       "legend_total_networth": "Total Net Worth",
       "legend_networth_realestate": "Total Net Worth (incl. Real Estate)",
+      "why_liquid_portfolio_title": "Why is the \"Liquid Portfolio\" more critical than Net Worth in retirement?",
+      "why_liquid_badge": "Vital Cash Flow Metric",
+      "why_liquid_point1_title": "Real estate cannot be spent in slices",
+      "why_liquid_point1_desc": "Your home may be worth a lot, but you cannot peel off bricks to buy groceries, pay utility bills, or cover medical care. Property is locked capital and generates no liquid cash unless sold or rented out.",
+      "why_liquid_point2_title": "Your family's living cash lifeline",
+      "why_liquid_point2_desc": "The liquid portfolio (savings, stocks, index funds, bonds) is the capital pool you withdraw from each month to fund your daily living expenses without disrupting your family's housing.",
+      "why_liquid_point3_title": "Avoid the \"House-Rich, Cash-Poor\" trap",
+      "why_liquid_point3_desc": "If liquid funds run dry, you will be forced to sell your home at a discount during a market downturn just to afford daily necessities. Protecting your liquid portfolio ensures genuine lifelong financial independence.",
 
       // Actions & Generic
       "btn_edit": "Edit",
@@ -412,8 +442,22 @@
       "stress_fail_spending": "Living std drop at age",
       "stress_fail_depleted": "Depleted at age",
       "stress_preserved_desc": "Safety buffer & living std preserved",
-      "stress_floor_breached_desc": "Capital dropped below 5-yr floor",
-      "stress_spending_cut_desc": "Actual spending dropped below 80% baseline"
+      "stress_spending_cut_desc": "Actual spending dropped below 80% baseline",
+
+      // Household & Relocation Mode (Multi-Country PPP)
+      "profile_modal_title": "Household & Relocation Setup",
+      "profile_family_type": "Household Size",
+      "profile_single": "Single (1 person)",
+      "profile_married": "Married Couple (2 persons)",
+      "profile_retire_mode": "Relocation Mode",
+      "profile_mode_domestic": "Single Country (Work & Retire domestically)",
+      "profile_mode_relocate": "Relocate Abroad (Cross-border FIRE)",
+      "profile_mode_hybrid": "Hybrid Snowbird (6 months / 6 months)",
+      "profile_work_location": "Working Location",
+      "profile_retire_location": "Retirement Location",
+      "profile_summary_edit": "Edit Profile",
+      "profile_derived_callout": "Suggested from Current Living Standard",
+      "profile_ppp_benchmarks": "Social Benchmarks"
     },
 
     fr: {
@@ -515,6 +559,14 @@
       "legend_forecast_assets": "Actifs Projetés",
       "legend_total_networth": "Patrimoine Net Total",
       "legend_networth_realestate": "Patrimoine Net Total (avec Immo)",
+      "why_liquid_portfolio_title": "Pourquoi le « Portefeuille Liquide » est plus crucial que le Patrimoine Total en retraite ?",
+      "why_liquid_badge": "Indicateur Vital de Trésorerie",
+      "why_liquid_point1_title": "L'immobilier ne se dépense pas au mètre carré",
+      "why_liquid_point1_desc": "Votre logement vaut peut-être une fortune, mais vous ne pouvez pas retirer une brique pour payer vos courses, factures ou soins de santé. L'immobilier est un actif illiquide qui ne génère pas de cash quotidien sans vente ou location.",
+      "why_liquid_point2_title": "La réserve d'oxygène vital de votre foyer",
+      "why_liquid_point2_desc": "Le portefeuille liquide (épargne, assurance-vie, PEA, actions, ETF) est la réserve dans laquelle vous puisez chaque mois pour financer votre quotidien sans toucher à votre toit.",
+      "why_liquid_point3_title": "Éviter le piège « Riche en briques, pauvre en cash »",
+      "why_liquid_point3_desc": "Si votre trésorerie s'épuise trop tôt, vous serez contraint de brader votre maison en pleine crise immobilière pour subvenir à vos besoins. Préserver votre portefeuille liquide garantit votre indépendance pérenne.",
 
       // Actions & Generic
       "btn_edit": "Modifier",
@@ -610,9 +662,22 @@
       "stress_fail_floor": "Coussin rompu à",
       "stress_fail_spending": "Baisse niveau de vie à",
       "stress_fail_depleted": "Épuisé à",
-      "stress_preserved_desc": "Coussin 5 ans & niveau de vie préservés",
-      "stress_floor_breached_desc": "Capital sous le seuil de 5 ans",
-      "stress_spending_cut_desc": "Dépenses réelles sous 80% du niveau de base"
+      "stress_spending_cut_desc": "Dépenses réelles sous 80% du niveau de base",
+
+      // Profil Familial & Délocalisation (PPA Multi-Pays)
+      "profile_modal_title": "Profil Familial & Délocalisation",
+      "profile_family_type": "Situation Familiale",
+      "profile_single": "Célibataire (1 personne)",
+      "profile_married": "Couple Marié (2 personnes)",
+      "profile_retire_mode": "Orientation Géographique",
+      "profile_mode_domestic": "Même Pays (Travail & Retraite sur place)",
+      "profile_mode_relocate": "Expatriation Définitive (FIRE Transfrontalier)",
+      "profile_mode_hybrid": "Bi-résidence (6 mois / 6 mois)",
+      "profile_work_location": "Lieu d'Activité & Épargne",
+      "profile_retire_location": "Lieu de Retraite",
+      "profile_summary_edit": "Changer de Profil",
+      "profile_derived_callout": "Suggéré selon Votre Train de Vie Actuel",
+      "profile_ppp_benchmarks": "Repères Sociaux de Référence"
     }
   };
 

@@ -151,6 +151,48 @@
       });
     }
 
+    // Bidirectional sync: Năm sinh Bạn đời <-> Tuổi Bạn đời
+    const inpSpouseBirthYear = document.getElementById("inp-spouse-birth-year");
+    const inpSpouseCurrentAge = document.getElementById("inp-spouse-current-age");
+
+    if (inpSpouseBirthYear) {
+      ['input', 'change', 'keyup'].forEach(evt => {
+        inpSpouseBirthYear.addEventListener(evt, (e) => {
+          const bYear = Number(e.target.value);
+          if (bYear >= 1930 && bYear <= currentCalYear) {
+            const plan = getActivePlan();
+            plan.spouseBirthYear = bYear;
+            const calculatedAge = currentCalYear - bYear;
+            plan.spouseAge = calculatedAge;
+            if (inpSpouseCurrentAge) inpSpouseCurrentAge.value = calculatedAge;
+            const lblSpouseAge = document.getElementById("lbl-spouse-age");
+            if (lblSpouseAge) lblSpouseAge.innerText = `${calculatedAge}t`;
+            savePlansToStorage();
+            updateAll();
+          }
+        });
+      });
+    }
+
+    if (inpSpouseCurrentAge) {
+      ['input', 'change'].forEach(evt => {
+        inpSpouseCurrentAge.addEventListener(evt, (e) => {
+          const age = Number(e.target.value);
+          if (age >= 10 && age <= 100) {
+            const plan = getActivePlan();
+            plan.spouseAge = age;
+            const calculatedBirthYear = currentCalYear - age;
+            plan.spouseBirthYear = calculatedBirthYear;
+            if (inpSpouseBirthYear) inpSpouseBirthYear.value = calculatedBirthYear;
+            const lblSpouseAge = document.getElementById("lbl-spouse-age");
+            if (lblSpouseAge) lblSpouseAge.innerText = `${age}t`;
+            savePlansToStorage();
+            updateAll();
+          }
+        });
+      });
+    }
+
     const sliderSavingsRate = document.getElementById("inp-savings-rate");
     if (sliderSavingsRate) {
       ['input', 'change'].forEach(evt => {
@@ -1537,9 +1579,257 @@
     if (plan) updateCashflowBalanceUI(plan);
   }
 
+  function applyProfileVisibilityRules(plan) {
+    if (!plan) plan = getActivePlan();
+    if (!plan) return;
+
+    const isDomestic = (plan.retireMode === 'domestic' || (plan.workCountry && plan.retireCountry && plan.workCountry === plan.retireCountry));
+    const cardDualInf = document.getElementById("card-dual-inflation-stream");
+    const locRadios = document.getElementById("retire-location-radios");
+    if (cardDualInf) {
+      cardDualInf.style.display = isDomestic ? "none" : "";
+    }
+    if (locRadios) {
+      locRadios.style.display = isDomestic ? "none" : "";
+    }
+
+    const cardLmnp = document.getElementById("card-lmnp-income-stream");
+    if (cardLmnp) {
+      const isFranceWork = (!plan.workCountry || plan.workCountry === 'FR');
+      cardLmnp.style.display = isFranceWork ? "" : "none";
+    }
+
+    const cardBhxh = document.getElementById("card-bhxh-income-stream");
+    if (cardBhxh) {
+      const hasVn = (plan.workCountry === 'VN' || plan.retireCountry === 'VN');
+      cardBhxh.style.display = hasVn ? "" : "none";
+    }
+
+    // Couple vs Single layout for French Pension and BHXH VN
+    const isMarried = (plan.maritalStatus === 'married');
+
+    // Hide / Show Spouse birth year in Baseline Parameters Card
+    const boxSpouseBirth = document.getElementById("box-spouse-birth-year");
+    if (boxSpouseBirth) {
+      boxSpouseBirth.style.display = isMarried ? "" : "none";
+    }
+
+    // French Pension card: show/hide spouse 2 & full-width single column
+    const frenchInputsBody = document.getElementById("french-inputs-body");
+    if (frenchInputsBody) {
+      const grid = frenchInputsBody.querySelector(".spouse-pension-grid");
+      if (grid) {
+        if (isMarried) grid.classList.remove("is-single");
+        else grid.classList.add("is-single");
+      }
+      const cols = frenchInputsBody.querySelectorAll(".spouse-col-card");
+      if (cols && cols.length >= 2) {
+        cols[1].style.display = isMarried ? "" : "none";
+      }
+    }
+    const badgeFrench = document.getElementById("badge-pension-status");
+    if (badgeFrench) {
+      badgeFrench.innerText = isMarried ? "2 Người (172 Quý)" : "1 Người (172 Quý)";
+    }
+    const lblFrenchTitle = document.getElementById("lbl-french-pension-total-title");
+    if (lblFrenchTitle) {
+      lblFrenchTitle.innerText = isMarried ? "Tổng lương hưu Pháp 2 vợ chồng:" : "Tổng lương hưu Pháp cá nhân:";
+    }
+
+    // BHXH VN card: show/hide spouse 2 & full-width single column
+    const bhxhInputsBody = document.getElementById("bhxh-inputs-body");
+    if (bhxhInputsBody) {
+      const grid = bhxhInputsBody.querySelector(".spouse-pension-grid");
+      if (grid) {
+        if (isMarried) grid.classList.remove("is-single");
+        else grid.classList.add("is-single");
+      }
+      const cols = bhxhInputsBody.querySelectorAll(".spouse-col-card");
+      if (cols && cols.length >= 2) {
+        cols[1].style.display = isMarried ? "" : "none";
+      }
+    }
+    const badgeBhxh = document.getElementById("badge-bhxh-status");
+    if (badgeBhxh) {
+      badgeBhxh.innerText = isMarried ? "2 Người (Luật 2024)" : "1 Người (Luật 2024)";
+    }
+    const lblBhxhTitle = document.getElementById("lbl-bhxh-pension-total-title");
+    if (lblBhxhTitle) {
+      lblBhxhTitle.innerText = isMarried ? "Tổng lương hưu BHXH 2 vợ chồng:" : "Tổng lương hưu BHXH cá nhân:";
+    }
+    const lblBhxhBenefit = document.getElementById("lbl-bhxh-medical-benefit");
+    if (lblBhxhBenefit) {
+      lblBhxhBenefit.innerText = isMarried ? "2 Thẻ BHYT miễn phí 95% trọn đời" : "1 Thẻ BHYT miễn phí 95% trọn đời";
+    }
+
+    // Callout & Breakdown 7 items calculation
+    const derivedBox = document.getElementById("box-cashflow-derived-retire");
+    if (derivedBox && window.TaxOptimizer && typeof window.TaxOptimizer.calculateRetireBudgetFromCashflow === 'function') {
+      let monthlyIncome = 0;
+      let hasCustomIncome = false;
+      if (plan.incomes && Array.isArray(plan.incomes)) {
+        const preIncomes = plan.incomes.filter(s => s.enabled !== false && !s.isBhxhVn && (!s.toAge || s.toAge <= Number(plan.retirementAge || 60)));
+        if (preIncomes.length > 0) {
+          monthlyIncome = preIncomes.reduce((sum, s) => sum + (Number(s.amount) || 0) / 12, 0);
+          hasCustomIncome = true;
+        }
+      }
+
+      const monthlySavings = Math.round((Number(plan.annualSavings) || 0) / 12);
+      const monthlyMortgage = Number(plan.monthlyMortgagePaidOff) || 0;
+      const workCityKey = plan.workCity || 'fr_paris';
+      const retireCityKey = plan.retireCity || (plan.retireMode === 'domestic' ? workCityKey : 'vn_hcm_hn');
+      const retireMode = plan.retireMode || 'relocate';
+      const householdSize = isMarried ? 2 : 1;
+
+      // Nếu người dùng chưa nhập luồng thu nhập nào, nhưng có nhập chi tiêu hiện tại:
+      if (!hasCustomIncome || monthlyIncome <= 0) {
+        const annExp = Number(plan.annualExpenses) || 0;
+        if (annExp > 0) {
+          monthlyIncome = Math.round(annExp / 12) + monthlySavings + monthlyMortgage;
+          hasCustomIncome = true;
+        }
+      }
+
+      const calc = window.TaxOptimizer.calculateRetireBudgetFromCashflow({
+        monthlyNetIncome: monthlyIncome,
+        monthlySavings: monthlySavings,
+        monthlyMortgagePaidOff: monthlyMortgage,
+        currentMonthlyLivingFallback: isMarried ? 2700 : 1800,
+        workCityKey: workCityKey,
+        retireCityKey: retireCityKey,
+        retireMode: retireMode,
+        householdSize: householdSize
+      });
+
+      const cur = state.currency || 'EUR';
+      const fmt = (v) => window.RetirementEngine.formatCurrency(v, cur);
+
+      const targetCityProfile = (window.TaxOptimizer.COUNTRY_PPP_PROFILES && window.TaxOptimizer.COUNTRY_PPP_PROFILES[retireCityKey])
+        ? window.TaxOptimizer.COUNTRY_PPP_PROFILES[retireCityKey]
+        : { cityNameVi: "Điểm đến", pppFactor: 0.45 };
+
+      const pppFactorDisplay = (Number(calc.pppRatio) || 0.45).toFixed(2);
+      const totalBudget = calc.monthlyRetireTotal || 1;
+      const bFood = Math.round(((calc.breakdown?.food || 0) / totalBudget) * 100);
+      const bHousing = Math.round(((calc.breakdown?.housing || 0) / totalBudget) * 100);
+      const bHealth = Math.round(((calc.breakdown?.health || 0) / totalBudget) * 100);
+      const bUtil = Math.round(((calc.breakdown?.utilities || 0) / totalBudget) * 100);
+      const bTrans = Math.round(((calc.breakdown?.transport || 0) / totalBudget) * 100);
+      const bApp = Math.round(((calc.breakdown?.household || 0) / totalBudget) * 100);
+      const bLeisure = Math.max(0, 100 - (bFood + bHousing + bHealth + bUtil + bTrans + bApp));
+
+      let leftColHtml = '';
+      if (!hasCustomIncome || monthlyIncome <= 0) {
+        leftColHtml = `
+          <div class="retire-callout-title">
+            <span>Gợi ý từ mức sống thực tế (${isMarried ? 'Vợ chồng' : 'Cá nhân'})</span>
+          </div>
+          <div class="retire-callout-step" style="color: var(--text-muted); font-size: 0.72rem; line-height: 1.4; padding: 0.2rem 0;">
+            Chưa có thu nhập trước hưu. pyRetrait áp dụng mức sống tham chiếu tiêu chuẩn tại <strong>${targetCityProfile.cityNameVi}</strong>:
+          </div>
+          <div class="retire-callout-step">
+            <span>Chi tiêu sinh hoạt ước tính:</span>
+            <strong>${fmt(calc.pppAdjustedLiving)}/th</strong>
+          </div>
+          <div class="retire-callout-step">
+            <span>Phụ phí Y tế tuổi già (${householdSize} ng):</span>
+            <strong>+ ${fmt(calc.seniorHealthAddon)}/th</strong>
+          </div>
+          <div class="retire-callout-total" style="margin-top: 0.4rem;">
+            <span>Gợi ý ngân sách hưu:</span>
+            <strong class="text-success" style="font-size: 0.88rem;">${fmt(calc.monthlyRetireTotal)}/tháng</strong>
+          </div>
+        `;
+      } else {
+        leftColHtml = `
+          <div class="retire-callout-title">
+            <span>Gợi ý từ mức sống thực tế (${isMarried ? 'Vợ chồng' : 'Cá nhân'})</span>
+          </div>
+          <div class="retire-callout-step">
+            <span>Thu nhập sau thuế hiện tại:</span>
+            <strong>${fmt(monthlyIncome)}/th</strong>
+          </div>
+          <div class="retire-callout-step">
+            <span>Tiết kiệm đầu tư tích lũy:</span>
+            <strong class="text-info">- ${fmt(monthlySavings)}/th</strong>
+          </div>
+          <div class="retire-callout-step">
+            <span>Nợ nhà (trả xong trước hưu):</span>
+            <strong class="text-warning">- ${fmt(monthlyMortgage)}/th</strong>
+          </div>
+          <div class="retire-callout-step" style="border-top: 1px dashed var(--border-subtle); padding-top: 0.15rem; margin-top: 0.1rem;">
+            <span>Chi tiêu sinh hoạt thực tế:</span>
+            <strong>${fmt(calc.currentLivingMonthly)}/th</strong>
+          </div>
+          <div class="retire-callout-step">
+            <span>Quy đổi sang ${targetCityProfile.cityNameVi} (${pppFactorDisplay}x):</span>
+            <strong>${fmt(calc.pppAdjustedLiving)}/th</strong>
+          </div>
+          <div class="retire-callout-step">
+            <span>Phụ phí Y tế tuổi già (${householdSize} ng):</span>
+            <strong>+ ${fmt(calc.seniorHealthAddon)}/th</strong>
+          </div>
+          <div class="retire-callout-total">
+            <span>Gợi ý ngân sách hưu:</span>
+            <strong class="text-success" style="font-size: 0.88rem;">${fmt(calc.monthlyRetireTotal)}/tháng</strong>
+          </div>
+        `;
+      }
+
+      // Render derivedBox HTML dynamically with accurate figures
+      derivedBox.innerHTML = `
+        <!-- Cột Trái: Căn Cứ Dòng Tiền Thực Tế -->
+        <div class="retire-callout-col">
+          ${leftColHtml}
+        </div>
+
+        <!-- Cột Phải: Đối Chiếu 3 Mốc & Tỷ Lệ 7 Nhóm -->
+        <div class="retire-callout-col retire-callout-col-divider">
+          <div class="retire-callout-step">
+            <span>1. Cơ bản:</span>
+            <strong class="font-mono">~${fmt(calc.referenceBenchmarks?.lean || 0)}</strong>
+          </div>
+          <div class="retire-callout-step" style="background: rgba(16, 185, 129, 0.08); padding: 0.15rem 0.35rem; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.25);">
+            <span style="font-weight: 600; color: #10b981;">2. Thoải mái:</span>
+            <strong class="font-mono text-success">~${fmt(calc.referenceBenchmarks?.standard || 0)}</strong>
+          </div>
+          <div class="retire-callout-step">
+            <span>3. Thịnh vượng:</span>
+            <strong class="font-mono text-warning">~${fmt(calc.referenceBenchmarks?.fat || 0)}</strong>
+          </div>
+          <div style="font-size: 0.68rem; font-weight: 700; color: var(--text-muted); margin-top: 0.25rem; border-top: 1px dashed var(--border-subtle); padding-top: 0.2rem;">
+            Tỷ lệ 7 nhóm chi tiêu gia đình:
+          </div>
+          <div style="font-size: 0.68rem; color: var(--text-muted); line-height: 1.35; display: grid; grid-template-columns: 1fr 1fr; gap: 0.1rem 0.35rem;">
+            <span>Ăn uống: <strong>${bFood}%</strong></span>
+            <span>Nhà ở: <strong>${bHousing}%</strong></span>
+            <span>Y tế BHYT: <strong>${bHealth}%</strong></span>
+            <span>Điện nước: <strong>${bUtil}%</strong></span>
+            <span>Đi lại: <strong>${bTrans}%</strong></span>
+            <span>Đồ gia dụng: <strong>${bApp}%</strong></span>
+            <span style="grid-column: 1 / -1;">Giải trí, du lịch: <strong>${bLeisure}%</strong></span>
+          </div>
+        </div>
+
+        <!-- Nguồn gốc dữ liệu & Công thức tính -->
+        <div class="formula-inline-box formula-info" style="grid-column: 1 / -1; margin-top: 0.35rem; font-size: 0.68rem; padding: 0.35rem 0.55rem; border-radius: 4px;">
+          <div class="formula-tag" style="font-size: 0.65rem; margin-bottom: 0.15rem;">Nguồn dữ liệu &amp; Công thức đối chiếu</div>
+          <div style="display: flex; flex-direction: column; gap: 0.12rem; line-height: 1.35;">
+            <code>• Chi tiêu hưu trí = (Thu nhập - Tiết kiệm - Nợ nhà) × PPP (${targetCityProfile.cityNameVi}: ${pppFactorDisplay}x) + Y tế (${calc.seniorHealthAddon} €)</code>
+            <code>• Mốc tham chiếu: Cơ bản ${fmt(calc.referenceBenchmarks?.lean || 0)} • Thoải mái ${fmt(calc.referenceBenchmarks?.standard || 0)} • Thịnh vượng ${fmt(calc.referenceBenchmarks?.fat || 0)}</code>
+            <code>• Công thức 3 mốc = Mức sống chuẩn tại Pháp × ${isMarried ? '1.6 (hộ 2 người)' : '1.0 (cá nhân 1 người)'} × ${pppFactorDisplay} (${targetCityProfile.cityNameVi})</code>
+            <code>• Nguồn dữ liệu: Khảo sát mức sống hộ gia đình OECD, INSEE, World Bank PPP &amp; Numbeo 2024</code>
+          </div>
+        </div>
+      `;
+    }
+  }
+
   function updateRetirementLocationRadiosUI(plan) {
     if (!plan) plan = getActivePlan();
     if (!plan) return;
+    applyProfileVisibilityRules(plan);
     const inpRetireMonthly = document.getElementById("inp-monthly-retire-expenses");
     const loc = plan.retirementLocation || 'vietnam';
     const pppFactors = { 'france': 1.0, 'hybrid': 0.70, 'vietnam': 0.45 };
@@ -1609,7 +1899,9 @@
 
     const hint = document.getElementById("hint-retire-expenses");
     if (hint) {
-      hint.innerText = `≈ ${fmt(activeAnnual)}/năm • ${activeDesc}`;
+      const isMarried = (plan.maritalStatus === 'married');
+      const householdLabel = isMarried ? "Hộ vợ chồng" : "Cá nhân";
+      hint.innerText = `≈ ${fmt(activeAnnual)}/năm • ${householdLabel} ${activeDesc}`;
     }
 
     // Live calculations for 3-Phase Spending Smile
@@ -2210,6 +2502,7 @@
     syncSavingsAndExpensesFromRate,
     updateSavingsRateUI,
     updateRetirementLocationRadiosUI,
+    applyProfileVisibilityRules,
     updateExpenseSavingsHints,
     renderExpensePeriodsSummary,
     renderExpenseStreamsList,

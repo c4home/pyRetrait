@@ -1026,44 +1026,189 @@
     `).join("");
   }
 
-  function openModal(title) {
-    document.getElementById("plan-modal-title").innerText = title;
-    document.getElementById("inp-new-plan-name").value = "";
-    document.getElementById("plan-modal").style.display = "flex";
+  function openModal(title, mode = 'create') {
+    const modal = document.getElementById("plan-modal");
+    if (!modal) return;
+    modal.dataset.mode = mode;
+    const titleEl = document.getElementById("plan-modal-title");
+    if (titleEl) {
+      titleEl.innerText = title || (mode === 'edit' ? "Chỉnh sửa Kế hoạch & Thiết Lập Hồ Sơ" : "Tạo Kế hoạch Mới & Thiết Lập Hồ Sơ");
+    }
+
+    const curPlan = (typeof getActivePlan === 'function') ? getActivePlan() : null;
+    const nameInp = document.getElementById("inp-new-plan-name");
+    const famSingle = document.getElementById("btn-plan-fam-single");
+    const famMarried = document.getElementById("btn-plan-fam-married");
+    const modeDomestic = document.getElementById("btn-plan-mode-domestic");
+    const modeRelocate = document.getElementById("btn-plan-mode-relocate");
+    const modeHybrid = document.getElementById("btn-plan-mode-hybrid");
+    const workSelect = document.getElementById("inp-plan-work-city");
+    const retireSelect = document.getElementById("inp-plan-retire-city");
+    const arrowTransition = document.getElementById("arrow-plan-transition");
+    const tagRetirePpp = document.getElementById("tag-plan-retire-ppp");
+
+    if (mode === 'edit' && curPlan) {
+      if (nameInp) nameInp.value = curPlan.name || "";
+      const isMarried = curPlan.maritalStatus === 'married';
+      if (famSingle) famSingle.classList.toggle("active", !isMarried);
+      if (famMarried) famMarried.classList.toggle("active", isMarried);
+
+      const rMode = curPlan.retireMode || (curPlan.workCountry === curPlan.retireCountry ? 'domestic' : 'relocate');
+      if (modeDomestic) modeDomestic.classList.toggle("active", rMode === 'domestic');
+      if (modeRelocate) modeRelocate.classList.toggle("active", rMode === 'relocate');
+      if (modeHybrid) modeHybrid.classList.toggle("active", rMode === 'hybrid');
+
+      if (workSelect) workSelect.value = curPlan.workCity || 'fr_paris';
+      if (retireSelect) {
+        if (rMode === 'domestic') {
+          retireSelect.value = workSelect ? workSelect.value : (curPlan.workCity || 'fr_paris');
+          retireSelect.disabled = true;
+          retireSelect.style.opacity = '0.7';
+          if (arrowTransition) arrowTransition.textContent = '=';
+          if (tagRetirePpp) tagRetirePpp.textContent = '100% Cùng chi phí';
+        } else if (rMode === 'hybrid') {
+          retireSelect.value = curPlan.retireCity || 'vn_hcm_hn';
+          retireSelect.disabled = false;
+          retireSelect.style.opacity = '1';
+          if (arrowTransition) arrowTransition.textContent = '⇄';
+          if (tagRetirePpp) tagRetirePpp.textContent = 'Bình quân 50/50';
+        } else {
+          retireSelect.value = curPlan.retireCity || 'vn_hcm_hn';
+          retireSelect.disabled = false;
+          retireSelect.style.opacity = '1';
+          if (arrowTransition) arrowTransition.textContent = '➔';
+          if (tagRetirePpp) tagRetirePpp.textContent = 'Giảm ~55% chi phí';
+        }
+      }
+    } else {
+      if (nameInp) nameInp.value = "";
+      if (famSingle) famSingle.classList.add("active");
+      if (famMarried) famMarried.classList.remove("active");
+      if (modeDomestic) modeDomestic.classList.remove("active");
+      if (modeRelocate) modeRelocate.classList.add("active");
+      if (modeHybrid) modeHybrid.classList.remove("active");
+      if (workSelect) workSelect.value = 'fr_paris';
+      if (retireSelect) {
+        retireSelect.value = 'vn_hcm_hn';
+        retireSelect.disabled = false;
+        retireSelect.style.opacity = '1';
+      }
+      if (arrowTransition) arrowTransition.textContent = '➔';
+      if (tagRetirePpp) tagRetirePpp.textContent = 'Giảm ~55% chi phí';
+    }
+
+    modal.style.display = "flex";
   }
 
   function closeModal() {
-    document.getElementById("plan-modal").style.display = "none";
+    const modal = document.getElementById("plan-modal");
+    if (modal) modal.style.display = "none";
   }
 
   function saveNewPlanFromModal() {
-    const nameInput = document.getElementById("inp-new-plan-name").value.trim();
+    const nameInp = document.getElementById("inp-new-plan-name");
+    const nameInput = nameInp ? nameInp.value.trim() : "";
     if (!nameInput) {
-      alert("Vui lòng nhập tên kế hoạch!");
+      if (typeof alert === 'function') alert("Vui lòng nhập tên kế hoạch!");
       return;
     }
 
-    const templateType = document.getElementById("inp-new-plan-template").value;
-    const newId = "plan_" + Date.now();
-    let newPlan = JSON.parse(JSON.stringify(getActivePlan()));
-    newPlan.id = newId;
-    newPlan.name = nameInput;
+    const modal = document.getElementById("plan-modal");
+    const mode = modal?.dataset?.mode || 'create';
 
-    if (templateType === "lean") {
-      newPlan.retirementExpenses *= 0.65;
-      newPlan.initialWithdrawalRate = 3.5;
-    } else if (templateType === "fat") {
-      newPlan.retirementExpenses *= 1.5;
-      newPlan.annualSavings *= 1.3;
+    const isMarried = document.getElementById("btn-plan-fam-married")?.classList.contains("active") || false;
+    const maritalStatus = isMarried ? 'married' : 'single';
+    const taxParts = isMarried ? 2.0 : 1.0;
+
+    let retireMode = 'relocate';
+    if (document.getElementById("btn-plan-mode-domestic")?.classList.contains("active")) {
+      retireMode = 'domestic';
+    } else if (document.getElementById("btn-plan-mode-hybrid")?.classList.contains("active")) {
+      retireMode = 'hybrid';
     }
 
-    state.plansData.plans[newId] = newPlan;
-    state.plansData.activePlanId = newId;
-    savePlansToStorage();
+    const workCity = document.getElementById("inp-plan-work-city")?.value || 'fr_paris';
+    const retireCity = (retireMode === 'domestic') ? workCity : (document.getElementById("inp-plan-retire-city")?.value || 'vn_hcm_hn');
+
+    const pppProfiles = (window.TaxOptimizer && window.TaxOptimizer.COUNTRY_PPP_PROFILES) ? window.TaxOptimizer.COUNTRY_PPP_PROFILES : {};
+    const workCountry = pppProfiles[workCity]?.countryCode || 'FR';
+    const retireCountry = pppProfiles[retireCity]?.countryCode || 'VN';
+
+    let targetPlan;
+    if (mode === 'edit') {
+      targetPlan = (typeof getActivePlan === 'function') ? getActivePlan() : null;
+      if (!targetPlan) return;
+      targetPlan.name = nameInput;
+      targetPlan.maritalStatus = maritalStatus;
+      targetPlan.taxParts = taxParts;
+      targetPlan.retireMode = retireMode;
+      targetPlan.workCity = workCity;
+      targetPlan.workCountry = workCountry;
+      targetPlan.retireCity = retireCity;
+      targetPlan.retireCountry = retireCountry;
+    } else {
+      const templateType = document.getElementById("inp-new-plan-template")?.value;
+      const newId = "plan_" + Date.now();
+      const basePlan = (typeof getActivePlan === 'function') ? getActivePlan() : null;
+      targetPlan = basePlan ? JSON.parse(JSON.stringify(basePlan)) : {};
+      targetPlan.id = newId;
+      targetPlan.name = nameInput;
+      targetPlan.maritalStatus = maritalStatus;
+      targetPlan.taxParts = taxParts;
+      targetPlan.retireMode = retireMode;
+      targetPlan.workCity = workCity;
+      targetPlan.workCountry = workCountry;
+      targetPlan.retireCity = retireCity;
+      targetPlan.retireCountry = retireCountry;
+
+      if (templateType === "lean") {
+        targetPlan.retirementExpenses = (targetPlan.retirementExpenses || 24000) * 0.65;
+        targetPlan.initialWithdrawalRate = 3.5;
+      } else if (templateType === "fat") {
+        targetPlan.retirementExpenses = (targetPlan.retirementExpenses || 24000) * 1.5;
+        targetPlan.annualSavings = (targetPlan.annualSavings || 10000) * 1.3;
+      }
+
+      state.plansData.plans[newId] = targetPlan;
+      state.plansData.activePlanId = newId;
+    }
+
+    if (window.AppState && typeof window.AppState.ensurePlanDefaults === 'function') {
+      window.AppState.ensurePlanDefaults(targetPlan);
+    }
+
+    // Tự động tính lại chi tiêu hưu trí từ dòng tiền hiện tại nếu có
+    if (window.TaxOptimizer && typeof window.TaxOptimizer.calculateRetireBudgetFromCashflow === 'function') {
+      const monthlySavings = (Number(targetPlan.annualSavings) || 0) / 12;
+      let monthlyIncome = 0;
+      if (Array.isArray(targetPlan.incomes)) {
+        targetPlan.incomes.forEach(inc => {
+          if (inc.enabled !== false && (inc.isSalary || !inc.isBhxhVn)) {
+            monthlyIncome += (Number(inc.amount) || 0) / 12;
+          }
+        });
+      }
+      if (monthlyIncome > 0 && monthlyIncome > monthlySavings) {
+        const budgetRes = window.TaxOptimizer.calculateRetireBudgetFromCashflow({
+          monthlyNetIncome: monthlyIncome,
+          monthlySavings: monthlySavings,
+          monthlyMortgagePaidOff: Number(targetPlan.monthlyMortgagePaidOff) || 0,
+          workCityKey: targetPlan.workCity,
+          retireCityKey: targetPlan.retireCity,
+          retireMode: targetPlan.retireMode,
+          householdSize: isMarried ? 2 : 1
+        });
+        if (budgetRes && budgetRes.annualRetireTotal > 0) {
+          targetPlan.retirementExpenses = budgetRes.annualRetireTotal;
+        }
+      }
+    }
+
+    if (typeof savePlansToStorage === 'function') savePlansToStorage();
     closeModal();
-    renderPlanSelector();
-    renderActivePlanInputs();
-    updateAll();
+    if (typeof renderPlanSelector === 'function') renderPlanSelector();
+    if (typeof renderActivePlanInputs === 'function') renderActivePlanInputs();
+    if (typeof updateAll === 'function') updateAll();
   }
 
   function duplicateCurrentPlan() {

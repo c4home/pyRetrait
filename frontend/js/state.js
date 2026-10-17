@@ -52,8 +52,9 @@
 
   function getActivePlan() {
     if (!state.plansData || !state.plansData.plans) return null;
-    const plan = state.plansData.plans[state.plansData.activePlanId];
-    return plan || Object.values(state.plansData.plans)[0] || null;
+    const plan = state.plansData.plans[state.plansData.activePlanId] || Object.values(state.plansData.plans)[0] || null;
+    if (plan) ensurePlanDefaults(plan);
+    return plan;
   }
 
   function setActivePlanId(planId) {
@@ -95,10 +96,77 @@
     emit('tab-changed', tabId);
   }
 
+  function ensurePlanDefaults(plan) {
+    if (!plan || typeof plan !== 'object') return plan;
+    if (!plan.workCountry) plan.workCountry = 'FR';
+    if (!plan.workCity) plan.workCity = 'fr_paris';
+    if (!plan.retireCountry) plan.retireCountry = 'VN';
+    if (!plan.retireCity) plan.retireCity = 'vn_hcm_hn';
+    if (!plan.retireMode) {
+      plan.retireMode = (plan.workCountry === plan.retireCountry ? 'domestic' : 'relocate');
+    }
+    if (!plan.maritalStatus) plan.maritalStatus = 'single';
+    if (plan.taxParts === undefined || plan.taxParts === null) {
+      plan.taxParts = (plan.maritalStatus === 'married' ? 2.0 : 1.0);
+    }
+    if (plan.monthlyMortgagePaidOff === undefined) plan.monthlyMortgagePaidOff = 0;
+    if (!plan.frenchPensionDetails) {
+      plan.frenchPensionDetails = {
+        spouse1: { startWorkAge: 24, claimAge: 64, targetAnnualPension: 18000 },
+        spouse2: { startWorkAge: 24, claimAge: 64, targetAnnualPension: 16000 }
+      };
+    }
+    if (!plan.bhxhVnDetails) {
+      plan.bhxhVnDetails = {
+        spouse1: { gender: 'male', yearsContributed: 20, monthlySalaryVnd: 10000000, claimAge: 62 },
+        spouse2: { gender: 'female', yearsContributed: 20, monthlySalaryVnd: 10000000, claimAge: 60 }
+      };
+    }
+    return plan;
+  }
+
+  function applySavedUserPreferences(plansData) {
+    if (!plansData || !plansData.preferences) return;
+    const pref = plansData.preferences;
+    if (pref.theme && typeof document !== 'undefined') {
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('pyRetrait_theme', pref.theme);
+        }
+        if (document.documentElement) {
+          document.documentElement.setAttribute('data-theme', pref.theme);
+        }
+        if (typeof window !== 'undefined' && window.updateThemeIcon) {
+          window.updateThemeIcon(pref.theme);
+        }
+      } catch (e) {}
+    }
+    if (pref.lang && typeof window !== 'undefined' && window.I18n && typeof window.I18n.setLanguage === 'function') {
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('pyretrait_lang', pref.lang);
+        }
+        window.I18n.setLanguage(pref.lang);
+      } catch (e) {}
+    }
+    if (pref.currency) {
+      state.currency = pref.currency;
+    }
+    if (pref.viewMode) {
+      state.viewMode = pref.viewMode;
+    }
+  }
+
   let saveCloudTimeout = null;
   function savePlansToStorage(immediateCloud = true) {
     if (state.plansData) {
       state.plansData.updatedAt = Date.now();
+      state.plansData.preferences = {
+        lang: (typeof localStorage !== 'undefined' ? localStorage.getItem('pyretrait_lang') : null) || 'vi',
+        theme: (typeof localStorage !== 'undefined' ? localStorage.getItem('pyRetrait_theme') : null) || (typeof document !== 'undefined' && document.documentElement ? document.documentElement.getAttribute('data-theme') : 'dark') || 'dark',
+        currency: state.currency || 'EUR',
+        viewMode: state.viewMode || 'nominal'
+      };
     }
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state.plansData));
@@ -168,6 +236,10 @@
           if (useCloud) {
             state.plansData = cloudPlans;
           }
+          if (state.plansData && state.plansData.plans) {
+            Object.values(state.plansData.plans).forEach(p => ensurePlanDefaults(p));
+          }
+          applySavedUserPreferences(state.plansData);
           state.currency = getActivePlan()?.currency || 'EUR';
           localStorage.setItem(STORAGE_KEY, JSON.stringify(state.plansData));
           emit('plans-loaded', state.plansData);
@@ -183,6 +255,10 @@
     if (savedLocal) {
       try {
         state.plansData = JSON.parse(savedLocal);
+        if (state.plansData && state.plansData.plans) {
+          Object.values(state.plansData.plans).forEach(p => ensurePlanDefaults(p));
+        }
+        applySavedUserPreferences(state.plansData);
         state.currency = getActivePlan()?.currency || 'EUR';
         emit('plans-loaded', state.plansData);
         return state.plansData;
@@ -196,6 +272,10 @@
       const res = await fetch("/api/plans");
       if (res.ok) {
         state.plansData = await res.json();
+        if (state.plansData && state.plansData.plans) {
+          Object.values(state.plansData.plans).forEach(p => ensurePlanDefaults(p));
+        }
+        applySavedUserPreferences(state.plansData);
         state.currency = getActivePlan()?.currency || 'EUR';
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state.plansData));
         emit('plans-loaded', state.plansData);
@@ -246,6 +326,7 @@
         }
       }
     };
+    ensurePlanDefaults(state.plansData.plans.plan_baseline);
     savePlansToStorage();
     emit('plans-loaded', state.plansData);
     return state.plansData;
@@ -264,6 +345,8 @@
     setViewMode,
     getActiveTab,
     setActiveTab,
+    ensurePlanDefaults,
+    applySavedUserPreferences,
     savePlansToStorage,
     debouncedSavePlansToStorage,
     loadInitialPlans,

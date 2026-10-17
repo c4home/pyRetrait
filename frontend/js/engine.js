@@ -5,10 +5,11 @@
 window.RetirementEngine = (function() {
   'use strict';
 
-  // Get only the symbol of the currency (€, ₫, $)
+  // Get only the symbol of the currency (€, ₫, $, ¥)
   function getCurrencySymbol(currency = 'EUR') {
     if (currency === 'EUR' || currency === '€') return '€';
     if (currency === 'VND' || currency === '₫') return '₫';
+    if (currency === 'CNY' || currency === '¥') return '¥';
     return '$';
   }
 
@@ -29,6 +30,16 @@ window.RetirementEngine = (function() {
         return sym + Math.round(amount).toLocaleString('vi-VN');
       }
       return sym + Math.round(amount).toLocaleString('vi-VN');
+    } else if (currency === 'CNY' || currency === '¥') {
+      if (compact) {
+        if (Math.abs(amount) >= 1_000_000) {
+          return sym + (amount / 1_000_000).toFixed(2) + 'M';
+        } else if (Math.abs(amount) >= 1_000) {
+          return sym + (amount / 1_000).toFixed(1) + 'k';
+        }
+        return sym + Math.round(amount).toLocaleString('zh-CN');
+      }
+      return sym + Math.round(amount).toLocaleString('zh-CN');
     } else { // EUR or USD
       if (compact) {
         if (Math.abs(amount) >= 1_000_000) {
@@ -562,9 +573,13 @@ window.RetirementEngine = (function() {
     const withdrawalStrategy = plan.withdrawalStrategy || 'guyton_klinger';
     const initialSWR = (Number(plan.initialWithdrawalRate) || 4.0) / 100.0;
 
+    // Profile & Cross-border settings
+    const isSingle = (plan.maritalStatus !== 'married');
+    const isSingleCountry = (plan.retireMode === 'domestic' || (plan.workCountry && plan.retireCountry && plan.workCountry === plan.retireCountry));
+
     // Base Forex parameters
     const baseForex = Number(plan.dualInflation?.eurVndInitialRate) || Number(plan.exchangeRateEurVnd) || 27500;
-    const forexDrift = (Number(plan.dualInflation?.eurVndAnnualDrift) || 1.2) / 100.0;
+    const forexDrift = isSingleCountry ? 0 : ((Number(plan.dualInflation?.eurVndAnnualDrift) || 1.2) / 100.0);
 
     const startAge = 18;
     const timeline = [];
@@ -671,26 +686,74 @@ window.RetirementEngine = (function() {
         });
       }
 
-      // Add French Pension / BHXH if reached age (with realistic Décote calculation)
+      // Add French Pension / BHXH if reached age (with realistic Décote calculation & couple support)
       let pensionReceivedThisYear = 0;
-      const ssAge = Number(plan.socialSecurityAge) || 64;
-      if (isRetired && age >= ssAge && plan.enableFrenchPension !== false) {
-        const rawSS = Number(plan.socialSecurityAnnual) || 0;
-        if (rawSS > 0) {
-          if (plan.enableFrenchDecote !== false) {
-            const startWorkAge = Number(plan.startWorkAge) || 24;
-            const yearsWorked = Math.max(0, Math.min(retireAge, ssAge) - startWorkAge);
-            const quarters = yearsWorked * 4;
-            const targetQuarters = 172; // Standard 43 years in France (Taux Plein)
-            const missingQuarters = Math.max(0, targetQuarters - quarters);
-            const prorata = Math.min(1.0, quarters / targetQuarters);
-            // Before age 67: décote penalty is 1.25% per missing quarter (max 20 quarters = 25% max penalty)
-            const decotePenalty = (age < 67 && missingQuarters > 0) ? Math.min(20, missingQuarters) * 0.0125 : 0;
-            pensionReceivedThisYear = rawSS * prorata * (1.0 - decotePenalty) * cumInflation;
-          } else {
-            pensionReceivedThisYear = rawSS * cumInflation;
+      if (isRetired && plan.enableFrenchPension !== false) {
+        if (plan.maritalStatus === 'married' && plan.frenchPensionDetails) {
+          const s1 = plan.frenchPensionDetails.spouse1 || {};
+          const s2 = plan.frenchPensionDetails.spouse2 || {};
+          let p1Amt = 0;
+          let p2Amt = 0;
+          const s1ClaimAge = Number(s1.claimAge) || 64;
+          const s2ClaimAge = Number(s2.claimAge) || 64;
+
+          if (age >= s1ClaimAge && window.TaxOptimizer && window.TaxOptimizer.calculateFrenchPension) {
+            const raw1 = Number(s1.targetAnnualPension) || Number(plan.socialSecurityAnnual) || 18000;
+            const res1 = window.TaxOptimizer.calculateFrenchPension(raw1, Number(s1.startWorkAge) || 24, Math.min(retireAge, s1ClaimAge), s1ClaimAge);
+            p1Amt = res1.totalAnnualPension * cumInflation;
           }
+          if (age >= s2ClaimAge && window.TaxOptimizer && window.TaxOptimizer.calculateFrenchPension) {
+            const raw2 = Number(s2.targetAnnualPension) || 16000;
+            const res2 = window.TaxOptimizer.calculateFrenchPension(raw2, Number(s2.startWorkAge) || 24, Math.min(retireAge, s2ClaimAge), s2ClaimAge);
+            p2Amt = res2.totalAnnualPension * cumInflation;
+          }
+          pensionReceivedThisYear = p1Amt + p2Amt;
           annualIncome += pensionReceivedThisYear;
+        } else {
+          const ssAge = Number(plan.socialSecurityAge) || 64;
+          if (age >= ssAge) {
+            const rawSS = Number(plan.socialSecurityAnnual) || 0;
+            if (rawSS > 0) {
+              if (plan.enableFrenchDecote !== false) {
+                const startWorkAge = Number(plan.startWorkAge) || 24;
+                const yearsWorked = Math.max(0, Math.min(retireAge, ssAge) - startWorkAge);
+                const quarters = yearsWorked * 4;
+                const targetQuarters = 172; // Standard 43 years in France (Taux Plein)
+                const missingQuarters = Math.max(0, targetQuarters - quarters);
+                const prorata = Math.min(1.0, quarters / targetQuarters);
+                const decotePenalty = (age < 67 && missingQuarters > 0) ? Math.min(20, missingQuarters) * 0.0125 : 0;
+                pensionReceivedThisYear = rawSS * prorata * (1.0 - decotePenalty) * cumInflation;
+              } else {
+                pensionReceivedThisYear = rawSS * cumInflation;
+              }
+              annualIncome += pensionReceivedThisYear;
+            }
+          }
+        }
+      }
+
+      // Add BHXH Vietnam Pension if reached age
+      if (isRetired && plan.enableBhxhVn !== false && plan.bhxhVnDetails) {
+        if (plan.maritalStatus === 'married') {
+          const b1 = plan.bhxhVnDetails.spouse1 || {};
+          const b2 = plan.bhxhVnDetails.spouse2 || {};
+          const b1Claim = Number(b1.claimAge) || (b1.gender === 'female' ? 60 : 62);
+          const b2Claim = Number(b2.claimAge) || (b2.gender === 'female' ? 60 : 62);
+          let b1Amt = 0;
+          let b2Amt = 0;
+          if (age >= b1Claim && window.TaxOptimizer && window.TaxOptimizer.calculateVietnamBhxhPension) {
+            const resB1 = window.TaxOptimizer.calculateVietnamBhxhPension(b1.monthlySalaryVnd || 0, b1.yearsContributed || 0, b1.gender || 'male', b1Claim);
+            b1Amt = resB1.annualPensionVnd;
+          }
+          if (age >= b2Claim && window.TaxOptimizer && window.TaxOptimizer.calculateVietnamBhxhPension) {
+            const resB2 = window.TaxOptimizer.calculateVietnamBhxhPension(b2.monthlySalaryVnd || 0, b2.yearsContributed || 0, b2.gender || 'female', b2Claim);
+            b2Amt = resB2.annualPensionVnd;
+          }
+          const totalBhxhVnd = (b1Amt + b2Amt) * cumInflation;
+          if (totalBhxhVnd > 0) {
+            const conv = (plan.currency === 'VND') ? 1 : (currentEurVndRate || 27500);
+            annualIncome += (totalBhxhVnd / conv);
+          }
         }
       }
 
@@ -832,7 +895,8 @@ window.RetirementEngine = (function() {
         estimatedTax = window.TaxOptimizer.calculateProgressiveTax(annualIncome, plan.taxRegime || 'france_vietnam', {
           customTaxRate: plan.taxRate,
           currency: plan.currency || 'EUR',
-          exchangeRateEurVnd: currentEurVndRate
+          exchangeRateEurVnd: currentEurVndRate,
+          taxParts: Number(plan.taxParts) || (isSingle ? 1.0 : 2.0)
         });
       } else {
         const effectiveTaxRate = (Number(plan.taxRate) || 12.0) / 100.0;
@@ -1282,7 +1346,9 @@ window.RetirementEngine = (function() {
       birthYear,
       currentCalendarYear,
       totalWaterfallTaxSaved,
-      stressResilience
+      stressResilience,
+      isSingleCountry,
+      maritalStatus: plan.maritalStatus || 'single'
     };
   }
 

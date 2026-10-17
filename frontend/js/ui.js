@@ -363,6 +363,22 @@
     setVal("inp-current-age", p.currentAge);
     const lblCurrentAge = document.getElementById("lbl-current-age");
     if (lblCurrentAge) lblCurrentAge.innerText = `${p.currentAge}t`;
+
+    const isMarried = (p.maritalStatus === 'married');
+    const boxSpouseBirth = document.getElementById("box-spouse-birth-year");
+    if (boxSpouseBirth) {
+      boxSpouseBirth.style.display = isMarried ? "" : "none";
+    }
+    if (isMarried) {
+      const spouseBYear = Number(p.spouseBirthYear) || (curYear - (Number(p.spouseAge) || 29));
+      p.spouseBirthYear = spouseBYear;
+      p.spouseAge = curYear - spouseBYear;
+      setVal("inp-spouse-birth-year", spouseBYear);
+      setVal("inp-spouse-current-age", p.spouseAge);
+      const lblSpouseAge = document.getElementById("lbl-spouse-age");
+      if (lblSpouseAge) lblSpouseAge.innerText = `${p.spouseAge}t`;
+    }
+
     setVal("inp-retire-age", p.retirementAge);
     syncSalaryStreamsWithRetireAge(p);
     setVal("inp-life-expectancy", p.lifeExpectancy);
@@ -525,6 +541,9 @@
     renderIncomeStreamsList();
     renderExpenseStreamsList();
     updateCashflowBalanceUI(p);
+    if (typeof applyProfileVisibilityRules === 'function') {
+      applyProfileVisibilityRules(p);
+    }
   }
 
   // -------------------------------------------------------------
@@ -540,6 +559,9 @@
     updateLmnpUI(plan);
     updateDualInflationUI(plan);
     updateEstateMilestones(plan, proj);
+    if (typeof applyProfileVisibilityRules === 'function') {
+      applyProfileVisibilityRules(plan);
+    }
 
     // Bảng giai đoạn tuổi phụ thuộc tuổi nghỉ hưu -> phải render lại khi bất kỳ input nào đổi
     renderIncomePeriodsSummary(plan);
@@ -775,6 +797,7 @@
     state.viewMode = mode;
     document.getElementById("btn-view-nominal").classList.toggle("active", mode === "nominal");
     document.getElementById("btn-view-real").classList.toggle("active", mode === "real");
+    debouncedSavePlansToStorage();
     updateAll();
   }
 
@@ -800,6 +823,7 @@
     html.setAttribute("data-theme", nextTheme);
     updateThemeIcon(nextTheme);
     localStorage.setItem("pyRetrait_theme", nextTheme);
+    debouncedSavePlansToStorage();
     updateAll();
   }
 
@@ -837,6 +861,9 @@
         const res = await fetch("/api/plans", { headers });
         if (res.ok) {
           state.plansData = await res.json();
+          if (window.AppState && typeof window.AppState.applySavedUserPreferences === 'function') {
+            window.AppState.applySavedUserPreferences(state.plansData);
+          }
           savePlansToStorage();
           renderPlanSelector();
           renderActivePlanInputs();

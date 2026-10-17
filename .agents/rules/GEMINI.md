@@ -67,6 +67,34 @@
 
 - **Không được gộp logic tính toán hoặc render của các Tab con vào `ui.js`** — `ui.js` chỉ đóng vai trò nhạc trưởng điều phối và gọi các hàm từ các module tương ứng.
 
+### Phân Bổ Trách Nhiệm Hàm Phân Hệ Vợ Chồng & PPP Đa Quốc Gia (Chống Phình File)
+Để giữ vững kiến trúc 3 tầng và tuyệt đối không làm phình file, mọi hàm dự kiến phát triển cho phân hệ Vợ chồng & PPP Đa quốc gia bắt buộc phải được đặt đúng vị trí sau:
+
+1. **Tầng 1 — Core Calculation Engine (Không phụ thuộc DOM)**:
+   - `taxOptimizer.js`:
+     * `COUNTRY_PPP_PROFILES`: Hằng số cấu hình dữ liệu PPP đa quốc gia (Pháp, Việt Nam, Mỹ, Đức...) gồm hệ số chi phí sống, lạm phát chuẩn và mức chi tiêu cơ sở INSEE/Tổng cục Thống kê.
+     * `calculateRetireBudgetFromCashflow({ monthlyNetIncome, monthlySavings, monthlyMortgagePaidOff })`: Tính mức chi tiêu hưu trí thực tế từ dòng tiền tích lũy và khấu trừ khoản vay mua nhà trước hưu.
+     * `getSuggestedRetirementBudget(countryCode, cityKey, maritalStatus, tier)`: Tra cứu 3 mốc chi tiêu chuẩn (Cơ bản, Tiêu chuẩn, Thoải mái) và phân bổ 7 nhóm chi tiêu gia đình.
+     * `calculateFrenchPension(pensionProfile, birthYear)`: Tính lương hưu Pháp tham số hóa độc lập cho từng người (Bạn hoặc Bạn đời) theo năm sinh và số quý `trimestres`.
+     * `calculateVietnamBhxhPension(bhxhProfile, birthYear)`: Tính lương hưu BHXH VN tham số hóa độc lập theo giới tính (Nam 62t, Nữ 60t) và số năm đóng.
+     * `calculateProgressiveTax(income, taxParts)`: Mở rộng tính thuế lũy tiến có xét số suất thuế gia cảnh (`taxParts` / `Quotient Familial`).
+   - `engine.js`:
+     * `runProjection(plan)`: Tích hợp dòng tiền song hành của cả 2 vợ chồng (tổng thu nhập, lương hưu Pháp 2 người theo từng mốc tuổi độc lập, lương hưu BHXH VN 2 người).
+     * Xử lý cờ `isSingleCountry` (khi `workCountry === retireCountry` hoặc `retireMode === 'domestic'`): tự động bỏ trôi dạt tỷ giá (`eurVndAnnualDrift = 0`), dùng 1 tỷ lệ lạm phát nội địa duy nhất.
+
+2. **Tầng 2 — State Management & Migration (Client State)**:
+   - `state.js`:
+     * Khai báo và quản lý các trường dữ liệu mới (`maritalStatus`, `spouseBirthYear`, `workCountry`, `retireCountry`, `retireMode`, `frenchPensionDetails`, `bhxhVnDetails`, `monthlyMortgagePaidOff`).
+     * `ensurePlanDefaults(plan)`: Tự động di trú và bù đắp giá trị mặc định an toàn cho các kế hoạch cũ khi mở từ `localStorage` hoặc tải từ cloud.
+
+3. **Tầng 3 — UI Orchestrator & Tab Modules (DOM & Rendering)**:
+   - `ui-modals.js`: Quản lý giao diện hộp thoại `#plan-modal` và Quick Setup Wizard (chọn Cá nhân / Vợ chồng, dropdown chọn quốc gia/thành phố làm việc và nghỉ hưu).
+   - `ui-tab1-streams.js`:
+     * `applyProfileVisibilityRules(plan)`: Tự động ẩn/hiện thông minh các thẻ thu/chi theo quốc gia (ẩn lương hưu Pháp nếu không ở Pháp, ẩn BHXH VN nếu không ở VN).
+     * `renderPensionStreams(plan)`: Cập nhật hiển thị 2 cột Bạn và Bạn đời cho Lương hưu Pháp và BHXH VN.
+     * `renderRetirementExpenseCallout(plan)`: Cập nhật dữ liệu cho Thẻ Callout 2 cột (Cột trái: Thu nhập - Tiết kiệm - Nợ = Chi tiêu thực tế; Cột phải: 3 mốc Cơ bản/Tiêu chuẩn/Thoải mái và 7 nhóm chi tiêu gia đình).
+   - `ui.js`: Nhạc trưởng điều phối sự kiện đổi tình trạng hôn nhân hoặc đổi quốc gia để kích hoạt re-render đồng bộ.
+
 ---
 
 ## 3. Backend — Python / FastAPI
@@ -213,7 +241,17 @@
     - **Tuyệt đối KHÔNG lạm dụng đa sắc cầu vồng trong cùng một cụm dữ liệu hoặc cùng một cột:** Mỗi cụm chức năng/cột dữ liệu chỉ được sử dụng một hệ màu chủ đạo duy nhất đại diện cho bản chất kinh tế của dòng tiền.
     - **Cột 1 (Các Luồng Thu Nhập & Tài Sản Vào):** Bắt buộc dùng 100% hệ màu Xanh Lá (`#10b981` / `#059669`). Mọi thẻ thu nhập (lương, BĐS LMNP, lương hưu Pháp, BHXH VN, cổ tức) đều mang viền và điểm nhấn xanh lá.
     - **Cột 2 (Các Luồng Chi Tiêu & Nghĩa Vụ Ra):** Bắt buộc dùng 100% hệ màu Đỏ/Rose (`#f43f5e` / `#e11d48`). Toàn bộ các thẻ chi tiêu bên trong cột này (bao gồm: Chi tiêu hưu trí, Kế hoạch con cái & gia đình, Dự phòng chăm sóc tuổi già, Kế hoạch thừa kế & di sản, Chi tiêu tùy chỉnh) **phải thống nhất dùng chung một tông màu Đỏ/Rose chủ đạo**. Tuyệt đối cấm tình trạng thẻ con cái tô màu tím, thẻ thừa kế tô màu vàng cam, thẻ tuổi già tô màu đỏ... làm vỡ tính định vị logic và gây hoa mắt cho người dùng.
-    - **Loại bỏ badge/nhãn trạng thái thừa thãi:** Tránh chèn các badge trạng thái lặp lại tiêu đề thẻ (ví dụ: cấm đặt badge "Di Sản & Thừa Kế" bên trong thẻ đã có tiêu đề "Kế Hoạch Thừa Kế & Đánh Giá Mục Tiêu Di Sản").
+  - **Quy Chuẩn Hiển Thị Khóa Chặt Cho Phân Hệ Vợ Chồng & PPP Đa Quốc Gia:**
+    - **Thẻ cột Bạn & Bạn đời (`.spouse-col-card`):**
+      - Trong Light Mode: Bắt buộc nền trắng thuần (`#ffffff`), viền xám sáng (`#cbd5e1`), nhãn và giá trị chữ đen/xám đậm (`var(--text-main)`). Tuyệt đối CẤM để nền đen, xám đục xi măng hoặc viền mờ tối.
+      - Trong Dark Mode: Nền tối sang trọng (`rgba(15, 23, 42, 0.45)`), viền mờ (`rgba(148, 163, 184, 0.2)`), chữ `var(--text-main)`.
+    - **Khối đối chiếu dòng tiền & mức sống chuẩn (`.retire-callout-grid`, `.formula-box`):**
+      - Chiều ngang khối kéo giãn 2 cột (`grid-column: 1 / -1`) để tiết kiệm diện tích chiều dọc và tạo bố cục thoáng đãng.
+      - Chữ giải thích và công thức bắt buộc dùng `color: var(--text-muted);` và `color: var(--text-main);`. Tuyệt đối CẤM hardcode màu chữ xám nhạt (`#cbd5e1`, `#94a3b8`) trên nền trắng.
+    - **Đồng bộ Typography & Không dùng Monospace cho nhãn/công thức:**
+      - Thống nhất 100% font `var(--font-sans)` (Inter) cho toàn bộ nhãn Bạn, Bạn đời, công thức và mức sống đối chiếu. Tuyệt đối không dùng cú pháp LaTeX.
+      - Tách bạch rõ giữa giá trị số và đơn vị đo lường: Thẻ số hiển thị giá trị thuần túy, đơn vị đo lường (như `tuổi`, `t`, `năm`) đặt riêng ở thẻ con kế bên; không gộp chữ cái vào chung thẻ số mang font mono.
+    - **Ngôn ngữ bình dân, đại chúng:** Dùng cụm từ "Mức sống chuẩn tại Pháp" (hoặc tên quốc gia tương ứng) thay cho các thuật ngữ học thuật như "Giỏ chuẩn góc Tây Âu".
   - **Checklist bắt buộc trước khi hoàn thành task UI:**
     - Luôn tự kiểm tra đối chiếu component mới/được sửa trên cả 2 chế độ:
       1. Dark Mode: Nền tối sang trọng, viền mờ tinh tế, chữ sáng dễ đọc.

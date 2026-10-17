@@ -762,10 +762,10 @@
         order: 1
       });
     } else if (!state.compareWithdrawals && !state.showMonteCarloFan) {
-      // Chế độ mặc định: Danh mục Thanh khoản
+      // Chế độ mặc định: Tiền Mặt & Quỹ Đầu Tư (Tài sản thanh khoản rút sinh hoạt)
       const dataLiquid = proj.timeline.map(p => state.viewMode === "nominal" ? p.portfolioEnd : p.realPortfolioEnd);
       const liquidLabel = hasRealEstate
-        ? (window.I18n ? window.I18n.t('legend_liquid_portfolio', 'Danh mục Thanh khoản') : 'Danh mục Thanh khoản')
+        ? (window.I18n ? window.I18n.t('legend_liquid_portfolio', 'Tiền Mặt & Quỹ Đầu Tư') : 'Tiền Mặt & Quỹ Đầu Tư')
         : (window.I18n ? window.I18n.t('legend_forecast_assets', 'Dự báo Tài sản') : 'Dự báo Tài sản');
 
       datasets.push({
@@ -997,26 +997,6 @@
         pointBorderColor: '#ffffff',
         pointBorderWidth: 2,
         pointHitRadius: 15,
-        order: 1
-      });
-    } else {
-      // Chế độ mặc định: 1 đường Danh mục Thanh khoản giữ màu sắc chuẩn thống nhất (không đổi màu theo chiến lược)
-      const dataLiquid = proj.timeline.map(p => state.viewMode === "nominal" ? p.portfolioEnd : p.realPortfolioEnd);
-      const defaultLineColor = isLight ? '#0284c7' : '#38bdf8';
-      datasets.push({
-        label: hasRealEstate ? `Danh mục Thanh khoản (${sym})` : `Dự báo Tài sản (${sym})`,
-        data: dataLiquid,
-        borderColor: defaultLineColor,
-        borderWidth: 3.2,
-        borderDash: [],
-        backgroundColor: gradientPortfolio,
-        fill: !hasActualData,
-        tension: 0.35,
-        pointRadius: hasRealEstate ? proj.timeline.map(p => (p.age === proj.retireAge) ? 4.5 : 0) : pointRadii,
-        pointHoverRadius: hasRealEstate ? 6 : pointHoverRadii,
-        pointBackgroundColor: hasRealEstate ? defaultLineColor : pointBgColors,
-        pointBorderColor: hasRealEstate ? '#ffffff' : pointBorderColors,
-        pointBorderWidth: hasRealEstate ? 2 : pointBorderWidths,
         order: 1
       });
     }

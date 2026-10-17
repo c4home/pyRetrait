@@ -113,7 +113,15 @@ Dưới đây là cấu trúc JSON chuẩn của một đối tượng kế ho�
   "startWorkAge": 24,
   "gender": "male",
   "maritalStatus": "married",
-  "taxParts": 3.0,
+  "spouseBirthYear": 1997,
+  "taxParts": 2.0,
+  "workCountry": "FR",
+  "workCity": "fr_paris",
+  "retireMode": "relocate",
+  "retireCountry": "VN",
+  "retireCity": "vn_hcm_hn",
+  "monthlyMortgagePaidOff": 0,
+  "benchmarkSpendingStandard": "fr_insee",
   "currentSavings": 10000,
   "annualSavings": 13500,
   "annualExpenses": 21240,
@@ -148,6 +156,37 @@ Dưới đây là cấu trúc JSON chuẩn của một đối tượng kế ho�
   "enableFrenchDecote": true,
   "socialSecurityAge": 64,
   "socialSecurityAnnual": 18000,
+  "frenchPensionDetails": {
+    "spouse1": {
+      "startWorkAge": 24,
+      "claimAge": 64,
+      "targetAnnualPension": 18000
+    },
+    "spouse2": {
+      "startWorkAge": 25,
+      "claimAge": 64,
+      "targetAnnualPension": 16000
+    }
+  },
+  "bhxhVnEnabled": true,
+  "bhxhVnIncome": 10000000,
+  "bhxhVnYears": 15,
+  "bhxhVnStartAge": 29,
+  "bhxhVnRetireAge": 62,
+  "bhxhVnDetails": {
+    "spouse1": {
+      "gender": "male",
+      "yearsContributed": 15,
+      "monthlySalaryVnd": 10000000,
+      "claimAge": 62
+    },
+    "spouse2": {
+      "gender": "female",
+      "yearsContributed": 15,
+      "monthlySalaryVnd": 10000000,
+      "claimAge": 60
+    }
+  },
   "enableSeniorCare": true,
   "seniorCareAge": 78,
   "seniorCareMonthly": 1000,
@@ -192,11 +231,6 @@ Dưới đây là cấu trúc JSON chuẩn của một đối tượng kế ho�
     "estimatedBioAge": 27.5,
     "estimatedHealthspan": 78
   },
-  "bhxhVnEnabled": true,
-  "bhxhVnIncome": 10000000,
-  "bhxhVnYears": 15,
-  "bhxhVnStartAge": 29,
-  "bhxhVnRetireAge": 62,
   "incomes": [],
   "expenses": [],
   "milestones": [],
@@ -204,7 +238,34 @@ Dưới đây là cấu trúc JSON chuẩn của một đối tượng kế ho�
 }
 ```
 
-### 4.2. Cấu Trúc Kịch Bản Chia Sẻ Cộng Đồng (`CommunityTemplate Schema`)
+### 4.2. Bảng Đặc Tả Chi Tiết Các Trường Dữ Liệu Mới (Data Dictionary & Fallback Rules)
+
+Để đảm bảo tính nhất quán và tương thích ngược tuyệt đối với các kế hoạch đã lưu cũ trong `localStorage` và cơ sở dữ liệu SQLite, bảng dưới đây định nghĩa chi tiết từng trường dữ liệu mới:
+
+| Tên trường (camelCase) | Kiểu dữ liệu | Đơn vị nội bộ | Giá trị mặc định | Diễn giải & Cơ chế tương thích ngược (Backward Compatibility) |
+|---|---|---|---|---|
+| `maritalStatus` | `string` | enum: `'single'`, `'married'` | `'single'` | Tình trạng hôn nhân. Nếu `'single'`, các ô nhập Bạn đời được ẩn và áp dụng thuế cá nhân (`taxParts = 1.0`). |
+| `spouseBirthYear` | `number \| null` | Năm (YYYY) | `null` | Năm sinh Bạn đời. Nếu `null` hoặc ở chế độ `'single'`, tự động fallback an toàn về `birthYear` để tránh lỗi tính toán. |
+| `taxParts` | `number` | Số thực (parts) | `1.0` (single) / `2.0` (married) | Số phần gia cảnh (Quotient Familial Pháp). Tự động cộng thêm 0.5 suất cho con thứ 1 & 2, +1.0 cho con thứ 3+. |
+| `workCountry` | `string` | ISO-2 (`'FR'`, `'VN'`, `'US'`, `'DE'`) | `'FR'` | Quốc gia làm việc tích lũy chính. Quyết định chế độ thuế và nguồn lương hưu mặc định. |
+| `workCity` | `string` | Tên mã định danh | `'fr_paris'` | Thành phố / khu vực làm việc (ảnh hưởng mức chi phí sinh hoạt trước hưu). |
+| `retireMode` | `string` | enum: `'domestic'`, `'relocate'`, `'hybrid'` | `'relocate'` | Chế độ hưu trí: `'domestic'` (trong nước), `'relocate'` (chuyển quốc gia), `'hybrid'` (song hành 2 nơi). |
+| `retireCountry` | `string` | ISO-2 (`'VN'`, `'FR'`, `'TH'`) | `'VN'` | Quốc gia nghỉ hưu dự kiến. Quyết định rổ chi phí PPP và tỷ lệ lạm phát chặng sau. |
+| `retireCity` | `string` | Tên mã định danh | `'vn_hcm_hn'` | Thành phố / vùng nghỉ hưu (ví dụ: `'vn_hcm_hn'`, `'vn_coastal'`). |
+| `monthlyMortgagePaidOff` | `number` | EUR / tháng | `0` | Khoản nợ mua nhà dự kiến tất toán trước khi nghỉ hưu, dùng để trừ khỏi chi phí hưu trí khi đối chiếu dòng tiền. |
+| `benchmarkSpendingStandard`| `string` | enum: `'fr_insee'`, `'user_defined'` | `'fr_insee'` | Nguồn dữ liệu mức sống chuẩn đối chiếu (INSEE Pháp, Eurostat, hoặc người dùng tự nhập). |
+| `frenchPensionDetails` | `object` | JSON lồng | Xem bên dưới | Chi tiết lương hưu Pháp cho 2 vợ chồng (`spouse1` và `spouse2`). Fallback: lấy từ `socialSecurityAnnual` và `socialSecurityAge`. |
+| `bhxhVnDetails` | `object` | JSON lồng | Xem bên dưới | Chi tiết BHXH VN cho 2 vợ chồng (`spouse1` và `spouse2`). Fallback: lấy từ `bhxhVnIncome`, `bhxhVnYears`, `bhxhVnRetireAge`. |
+
+- **Cơ chế Fallback an toàn trong `state.js`**:
+  Khi nạp kế hoạch cũ (`loadPlan` hoặc `migratePlan`):
+  - Nếu thiếu `maritalStatus`: Gán mặc định `'single'`, `spouseBirthYear: null`.
+  - Nếu thiếu `workCountry` / `retireCountry`: Suy luận từ `taxRegime` hoặc `retireLocation` (ví dụ `retireLocation === 'vietnam'` ➔ `workCountry: 'FR'`, `retireCountry: 'VN'`).
+  - Nếu thiếu `frenchPensionDetails`: Khởi tạo tự động từ `socialSecurityAge` và `socialSecurityAnnual` cho `spouse1`.
+  - Nếu thiếu `bhxhVnDetails`: Khởi tạo tự động từ `bhxhVnIncome`, `bhxhVnYears`, `bhxhVnRetireAge` cho `spouse1`.
+  - Nếu `workCountry === retireCountry` hoặc `retireMode === 'domestic'`: Tự động đặt `isSingleCountry = true`, tắt tính năng trôi dạt tỷ giá (`eurVndAnnualDrift = 0`) và hợp nhất tỷ lệ lạm phát 1 chặng.
+
+### 4.3. Cấu Trúc Kịch Bản Chia Sẻ Cộng Đồng (`CommunityTemplate Schema`)
 Cấu trúc bản ghi lưu trữ trên SQLite backend và đóng gói trong [`frontend/js/community-seed.js`](file:///Users/canhhung/Documents/pyRetrait/frontend/js/community-seed.js):
 
 ```json
@@ -225,7 +286,7 @@ Cấu trúc bản ghi lưu trữ trên SQLite backend và đóng gói trong [`fr
 }
 ```
 
-### 4.3. Cấu Trúc Trạng Thái Ứng Dụng Toàn Cục (`AppState Schema` trong `state.js`)
+### 4.4. Cấu Trúc Trạng Thái Ứng Dụng Toàn Cục (`AppState Schema` trong `state.js`)
 
 ```json
 {
