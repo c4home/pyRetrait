@@ -3,7 +3,7 @@
   "plans": {
     "plan_franco_viet": {
       "id": "plan_franco_viet",
-      "name": " Kế hoạch Franco-Viet FIRE (Pháp Việt Nam)",
+      "name": "📋 Kế hoạch Mẫu: Franco-Viet FIRE (Pháp — Việt Nam)",
       "currency": "EUR",
       "exchangeRateEurVnd": 27500,
       "currentAge": 29,
@@ -33,12 +33,14 @@
       },
       "incomes": [
         {
-          "name": "Lương tại Pháp (Net après impôt)",
+          "name": "Lương hiện tại của bạn",
           "amount": 25000,
           "startAge": 29,
           "endAge": 43,
           "growth": 2.5,
-          "taxable": true
+          "taxable": true,
+          "isSalary": true,
+          "isPrimarySalary": true
         },
         {
           "name": "Cổ tức / Thu nhập thụ động",
@@ -118,120 +120,6 @@
         "loanTermYears": 20,
         "startAge": 29,
         "propertyAppreciation": 2.5
-      }
-    },
-    "plan_baseline": {
-      "id": "plan_baseline",
-      "name": "Kế hoạch Tiêu chuẩn (Baseline FIRE)",
-      "currency": "VND",
-      "currentAge": 32,
-      "retirementAge": 45,
-      "lifeExpectancy": 85,
-      "currentSavings": 1500000000,
-      "annualSavings": 360000000,
-      "annualExpenses": 240000000,
-      "retirementExpenses": 300000000,
-      "inflationRate": 4,
-      "investmentReturnPre": 10,
-      "investmentReturnPost": 8,
-      "withdrawalStrategy": "guyton_klinger",
-      "initialWithdrawalRate": 4,
-      "targetLegacy": 1000000000,
-      "taxRegime": "international",
-      "taxRate": 10,
-      "socialSecurityAge": 62,
-      "socialSecurityAnnual": 72000000,
-      "incomes": [
-        {
-          "name": "Lương chính & Thưởng",
-          "amount": 600000000,
-          "startAge": 32,
-          "endAge": 45,
-          "growth": 5,
-          "taxable": true
-        },
-        {
-          "name": "BĐS Cho thuê / Cổ tức",
-          "amount": 120000000,
-          "startAge": 42,
-          "endAge": 85,
-          "growth": 4,
-          "taxable": true
-        }
-      ],
-      "spendingPhases": {
-        "enabled": true,
-        "gogoAge": 60,
-        "gogoFactor": 1.15,
-        "slowgoAge": 75,
-        "slowgoFactor": 0.9,
-        "nogoFactor": 0.8
-      },
-      "healthcare": {
-        "enabled": true
-      },
-      "assetAllocation": {
-        "stocks": 60,
-        "bonds": 20,
-        "realEstate": 20,
-        "cash": 0
-      }
-    },
-    "plan_aggressive": {
-      "id": "plan_aggressive",
-      "name": "Nghỉ hưu Cực sớm (Fat FIRE 40 tuổi)",
-      "currency": "VND",
-      "currentAge": 32,
-      "retirementAge": 40,
-      "lifeExpectancy": 85,
-      "currentSavings": 2500000000,
-      "annualSavings": 500000000,
-      "annualExpenses": 240000000,
-      "retirementExpenses": 360000000,
-      "inflationRate": 4,
-      "investmentReturnPre": 12,
-      "investmentReturnPost": 8.5,
-      "withdrawalStrategy": "vpw",
-      "initialWithdrawalRate": 3.8,
-      "targetLegacy": 2000000000,
-      "taxRegime": "international",
-      "taxRate": 10,
-      "socialSecurityAge": 62,
-      "socialSecurityAnnual": 72000000,
-      "incomes": [
-        {
-          "name": "Kinh doanh & Tư vấn",
-          "amount": 800000000,
-          "startAge": 32,
-          "endAge": 40,
-          "growth": 7,
-          "taxable": true
-        },
-        {
-          "name": "Thu nhập Thụ động BĐS",
-          "amount": 200000000,
-          "startAge": 40,
-          "endAge": 85,
-          "growth": 4.5,
-          "taxable": true
-        }
-      ],
-      "spendingPhases": {
-        "enabled": true,
-        "gogoAge": 55,
-        "gogoFactor": 1.2,
-        "slowgoAge": 70,
-        "slowgoFactor": 0.85,
-        "nogoFactor": 0.75
-      },
-      "healthcare": {
-        "enabled": true
-      },
-      "assetAllocation": {
-        "stocks": 80,
-        "bonds": 10,
-        "realEstate": 10,
-        "cash": 0
       }
     }
   }

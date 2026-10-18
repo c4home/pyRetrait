@@ -437,6 +437,7 @@
   }
 
   function updateTaxRegimeUI(regime) {
+    const plan = getActivePlan();
     // Masterclass and Waterfall cards are always visible
     const frAccountsCard = document.getElementById("card-french-accounts");
     const peaCard = document.getElementById("card-pea-masterclass");
@@ -446,6 +447,18 @@
     if (peaCard) peaCard.style.display = "block";
     if (avCard) avCard.style.display = "block";
     if (livretCard) livretCard.style.display = "block";
+
+    // Visual display of family taxParts (Quotient Familial)
+    const isSingle = (plan?.maritalStatus !== 'married');
+    const kidsCount = (plan?.familyPlan && plan.familyPlan.enabled !== false) ? (Number(plan.familyPlan.kidsCount) || 0) : 0;
+    const childParts = kidsCount <= 2 ? (kidsCount * 0.5) : (1.0 + (kidsCount - 2) * 1.0);
+    const computedParts = (isSingle ? 1.0 : 2.0) + childParts;
+    const taxParts = (plan?.taxParts !== undefined && plan?.taxParts !== null && Number(plan.taxParts) > 0) ? Number(plan.taxParts) : computedParts;
+
+    const elTaxParts = document.getElementById("badge-tax-parts-display");
+    if (elTaxParts) {
+      elTaxParts.innerText = `${taxParts} suất (${isSingle ? 'Độc thân' : 'Vợ chồng'}${kidsCount > 0 ? ` + ${kidsCount} con` : ''})`;
+    }
   }
 
   // Ước tính Lương hưu mục tiêu 43 năm (Taux Plein) theo chuẩn hưu trí Pháp (Réforme 2023)
@@ -475,7 +488,8 @@
 
   function getPrimarySalaryIncome(plan) {
     if (!plan || !Array.isArray(plan.incomes)) return 0;
-    const salaryStream = plan.incomes.find(s => s.isSalary || /lương|salary|wage/i.test(s.name || ""));
+    const salaryStream = plan.incomes.find(s => s.isPrimarySalary || (s.isSalary && !s.isSpouseSalary) || /lương hiện tại của bạn|lương chính/i.test(s.name || ""))
+      || plan.incomes.find(s => !s.isBhxhVn && (s.isSalary || /lương|salary|wage/i.test(s.name || "")));
     if (salaryStream && Number(salaryStream.amount) > 0) {
       return Number(salaryStream.amount);
     }
@@ -518,13 +532,39 @@
     const retireAge = parseVal("inp-retire-age", Number(p?.retirementAge) || 42);
     const baseAnnual = parseVal("inp-pension-base-annual", Number(p?.socialSecurityAnnual) || 18000);
 
-    const yearsWorked = Math.max(0, Math.min(retireAge, pensionAge) - startWork);
-    const quarters = yearsWorked * 4;
-    const targetQuarters = 172;
-    const missing = Math.max(0, targetQuarters - quarters);
-    const prorata = Math.min(1.0, quarters / targetQuarters);
-    const decotePenalty = (pensionAge < 67 && missing > 0) ? Math.min(20, missing) * 0.0125 : 0;
-    const effectivePension = Math.round(baseAnnual * prorata * (1.0 - decotePenalty));
+    let effectivePension = 0;
+    let quarters = 0;
+    let targetQuarters = 172;
+    let missing = 0;
+    let decotePenalty = 0;
+    let prorata = 0;
+    let yearsWorked = Math.max(0, Math.min(retireAge, pensionAge) - startWork);
+
+    if (window.TaxOptimizer && window.TaxOptimizer.calculateFrenchPension) {
+      if (p?.maritalStatus === 'married' && p?.frenchPensionDetails) {
+        const fpRes = window.TaxOptimizer.calculateFrenchPension(p.frenchPensionDetails);
+        effectivePension = fpRes.totalAnnualPension;
+        const sp1 = fpRes.spouse1 || {};
+        quarters = sp1.trimestresAcquis || (yearsWorked * 4);
+        targetQuarters = sp1.trimestresRequis || 172;
+        yearsWorked = sp1.yearsWorked || yearsWorked;
+      } else {
+        const fpRes = window.TaxOptimizer.calculateFrenchPension(baseAnnual, startWork, Math.min(retireAge, pensionAge), pensionAge);
+        effectivePension = fpRes.totalAnnualPension;
+        quarters = fpRes.trimestresAcquis;
+        targetQuarters = fpRes.trimestresRequis;
+        yearsWorked = fpRes.yearsWorked;
+      }
+      missing = Math.max(0, targetQuarters - quarters);
+      prorata = Math.min(1.0, quarters / targetQuarters);
+      decotePenalty = (pensionAge < 67 && missing > 0) ? Math.min(20, missing) * 0.0125 : 0;
+    } else {
+      quarters = yearsWorked * 4;
+      missing = Math.max(0, targetQuarters - quarters);
+      prorata = Math.min(1.0, quarters / targetQuarters);
+      decotePenalty = (pensionAge < 67 && missing > 0) ? Math.min(20, missing) * 0.0125 : 0;
+      effectivePension = Math.round(baseAnnual * prorata * (1.0 - decotePenalty));
+    }
 
     const lblQuarters = document.getElementById("lbl-pension-quarters");
     const lblDecote = document.getElementById("lbl-pension-decote");
@@ -647,8 +687,22 @@
 
     const monthlyPayVnd = Math.round(incomeVal * 0.22);
     const pensionRate = (yearsVal === 15) ? 0.45 : (0.45 + (yearsVal - 15) * 0.02);
-    const monthlyPensionVnd = Math.round(incomeVal * pensionRate);
-    const annualPensionVnd = monthlyPensionVnd * 12;
+    let monthlyPensionVnd = Math.round(incomeVal * pensionRate);
+    let annualPensionVnd = monthlyPensionVnd * 12;
+
+    if (window.TaxOptimizer && window.TaxOptimizer.calculateVietnamBhxhPension) {
+      if (p?.maritalStatus === 'married' && p?.bhxhVnDetails) {
+        const bhxhRes = window.TaxOptimizer.calculateVietnamBhxhPension(p.bhxhVnDetails);
+        monthlyPensionVnd = Number(bhxhRes.totalMonthlyPensionVnd ?? bhxhRes.monthlyPensionVnd) || 0;
+        annualPensionVnd = Number(bhxhRes.totalAnnualPensionVnd ?? bhxhRes.annualPensionVnd) || (monthlyPensionVnd * 12);
+      } else {
+        const bhxhRes = window.TaxOptimizer.calculateVietnamBhxhPension(incomeVal, yearsVal, 'male', retireAgeVal);
+        monthlyPensionVnd = Number(bhxhRes.monthlyPensionVnd) || 0;
+        annualPensionVnd = Number(bhxhRes.annualPensionVnd) || (monthlyPensionVnd * 12);
+      }
+    }
+    monthlyPensionVnd = Number(monthlyPensionVnd) || 0;
+    annualPensionVnd = Number(annualPensionVnd) || (monthlyPensionVnd * 12);
     const eurRate = Number(p.exchangeRateEurVnd) || 27500;
     const cur = p.currency || state.currency || 'EUR';
 
@@ -857,14 +911,14 @@
       const cashflow = (p.lmnpEnabled !== false) ? round(annualRent) : 0;
       if (reIdx >= 0) {
         // Update rental income amount while preserving user-configured startAge, endAge and growth
-        p.incomes[reIdx].name = 'Doanh thu BĐS LMNP Pháp';
+        p.incomes[reIdx].name = 'Doanh thu BDS';
         p.incomes[reIdx].amount = cashflow;
         if (p.incomes[reIdx].startAge === undefined || p.incomes[reIdx].startAge === null) p.incomes[reIdx].startAge = curAge;
         if (p.incomes[reIdx].endAge === undefined || p.incomes[reIdx].endAge === null) p.incomes[reIdx].endAge = 85;
         if (p.incomes[reIdx].growth === undefined || p.incomes[reIdx].growth === null) p.incomes[reIdx].growth = 1.5;
         p.incomes[reIdx].taxable = false;
       } else {
-        p.incomes.push({ name: 'Doanh thu BĐS LMNP Pháp', amount: cashflow, startAge: curAge, endAge: 85, growth: 1.5, taxable: false });
+        p.incomes.push({ name: 'Doanh thu BDS', amount: cashflow, startAge: curAge, endAge: 85, growth: 1.5, taxable: false });
       }
     } else if (reIdx >= 0) {
       p.incomes.splice(reIdx, 1);
@@ -1018,7 +1072,7 @@
     }
 
     // Amounts calculation
-    const lmnpStream = (p.incomes || []).find(inc => /lmnp|doanh thu bđs lmnp/i.test(inc.name || ''));
+    const lmnpStream = (p.incomes || []).find(inc => /lmnp|doanh thu bđs|doanh thu bds/i.test(inc.name || ''));
     const totalEffectiveRentEur = apts.reduce((acc, a) => {
       const eff = Number(a.effective_monthly_rent) || (Number(a.monthly_rent) * (1 - (Number(a.vacancy_pct !== undefined ? a.vacancy_pct : 5.0) / 100.0))) || 0;
       return acc + eff;
@@ -1359,11 +1413,20 @@
       pfuComparisonTax: 0,
       taxSavedVsPFU: 0
     };
+    const isSingle = (plan?.maritalStatus !== 'married');
+    const kidsCount = (plan?.familyPlan && plan.familyPlan.enabled !== false) ? (Number(plan.familyPlan.kidsCount) || 0) : 0;
+    const childParts = kidsCount <= 2 ? (kidsCount * 0.5) : (1.0 + (kidsCount - 2) * 1.0);
+    const computedParts = (isSingle ? 1.0 : 2.0) + childParts;
+    const taxParts = (plan?.taxParts !== undefined && plan?.taxParts !== null && Number(plan.taxParts) > 0) ? Number(plan.taxParts) : computedParts;
+
     if (window.TaxOptimizer && window.TaxOptimizer.calculateTaxDetailed) {
       taxDetailed = window.TaxOptimizer.calculateTaxDetailed(grossIncome, taxRegime, {
         customTaxRate: plan.taxRate,
         currency: plan.currency || state.currency,
-        exchangeRateEurVnd: 27500
+        exchangeRateEurVnd: 27500,
+        maritalStatus: plan.maritalStatus || (isSingle ? 'single' : 'married'),
+        kidsCount: kidsCount,
+        taxParts: taxParts
       });
     }
 

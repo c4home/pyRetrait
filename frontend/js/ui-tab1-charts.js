@@ -167,6 +167,8 @@
     }
 
 
+
+
     // Scenario Stress Test Buttons
     document.querySelectorAll(".scenario-btn").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -398,8 +400,6 @@
       const badgeInlineText = isPassed ? t('stress_pass_tag', 'Vượt qua') : t('stress_fail_tag', 'Nguy cơ');
       
       const scName = (lang === 'en' ? sc.nameEn : (lang === 'fr' ? sc.nameFr : sc.nameVi)) || sc.nameVi;
-      const scDesc = (lang === 'en' ? sc.descEn : (lang === 'fr' ? sc.descFr : sc.descVi)) || sc.descVi;
-      const scAdvice = (lang === 'en' ? sc.adviceEn : (lang === 'fr' ? sc.adviceFr : sc.adviceVi)) || sc.adviceVi;
 
       let valueText = '';
       let descText = '';
@@ -454,17 +454,7 @@
             <span class="stress-badge-inline ${badgeInlineClass}">${badgeInlineText}</span>
           </div>
 
-          <div class="stress-box-drawer">
-            <div class="stress-drawer-section">
-              <span class="stress-drawer-label">📖 ${t('stress_mechanism_label', 'Bản chất rủi ro:')}</span>
-              <p class="stress-drawer-content">${scDesc}</p>
-            </div>
-            <div class="stress-drawer-section advice-section">
-              <span class="stress-drawer-label">💡 ${t('stress_advice_label', 'Mẹo phòng thủ chiến thuật:')}</span>
-              <p class="stress-drawer-content">${scAdvice}</p>
-            </div>
-            ${gapDetailsHtml}
-          </div>
+          ${gapDetailsHtml}
         </div>
       `;
     }).join('');

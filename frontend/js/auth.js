@@ -33,8 +33,14 @@ const Auth = (function() {
   function logout() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    // Xóa sạch dữ liệu kế hoạch và BĐS cá nhân để trở về profil mẫu nguyên bản
+    localStorage.removeItem("pyRetrait_plans_v2");
+    localStorage.removeItem("pyRetrait_guest_patrimoine_v2");
+    if (typeof sessionStorage !== "undefined") {
+      sessionStorage.clear();
+    }
     updateAuthUI();
-    // Reload page or re-fetch plans to show clean state
+    // Reload page để nạp lại đúng 1 profil mẫu mặc định từ server
     window.location.reload();
   }
 
@@ -82,6 +88,8 @@ const Auth = (function() {
       updateAuthUI();
       return null;
     }
+    // Cập nhật UI ngay lập tức từ cache để tránh giật giao diện
+    updateAuthUI();
     try {
       const res = await fetch("/api/auth/me", {
         headers: getAuthHeaders()
@@ -116,15 +124,24 @@ const Auth = (function() {
 
     if (!btn) return;
 
-    if (user && user.name) {
-      if (label) label.textContent = user.name;
+    if (user && (user.name || user.email)) {
+      const displayName = user.name || (user.email ? user.email.split("@")[0] : "Tài khoản");
+      if (label) {
+        label.removeAttribute("data-i18n");
+        label.textContent = displayName;
+      }
       if (icon) icon.textContent = "";
       btn.classList.add("btn-user-logged");
-      btn.title = `Đã đăng nhập: ${user.email}`;
-      if (nameEl) nameEl.textContent = user.name;
-      if (emailEl) emailEl.textContent = user.email;
+      btn.title = `Đã đăng nhập: ${user.email || displayName}`;
+      if (nameEl) nameEl.textContent = displayName;
+      if (emailEl) emailEl.textContent = user.email || "";
     } else {
-      if (label) label.textContent = "Đăng Nhập / Đăng Ký";
+      if (label) {
+        label.setAttribute("data-i18n", "auth_login");
+        label.textContent = (window.I18n && typeof window.I18n.t === "function") 
+          ? window.I18n.t("auth_login") 
+          : "Đăng Nhập";
+      }
       if (icon) icon.textContent = "";
       btn.classList.remove("btn-user-logged");
       btn.title = "Đăng nhập để đồng bộ kế hoạch lên đám mây";
@@ -187,57 +204,95 @@ const Auth = (function() {
   async function syncGuestDataToCloud() {
     const headers = getAuthHeaders();
 
-    // 1. Sync guest real estate & Turo patrimoine ONLY if user cloud account has no apartments yet
-    const guestPat = localStorage.getItem("pyRetrait_guest_patrimoine_v2");
-    if (guestPat) {
-      try {
-        const checkPat = await fetch("/api/patrimoine", { headers });
-        if (checkPat.ok) {
-          const cloudPat = await checkPat.json();
-          const cloudApts = (cloudPat && cloudPat.apartments) || {};
-          const hasCloudApts = Object.keys(cloudApts).length > 0;
-          if (!hasCloudApts) {
-            await fetch("/api/patrimoine", {
-              method: "POST",
-              headers,
-              body: guestPat
-            });
-          }
+    // 1. Tải dữ liệu BĐS & Patrimoine của người dùng từ cloud
+    try {
+      const checkPat = await fetch("/api/patrimoine", { headers });
+      if (checkPat.ok) {
+        const cloudPat = await checkPat.json();
+        const cloudApts = (cloudPat && cloudPat.apartments) || {};
+        const hasCloudApts = Object.keys(cloudApts).length > 0;
+        const guestPat = localStorage.getItem("pyRetrait_guest_patrimoine_v2");
+        if (!hasCloudApts && guestPat) {
+          await fetch("/api/patrimoine", {
+            method: "POST",
+            headers,
+            body: guestPat
+          });
+        } else if (cloudPat) {
+          localStorage.setItem("pyRetrait_guest_patrimoine_v2", JSON.stringify(cloudPat));
         }
-        localStorage.removeItem("pyRetrait_guest_patrimoine_v2");
-      } catch (e) {
-        console.warn("Failed to check/sync guest patrimoine to cloud:", e);
       }
+    } catch (e) {
+      console.warn("Failed to check/sync patrimoine:", e);
     }
 
-    // 2. Sync FIRE plans: if cloud account has existing plans, load them into this browser;
-    // only if cloud has no plans at all, upload guest plans.
-    const guestPlans = localStorage.getItem("pyRetrait_plans_v2");
+    // 2. Tải toàn bộ Kế hoạch FIRE cá nhân của người dùng từ cloud
     try {
       const resCheck = await fetch("/api/plans", { headers });
       if (resCheck.ok) {
         const cloudPlans = await resCheck.json();
         const hasCloudPlans = cloudPlans && cloudPlans.plans && Object.keys(cloudPlans.plans).length > 0;
-
-        if (!hasCloudPlans && guestPlans) {
-          // Cloud account is brand new / empty -> upload guest plans
-          await fetch("/api/plans", {
-            method: "POST",
-            headers,
-            body: guestPlans
-          });
-        } else if (hasCloudPlans) {
-          // Cloud account already has plans -> load them to localStorage so this browser is instantly identical
+        if (hasCloudPlans) {
+          // Nạp thẳng kế hoạch cá nhân của người dùng vào localStorage của phiên làm việc
           localStorage.setItem("pyRetrait_plans_v2", JSON.stringify(cloudPlans));
         }
       }
     } catch (e) {
-      console.warn("Failed to check/sync guest plans:", e);
+      console.warn("Failed to check/sync plans from cloud:", e);
+    }
+  }
+
+  function handleLogout(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const dropdown = document.getElementById("user-dropdown");
+    if (dropdown) dropdown.classList.remove("show");
+
+    const logoutTitle = (window.I18n && typeof window.I18n.t === "function")
+      ? window.I18n.t("auth_logout", "Đăng xuất")
+      : "Đăng xuất";
+    const logoutMsg = (window.I18n && typeof window.I18n.t === "function")
+      ? window.I18n.t("auth_logout_confirm", "Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?")
+      : "Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?";
+
+    if (window.ModalsUI && typeof window.ModalsUI.showConfirmDialog === "function") {
+      window.ModalsUI.showConfirmDialog({
+        title: logoutTitle,
+        message: logoutMsg,
+        type: "warning",
+        confirmText: logoutTitle,
+        onConfirm: () => {
+          logout();
+        }
+      });
+      return;
+    }
+
+    if (window.showConfirmDialog && typeof window.showConfirmDialog === "function") {
+      window.showConfirmDialog({
+        title: logoutTitle,
+        message: logoutMsg,
+        type: "warning",
+        confirmText: logoutTitle,
+        onConfirm: () => {
+          logout();
+        }
+      });
+      return;
+    }
+
+    if (window.confirm(logoutMsg)) {
+      logout();
     }
   }
 
   function init() {
     verifyCurrentSession();
+
+    // Đồng bộ lại nhãn hoặc tên user khi đổi ngôn ngữ
+    window.addEventListener("pyretrait:language-changed", updateAuthUI);
 
     // Trigger button
     const btn = document.getElementById("auth-btn-trigger");
@@ -261,12 +316,10 @@ const Auth = (function() {
     });
 
     // Logout
-    document.getElementById("auth-logout-btn")?.addEventListener("click", (e) => {
-      e.preventDefault();
-      if (confirm("Bạn có chắc chắn muốn đăng xuất?")) {
-        logout();
-      }
-    });
+    const logoutBtn = document.getElementById("auth-logout-btn");
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", handleLogout);
+    }
 
     // Modal Close
     document.getElementById("btn-close-auth-modal")?.addEventListener("click", closeAuthModal);
@@ -363,7 +416,11 @@ const Auth = (function() {
     });
   }
 
-  document.addEventListener("DOMContentLoaded", init);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
 
   return {
     getToken,
@@ -372,7 +429,9 @@ const Auth = (function() {
     getAuthHeaders,
     openAuthModal,
     closeAuthModal,
-    logout
+    updateAuthUI,
+    logout,
+    logoutConfirm: handleLogout
   };
 })();
 

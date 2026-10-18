@@ -1,0 +1,47 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run check)",
+      "Bash(npm run check:*)",
+      "Bash(npm run build)",
+      "Bash(go build:*)",
+      "Bash(go vet:*)",
+      "Bash(go test:*)",
+      "Bash(gofmt -l:*)",
+      "Bash(wails3 generate bindings -ts -i)",
+      "Bash(wails3 task version)",
+      "Bash(wails3 task --list)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git worktree list)",
+      "Bash(ls:*)",
+      "Bash(wc:*)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(rm -rf:*)",
+      "Bash(wails3 build:*)",
+      "Bash(wails3 task version:bump:*)",
+      "Bash(wails3 task release:*)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/stop-check.mjs",
+            "timeout": 240,
+            "statusMessage": "Type-checking changed files..."
+          }
+        ]
+      }
+    ]
+  }
+}

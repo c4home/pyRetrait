@@ -122,6 +122,105 @@
         spouse2: { gender: 'female', yearsContributed: 20, monthlySalaryVnd: 10000000, claimAge: 60 }
       };
     }
+    syncSalaryStreamsWithMaritalStatus(plan);
+    return plan;
+  }
+
+  function syncSalaryStreamsWithMaritalStatus(plan) {
+    if (!plan || typeof plan !== 'object') return plan;
+    if (!Array.isArray(plan.incomes)) plan.incomes = [];
+
+    const isMarried = (plan.maritalStatus === 'married');
+    const curAge = Number(plan.currentAge) || 29;
+    const rAge = Number(plan.retirementAge) || 43;
+    const curYear = new Date().getFullYear();
+    const spouseBYear = Number(plan.spouseBirthYear) || (curYear - (Number(plan.spouseAge) || curAge));
+    const spouseAge = curYear - spouseBYear;
+    const cur = plan.currency || state.currency || 'EUR';
+
+    // 1. Chuẩn hóa tên các luồng cũ: "Lương tại Pháp..." -> "Lương hiện tại của bạn"
+    plan.incomes.forEach(stream => {
+      if (!stream || typeof stream !== 'object') return;
+      const name = (stream.name || "").trim();
+      if (/lương tại pháp|luong tai phap|lương tại/i.test(name)) {
+        stream.name = "Lương hiện tại của bạn";
+        stream.isSalary = true;
+        stream.isPrimarySalary = true;
+      } else if (stream.isSpouseSalary || /lương.*(bạn đời|vợ|chồng)|salaire.*conjoint|spouse.*salary/i.test(name)) {
+        stream.name = "Lương hiện tại của bạn đời";
+        stream.isSalary = true;
+        stream.isSpouseSalary = true;
+      } else if (stream.isSalary && !stream.isSpouseSalary) {
+        stream.isPrimarySalary = true;
+      }
+    });
+
+    // 2. Tìm thẻ lương của bạn (Primary salary)
+    let primarySalary = plan.incomes.find(s => s && (s.isPrimarySalary || /lương hiện tại của bạn|lương chính/i.test(s.name || "")));
+    if (!primarySalary) {
+      primarySalary = plan.incomes.find(s => s && !s.isBhxhVn && !s.isSpouseSalary && (/lương|salary/i.test(s.name || "")));
+    }
+
+    if (!primarySalary && !plan.primarySalaryRemoved) {
+      const defaultAmt = cur === 'VND' ? 250000000 : (cur === 'USD' ? 30000 : 25000);
+      primarySalary = {
+        name: "Lương hiện tại của bạn",
+        amount: defaultAmt,
+        startAge: curAge,
+        endAge: rAge,
+        growth: 2.5,
+        taxable: true,
+        isSalary: true,
+        isPrimarySalary: true
+      };
+      plan.incomes.unshift(primarySalary);
+    } else if (primarySalary) {
+      primarySalary.isSalary = true;
+      primarySalary.isPrimarySalary = true;
+      if (!primarySalary.name || /lương tại/i.test(primarySalary.name)) {
+        primarySalary.name = "Lương hiện tại của bạn";
+      }
+    }
+
+    // 3. Phân nhánh theo Profil: 1 người (Cá nhân) vs 2 người (Vợ chồng)
+    if (!isMarried) {
+      // Hồ sơ 1 người: loại bỏ thẻ lương bạn đời
+      plan.incomes = plan.incomes.filter(s => {
+        if (!s || typeof s !== 'object') return false;
+        const isSpouse = s.isSpouseSalary || /lương.*(bạn đời|vợ|chồng)|salaire.*conjoint|spouse.*salary/i.test(s.name || "");
+        return !isSpouse;
+      });
+    } else {
+      // Hồ sơ 2 người (Vợ chồng): Tự động thêm thẻ "Lương hiện tại của bạn đời" nếu chưa có
+      let spouseSalary = plan.incomes.find(s => s && (s.isSpouseSalary || /lương.*(bạn đời|vợ|chồng)|salaire.*conjoint|spouse.*salary/i.test(s.name || "")));
+      if (!spouseSalary && !plan.spouseSalaryRemoved) {
+        const primaryAmt = Number(primarySalary ? primarySalary.amount : 0) || (cur === 'VND' ? 250000000 : 25000);
+        const spouseAmt = Math.round((primaryAmt * 0.8) / 100) * 100;
+        spouseSalary = {
+          name: "Lương hiện tại của bạn đời",
+          amount: spouseAmt,
+          startAge: spouseAge,
+          endAge: rAge,
+          growth: (primarySalary && primarySalary.growth !== undefined && primarySalary.growth !== null) ? primarySalary.growth : 2.5,
+          taxable: true,
+          isSalary: true,
+          isSpouseSalary: true
+        };
+        const pIdx = primarySalary ? plan.incomes.indexOf(primarySalary) : -1;
+        if (pIdx >= 0) {
+          plan.incomes.splice(pIdx + 1, 0, spouseSalary);
+        } else {
+          plan.incomes.push(spouseSalary);
+        }
+      } else if (spouseSalary) {
+        spouseSalary.isSalary = true;
+        spouseSalary.isSpouseSalary = true;
+        if (!spouseSalary.name || /lương.*(bạn đời|vợ|chồng)/i.test(spouseSalary.name)) {
+          spouseSalary.name = "Lương hiện tại của bạn đời";
+        }
+      }
+    }
+
     return plan;
   }
 
@@ -209,70 +308,58 @@
   async function loadInitialPlans() {
     const isLogged = window.Auth && window.Auth.isLoggedIn();
 
-    // 1. If user is logged in: fetch their personal cloud data from backend API
+    // 1. Khi ĐÃ ĐĂNG NHẬP: tải hồ sơ / kế hoạch cá nhân của người dùng từ API Cloud
     if (isLogged) {
       try {
         const headers = window.Auth.getAuthHeaders();
         const res = await fetch("/api/plans", { headers });
         if (res.ok) {
           const cloudPlans = await res.json();
-          const localSaved = localStorage.getItem(STORAGE_KEY);
-          let useCloud = true;
-          if (localSaved) {
-            try {
-              const localParsed = JSON.parse(localSaved);
-              if (localParsed && localParsed.updatedAt && (!cloudPlans || !cloudPlans.updatedAt || localParsed.updatedAt >= cloudPlans.updatedAt)) {
-                state.plansData = localParsed;
-                useCloud = false;
-                fetch("/api/plans", {
-                  method: "POST",
-                  headers,
-                  body: JSON.stringify(localParsed),
-                  keepalive: true
-                }).catch(() => {});
-              }
-            } catch (err) {}
-          }
-          if (useCloud) {
+          if (cloudPlans && cloudPlans.plans && Object.keys(cloudPlans.plans).length > 0) {
             state.plansData = cloudPlans;
+            Object.values(state.plansData.plans).forEach(p => ensurePlanDefaults(p));
+            applySavedUserPreferences(state.plansData);
+            state.currency = getActivePlan()?.currency || 'EUR';
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state.plansData));
+            emit('plans-loaded', state.plansData);
+            return state.plansData;
           }
+        }
+      } catch (e) {
+        console.log("Backend API not reachable for logged in user, checking local cache:", e);
+      }
+
+      // Fallback cache nội bộ của user nếu mất mạng tạm thời
+      const localSaved = localStorage.getItem(STORAGE_KEY);
+      if (localSaved) {
+        try {
+          state.plansData = JSON.parse(localSaved);
           if (state.plansData && state.plansData.plans) {
             Object.values(state.plansData.plans).forEach(p => ensurePlanDefaults(p));
           }
           applySavedUserPreferences(state.plansData);
           state.currency = getActivePlan()?.currency || 'EUR';
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(state.plansData));
           emit('plans-loaded', state.plansData);
           return state.plansData;
-        }
-      } catch (e) {
-        console.log("Backend API not reachable for logged in user, falling back to localStorage");
+        } catch (e) {}
       }
     }
 
-    // 2. Guest Mode: read strictly from this browser's own localStorage
-    const savedLocal = localStorage.getItem(STORAGE_KEY);
-    if (savedLocal) {
-      try {
-        state.plansData = JSON.parse(savedLocal);
-        if (state.plansData && state.plansData.plans) {
-          Object.values(state.plansData.plans).forEach(p => ensurePlanDefaults(p));
-        }
-        applySavedUserPreferences(state.plansData);
-        state.currency = getActivePlan()?.currency || 'EUR';
-        emit('plans-loaded', state.plansData);
-        return state.plansData;
-      } catch (e) {
-        console.error("Failed to parse localStorage:", e);
-      }
-    }
-
-    // 3. New Guest on this device: fetch pristine default template from server
+    // 2. Khi CHƯA ĐĂNG NHẬP (Chế độ Khách): LUÔN chỉ nạp duy nhất 1 Profil Mẫu từ Server
     try {
       const res = await fetch("/api/plans");
       if (res.ok) {
         state.plansData = await res.json();
         if (state.plansData && state.plansData.plans) {
+          // Bảo đảm tuyệt đối: chế độ khách chỉ có duy nhất 1 profil mẫu
+          const planIds = Object.keys(state.plansData.plans);
+          if (planIds.length > 1) {
+            const sampleId = state.plansData.activePlanId && state.plansData.plans[state.plansData.activePlanId]
+              ? state.plansData.activePlanId
+              : planIds[0];
+            state.plansData.plans = { [sampleId]: state.plansData.plans[sampleId] };
+            state.plansData.activePlanId = sampleId;
+          }
           Object.values(state.plansData.plans).forEach(p => ensurePlanDefaults(p));
         }
         applySavedUserPreferences(state.plansData);
@@ -282,51 +369,50 @@
         return state.plansData;
       }
     } catch (e) {
-      console.log("Server template not reachable, using hardcoded defaults");
+      console.log("Server template not reachable for guest, using pristine hardcoded sample");
     }
 
-    // 4. Fallback hardcoded default
+    // 3. Fallback nguyên bản offline: duy nhất 1 profil mẫu chuẩn Franco-Viet
     state.plansData = {
-      activePlanId: "plan_baseline",
+      activePlanId: "plan_franco_viet",
       plans: {
-        plan_baseline: {
-          id: "plan_baseline",
-          name: "Kế hoạch Tiêu chuẩn (Baseline FIRE)",
-          currency: "VND",
-          currentAge: 32,
-          retirementAge: 45,
+        plan_franco_viet: {
+          id: "plan_franco_viet",
+          name: "📋 Kế hoạch Mẫu: Franco-Viet FIRE (Pháp — Việt Nam)",
+          currency: "EUR",
+          currentAge: 29,
+          birthYear: 1997,
+          retirementAge: 43,
           lifeExpectancy: 85,
-          currentSavings: 1500000000,
-          annualSavings: 360000000,
-          annualExpenses: 240000000,
-          retirementExpenses: 300000000,
-          inflationRate: 4.0,
-          investmentReturnPre: 10.0,
-          investmentReturnPost: 8.0,
-          withdrawalStrategy: "guyton_klinger",
+          currentSavings: 10000,
+          annualSavings: 10685,
+          annualExpenses: 21373,
+          retirementExpenses: 5400,
+          baseRetireMonthly: 1000,
+          inflationRate: 2.5,
+          investmentReturnPre: 5.8,
+          investmentReturnPost: 7.5,
+          withdrawalStrategy: "fixed_pct",
           initialWithdrawalRate: 4.0,
-          targetLegacy: 1000000000,
-          taxRegime: "international",
-          taxRate: 10.0,
-          socialSecurityAge: 62,
-          socialSecurityAnnual: 72000000,
+          targetLegacy: 100000,
+          taxRegime: "france_vietnam",
+          taxRate: 12.0,
+          socialSecurityAge: 65,
+          socialSecurityAnnual: 7200,
+          frenchAccounts: { peaBalance: 35000, assuranceVieBalance: 10000, livretABalance: 5000, perBalance: 0 },
           incomes: [
-            { name: "Lương chính & Thưởng", amount: 600000000, startAge: 32, endAge: 45, growth: 5.0 },
-            { name: "BĐS Cho thuê / Cổ tức", amount: 120000000, startAge: 42, endAge: 85, growth: 4.0 }
+            { name: "Lương hiện tại của bạn", amount: 25000, startAge: 29, endAge: 43, growth: 2.5, taxable: true, isSalary: true, isPrimarySalary: true },
+            { name: "Cổ tức / Thu nhập thụ động", amount: 2400, startAge: 38, endAge: 85, growth: 4.0, taxable: false },
+            { name: " BĐS Cho thuê LMNP Pháp", amount: 6912, startAge: 29, endAge: 85, growth: 1.5, taxable: false },
+            { name: " Đội xe Cho thuê Turo", amount: 2805, startAge: 29, endAge: 39, growth: 0, taxable: false }
           ],
-          spendingPhases: {
-            enabled: true,
-            gogoAge: 60,
-            gogoFactor: 1.15,
-            slowgoAge: 75,
-            slowgoFactor: 0.90,
-            nogoFactor: 0.80
-          },
-          healthcare: { enabled: true }
+          spendingPhases: { enabled: true, gogoAge: 55, gogoFactor: 1.15, slowgoAge: 70, slowgoFactor: 0.90, nogoFactor: 0.80 },
+          healthcare: { enabled: true },
+          assetAllocation: { stocks: 60, bonds: 20, realEstate: 20, cash: 0 }
         }
       }
     };
-    ensurePlanDefaults(state.plansData.plans.plan_baseline);
+    ensurePlanDefaults(state.plansData.plans.plan_franco_viet);
     savePlansToStorage();
     emit('plans-loaded', state.plansData);
     return state.plansData;
@@ -346,6 +432,7 @@
     getActiveTab,
     setActiveTab,
     ensurePlanDefaults,
+    syncSalaryStreamsWithMaritalStatus,
     applySavedUserPreferences,
     savePlansToStorage,
     debouncedSavePlansToStorage,

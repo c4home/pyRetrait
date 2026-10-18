@@ -32,6 +32,7 @@
       "auth_account": "Tài khoản",
       "auth_synced": "Đã đồng bộ đám mây",
       "auth_logout": "Đăng xuất",
+      "auth_logout_confirm": "Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?",
       "theme_toggle_title": "Chuyển đổi giao diện Sáng/Tối",
 
       // Navigation Sidebar
@@ -67,10 +68,16 @@
       "col2_expense_header": "Các Luồng Chi Tiêu",
       "btn_add_income": "+ Thêm thu nhập",
       "btn_add_expense": "+ Thêm khoản chi",
+      "income_salary_primary": "Lương hiện tại của bạn",
+      "income_salary_spouse": "Lương hiện tại của bạn đời",
+      "badge_primary_salary": "Bạn",
+      "badge_spouse_salary": "Bạn đời",
+      "placeholder_income_name": "Ví dụ: Lương hiện tại của bạn, Lương bạn đời, BĐS cho thuê, Cổ tức ETF...",
       "card_withdrawal_strategy": "Chiến Lược Rút Tiền Hưu Trí",
-      "card_asset_allocation": "Phân bổ Danh mục & Tái cân bằng",
+      "card_asset_allocation": "Danh mục đầu tư",
       "card_french_pension": "Lương hưu Pháp (Agirc-Arrco / CNAV)",
       "card_vn_pension": "Lương hưu BHXH Tự Nguyện Việt Nam",
+      "card_lmnp_stream": "Doanh thu BDS",
       "card_lmnp_turo": "Doanh thu BĐS LMNP & Cho thuê xe Turo",
       "card_senior_care": "Dự phòng Chăm sóc Tuổi Già (78t+)",
       "card_family_plan": "Kế Hoạch Con Cái & Gia Đình",
@@ -117,14 +124,8 @@
       "legend_forecast_assets": "Dự báo Tài sản",
       "legend_total_networth": "Tổng Tài sản Ròng",
       "legend_networth_realestate": "Tổng Tài sản Ròng (gồm BĐS)",
-      "why_liquid_portfolio_title": "Vì sao \"Tiền Mặt & Quỹ Đầu Tư\" quan trọng hơn cả Tổng tài sản khi về hưu?",
-      "why_liquid_badge": "Chỉ số Dòng tiền Sống còn",
-      "why_liquid_point1_title": "Bất động sản không thể \"cắt ra tiêu dần\"",
-      "why_liquid_point1_desc": "Căn nhà bạn ở có thể trị giá nhiều tỷ, nhưng không thể bẻ từng viên gạch để đi chợ, trả tiền điện hay viện phí. BĐS bị khóa cứng và không tạo ra tiền mặt nếu chưa bán hoặc cho thuê.",
-      "why_liquid_point2_title": "Bình dưỡng khí nuôi sống gia đình",
-      "why_liquid_point2_desc": "Tiền mặt, tiền gửi tiết kiệm, chứng khoán, chứng chỉ quỹ... là nguồn tiền rút ra đều đặn hàng tháng để chi trả sinh hoạt mà không làm xáo trộn chỗ ở của gia đình.",
-      "why_liquid_point3_title": "Tránh bẫy \"Giàu nhà đất, thiếu tiền mặt\"",
-      "why_liquid_point3_desc": "Nếu hết tiền mặt và quỹ đầu tư quá sớm, bạn sẽ rơi vào thế bị động: buộc phải bán tháo nhà đất giá rẻ lúc thị trường đóng băng để lấy tiền sinh sống. Giữ tiền mặt và quỹ đầu tư an toàn là giữ vững tự do bền vững.",
+      "why_liquid_strip_title": "Tiền Mặt & Quỹ Đầu Tư quan trọng hơn Tổng tài sản (gồm bất động sản)",
+      "why_liquid_strip_desc": "vì nó tạo dòng tiền hàng tháng để chi trả sinh hoạt (Căn nhà bạn ở có thể trị giá nhiều tỷ, nhưng không thể bẻ từng viên gạch để đi chợ, trả tiền điện hay viện phí) và tránh bẫy hết tiền mặt và quỹ đầu tư quá sớm, bạn sẽ rơi vào thế bị động phải bán tháo nhà đất khi về hưu.",
 
       // Actions & Generic
       "btn_edit": "Sửa",
@@ -253,6 +254,7 @@
       "auth_account": "Account",
       "auth_synced": "Cloud Synced",
       "auth_logout": "Sign Out",
+      "auth_logout_confirm": "Are you sure you want to sign out of your account?",
       "theme_toggle_title": "Toggle Light/Dark Theme",
 
       // Navigation Sidebar
@@ -288,10 +290,16 @@
       "col2_expense_header": "Expense Streams",
       "btn_add_income": "+ Add Income",
       "btn_add_expense": "+ Add Expense",
+      "income_salary_primary": "Your Current Salary",
+      "income_salary_spouse": "Spouse's Current Salary",
+      "badge_primary_salary": "You",
+      "badge_spouse_salary": "Spouse",
+      "placeholder_income_name": "e.g. Your current salary, Spouse salary, Rental property, ETF dividends...",
       "card_withdrawal_strategy": "Retirement Withdrawal Strategy",
-      "card_asset_allocation": "Asset Allocation & Rebalancing",
+      "card_asset_allocation": "Investment Portfolio",
       "card_french_pension": "French Pension (Agirc-Arrco / CNAV)",
       "card_vn_pension": "Vietnam Voluntary Social Security Pension",
+      "card_lmnp_stream": "Real Estate Income",
       "card_lmnp_turo": "LMNP Real Estate & Turo Fleet Income",
       "card_senior_care": "Senior Long-Term Care Reserve (Age 78+)",
       "card_family_plan": "Children & Family Planning",
@@ -338,14 +346,8 @@
       "legend_forecast_assets": "Forecast Assets",
       "legend_total_networth": "Total Net Worth",
       "legend_networth_realestate": "Total Net Worth (incl. Real Estate)",
-      "why_liquid_portfolio_title": "Why is the \"Liquid Portfolio\" more critical than Net Worth in retirement?",
-      "why_liquid_badge": "Vital Cash Flow Metric",
-      "why_liquid_point1_title": "Real estate cannot be spent in slices",
-      "why_liquid_point1_desc": "Your home may be worth a lot, but you cannot peel off bricks to buy groceries, pay utility bills, or cover medical care. Property is locked capital and generates no liquid cash unless sold or rented out.",
-      "why_liquid_point2_title": "Your family's living cash lifeline",
-      "why_liquid_point2_desc": "The liquid portfolio (savings, stocks, index funds, bonds) is the capital pool you withdraw from each month to fund your daily living expenses without disrupting your family's housing.",
-      "why_liquid_point3_title": "Avoid the \"House-Rich, Cash-Poor\" trap",
-      "why_liquid_point3_desc": "If liquid funds run dry, you will be forced to sell your home at a discount during a market downturn just to afford daily necessities. Protecting your liquid portfolio ensures genuine lifelong financial independence.",
+      "why_liquid_strip_title": "The Liquid Portfolio is more critical than Total Net Worth (including real estate)",
+      "why_liquid_strip_desc": "because it generates monthly cash flow for living expenses (your home may be worth billions, but you cannot carve off bricks for groceries, utility bills, or medical care) and avoids running out of liquid cash early, which forces fire-selling property in retirement.",
 
       // Actions & Generic
       "btn_edit": "Edit",
@@ -474,6 +476,7 @@
       "auth_account": "Compte",
       "auth_synced": "Synchronisé Cloud",
       "auth_logout": "Déconnexion",
+      "auth_logout_confirm": "Êtes-vous sûr de vouloir vous déconnecter de votre compte ?",
       "theme_toggle_title": "Basculer Thème Clair/Sombre",
 
       // Navigation Sidebar
@@ -509,10 +512,16 @@
       "col2_expense_header": "Flux de Dépenses",
       "btn_add_income": "+ Ajouter un revenu",
       "btn_add_expense": "+ Ajouter une dépense",
+      "income_salary_primary": "Votre salaire actuel",
+      "income_salary_spouse": "Salaire actuel de votre conjoint",
+      "badge_primary_salary": "Vous",
+      "badge_spouse_salary": "Conjoint",
+      "placeholder_income_name": "Ex : Votre salaire actuel, Salaire conjoint, Immobilier locatif, Dividendes ETF...",
       "card_withdrawal_strategy": "Stratégie de Retrait Retraite",
-      "card_asset_allocation": "Allocation d'Actifs & Rééquilibrage",
+      "card_asset_allocation": "Portefeuille d'Investissement",
       "card_french_pension": "Retraite Française (Agirc-Arrco / CNAV)",
       "card_vn_pension": "Retraite Volontaire Vietnam (BHXH)",
+      "card_lmnp_stream": "Revenus Immobiliers",
       "card_lmnp_turo": "Revenus Immobiliers LMNP & Flotte Turo",
       "card_senior_care": "Réserve Dépendance & EHPAD (78+ ans)",
       "card_family_plan": "Plan Enfants & Famille",
@@ -559,14 +568,8 @@
       "legend_forecast_assets": "Actifs Projetés",
       "legend_total_networth": "Patrimoine Net Total",
       "legend_networth_realestate": "Patrimoine Net Total (avec Immo)",
-      "why_liquid_portfolio_title": "Pourquoi le « Portefeuille Liquide » est plus crucial que le Patrimoine Total en retraite ?",
-      "why_liquid_badge": "Indicateur Vital de Trésorerie",
-      "why_liquid_point1_title": "L'immobilier ne se dépense pas au mètre carré",
-      "why_liquid_point1_desc": "Votre logement vaut peut-être une fortune, mais vous ne pouvez pas retirer une brique pour payer vos courses, factures ou soins de santé. L'immobilier est un actif illiquide qui ne génère pas de cash quotidien sans vente ou location.",
-      "why_liquid_point2_title": "La réserve d'oxygène vital de votre foyer",
-      "why_liquid_point2_desc": "Le portefeuille liquide (épargne, assurance-vie, PEA, actions, ETF) est la réserve dans laquelle vous puisez chaque mois pour financer votre quotidien sans toucher à votre toit.",
-      "why_liquid_point3_title": "Éviter le piège « Riche en briques, pauvre en cash »",
-      "why_liquid_point3_desc": "Si votre trésorerie s'épuise trop tôt, vous serez contraint de brader votre maison en pleine crise immobilière pour subvenir à vos besoins. Préserver votre portefeuille liquide garantit votre indépendance pérenne.",
+      "why_liquid_strip_title": "Le Portefeuille Liquide est plus crucial que le Patrimoine Total (immobilier compris)",
+      "why_liquid_strip_desc": "car il génère les liquidités mensuelles nécessaires pour vivre (votre logement vaut peut-être une fortune, mais vous ne pouvez pas détacher des briques pour faire vos courses ou payer vos soins) et évite d'épuiser vos liquidités trop tôt en vous forçant à brader vos biens en retraite.",
 
       // Actions & Generic
       "btn_edit": "Modifier",
@@ -725,6 +728,10 @@
 
     // Translate DOM elements with data-i18n
     document.querySelectorAll('[data-i18n]').forEach(el => {
+      // Bảo vệ nhãn nút tài khoản người dùng nếu đã đăng nhập
+      if (el.id === 'auth-btn-label' && window.Auth && typeof window.Auth.isLoggedIn === 'function' && window.Auth.isLoggedIn()) {
+        return;
+      }
       const key = el.getAttribute('data-i18n');
       if (key) {
         const text = t(key);

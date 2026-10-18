@@ -1204,7 +1204,7 @@
     const statusText = pct >= 100 ? 'Đạt & Vượt Mục Tiêu' : pct >= 70 ? 'Tiệm Cận Mục Tiêu' : 'Chưa Đạt Mục Tiêu';
 
     milestoneBox.innerHTML = `
-      <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.75rem;">
+      <div style="padding: 0.2rem 0;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem; flex-wrap: wrap; gap: 0.4rem;">
           <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">Tiến Độ Tích Lũy Di Sản:</span>
           <span style="display: inline-flex; align-items: center; gap: 6px;">
@@ -1212,10 +1212,10 @@
             <strong class="${pct >= 100 ? 'text-success' : 'text-warning'} font-mono" style="font-size: 0.95rem;">${pct}%</strong>
           </span>
         </div>
-        <div style="background: var(--bg-input); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 0.65rem; border: 1px solid var(--border-subtle);">
+        <div style="background: var(--bg-input); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 0.55rem; border: 1px solid var(--border-subtle);">
           <div style="width: ${Math.min(100, pct)}%; height: 100%; background: ${barColor}; transition: width 0.3s ease;"></div>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; margin-bottom: 0.55rem;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; margin-bottom: 0.5rem;">
           <div style="background: var(--bg-card-hover); padding: 0.45rem 0.55rem; border-radius: 6px; border: 1px solid var(--border-subtle);">
             <div style="font-size: 0.68rem; color: var(--text-muted);">Dự kiến ở tuổi ${plan.lifeExpectancy || 85}</div>
             <div style="font-weight: 700; color: #0284c7; font-size: 0.82rem; font-family: var(--font-mono, monospace);">${window.RetirementEngine.formatCurrency(finalVal, state.currency)}</div>

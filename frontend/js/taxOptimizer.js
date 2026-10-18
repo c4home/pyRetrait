@@ -113,7 +113,17 @@ window.TaxOptimizer = (function() {
       : (options && options.customTaxRate !== undefined && options.customTaxRate !== null && !isNaN(Number(options.customTaxRate)) ? Number(options.customTaxRate) : null);
     const currency = (typeof options === 'object' && options.currency) ? options.currency : 'EUR';
     const fx = (typeof options === 'object' && Number(options.exchangeRateEurVnd) > 0) ? Number(options.exchangeRateEurVnd) : 27500;
-    const taxParts = (typeof options === 'object' && Number(options.taxParts) > 0) ? Number(options.taxParts) : 1.0;
+    const kids = (typeof options === 'object' && Number(options.kidsCount) > 0) ? Number(options.kidsCount) : 0;
+    const childParts = kids <= 2 ? (kids * 0.5) : (1.0 + (kids - 2) * 1.0);
+    const explicitBase = (typeof options === 'object' && options.maritalStatus)
+      ? (options.maritalStatus === 'married' ? 2.0 : 1.0)
+      : null;
+    const baseParts = explicitBase !== null
+      ? explicitBase
+      : ((typeof options === 'object' && Number(options.taxParts) > 0)
+          ? Math.max(1.0, Math.min(2.0, Number(options.taxParts) - childParts))
+          : 1.0);
+    const taxParts = (typeof options === 'object' && Number(options.taxParts) > 0) ? Number(options.taxParts) : (baseParts + childParts);
     const archetype = (typeof options === 'object' && options.taxArchetype) ? options.taxArchetype : null;
 
     // 1. Chế độ Thuế suất Cố định / Không thuế vốn (Zero CGT / International)
@@ -198,22 +208,36 @@ window.TaxOptimizer = (function() {
     const abattementEur = Math.min(incomeEur * 0.10, abattementMax);
     const netTaxableEur = Math.max(0, incomeEur - abattementEur);
 
-    // Áp dụng chia theo số suất Quotient Familial
-    const incomePerPart = netTaxableEur / taxParts;
-    let taxPerPart = 0;
-    let prevCap = 0;
-    for (let i = 0; i < FR_TAX_BRACKETS.length; i++) {
-      const { cap, rate } = FR_TAX_BRACKETS[i];
-      if (incomePerPart > prevCap) {
-        const chunk = Math.min(incomePerPart - prevCap, cap - prevCap);
-        taxPerPart += chunk * rate;
-        prevCap = cap;
-      } else {
-        break;
+    function computeFrenchTaxParts(netEur, parts) {
+      const incPerPart = netEur / parts;
+      let taxPP = 0;
+      let prevCap = 0;
+      for (let i = 0; i < FR_TAX_BRACKETS.length; i++) {
+        const { cap, rate } = FR_TAX_BRACKETS[i];
+        if (incPerPart > prevCap) {
+          const chunk = Math.min(incPerPart - prevCap, cap - prevCap);
+          taxPP += chunk * rate;
+          prevCap = cap;
+        } else {
+          break;
+        }
       }
+      return taxPP * parts;
     }
 
-    const taxEur = taxPerPart * taxParts;
+    let taxEur = computeFrenchTaxParts(netTaxableEur, taxParts);
+
+    // Plafonnement du quotient familial: Trần giảm trừ tối đa 1.759 € cho mỗi nửa suất con tăng thêm
+    const refBaseParts = (taxParts >= 2.0 && baseParts === 2.0) ? 2.0 : (taxParts > 1.0 && baseParts === 1.0 && kids > 0 ? 1.0 : (taxParts >= 2.0 ? 2.0 : 1.0));
+    if (taxParts > refBaseParts) {
+      const baseTax = computeFrenchTaxParts(netTaxableEur, refBaseParts);
+      const extraParts = taxParts - refBaseParts;
+      const maxReduction = (extraParts / 0.5) * 1759;
+      const minTax = Math.max(0, baseTax - maxReduction);
+      if (taxEur < minTax) {
+        taxEur = minTax;
+      }
+    }
 
     if (currency === 'VND') return taxEur * fx;
     if (currency === 'USD') return taxEur * 1.10;
@@ -243,7 +267,17 @@ window.TaxOptimizer = (function() {
       : (options && options.customTaxRate !== undefined && options.customTaxRate !== null && !isNaN(Number(options.customTaxRate)) ? Number(options.customTaxRate) : null);
     const currency = (typeof options === 'object' && options.currency) ? options.currency : 'EUR';
     const fx = (typeof options === 'object' && Number(options.exchangeRateEurVnd) > 0) ? Number(options.exchangeRateEurVnd) : 27500;
-    const taxParts = (typeof options === 'object' && Number(options.taxParts) > 0) ? Number(options.taxParts) : 1.0;
+    const kids = (typeof options === 'object' && Number(options.kidsCount) > 0) ? Number(options.kidsCount) : 0;
+    const childParts = kids <= 2 ? (kids * 0.5) : (1.0 + (kids - 2) * 1.0);
+    const explicitBase = (typeof options === 'object' && options.maritalStatus)
+      ? (options.maritalStatus === 'married' ? 2.0 : 1.0)
+      : null;
+    const baseParts = explicitBase !== null
+      ? explicitBase
+      : ((typeof options === 'object' && Number(options.taxParts) > 0)
+          ? Math.max(1.0, Math.min(2.0, Number(options.taxParts) - childParts))
+          : 1.0);
+    const taxParts = (typeof options === 'object' && Number(options.taxParts) > 0) ? Number(options.taxParts) : (baseParts + childParts);
 
     if (regime === 'international') {
       const rate = (customRate !== null) ? customRate : 10.0;
@@ -295,7 +329,31 @@ window.TaxOptimizer = (function() {
         }
       }
 
-      const totalTaxEur = totalTaxPerPart * taxParts;
+      let totalTaxEur = totalTaxPerPart * taxParts;
+      const refBaseParts = (taxParts >= 2.0 && baseParts === 2.0) ? 2.0 : (taxParts > 1.0 && baseParts === 1.0 && kids > 0 ? 1.0 : (taxParts >= 2.0 ? 2.0 : 1.0));
+      if (taxParts > refBaseParts) {
+        const baseIncomePerPart = netTaxableEur / refBaseParts;
+        let baseTaxPP = 0;
+        let prevBaseCap = 0;
+        for (let i = 0; i < FR_TAX_BRACKETS.length; i++) {
+          const { cap, rate } = FR_TAX_BRACKETS[i];
+          if (baseIncomePerPart > prevBaseCap) {
+            const chunk = Math.min(baseIncomePerPart - prevBaseCap, cap - prevBaseCap);
+            baseTaxPP += chunk * rate;
+            prevBaseCap = cap;
+          } else {
+            break;
+          }
+        }
+        const baseTaxEur = baseTaxPP * refBaseParts;
+        const extraParts = taxParts - refBaseParts;
+        const maxReduction = (extraParts / 0.5) * 1759;
+        const minTaxEur = Math.max(0, baseTaxEur - maxReduction);
+        if (totalTaxEur < minTaxEur) {
+          totalTaxEur = minTaxEur;
+        }
+      }
+
       const convFactor = (currency === 'VND') ? fx : (currency === 'USD' ? 1.10 : 1);
       const totalTax = totalTaxEur * convFactor;
       const effectiveRate = taxableIncome > 0 ? (totalTax / taxableIncome) * 100 : 0;

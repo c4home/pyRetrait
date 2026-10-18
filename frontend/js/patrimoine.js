@@ -682,20 +682,28 @@
       }
       remDebt = Math.max(0, Math.round(remDebt));
 
-      // Property value according to House vs Apartment formula
+      // Property value according to House vs Apartment formula (with building maintenance preservation)
       const isHouse = (apt.property_category === 'house' || (apt.raw?.property_category === 'house') || (apt.typology && (/maison|villa|nhà/i).test(apt.typology)) || (/maison|villa|nhà mặt đất/i).test(apt.name || ''));
       const customAppr = apt.appreciation_rate !== undefined ? Number(apt.appreciation_rate) / 100.0 : (apt.raw?.appreciation_rate !== undefined ? Number(apt.raw.appreciation_rate) / 100.0 : (isHouse ? 0.025 : 0.0));
+      const hasMaintenance = (Number(apt.annual_maintenance) > 0 || Number(apt.charges_copro) > 0 || Number(apt.raw?.annual_maintenance) > 0 || Number(apt.raw?.charges_copro) > 0);
       let propVal = 0;
       if (k === 0) {
         propVal = Math.round(price);
+      } else if (window.RetirementEngine && window.RetirementEngine.computePropertyValue) {
+        propVal = window.RetirementEngine.computePropertyValue({
+          property_type: isHouse ? 'house' : 'apartment',
+          current_value: price,
+          annual_maintenance: hasMaintenance ? 1200 : 0,
+          growth_rate: customAppr ? customAppr * 100 : (isHouse ? 2.5 : 0)
+        }, k);
       } else if (isHouse) {
         propVal = Math.round(price * Math.pow(1.0 + (customAppr !== undefined ? customAppr : 0.025), k));
       } else {
-        // Căn hộ chung cư: Đất 20% tăng trưởng 2%/năm + Xác nhà 80% khấu hao dần sau 30 năm
-        const landVal = price * 0.20 * Math.pow(1.02, k);
-        const decayRatio = Math.max(0.10, 1.0 - (k / 30) * 0.90);
+        const landVal = price * 0.25 * Math.pow(1.02, k);
+        const decayFloor = hasMaintenance ? 0.60 : 0.10;
+        const decayRatio = Math.max(decayFloor, 1.0 - (k / 30) * (1.0 - decayFloor));
         const adjFactor = (customAppr !== undefined && customAppr !== 0) ? Math.pow(1.0 + customAppr, k) : 1.0;
-        const buildingVal = price * 0.80 * decayRatio * adjFactor;
+        const buildingVal = price * 0.75 * decayRatio * adjFactor;
         propVal = Math.round(landVal + buildingVal);
       }
       const equity = Math.max(0, propVal - remDebt);
@@ -764,6 +772,18 @@
           </div>
           <div style="font-size: 1.25rem; font-weight: 800; color: #38bdf8; margin: 0.25rem 0;">Năm ${payoffYear}</div>
           <div style="font-size: 0.75rem; color: var(--text-muted);">Nợ về <strong>0 €</strong>, dòng tiền ròng bùng nổ <strong>+${formatMoneyEUR(apt.monthly_post_loan_cashflow)}/tháng</strong></div>
+        </div>
+
+        <div style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 8px; padding: 0.75rem 1rem;">
+          <div style="font-size: 0.75rem; color: #a78bfa; display: flex; align-items: center; gap: 0.35rem;">
+            ${isHouse ? 'Bảo Trì Nhà Riêng' : 'Quỹ Bảo Trì Tòa Nhà (Loi ALUR)'}
+          </div>
+          <div style="font-size: 1.25rem; font-weight: 800; color: #8b5cf6; margin: 0.25rem 0;">
+            ${isHouse ? 'Đất & Nhà Tăng Trưởng' : (hasMaintenance ? 'Bảo Toàn Sàn 60%' : 'Khấu Hao Về 10%')}
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">
+            ${isHouse ? 'Nhà mặt đất gắn liền đất khan hiếm, tăng trưởng bền vững theo thị trường.' : (hasMaintenance ? 'Quỹ bảo trì định kỳ / Charges copro giúp bảo dưỡng chất lượng tòa nhà, giữ vững giá trị xác nhà.' : 'Chưa thiết lập quỹ bảo trì định kỳ, xác nhà hao mòn theo thời gian.')}
+          </div>
         </div>
       `;
     }

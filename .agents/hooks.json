@@ -1,0 +1,10 @@
+{
+  "task-chime": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "./scripts/chime.sh"
+      }
+    ]
+  }
+}

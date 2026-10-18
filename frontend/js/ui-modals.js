@@ -616,13 +616,20 @@
     const growth = Number(document.getElementById("inp-income-growth").value) || 0;
     if (!Array.isArray(plan.incomes)) plan.incomes = [];
 
+    const isSpouseSalary = (/bạn đời|vợ|chồng|spouse|conjoint/i).test(name);
+    const isSalary = (/lương|salary|impôt|impot/i).test(name);
+    const isPrimarySalary = isSalary && !isSpouseSalary;
+
     const streamData = {
       name,
       amount,
       startAge,
       endAge,
       growth,
-      taxable: true
+      taxable: true,
+      isSalary,
+      isPrimarySalary,
+      isSpouseSalary
     };
 
     if (idx >= 0 && idx < plan.incomes.length) {
@@ -631,7 +638,14 @@
       plan.incomes.push(streamData);
     }
 
-    if (/lương|salary|impôt|impot/i.test(name)) {
+    if (isPrimarySalary) {
+      plan.primarySalaryRemoved = false;
+    }
+    if (isSpouseSalary) {
+      plan.spouseSalaryRemoved = false;
+    }
+
+    if (isSalary) {
       plan.retirementAge = endAge;
       setVal("inp-retire-age", endAge);
       syncSalaryStreamsWithRetireAge(plan);
@@ -1161,18 +1175,89 @@
       targetPlan.retireCity = retireCity;
       targetPlan.retireCountry = retireCountry;
 
-      if (templateType === "lean") {
-        targetPlan.retirementExpenses = (targetPlan.retirementExpenses || 24000) * 0.65;
-        targetPlan.initialWithdrawalRate = 3.5;
-      } else if (templateType === "fat") {
-        targetPlan.retirementExpenses = (targetPlan.retirementExpenses || 24000) * 1.5;
-        targetPlan.annualSavings = (targetPlan.annualSavings || 10000) * 1.3;
+      // Khi Tạo Kế hoạch Hưu trí Mới:
+      if (isMarried) {
+        targetPlan.primarySalaryRemoved = false;
+        targetPlan.spouseSalaryRemoved = false;
+        if (!Array.isArray(targetPlan.incomes)) targetPlan.incomes = [];
+
+        const cur = targetPlan.currency || state.currency || 'EUR';
+        const curAge = Number(targetPlan.currentAge) || 29;
+        const rAge = Number(targetPlan.retirementAge) || 43;
+        const curYear = new Date().getFullYear();
+        const spouseBYear = Number(targetPlan.spouseBirthYear) || (curYear - (Number(targetPlan.spouseAge) || curAge));
+        const spouseAge = curYear - spouseBYear;
+
+        // 1. Đảm bảo có thẻ "Lương hiện tại của bạn"
+        let primarySalary = targetPlan.incomes.find(s => s && (s.isPrimarySalary || /lương hiện tại của bạn|lương chính/i.test(s.name || "")));
+        if (!primarySalary) {
+          primarySalary = targetPlan.incomes.find(s => s && !s.isBhxhVn && !s.isSpouseSalary && (/lương|salary/i.test(s.name || "")));
+        }
+
+        if (!primarySalary) {
+          const defaultAmt = cur === 'VND' ? 250000000 : (cur === 'USD' ? 30000 : 25000);
+          primarySalary = {
+            name: "Lương hiện tại của bạn",
+            amount: defaultAmt,
+            startAge: curAge,
+            endAge: rAge,
+            growth: 2.5,
+            taxable: true,
+            isSalary: true,
+            isPrimarySalary: true
+          };
+          targetPlan.incomes.unshift(primarySalary);
+        } else {
+          primarySalary.name = "Lương hiện tại của bạn";
+          primarySalary.isSalary = true;
+          primarySalary.isPrimarySalary = true;
+        }
+
+        // 2. Đảm bảo có thẻ "Lương hiện tại của bạn đời"
+        let spouseSalary = targetPlan.incomes.find(s => s && (s.isSpouseSalary || /lương.*(bạn đời|vợ|chồng)|salaire.*conjoint|spouse.*salary/i.test(s.name || "")));
+        if (!spouseSalary) {
+          const primaryAmt = Number(primarySalary ? primarySalary.amount : 0) || (cur === 'VND' ? 250000000 : 25000);
+          const spouseAmt = Math.round((primaryAmt * 0.8) / 100) * 100;
+          spouseSalary = {
+            name: "Lương hiện tại của bạn đời",
+            amount: spouseAmt,
+            startAge: spouseAge,
+            endAge: rAge,
+            growth: (primarySalary && primarySalary.growth !== undefined && primarySalary.growth !== null) ? primarySalary.growth : 2.5,
+            taxable: true,
+            isSalary: true,
+            isSpouseSalary: true
+          };
+          const pIdx = targetPlan.incomes.indexOf(primarySalary);
+          if (pIdx >= 0) {
+            targetPlan.incomes.splice(pIdx + 1, 0, spouseSalary);
+          } else {
+            targetPlan.incomes.push(spouseSalary);
+          }
+        } else {
+          spouseSalary.name = "Lương hiện tại của bạn đời";
+          spouseSalary.isSalary = true;
+          spouseSalary.isSpouseSalary = true;
+        }
+      } else {
+        // Hồ sơ 1 người (Cá nhân): loại bỏ thẻ bạn đời nếu có sao chép từ basePlan
+        targetPlan.primarySalaryRemoved = false;
+        if (Array.isArray(targetPlan.incomes)) {
+          targetPlan.incomes = targetPlan.incomes.filter(s => {
+            if (!s || typeof s !== 'object') return false;
+            const isSpouse = s.isSpouseSalary || /lương.*(bạn đời|vợ|chồng)|salaire.*conjoint|spouse.*salary/i.test(s.name || "");
+            return !isSpouse;
+          });
+        }
       }
 
       state.plansData.plans[newId] = targetPlan;
       state.plansData.activePlanId = newId;
     }
 
+    if (isMarried) {
+      targetPlan.spouseSalaryRemoved = false;
+    }
     if (window.AppState && typeof window.AppState.ensurePlanDefaults === 'function') {
       window.AppState.ensurePlanDefaults(targetPlan);
     }

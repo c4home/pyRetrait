@@ -3068,9 +3068,9 @@ samp {
 }
 
 .estate-milestone-box {
-  padding: 1rem;
-  background: var(--bg-input);
-  border-radius: var(--radius-md);
+  padding: 0;
+  background: transparent;
+  border: none;
   font-size: 0.85rem;
 }
 
@@ -4780,13 +4780,15 @@ samp {
 
 #pea-tips-grid .advisor-card,
 #av-tips-grid .advisor-card,
-#livret-tips-grid .advisor-card {
+#livret-tips-grid .advisor-card,
+#estate-inheritance-tips-grid .advisor-card {
   cursor: default;
 }
 
 #pea-tips-grid .advisor-card:hover,
 #av-tips-grid .advisor-card:hover,
-#livret-tips-grid .advisor-card:hover {
+#livret-tips-grid .advisor-card:hover,
+#estate-inheritance-tips-grid .advisor-card:hover {
   transform: translateY(-2px);
   border-color: var(--border-strong);
   box-shadow: var(--shadow-sm);
@@ -8848,6 +8850,7 @@ samp {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  margin-top: 0.5rem;
   padding: 0.4rem 0.5rem;
   background: rgba(239, 68, 68, 0.08);
   border: 1px dashed rgba(239, 68, 68, 0.3);
@@ -9340,117 +9343,40 @@ samp {
 }
 
 /* =========================================================================
-   HỘP GIẢI THÍCH: VÌ SAO DANH MỤC THANH KHOẢN QUAN TRỌNG (DƯỚI BIỂU ĐỒ)
+   DÒNG GHI CHÚ: VÌ SAO TIỀN MẶT & QUỸ ĐẦU TƯ QUAN TRỌNG HƠN TỔNG TÀI SẢN
    ========================================================================= */
-.liquid-explainer-box {
-  margin-top: 1rem;
-  padding: 0.85rem 1rem;
-  border-radius: var(--radius-md);
+.liquid-explainer-strip {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.95rem;
+  border-radius: var(--radius-sm);
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.liquid-explainer-box:hover {
+.liquid-explainer-strip:hover {
   border-color: var(--border-strong);
 }
 
-.liquid-explainer-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.55rem;
-  border-bottom: 1px dashed var(--border-subtle);
-}
-
-.liquid-explainer-title-group {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.liquid-explainer-icon {
+.liquid-strip-icon {
   font-size: 1.15rem;
-  line-height: 1;
+  line-height: 1.4;
+  flex-shrink: 0;
 }
 
-.liquid-explainer-title {
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: var(--text-main);
-  letter-spacing: -0.01em;
-}
-
-.liquid-explainer-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 0.2rem 0.55rem;
-  border-radius: 9999px;
-  background: rgba(2, 132, 199, 0.12);
-  color: #38bdf8;
-  border: 1px solid rgba(2, 132, 199, 0.25);
-}
-
-[data-theme="light"] .liquid-explainer-badge {
-  background: #e0f2fe;
-  color: #0284c7;
-  border-color: #bae6fd;
-}
-
-.liquid-explainer-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
-}
-
-@media (max-width: 860px) {
-  .liquid-explainer-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.liquid-explainer-col {
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-input);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 0.7rem 0.85rem;
-  transition: border-color var(--transition-fast), transform var(--transition-fast);
-}
-
-.liquid-explainer-col:hover {
-  border-color: var(--border-strong);
-  transform: translateY(-1px);
-}
-
-.liquid-col-head {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin-bottom: 0.4rem;
-}
-
-.liquid-col-icon {
-  font-size: 1rem;
-  line-height: 1;
-}
-
-.liquid-col-title {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.liquid-col-desc {
-  font-size: 0.74rem;
-  color: var(--text-muted);
-  line-height: 1.48;
+.liquid-strip-text {
+  flex: 1;
   margin: 0;
+  font-size: 0.79rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.liquid-strip-text strong {
+  color: var(--text-main);
+  font-weight: 600;
+  margin-right: 0.25rem;
 }

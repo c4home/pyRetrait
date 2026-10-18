@@ -35,17 +35,115 @@ window.MonteCarloSimulator = (function() {
     const retireAge = Number(plan.retirementAge) || 43;
     const lifeExpectancy = Number(plan.lifeExpectancy) || 85;
 
-    // 1. Initial liquid portfolio: sum of currentSavings and French tax-advantaged accounts
+    // Run deterministic base projection from RetirementEngine to capture 100% accurate net cashflows
+    const engine = (typeof window !== 'undefined' && window.RetirementEngine)
+      ? window.RetirementEngine
+      : (typeof RetirementEngine !== 'undefined' ? RetirementEngine : null);
+
+    const baseRun = engine ? engine.runProjection(plan, null, true, true) : null;
+
+    if (baseRun && (baseRun.timeline || baseRun.yearlyData)) {
+      const rawTimeline = baseRun.yearlyData || baseRun.timeline;
+      const baseRows = rawTimeline.filter(r => !r.isPast && r.age >= currentAge);
+      const totalYears = Math.max(0, baseRows.length - 1);
+      const ageAxis = baseRows.map(r => r.age);
+      const startPortfolio = Number(baseRows[0] && baseRows[0].portfolioEnd !== undefined ? baseRows[0].portfolioEnd : (plan.currentSavings || 0));
+
+      const rawMeanPre = (baseRun.weightedReturnPre !== undefined) ? baseRun.weightedReturnPre : (Number(plan.investmentReturnPre) || 8.0);
+      const meanReturnPre = rawMeanPre > 1 ? (rawMeanPre / 100.0) : rawMeanPre;
+      const rawMeanPost = (baseRun.weightedReturnPost !== undefined) ? baseRun.weightedReturnPost : (Number(plan.investmentReturnPost) || rawMeanPre);
+      const meanReturnPost = rawMeanPost > 1 ? (rawMeanPost / 100.0) : rawMeanPost;
+      const sigma = (Number(volatility) || 15.0) / 100.0;
+
+      const allTrajectories = [];
+      let successCount = 0;
+      const failureAges = [];
+
+      for (let sim = 0; sim < iterations; sim++) {
+        let portfolio = startPortfolio;
+        const path = [portfolio];
+        let survived = true;
+
+        for (let y = 0; y < totalYears; y++) {
+          const row = baseRows[y];
+          const age = row.age;
+          const isRet = row.isRetired;
+          const meanReturn = isRet ? meanReturnPost : meanReturnPre;
+          const r = randomNormal(meanReturn, sigma);
+
+          let netFlow = Number(row.netCashFlow) || 0;
+
+          if (isRet) {
+            if (netFlow < 0) {
+              let withdrawal = -netFlow;
+              // Quy tắc phòng vệ Guyton-Klinger: Cắt giảm 10% rút vốn khi thị trường giảm mạnh (r < -0.05)
+              if (plan.enableWithdrawalStrategy !== false && plan.withdrawalStrategy === 'guyton_klinger' && r < -0.05) {
+                withdrawal *= 0.90;
+              }
+              portfolio = Math.max(0, (portfolio - withdrawal) * (1.0 + r));
+            } else {
+              portfolio = (portfolio + netFlow) * (1.0 + r);
+            }
+          } else {
+            portfolio = (portfolio + netFlow) * (1.0 + r);
+          }
+
+          if (portfolio <= 0 && survived) {
+            survived = false;
+            failureAges.push(age + 1);
+          }
+          path.push(Math.max(0, portfolio));
+        }
+
+        if (survived && path[path.length - 1] > 0) {
+          successCount++;
+        }
+        allTrajectories.push(path);
+      }
+
+      const p10 = [];
+      const p25 = [];
+      const p50 = [];
+      const p75 = [];
+      const p90 = [];
+
+      for (let y = 0; y <= totalYears; y++) {
+        const yearValues = allTrajectories.map(p => p[y]).sort((a, b) => a - b);
+        const getP = (pct) => yearValues[Math.floor(yearValues.length * pct)];
+
+        p10.push(getP(0.10));
+        p25.push(getP(0.25));
+        p50.push(getP(0.50));
+        p75.push(getP(0.75));
+        p90.push(getP(0.90));
+      }
+
+      const successRate = ((successCount / iterations) * 100).toFixed(1);
+      const avgFailureAge = failureAges.length > 0
+        ? (failureAges.reduce((a, b) => a + b, 0) / failureAges.length).toFixed(1)
+        : null;
+
+      return {
+        successRate,
+        ageAxis,
+        p10,
+        p25,
+        p50,
+        p75,
+        p90,
+        avgFailureAge,
+        totalSimulations: iterations
+      };
+    }
+
+    // Fallback: Nếu không gọi được engine
     const frenchAccs = plan.frenchAccounts || {};
     const frenchTotal = (Number(frenchAccs.peaBalance) || 0) + 
                         (Number(frenchAccs.assuranceVieBalance) || 0) + 
                         (Number(frenchAccs.livretABalance) || 0) + 
                         (Number(frenchAccs.perBalance) || 0);
     const currentSavings = (Number(plan.currentSavings) || 0) + frenchTotal;
-
     const annualSavings = Number(plan.annualSavings) || 0;
-
-    // 2. Actual retirement expenses at chosen location (matches engine.js Option 1)
     const baseRetireExpenses = Number(plan.retirementExpenses) || 12000;
     const effectiveRetireExpenses = baseRetireExpenses;
 
@@ -54,7 +152,6 @@ window.MonteCarloSimulator = (function() {
     const sigma = (Number(volatility) || 15.0) / 100.0;
     const inflation = (Number(plan.inflationRate) || 2.5) / 100.0;
 
-    // 3. Passive retirement incomes (Pension / Social Security + Dividends + Other retirement streams)
     const ssAge = Number(plan.socialSecurityAge) || 65;
     const ssAnnual = Number(plan.socialSecurityAnnual) || 0;
     const passiveStreams = (plan.incomes || []).filter(inc => inc.enabled !== false);
@@ -69,7 +166,6 @@ window.MonteCarloSimulator = (function() {
     let successCount = 0;
     const failureAges = [];
 
-    // Run N simulations
     for (let sim = 0; sim < iterations; sim++) {
       let portfolio = currentSavings;
       const path = [portfolio];
@@ -82,14 +178,10 @@ window.MonteCarloSimulator = (function() {
         const r = randomNormal(meanReturn, sigma);
 
         if (age < retireAge) {
-          // Accumulation phase
           const savingsThisYear = annualSavings * Math.pow(1.0 + inflation, y - 1);
           portfolio = (portfolio + savingsThisYear) * (1.0 + r);
         } else {
-          // Retirement Withdrawal phase
           const grossSpend = effectiveRetireExpenses * cumInflation;
-
-          // Guaranteed passive income this year (Pension + Dividends/Rental streams)
           let passiveIncomeThisYear = 0;
           if (age >= ssAge) {
             passiveIncomeThisYear += ssAnnual * cumInflation;
@@ -98,21 +190,17 @@ window.MonteCarloSimulator = (function() {
             const sAge = Number(inc.startAge) || 18;
             const eAge = Number(inc.endAge) || lifeExpectancy;
             const name = (inc.name || "").toLowerCase();
-            const isWorkingSalary = name.includes("lương tại") || name.includes("lương chính") || (sAge < retireAge && eAge <= retireAge);
+            const isWorkingSalary = !inc.isBhxhVn && (inc.isSalary || (/lương|salary|impôt|impot/i).test(name) || (sAge < retireAge && eAge <= retireAge));
             if (!isWorkingSalary && age >= sAge && age <= eAge) {
               passiveIncomeThisYear += (Number(inc.amount) || 0) * (inc.growth ? Math.pow(1.0 + (inc.growth / 100.0), age - sAge) : cumInflation);
             }
           });
 
-          // Net deficit that must be withdrawn from portfolio
           const netDeficit = Math.max(0, grossSpend - passiveIncomeThisYear);
-
-          // Support Guyton-Klinger guardrail flexibility if configured (10% cut in market downturns)
           let actualSpend = netDeficit;
           if (plan.enableWithdrawalStrategy !== false && plan.withdrawalStrategy === 'guyton_klinger' && r < -0.05) {
             actualSpend = netDeficit * 0.90;
           }
-
           portfolio = Math.max(0, (portfolio - actualSpend) * (1.0 + r));
         }
 
@@ -129,7 +217,6 @@ window.MonteCarloSimulator = (function() {
       allTrajectories.push(path);
     }
 
-    // Compute percentiles for each year
     const p10 = [];
     const p25 = [];
     const p50 = [];
@@ -165,7 +252,14 @@ window.MonteCarloSimulator = (function() {
     };
   }
 
-  return {
+  const Simulator = {
     runSimulation
   };
+
+  if (typeof window !== 'undefined') {
+    window.MonteCarloSimulator = Simulator;
+    window.MonteCarloSimulation = Simulator;
+  }
+
+  return Simulator;
 })();

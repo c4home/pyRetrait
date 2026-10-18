@@ -569,8 +569,8 @@
         const plan = getActivePlan();
         showConfirmDialog({
           icon: "",
-          title: "Xác nhận đặt lại Phân bổ Danh mục",
-          message: `Bạn có muốn đặt lại tỷ lệ phân bổ danh mục về chuẩn <strong>60% Cổ phiếu, 20% Trái phiếu, 20% BĐS, 0% Tiền mặt</strong>?`,
+          title: "Xác nhận đặt lại Danh mục đầu tư",
+          message: `Bạn có muốn đặt lại tỷ lệ danh mục đầu tư về chuẩn <strong>60% Cổ phiếu, 20% Trái phiếu, 20% BĐS, 0% Tiền mặt</strong>?`,
           confirmText: "Đặt lại tỷ lệ",
           onConfirm: () => {
             plan.assetAllocation = { stocks: 60, bonds: 20, realEstate: 20, cash: 0 };
@@ -718,6 +718,20 @@
         });
       }
     });
+
+    // Đặt thẻ Danh mục đầu tư lên trên thẻ Doanh thu BDS
+    ensureAssetAllocationCardPosition();
+  }
+
+  /**
+   * Đảm bảo vị trí thẻ Danh mục đầu tư (#card-asset-allocation-stream) luôn nằm ngay trên thẻ Doanh thu BDS (#card-lmnp-income-stream)
+   */
+  function ensureAssetAllocationCardPosition() {
+    const cardAlloc = document.getElementById("card-asset-allocation-stream");
+    const cardLmnp = document.getElementById("card-lmnp-income-stream");
+    if (cardAlloc && cardLmnp && cardAlloc.nextElementSibling !== cardLmnp && cardLmnp.parentNode) {
+      cardLmnp.parentNode.insertBefore(cardAlloc, cardLmnp);
+    }
   }
 
   function updateAssetAllocationUI(p, fromInputs = false) {
@@ -808,7 +822,10 @@
       lblWeightedCalc.innerHTML = `<strong>${weighted}%/năm</strong>${allocStatusNotice}<div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem; font-family: var(--font-sans);">Công thức: ${formulaStr} = ${weighted}%</div>`;
     }
 
-    // Cập nhật thẻ Phân bổ Danh mục & Tái cân bằng trong Cột Thu nhập
+    // Đảm bảo thẻ Danh mục đầu tư (#card-asset-allocation-stream) luôn nằm trên thẻ Doanh thu BDS (#card-lmnp-income-stream)
+    ensureAssetAllocationCardPosition();
+
+    // Cập nhật thẻ Danh mục đầu tư trong Cột Thu nhập
     const lblCardRatio = document.getElementById("lbl-alloc-card-ratio");
     const lblCardBonus = document.getElementById("lbl-alloc-card-bonus");
     const cardEl = document.getElementById("card-asset-allocation-stream");
@@ -1233,29 +1250,62 @@
 
 
   function renderIncomeStreamsList() {
+    ensureAssetAllocationCardPosition();
     const container = document.getElementById("income-streams-container");
     container.innerHTML = "";
     const p = getActivePlan();
+    if (!p) return;
     if (!Array.isArray(p.incomes)) p.incomes = [];
+
+    // Tự động đồng bộ nguồn thu lương theo Profil: 1 người (Cá nhân) vs 2 người (Vợ chồng)
+    if (window.AppState && typeof window.AppState.syncSalaryStreamsWithMaritalStatus === 'function') {
+      window.AppState.syncSalaryStreamsWithMaritalStatus(p);
+    }
 
     renderIncomePeriodsSummary(p);
 
-    const otherIncomes = p.incomes.filter(s => !s.isBhxhVn && !/lmnp|doanh thu bđs lmnp/i.test(s.name || ''));
+    const otherIncomes = p.incomes.filter(s => !s.isBhxhVn && !/lmnp|doanh thu bđs|doanh thu bds/i.test(s.name || ''));
     if (otherIncomes.length === 0) {
       container.innerHTML = `<div style="font-size:0.78rem;color:var(--text-faint);padding:0.5rem 0;">Chưa có nguồn thu bổ sung nào khác. Bấm "+ Thêm nguồn thu" để thêm.</div>`;
       updateLmnpUI(p);
       return;
     }
 
+    const isMarried = (p.maritalStatus === 'married');
+
     p.incomes.forEach((stream, idx) => {
       if (stream.isBhxhVn) return; // Dedicated card #card-bhxh-income-stream is used
-      if (/lmnp|doanh thu bđs lmnp/i.test(stream.name || '')) return; // Dedicated card #card-lmnp-income-stream is used
-      const cleanName = (stream.name || '').replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
+      if (/lmnp|doanh thu bđs|doanh thu bds/i.test(stream.name || '')) return; // Dedicated card #card-lmnp-income-stream is used
+      const rawName = (stream.name || '').replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
+
+      const isSpouseSalary = stream.isSpouseSalary || /lương.*(bạn đời|vợ|chồng)|salaire.*conjoint|spouse.*salary/i.test(rawName);
+      const isPrimarySalary = stream.isPrimarySalary || (!isSpouseSalary && (/lương hiện tại của bạn|lương tại|lương chính/i.test(rawName) || stream.isSalary));
+
+      let displayName = rawName;
+      let badgeHtml = '';
+
+      if (isSpouseSalary) {
+        displayName = (window.I18n && window.I18n.t) ? window.I18n.t("income_salary_spouse", "Lương hiện tại của bạn đời") : "Lương hiện tại của bạn đời";
+        if (isMarried) {
+          const badgeText = (window.I18n && window.I18n.t) ? window.I18n.t("badge_spouse_salary", "Bạn đời") : "Bạn đời";
+          badgeHtml = `<span class="field-badge font-mono" style="background: rgba(236, 72, 153, 0.15); color: #ec4899; border: 1px solid rgba(236, 72, 153, 0.3); font-size: 0.65rem; padding: 1px 6px; margin-left: 0.4rem; border-radius: 4px;">${badgeText}</span>`;
+        }
+      } else if (isPrimarySalary) {
+        displayName = (window.I18n && window.I18n.t) ? window.I18n.t("income_salary_primary", "Lương hiện tại của bạn") : "Lương hiện tại của bạn";
+        if (isMarried) {
+          const badgeText = (window.I18n && window.I18n.t) ? window.I18n.t("badge_primary_salary", "Bạn") : "Bạn";
+          badgeHtml = `<span class="field-badge font-mono" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); font-size: 0.65rem; padding: 1px 6px; margin-left: 0.4rem; border-radius: 4px;">${badgeText}</span>`;
+        }
+      }
+
       const item = document.createElement("div");
       item.className = "income-item";
       item.innerHTML = `
         <div class="income-item-header">
-          <span class="income-item-name">${cleanName}</span>
+          <div style="display: flex; align-items: center; min-width: 0;">
+            <span class="income-item-name">${displayName}</span>
+            ${badgeHtml}
+          </div>
           <div class="income-item-actions">
             <button type="button" class="income-item-btn income-item-edit" data-idx="${idx}" title="Chỉnh sửa nguồn thu">Sửa</button>
             <button type="button" class="income-item-btn income-item-del" data-idx="${idx}" title="Xóa nguồn thu">Xóa</button>
@@ -1319,6 +1369,11 @@
               syncBhxhVnStreams(plan);
               updateBhxhVnUI(plan);
             } else {
+              if (stream && (stream.isSpouseSalary || /lương.*(bạn đời|vợ|chồng)/i.test(stream.name || ''))) {
+                plan.spouseSalaryRemoved = true;
+              } else if (stream && (stream.isPrimarySalary || /lương hiện tại của bạn|lương chính/i.test(stream.name || '') || stream.isSalary)) {
+                plan.primarySalaryRemoved = true;
+              }
               plan.incomes.splice(idx, 1);
             }
             syncSavingsAndExpensesFromRate(plan);
@@ -2489,6 +2544,7 @@
 
   const Tab1StreamsExports = {
     bindEvents: bindTab1StreamEvents,
+    ensureAssetAllocationCardPosition,
     updateAssetAllocationUI,
     updateDualInflationUI,
     updateRetirementLocationUI,

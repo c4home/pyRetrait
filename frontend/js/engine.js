@@ -132,28 +132,53 @@ window.RetirementEngine = (function() {
    * - Nhà mặt đất (House / Maison): Giá trị đất tăng trưởng bền vững dài hạn: propVal0 * (1 + rate)^t
    * - Căn hộ chung cư (Apartment): Mô hình phân tách Đất (20% tăng trưởng) + Xác nhà (80% khấu hao dần về 10% sau 30 năm)
    */
-  function computePropertyValue(propVal0, age, startAge, isHouse, customAppreciation) {
-    const elapsed = Math.max(0, age - startAge);
-    if (elapsed === 0) return Math.round(propVal0);
+  function computePropertyValue(propVal0, age, startAge, isHouse, customAppreciation, hasMaintenanceParam) {
+    let initialVal = 0;
+    let elapsed = 0;
+    let isHouseType = false;
+    let customRate = null;
+    let hasMaintenance = false;
 
-    if (isHouse) {
-      // Formula 1: Nhà mặt đất
-      const rate = customAppreciation !== undefined && customAppreciation !== null ? customAppreciation : 0.025;
-      return Math.round(propVal0 * Math.pow(1.0 + rate, elapsed));
+    if (typeof propVal0 === 'object' && propVal0 !== null) {
+      const prop = propVal0;
+      initialVal = Number(prop.current_value || prop.value || prop.property_price || prop.price || prop.propVal0) || 0;
+      elapsed = (typeof age === 'number') ? Math.max(0, age) : Math.max(0, (Number(prop.age) || 0) - (Number(prop.startAge) || 0));
+      isHouseType = (prop.property_type === 'house' || prop.property_category === 'house' || prop.isHouse === true);
+      customRate = (prop.growth_rate !== undefined && prop.growth_rate !== null) ? (Number(prop.growth_rate) / 100.0) : ((prop.customAppreciation !== undefined) ? prop.customAppreciation : null);
+      hasMaintenance = (Number(prop.annual_maintenance) > 0 || Number(prop.charges_copro) > 0 || Number(prop.maintenance_cost) > 0 || Boolean(prop.hasMaintenance));
     } else {
-      // Formula 2: Căn hộ chung cư (khấu hao xác nhà sau 30 năm sử dụng)
-      const landRatio = 0.20;
-      const buildingRatio = 0.80;
-      const landRate = 0.020; // 2%/năm tăng trưởng đất
-      const landVal = propVal0 * landRatio * Math.pow(1.0 + landRate, elapsed);
+      initialVal = Number(propVal0) || 0;
+      elapsed = Math.max(0, (Number(age) || 0) - (Number(startAge) || 0));
+      isHouseType = Boolean(isHouse);
+      customRate = (customAppreciation !== undefined && customAppreciation !== null) ? customAppreciation : null;
+      hasMaintenance = Boolean(hasMaintenanceParam);
+    }
 
-      // Tuổi thọ hao mòn công trình: 30 năm (chạm sàn 10% ở năm thứ 30)
+    if (elapsed === 0) return Math.round(initialVal);
+
+    if (isHouseType) {
+      // Formula 1: Nhà mặt đất (House / Maison)
+      const rate = customRate !== null ? customRate : 0.025;
+      return Math.round(initialVal * Math.pow(1.0 + rate, elapsed));
+    } else {
+      // Formula 2: Căn hộ chung cư (Apartment / Copropriété)
+      // Phần Đất: 25% giá trị ban đầu, tăng trưởng dài hạn +2.0%/năm
+      const landRatio = 0.25;
+      const buildingRatio = 0.75;
+      const landRate = 0.020;
+      const landVal = initialVal * landRatio * Math.pow(1.0 + landRate, elapsed);
+
+      // Phần Xác nhà: 75% giá trị ban đầu
+      // Nếu có quỹ bảo trì định kỳ (Fonds de travaux / Charges copro): Sàn bảo tồn 60% sau 30 năm
+      // Nếu không có bảo trì: Hao mòn về sàn 10% sau 30 năm
       const maxDecayYears = 30;
-      const decayRatio = Math.max(0.10, 1.0 - (elapsed / maxDecayYears) * 0.90);
-      const adjFactor = (customAppreciation !== undefined && customAppreciation !== null && customAppreciation !== 0)
-        ? Math.pow(1.0 + customAppreciation, elapsed)
+      const decayFloor = hasMaintenance ? 0.60 : 0.10;
+      const decayRatio = Math.max(decayFloor, 1.0 - (elapsed / maxDecayYears) * (1.0 - decayFloor));
+
+      const adjFactor = (customRate !== null && customRate !== 0)
+        ? Math.pow(1.0 + customRate, elapsed)
         : 1.0;
-      const buildingVal = propVal0 * buildingRatio * decayRatio * adjFactor;
+      const buildingVal = initialVal * buildingRatio * decayRatio * adjFactor;
 
       return Math.round(landVal + buildingVal);
     }
@@ -174,6 +199,7 @@ window.RetirementEngine = (function() {
     const appreciation = (mortgage.propertyAppreciation !== undefined && mortgage.propertyAppreciation !== null && !isNaN(Number(mortgage.propertyAppreciation)))
       ? Number(mortgage.propertyAppreciation) / 100.0
       : (defaultAppr / 100.0);
+    const hasMaintenance = Boolean(mortgage.hasMaintenance || Number(mortgage.annual_maintenance) > 0 || Number(mortgage.charges_copro) > 0 || Number(mortgage.annualMaintenance) > 0);
 
     if (loanAmount <= 0 || termYears <= 0) return null;
 
@@ -209,11 +235,11 @@ window.RetirementEngine = (function() {
       } else {
         balance = 0;
       }
-      curPropVal = computePropertyValue(propVal0, age + 1, startAge, isHouse, appreciation);
+      curPropVal = computePropertyValue(propVal0, age + 1, startAge, isHouse, appreciation, hasMaintenance);
     }
 
     for (let age = currentAge; age <= lifeExpectancy; age++) {
-      curPropVal = computePropertyValue(propVal0, age, startAge, isHouse, appreciation);
+      curPropVal = computePropertyValue(propVal0, age, startAge, isHouse, appreciation, hasMaintenance);
       if (age >= startAge && age < endAge) {
         let interestPaidYear = 0;
         let principalPaidYear = 0;
@@ -484,7 +510,7 @@ window.RetirementEngine = (function() {
           const sAge = Number(inc.startAge) || currentAge;
           const eAge = Number(inc.endAge) || lifeExpectancy;
           const name = (inc.name || "").toLowerCase();
-          const isSalary = name.includes("lương tại") || name.includes("lương chính") || (sAge < candAge && eAge <= candAge);
+          const isSalary = !inc.isBhxhVn && (inc.isSalary || (/lương|salary|impôt|impot/i).test(inc.name || "") || (sAge < candAge && eAge <= candAge));
           if (!isSalary && candAge >= sAge && candAge <= eAge) {
             passiveAtRetire += Number(inc.amount) || 0;
           }
@@ -670,6 +696,7 @@ window.RetirementEngine = (function() {
 
       // 1. Calculate Active and Passive Incomes for this year
       let annualIncome = 0;
+      let taxableIncome = 0;
       if (Array.isArray(plan.incomes)) {
         plan.incomes.forEach(stream => {
           if (stream.enabled === false) return;
@@ -682,6 +709,9 @@ window.RetirementEngine = (function() {
             const streamYearsActive = age - stream.startAge;
             const streamVal = (Number(stream.amount) || 0) * Math.pow(1.0 + streamGrowth, streamYearsActive);
             annualIncome += streamVal;
+            if (stream.taxable !== false) {
+              taxableIncome += streamVal;
+            }
           }
         });
       }
@@ -709,6 +739,7 @@ window.RetirementEngine = (function() {
           }
           pensionReceivedThisYear = p1Amt + p2Amt;
           annualIncome += pensionReceivedThisYear;
+          taxableIncome += pensionReceivedThisYear;
         } else {
           const ssAge = Number(plan.socialSecurityAge) || 64;
           if (age >= ssAge) {
@@ -727,6 +758,7 @@ window.RetirementEngine = (function() {
                 pensionReceivedThisYear = rawSS * cumInflation;
               }
               annualIncome += pensionReceivedThisYear;
+              taxableIncome += pensionReceivedThisYear;
             }
           }
         }
@@ -752,7 +784,9 @@ window.RetirementEngine = (function() {
           const totalBhxhVnd = (b1Amt + b2Amt) * cumInflation;
           if (totalBhxhVnd > 0) {
             const conv = (plan.currency === 'VND') ? 1 : (currentEurVndRate || 27500);
-            annualIncome += (totalBhxhVnd / conv);
+            const bhxhVal = (totalBhxhVnd / conv);
+            annualIncome += bhxhVal;
+            taxableIncome += bhxhVal;
           }
         }
       }
@@ -891,16 +925,19 @@ window.RetirementEngine = (function() {
 
       // 3. Tax Estimation using precise Progressive Tax Engine
       let estimatedTax = 0;
+      const kidsCount = (plan.familyPlan && plan.familyPlan.enabled !== false) ? (Number(plan.familyPlan.kidsCount) || 0) : 0;
       if (window.TaxOptimizer && window.TaxOptimizer.calculateProgressiveTax) {
-        estimatedTax = window.TaxOptimizer.calculateProgressiveTax(annualIncome, plan.taxRegime || 'france_vietnam', {
+        estimatedTax = window.TaxOptimizer.calculateProgressiveTax(taxableIncome, plan.taxRegime || 'france_vietnam', {
           customTaxRate: plan.taxRate,
           currency: plan.currency || 'EUR',
           exchangeRateEurVnd: currentEurVndRate,
-          taxParts: Number(plan.taxParts) || (isSingle ? 1.0 : 2.0)
+          maritalStatus: plan.maritalStatus || (isSingle ? 'single' : 'married'),
+          kidsCount: kidsCount,
+          taxParts: (plan.taxParts !== undefined && plan.taxParts !== null && Number(plan.taxParts) > 0) ? Number(plan.taxParts) : 0
         });
       } else {
         const effectiveTaxRate = (Number(plan.taxRate) || 12.0) / 100.0;
-        estimatedTax = annualIncome * effectiveTaxRate * 0.7;
+        estimatedTax = taxableIncome * effectiveTaxRate * 0.7;
       }
       totalTaxesPaid += estimatedTax;
 
@@ -1068,7 +1105,7 @@ window.RetirementEngine = (function() {
         const sAge = Number(inc.startAge) || currentAge;
         const eAge = Number(inc.endAge) || lifeExpectancy;
         const name = (inc.name || "").toLowerCase();
-        const isSalary = name.includes("lương tại") || name.includes("lương chính") || (sAge < retireAge && eAge <= retireAge);
+        const isSalary = !inc.isBhxhVn && (inc.isSalary || (/lương|salary|impôt|impot/i).test(inc.name || "") || (sAge < retireAge && eAge <= retireAge));
         if (!isSalary && retireAge >= sAge && retireAge <= eAge) {
           passiveAtRetireNow += Number(inc.amount) || 0;
         }
@@ -1320,6 +1357,7 @@ window.RetirementEngine = (function() {
 
     return {
       timeline,
+      yearlyData: timeline,
       currentAge,
       retireAge,
       lifeExpectancy,
@@ -1357,6 +1395,7 @@ window.RetirementEngine = (function() {
     getCurrencySymbol,
     calculateWeightedReturn,
     calculateMortgageSchedule,
+    computePropertyValue,
     evaluateStressResilience,
     findOptimalRetirementAge,
     runProjection
