@@ -219,11 +219,45 @@
             syncBhxhVnStreams(plan);
             savePlansToStorage();
             updateBhxhVnUI(plan);
-            renderIncomeStreamsList();
-            renderExpenseStreamsList();
-            updateCashflowBalanceUI(plan);
+            if (typeof renderIncomeStreamsList === 'function') renderIncomeStreamsList();
+            if (typeof renderExpenseStreamsList === 'function') renderExpenseStreamsList();
+            if (typeof updateCashflowBalanceUI === 'function') updateCashflowBalanceUI(plan);
             updateAll();
           });
+        });
+      }
+    });
+
+    // Sự kiện 2 cột BHXH Bạn và Bạn đời
+    ['sel-bhxh-spouse1-income', 'sel-bhxh-spouse1-years', 'sel-bhxh-spouse2-income', 'sel-bhxh-spouse2-years'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('change', () => {
+          const plan = getActivePlan();
+          if (!plan.bhxhVnDetails) plan.bhxhVnDetails = {};
+          if (!plan.bhxhVnDetails.spouse1) plan.bhxhVnDetails.spouse1 = {};
+          if (!plan.bhxhVnDetails.spouse2) plan.bhxhVnDetails.spouse2 = {};
+
+          const s1Inc = Number(document.getElementById("sel-bhxh-spouse1-income")?.value) || 10000000;
+          const s1Yrs = Number(document.getElementById("sel-bhxh-spouse1-years")?.value) || 20;
+          const s2Inc = Number(document.getElementById("sel-bhxh-spouse2-income")?.value) || 10000000;
+          const s2Yrs = Number(document.getElementById("sel-bhxh-spouse2-years")?.value) || 20;
+
+          plan.bhxhVnDetails.spouse1.monthlySalaryVnd = s1Inc;
+          plan.bhxhVnDetails.spouse1.yearsContributed = s1Yrs;
+          plan.bhxhVnDetails.spouse2.monthlySalaryVnd = s2Inc;
+          plan.bhxhVnDetails.spouse2.yearsContributed = s2Yrs;
+
+          plan.bhxhVnIncome = s1Inc;
+          plan.bhxhVnYears = s1Yrs;
+
+          syncBhxhVnStreams(plan);
+          savePlansToStorage();
+          updateBhxhVnUI(plan);
+          if (typeof renderIncomeStreamsList === 'function') renderIncomeStreamsList();
+          if (typeof renderExpenseStreamsList === 'function') renderExpenseStreamsList();
+          if (typeof updateCashflowBalanceUI === 'function') updateCashflowBalanceUI(plan);
+          updateAll();
         });
       }
     });
@@ -635,16 +669,42 @@
     const chk = document.getElementById("chk-enable-bhxh-vn");
     if (chk) chk.checked = isEnabled;
 
-    const incomeVal = Number(p.bhxhVnIncome) || 10000000;
-    const yearsVal = Number(p.bhxhVnYears) || 15;
+    const userGender = p.gender || 'male';
+    const isFemale = (userGender === 'female');
+    const spouseGender = isFemale ? 'male' : 'female';
+    const standardAge = isFemale ? 60 : 62;
+    const spouseStandardAge = isFemale ? 62 : 60;
+    const isMarried = (p.maritalStatus === 'married');
+
+    if (!p.bhxhVnDetails) p.bhxhVnDetails = {};
+    if (!p.bhxhVnDetails.spouse1) {
+      p.bhxhVnDetails.spouse1 = {
+        gender: userGender,
+        yearsContributed: isFemale ? 15 : 20,
+        monthlySalaryVnd: Number(p.bhxhVnIncome) || 10000000,
+        claimAge: standardAge
+      };
+    }
+    if (!p.bhxhVnDetails.spouse2) {
+      p.bhxhVnDetails.spouse2 = {
+        gender: spouseGender,
+        yearsContributed: isFemale ? 20 : 15,
+        monthlySalaryVnd: 10000000,
+        claimAge: spouseStandardAge
+      };
+    }
+    p.bhxhVnDetails.spouse1.gender = userGender;
+    p.bhxhVnDetails.spouse2.gender = spouseGender;
+
+    const s1Income = Number(p.bhxhVnDetails.spouse1.monthlySalaryVnd) || Number(p.bhxhVnIncome) || 10000000;
+    const s1Years = Number(p.bhxhVnDetails.spouse1.yearsContributed) || (isFemale ? 15 : 20);
+    const s2Income = Number(p.bhxhVnDetails.spouse2.monthlySalaryVnd) || 10000000;
+    const s2Years = Number(p.bhxhVnDetails.spouse2.yearsContributed) || (isFemale ? 20 : 15);
+
     const startAgeVal = Number(p.bhxhVnStartAge) || Number(p.currentAge) || 29;
-    const retireAgeVal = Number(p.bhxhVnRetireAge) || 62;
+    const retireAgeVal = Number(p.bhxhVnRetireAge) || standardAge;
     const lifeExp = Number(p.lifeExpectancy) || 85;
 
-    const selIncome = document.getElementById("sel-calc-bhxh-income");
-    const selYears = document.getElementById("sel-calc-bhxh-years");
-    const inpStart = document.getElementById("inp-bhxh-start-age");
-    const inpRetire = document.getElementById("inp-bhxh-retire-age");
     const bodyEl = document.getElementById("bhxh-inputs-body");
     const badgeEl = document.getElementById("badge-bhxh-status");
     const lblPay = document.getElementById("lbl-bhxh-monthly-pay");
@@ -656,10 +716,57 @@
     const cardContainer = document.getElementById("card-bhxh-income-stream");
     const btnDel = document.getElementById("btn-del-bhxh-stream");
 
-    if (selIncome && selIncome.value !== String(incomeVal)) selIncome.value = String(incomeVal);
-    if (selYears && selYears.value !== String(yearsVal)) selYears.value = String(yearsVal);
-    if (inpStart && inpStart.value !== String(startAgeVal)) inpStart.value = String(startAgeVal);
-    if (inpRetire && inpRetire.value !== String(retireAgeVal)) inpRetire.value = String(retireAgeVal);
+    // Tiêu đề & nội dung 2 cột Bạn & Bạn đời
+    const col1Title = document.getElementById("lbl-bhxh-col-spouse1-title");
+    const col2Title = document.getElementById("lbl-bhxh-col-spouse2-title");
+    const col1ClaimTitle = document.getElementById("lbl-bhxh-spouse1-claim-title");
+    const col2ClaimTitle = document.getElementById("lbl-bhxh-spouse2-claim-title");
+    const col1Badge = document.getElementById("lbl-bhxh-col-spouse1-badge");
+    const col2Badge = document.getElementById("lbl-bhxh-col-spouse2-badge");
+    const selS1Inc = document.getElementById("sel-bhxh-spouse1-income");
+    const selS1Yrs = document.getElementById("sel-bhxh-spouse1-years");
+    const selS2Inc = document.getElementById("sel-bhxh-spouse2-income");
+    const selS2Yrs = document.getElementById("sel-bhxh-spouse2-years");
+    const lblS1Pay = document.getElementById("lbl-bhxh-spouse1-pay");
+    const lblS2Pay = document.getElementById("lbl-bhxh-spouse2-pay");
+    const lblS1Pen = document.getElementById("lbl-bhxh-spouse1-pension");
+    const lblS2Pen = document.getElementById("lbl-bhxh-spouse2-pension");
+
+    if (col1Title) col1Title.innerText = isFemale ? "Bạn (Nữ — 60t)" : "Bạn (Nam — 62t)";
+    if (col2Title) col2Title.innerText = isFemale ? "Bạn đời (Nam — 62t)" : "Bạn đời (Nữ — 60t)";
+    if (col1ClaimTitle) col1ClaimTitle.innerText = isFemale ? "Hưu nhận lúc 60t:" : "Hưu nhận lúc 62t:";
+    if (col2ClaimTitle) col2ClaimTitle.innerText = isFemale ? "Hưu nhận lúc 62t:" : "Hưu nhận lúc 60t:";
+
+    if (selS1Inc && selS1Inc.value !== String(s1Income)) selS1Inc.value = String(s1Income);
+    if (selS1Yrs && selS1Yrs.value !== String(s1Years)) selS1Yrs.value = String(s1Years);
+    if (selS2Inc && selS2Inc.value !== String(s2Income)) selS2Inc.value = String(s2Income);
+    if (selS2Yrs && selS2Yrs.value !== String(s2Years)) selS2Yrs.value = String(s2Years);
+
+    const eurRate = Number(p.exchangeRateEurVnd) || 27500;
+    const cur = p.currency || state.currency || 'EUR';
+
+    let res1 = { effectiveRatePercent: 45, monthlyPensionVnd: 4500000, annualPensionVnd: 54000000 };
+    let res2 = { effectiveRatePercent: 45, monthlyPensionVnd: 4500000, annualPensionVnd: 54000000 };
+
+    if (window.TaxOptimizer && window.TaxOptimizer.calculateVietnamBhxhPension) {
+      res1 = window.TaxOptimizer.calculateVietnamBhxhPension(s1Income, s1Years, userGender, standardAge);
+      res2 = window.TaxOptimizer.calculateVietnamBhxhPension(s2Income, s2Years, spouseGender, spouseStandardAge);
+    }
+
+    if (col1Badge) col1Badge.innerText = `${s1Years} năm (${res1.effectiveRatePercent}%)`;
+    if (col2Badge) col2Badge.innerText = `${s2Years} năm (${res2.effectiveRatePercent}%)`;
+
+    const s1PayVnd = Math.round(s1Income * 0.22);
+    const s2PayVnd = Math.round(s2Income * 0.22);
+    const s1PayEur = Math.round(s1PayVnd / eurRate);
+    const s2PayEur = Math.round(s2PayVnd / eurRate);
+    const s1PenEur = Math.round(res1.monthlyPensionVnd / eurRate);
+    const s2PenEur = Math.round(res2.monthlyPensionVnd / eurRate);
+
+    if (lblS1Pay) lblS1Pay.innerText = `${(s1PayVnd / 1e6).toFixed(1)} tr ₫/th (~${s1PayEur} €)`;
+    if (lblS2Pay) lblS2Pay.innerText = `${(s2PayVnd / 1e6).toFixed(1)} tr ₫/th (~${s2PayEur} €)`;
+    if (lblS1Pen) lblS1Pen.innerText = `~${(res1.monthlyPensionVnd / 1e6).toFixed(1)} tr ₫/th (~${s1PenEur} €)`;
+    if (lblS2Pen) lblS2Pen.innerText = `~${(res2.monthlyPensionVnd / 1e6).toFixed(1)} tr ₫/th (~${s2PenEur} €)`;
 
     if (bodyEl) {
       bodyEl.style.opacity = isEnabled ? "1" : "0.45";
@@ -668,7 +775,7 @@
 
     if (badgeEl) {
       if (isEnabled) {
-        badgeEl.innerText = `${yearsVal} năm (Luật 2024)`;
+        badgeEl.innerText = isMarried ? "2 Người (Luật 2024)" : `${s1Years} năm (Luật 2024)`;
         badgeEl.style.background = "rgba(16, 185, 129, 0.15)";
         badgeEl.style.color = "#34d399";
         badgeEl.style.borderColor = "rgba(16, 185, 129, 0.3)";
@@ -685,46 +792,29 @@
       btnDel.className = isEnabled ? "income-item-btn income-item-del" : "income-item-btn";
     }
 
-    const monthlyPayVnd = Math.round(incomeVal * 0.22);
-    const pensionRate = (yearsVal === 15) ? 0.45 : (0.45 + (yearsVal - 15) * 0.02);
-    let monthlyPensionVnd = Math.round(incomeVal * pensionRate);
-    let annualPensionVnd = monthlyPensionVnd * 12;
-
-    if (window.TaxOptimizer && window.TaxOptimizer.calculateVietnamBhxhPension) {
-      if (p?.maritalStatus === 'married' && p?.bhxhVnDetails) {
-        const bhxhRes = window.TaxOptimizer.calculateVietnamBhxhPension(p.bhxhVnDetails);
-        monthlyPensionVnd = Number(bhxhRes.totalMonthlyPensionVnd ?? bhxhRes.monthlyPensionVnd) || 0;
-        annualPensionVnd = Number(bhxhRes.totalAnnualPensionVnd ?? bhxhRes.annualPensionVnd) || (monthlyPensionVnd * 12);
-      } else {
-        const bhxhRes = window.TaxOptimizer.calculateVietnamBhxhPension(incomeVal, yearsVal, 'male', retireAgeVal);
-        monthlyPensionVnd = Number(bhxhRes.monthlyPensionVnd) || 0;
-        annualPensionVnd = Number(bhxhRes.annualPensionVnd) || (monthlyPensionVnd * 12);
-      }
-    }
-    monthlyPensionVnd = Number(monthlyPensionVnd) || 0;
-    annualPensionVnd = Number(annualPensionVnd) || (monthlyPensionVnd * 12);
-    const eurRate = Number(p.exchangeRateEurVnd) || 27500;
-    const cur = p.currency || state.currency || 'EUR';
+    const totalMonthlyPayVnd = isMarried ? (s1PayVnd + s2PayVnd) : s1PayVnd;
+    const monthlyPensionVnd = isMarried ? (res1.monthlyPensionVnd + res2.monthlyPensionVnd) : res1.monthlyPensionVnd;
+    const annualPensionVnd = monthlyPensionVnd * 12;
 
     let payCurStr, pensionCurStr, cardMonthlyStr, cardAnnualStr;
     if (cur === 'VND') {
-      payCurStr = `${monthlyPayVnd.toLocaleString('vi-VN')} ₫/tháng`;
+      payCurStr = `${totalMonthlyPayVnd.toLocaleString('vi-VN')} ₫/tháng`;
       pensionCurStr = `~${monthlyPensionVnd.toLocaleString('vi-VN')} ₫/tháng`;
       cardMonthlyStr = `${monthlyPensionVnd.toLocaleString('vi-VN')} ₫`;
       cardAnnualStr = `≈ ${(annualPensionVnd / 1e6).toFixed(1)} tr ₫/năm`;
     } else {
-      const payEur = Math.round(monthlyPayVnd / eurRate);
+      const payEur = Math.round(totalMonthlyPayVnd / eurRate);
       const penEur = Math.round(monthlyPensionVnd / eurRate);
       const annualPenEur = penEur * 12;
       if (cur === 'USD') {
         const payUsd = Math.round(payEur * 1.1);
         const penUsd = Math.round(penEur * 1.1);
-        payCurStr = `${monthlyPayVnd.toLocaleString('vi-VN')} ₫ (~${payUsd} $/tháng)`;
+        payCurStr = `${totalMonthlyPayVnd.toLocaleString('vi-VN')} ₫ (~${payUsd} $/tháng)`;
         pensionCurStr = `~${monthlyPensionVnd.toLocaleString('vi-VN')} ₫ (~${penUsd} $/tháng)`;
         cardMonthlyStr = `$${penUsd.toLocaleString('en-US')}`;
         cardAnnualStr = `≈ $${(penUsd * 12).toLocaleString('en-US')}/năm`;
       } else {
-        payCurStr = `${monthlyPayVnd.toLocaleString('vi-VN')} ₫ (~${payEur} €/tháng)`;
+        payCurStr = `${totalMonthlyPayVnd.toLocaleString('vi-VN')} ₫ (~${payEur} €/tháng)`;
         pensionCurStr = `~${monthlyPensionVnd.toLocaleString('vi-VN')} ₫ (~${penEur} €/tháng)`;
         cardMonthlyStr = `€${penEur.toLocaleString('en-US')}`;
         cardAnnualStr = `≈ €${annualPenEur.toLocaleString('en-US')}/năm`;
@@ -769,17 +859,37 @@
       return;
     }
 
-    const incomeVal = Number(p.bhxhVnIncome) || 10000000;
-    const yearsVal = Number(p.bhxhVnYears) || 15;
+    const userGender = p.gender || 'male';
+    const isFemale = (userGender === 'female');
+    const spouseGender = isFemale ? 'male' : 'female';
+    const standardAge = isFemale ? 60 : 62;
+    const isMarried = (p.maritalStatus === 'married');
+
+    const s1Income = Number(p.bhxhVnDetails?.spouse1?.monthlySalaryVnd) || Number(p.bhxhVnIncome) || 10000000;
+    const s1Years = Number(p.bhxhVnDetails?.spouse1?.yearsContributed) || (isFemale ? 15 : 20);
+    const s2Income = Number(p.bhxhVnDetails?.spouse2?.monthlySalaryVnd) || 10000000;
+    const s2Years = Number(p.bhxhVnDetails?.spouse2?.yearsContributed) || (isFemale ? 20 : 15);
+
     const startAge = Math.max(18, Number(p.bhxhVnStartAge) || Number(p.currentAge) || 29);
+    const yearsVal = Math.max(s1Years, isMarried ? s2Years : s1Years);
     const endExpenseAge = startAge + yearsVal - 1;
-    const retireAgeVn = Math.max(startAge + yearsVal, Number(p.bhxhVnRetireAge) || 62);
+    const retireAgeVn = Math.max(startAge + (isFemale ? 15 : 20), Number(p.bhxhVnRetireAge) || standardAge);
     const lifeExp = Number(p.lifeExpectancy) || 85;
 
-    const monthlyPayVnd = Math.round(incomeVal * 0.22);
+    let res1 = { monthlyPensionVnd: 4500000, annualPensionVnd: 54000000 };
+    let res2 = { monthlyPensionVnd: 4500000, annualPensionVnd: 54000000 };
+
+    if (window.TaxOptimizer && window.TaxOptimizer.calculateVietnamBhxhPension) {
+      res1 = window.TaxOptimizer.calculateVietnamBhxhPension(s1Income, s1Years, userGender, standardAge);
+      res2 = window.TaxOptimizer.calculateVietnamBhxhPension(s2Income, s2Years, spouseGender, isFemale ? 62 : 60);
+    }
+
+    const s1PayVnd = Math.round(s1Income * 0.22);
+    const s2PayVnd = Math.round(s2Income * 0.22);
+    const monthlyPayVnd = isMarried ? (s1PayVnd + s2PayVnd) : s1PayVnd;
     const annualPayVnd = monthlyPayVnd * 12;
-    const pensionRate = (yearsVal === 15) ? 0.45 : (0.45 + (yearsVal - 15) * 0.02);
-    const monthlyPensionVnd = Math.round(incomeVal * pensionRate);
+
+    const monthlyPensionVnd = isMarried ? (res1.monthlyPensionVnd + res2.monthlyPensionVnd) : res1.monthlyPensionVnd;
     const annualPensionVnd = monthlyPensionVnd * 12;
 
     const eurRate = Number(p.exchangeRateEurVnd) || 27500;
@@ -806,7 +916,7 @@
       growth: 0,
       isDebt: false,
       isBhxhVn: true,
-      note: `22% mức ${incomeVal.toLocaleString('vi-VN')} ₫/tháng (${yearsVal} năm)`
+      note: `22% mức ${s1Income.toLocaleString('vi-VN')} ₫/tháng (${s1Years} năm)${isMarried ? ` + Bạn đời ${s2Income.toLocaleString('vi-VN')} ₫/tháng (${s2Years} năm)` : ''}`
     });
 
     // Luồng thu nhập nhận lương hưu VN
@@ -924,24 +1034,7 @@
       p.incomes.splice(reIdx, 1);
     }
 
-    // Turo fleet income
-    const turoAnnual = Number(data.turo?.annual_net_cash_flow) || 0;
-    const turoIdx = p.incomes.findIndex(inc => (inc.name || '').includes('Turo') || (inc.name || '').includes('Cho thuê xe'));
-    if (turoAnnual > 0) {
-      const cashflow = round(turoAnnual);
-      if (turoIdx >= 0) {
-        // Update cashflow amount while strictly preserving user-configured startAge, endAge and growth
-        p.incomes[turoIdx].amount = cashflow;
-        if (p.incomes[turoIdx].startAge === undefined || p.incomes[turoIdx].startAge === null) p.incomes[turoIdx].startAge = curAge;
-        if (p.incomes[turoIdx].endAge === undefined || p.incomes[turoIdx].endAge === null) p.incomes[turoIdx].endAge = Math.min(curAge + 10, retireAge);
-        if (p.incomes[turoIdx].growth === undefined || p.incomes[turoIdx].growth === null) p.incomes[turoIdx].growth = 0.0;
-        p.incomes[turoIdx].taxable = false;
-      } else {
-        p.incomes.push({ name: 'Đội xe Cho thuê Turo', amount: cashflow, startAge: curAge, endAge: Math.min(curAge + 10, retireAge), growth: 0.0, taxable: false });
-      }
-    } else if (turoIdx >= 0) {
-      p.incomes.splice(turoIdx, 1);
-    }
+    // Turo đã được quản lý trực tiếp như một nguồn thu nhập thông thường (không cần đồng bộ riêng)
 
     // Synchronize Apartment Purchase Milestones from Patrimoine into plan.milestones
     const apts = Array.isArray(data.apartments) ? data.apartments : [];
@@ -1022,11 +1115,14 @@
     if (chk) chk.checked = isEnabled;
 
     const pData = state.patrimoineData || (window.patrimoineData) || null;
-    let apts = (pData && Array.isArray(pData.apartments)) ? pData.apartments : [];
-    if (apts.length === 0 && window.PatrimoineApp && typeof window.PatrimoineApp.computeFullPatrimoine === "function") {
+    let apts = [];
+    if (pData && Array.isArray(pData.apartments)) {
+      apts = pData.apartments;
+    } else if (!pData && window.PatrimoineApp && typeof window.PatrimoineApp.computeFullPatrimoine === "function") {
+      // Chỉ đọc từ guest storage khi pData chưa từng được khởi tạo
       try {
-        const guest = JSON.parse(localStorage.getItem("pyretrait_patrimoine_guest") || "{}");
-        if (guest && guest.apartments) {
+        const guest = JSON.parse(localStorage.getItem("pyRetrait_guest_patrimoine_v2") || "{}");
+        if (guest && guest.apartments && Object.keys(guest.apartments).length > 0) {
           const comp = window.PatrimoineApp.computeFullPatrimoine(guest.apartments, guest.turo, guest.wealth);
           if (comp && Array.isArray(comp.apartments)) apts = comp.apartments;
         }
@@ -1078,7 +1174,7 @@
       return acc + eff;
     }, 0);
     const totalAnnualRentEur = totalEffectiveRentEur * 12;
-    const annualRent = lmnpStream ? Number(lmnpStream.amount) : Math.round(totalAnnualRentEur * f);
+    const annualRent = apts.length === 0 ? 0 : (lmnpStream ? Number(lmnpStream.amount) : Math.round(totalAnnualRentEur * f));
     const monthlyRent = Math.round(annualRent / 12);
 
     const lblMonthly = document.getElementById("lbl-lmnp-card-monthly");
@@ -1087,14 +1183,14 @@
     const lblGrowth = document.getElementById("lbl-lmnp-card-growth");
 
     if (lblMonthly) {
-      if (isEnabled) {
+      if (isEnabled && apts.length > 0) {
         lblMonthly.innerHTML = `${fmt(monthlyRent)}<small>/tháng</small>`;
       } else {
         lblMonthly.innerHTML = `<span style="color: var(--text-faint);">0<small>/tháng</small></span>`;
       }
     }
     if (lblAnnual) {
-      lblAnnual.innerText = isEnabled ? `≈ ${fmt(annualRent)}/năm` : "Đã tạm tắt nguồn thu BĐS";
+      lblAnnual.innerText = isEnabled ? (apts.length > 0 ? `≈ ${fmt(annualRent)}/năm` : "Chưa có căn hộ cho thuê nào") : "Đã tạm tắt nguồn thu BĐS";
     }
     if (lblAgeRange) {
       const startAge = lmnpStream?.startAge !== undefined ? lmnpStream.startAge : (p.currentAge || 29);

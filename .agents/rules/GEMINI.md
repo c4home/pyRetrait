@@ -18,10 +18,16 @@
     - Gọi hàm helper trong JavaScript: `window.I18n.t(key, fallback)` đối với các chuỗi sinh động (dynamic HTML, nhãn biểu đồ, tooltip).
   - Khi thêm bất kỳ tính năng, nút bấm, biểu đồ hoặc thẻ nội dung mới lên giao diện, **bắt buộc phải bổ sung đầy đủ bản dịch cho các ngôn ngữ đang hoạt động** trong từ điển của `i18n.js`.
   - Trạng thái ngôn ngữ được lưu tự động trong `localStorage` (key: `pyretrait_lang`) và kích hoạt sự kiện `pyretrait:language-changed` để cập nhật giao diện tức thì mà không cần tải lại trang.
-  - **Tối Ưu Hóa Token Khi Kiểm Thử (Testing & Verification Rule):**
-    - **Tuyệt đối KHÔNG kiểm tra đồng thời cả Tiếng Việt và chuyển đổi sang English / French (`Dont Check both Vietnamese and when switching to English / French`):**
-    - Mặc định chỉ kiểm tra UI và tính năng trên ngôn ngữ chính là **Tiếng Việt (`vi`)**.
-    - Bản dịch tiếng Anh (`en`) và tiếng Pháp (`fr`) được bảo đảm bằng kiểm tra tĩnh (static code inspection) trong từ điển `i18n.js`. Tuyệt đối không ra lệnh cho browser subagent/tester chuyển qua lại giữa các ngôn ngữ (`VI -> EN -> FR`) trong cùng một phiên test để tránh lãng phí token và thời gian không cần thiết (trừ khi người dùng yêu cầu đích danh).
+  - **Tối Ưu Hóa Token Khi Kiểm Thử & Chống Tự Động Mở Browser (Testing & Verification Rule):**
+    - **TUYỆT ĐỐI CẤM TỰ ĐỘNG MỞ TRÌNH DUYỆT & CHỤP SCREENSHOT (`No Auto-Browser / No Auto-Screenshot`):**
+      - Sau khi viết code, chỉnh sửa giao diện hay cập nhật tính năng, **tuyệt đối KHÔNG tự ý khởi chạy `browser_subagent` để mở trình duyệt, thao tác click hay chụp ảnh màn hình/quay video**. Việc này tiêu tốn rất nhiều token và thời gian không cần thiết.
+      - **Bắt buộc kiểm tra bằng phương pháp tĩnh (Static Verification):** Kiểm tra kỹ logic qua code review, syntax checking, và đối chiếu với yêu cầu mà không cần bật browser.
+    - **Bắt buộc hỏi ý kiến người dùng trước khi dùng Browser:**
+      - Chỉ khi việc kiểm tra trực quan giao diện là thực sự cần thiết hoặc phức tạp, agent **phải hỏi người dùng trước** (bằng `ask_question` hoặc hỏi trực tiếp trong chat) để người dùng xác nhận có đồng ý mở trình duyệt và chấp nhận tốn thêm token hay không.
+      - Nếu người dùng chưa đồng ý hoặc không yêu cầu đích danh: **CẤM tuyệt đối không được tự động mở trình duyệt**.
+    - **Tuyệt đối KHÔNG kiểm tra đồng thời cả Tiếng Việt và chuyển đổi sang English / French:**
+      - Mặc định chỉ kiểm tra UI và tính năng trên ngôn ngữ chính là **Tiếng Việt (`vi`)**.
+      - Bản dịch tiếng Anh (`en`) và tiếng Pháp (`fr`) được bảo đảm bằng kiểm tra tĩnh trong từ điển `i18n.js`. Tuyệt đối không ra lệnh cho browser subagent chuyển qua lại giữa các ngôn ngữ (`VI -> EN -> FR`) trong cùng một phiên test (trừ khi người dùng yêu cầu đích danh).
 - **Quy Chuẩn Ngôn Ngữ Phổ Thông Cho Đại Chúng (Plain Language & Mass Audience UX — Phục Vụ 100,000+ Người Dùng):**
   - **Tư duy tiếp cận đại chúng:** Ứng dụng hướng tới phục vụ 100,000+ người dùng phổ thông, đa dạng lứa tuổi, nghề nghiệp và trình độ học vấn. Mọi nội dung hiển thị phải dễ hiểu, trong sáng và mang tính ứng dụng thực tế ngay lập tức.
   - **Tối thiểu hóa thuật ngữ kỹ thuật (technical jargon):** Tuyệt đối không lạm dụng các thuật ngữ hàn lâm, đao to búa lớn của phòng thí nghiệm hoặc giới y khoa / tài chính chuyên sâu (như *Zone 2*, *Glymphatic*, *Sarcopenia*, *Autophagy*, *Polyphenol*, *Sulforaphane*, *Apigenin*, *Nocturia*, *GI thấp*...).

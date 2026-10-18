@@ -23,8 +23,12 @@
     }
   </script>
 
+  <!-- Iconify Web Component & Core Offline Bundle (Local First, Unified Lucide Icons) -->
+  <script src="js/iconify-icon.min.js?v=20261018_v1"></script>
+  <script src="js/icons-bundle.js?v=20261018_v1"></script>
+
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=20261018_v153">
+  <link rel="stylesheet" href="css/styles.css?v=20261018_v157">
 </head>
 
 <body>
@@ -678,7 +682,7 @@
 
                       <div id="box-pension-decote-live" class="pension-calc-live-box" style="margin-top: 0.55rem;">
                         <div style="display: flex; justify-content: space-between;">
-                          <span id="lbl-french-pension-total-title">Tổng lương hưu Pháp 2 vợ chồng:</span>
+                          <span id="lbl-french-pension-total-title">Tổng lương hưu Pháp cả hai người:</span>
                           <strong id="lbl-pension-effective" class="text-success" style="font-size: 0.82rem; font-weight: 700;">~10.980 €/năm (~915 €/tháng)</strong>
                         </div>
                       </div>
@@ -728,41 +732,45 @@
                       </div>
                     </div>
 
-                    <!-- Khu vực Cấu Hình Chi Tiết: Hiển thị trực tiếp 2 cột song song Chồng & Vợ -->
+                    <!-- Khu vực Cấu Hình Chi Tiết: Hiển thị trực tiếp 2 cột song song Bạn & Bạn đời -->
                     <div class="bhxh-config-box" id="bhxh-inputs-body">
                       <div class="spouse-pension-grid">
                         <!-- Cột 1: Bạn -->
                         <div class="spouse-col-card">
                           <div class="spouse-col-header">
-                            <span class="spouse-col-title">Bạn (Nam — 62t)</span>
-                            <span class="spouse-col-badge">20 năm (45%)</span>
+                            <span class="spouse-col-title" id="lbl-bhxh-col-spouse1-title">Bạn (Nam — 62t)</span>
+                            <span class="spouse-col-badge" id="lbl-bhxh-col-spouse1-badge">20 năm (45%)</span>
                           </div>
                           <div class="form-row">
                             <div class="form-group col-6" style="margin-bottom: 0.35rem;">
                               <label style="font-size: 0.72rem; font-weight: 600;">Mức đóng/th</label>
-                              <select class="form-input" style="padding: 0.3rem 0.5rem; font-size: 0.78rem;">
+                              <select id="sel-bhxh-spouse1-income" class="form-input" style="padding: 0.3rem 0.5rem; font-size: 0.78rem;">
+                                <option value="5000000">5 tr/th</option>
                                 <option value="10000000" selected>10 tr/th</option>
                                 <option value="15000000">15 tr/th</option>
                                 <option value="20000000">20 tr/th</option>
+                                <option value="30000000">30 tr/th</option>
                               </select>
                             </div>
                             <div class="form-group col-6" style="margin-bottom: 0.35rem;">
                               <label style="font-size: 0.72rem; font-weight: 600;">Số năm đóng</label>
-                              <select class="form-input" style="padding: 0.3rem 0.5rem; font-size: 0.78rem;">
+                              <select id="sel-bhxh-spouse1-years" class="form-input" style="padding: 0.3rem 0.5rem; font-size: 0.78rem;">
                                 <option value="15">15 năm</option>
                                 <option value="20" selected>20 năm</option>
                                 <option value="25">25 năm</option>
+                                <option value="30">30 năm</option>
+                                <option value="35">35 năm</option>
                               </select>
                             </div>
                           </div>
                           <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.15rem; background: var(--bg-app); padding: 0.35rem 0.45rem; border-radius: 4px; border: 1px solid var(--border-subtle);">
                             <div style="display: flex; justify-content: space-between;">
                               <span>Tiền đóng (22%):</span>
-                              <strong class="text-warning">2.2 tr ₫/th (~80 €)</strong>
+                              <strong class="text-warning" id="lbl-bhxh-spouse1-pay">2.2 tr ₫/th (~80 €)</strong>
                             </div>
                             <div style="display: flex; justify-content: space-between;">
-                              <span>Hưu nhận lúc 62t:</span>
-                              <strong class="text-success">~4.5 tr ₫/th (~164 €)</strong>
+                              <span id="lbl-bhxh-spouse1-claim-title">Hưu nhận lúc 62t:</span>
+                              <strong class="text-success" id="lbl-bhxh-spouse1-pension">~4.5 tr ₫/th (~164 €)</strong>
                             </div>
                           </div>
                         </div>
@@ -770,35 +778,39 @@
                         <!-- Cột 2: Bạn đời -->
                         <div class="spouse-col-card">
                           <div class="spouse-col-header">
-                            <span class="spouse-col-title">Bạn đời (Nữ — 60t)</span>
-                            <span class="spouse-col-badge">20 năm (55%)</span>
+                            <span class="spouse-col-title" id="lbl-bhxh-col-spouse2-title">Bạn đời (Nữ — 60t)</span>
+                            <span class="spouse-col-badge" id="lbl-bhxh-col-spouse2-badge">20 năm (55%)</span>
                           </div>
                           <div class="form-row">
                             <div class="form-group col-6" style="margin-bottom: 0.35rem;">
                               <label style="font-size: 0.72rem; font-weight: 600;">Mức đóng/th</label>
-                              <select class="form-input" style="padding: 0.3rem 0.5rem; font-size: 0.78rem;">
+                              <select id="sel-bhxh-spouse2-income" class="form-input" style="padding: 0.3rem 0.5rem; font-size: 0.78rem;">
+                                <option value="5000000">5 tr/th</option>
                                 <option value="10000000" selected>10 tr/th</option>
                                 <option value="15000000">15 tr/th</option>
                                 <option value="20000000">20 tr/th</option>
+                                <option value="30000000">30 tr/th</option>
                               </select>
                             </div>
                             <div class="form-group col-6" style="margin-bottom: 0.35rem;">
                               <label style="font-size: 0.72rem; font-weight: 600;">Số năm đóng</label>
-                              <select class="form-input" style="padding: 0.3rem 0.5rem; font-size: 0.78rem;">
+                              <select id="sel-bhxh-spouse2-years" class="form-input" style="padding: 0.3rem 0.5rem; font-size: 0.78rem;">
                                 <option value="15">15 năm</option>
                                 <option value="20" selected>20 năm</option>
                                 <option value="25">25 năm</option>
+                                <option value="30">30 năm</option>
+                                <option value="35">35 năm</option>
                               </select>
                             </div>
                           </div>
                           <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.15rem; background: var(--bg-app); padding: 0.35rem 0.45rem; border-radius: 4px; border: 1px solid var(--border-subtle);">
                             <div style="display: flex; justify-content: space-between;">
                               <span>Tiền đóng (22%):</span>
-                              <strong class="text-warning">2.2 tr ₫/th (~80 €)</strong>
+                              <strong class="text-warning" id="lbl-bhxh-spouse2-pay">2.2 tr ₫/th (~80 €)</strong>
                             </div>
                             <div style="display: flex; justify-content: space-between;">
-                              <span>Hưu nhận lúc 60t:</span>
-                              <strong class="text-success">~5.5 tr ₫/th (~200 €)</strong>
+                              <span id="lbl-bhxh-spouse2-claim-title">Hưu nhận lúc 60t:</span>
+                              <strong class="text-success" id="lbl-bhxh-spouse2-pension">~5.5 tr ₫/th (~200 €)</strong>
                             </div>
                           </div>
                         </div>
@@ -806,7 +818,7 @@
 
                       <div id="box-bhxh-calc-live" class="pension-calc-live-box" style="margin-top: 0.55rem;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-                          <span id="lbl-bhxh-pension-total-title">Tổng lương hưu BHXH 2 vợ chồng:</span>
+                          <span id="lbl-bhxh-pension-total-title">Tổng lương hưu BHXH cả hai người:</span>
                           <strong id="lbl-bhxh-pension-est" class="text-success" style="font-size: 0.82rem; font-weight: 700;">~10.000.000 ₫/tháng (~364 €/tháng)</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
@@ -1190,7 +1202,7 @@
                         <div class="formula-inline-box formula-info" style="grid-column: 1 / -1; margin-top: 0.35rem; font-size: 0.68rem; padding: 0.35rem 0.55rem; border-radius: 4px;">
                           <div class="formula-tag" style="font-size: 0.65rem; margin-bottom: 0.15rem;">Nguồn dữ liệu &amp; Công thức đối chiếu</div>
                           <div style="display: flex; flex-direction: column; gap: 0.12rem; line-height: 1.35;">
-                            <code>• Công thức 3 mốc = Mức sống chuẩn tại Pháp × Hệ số quy mô gia đình (1.0 cá nhân / 1.6 vợ chồng) × Hệ số PPP điểm đến</code>
+                            <code>• Công thức 3 mốc = Mức sống chuẩn tại Pháp × Hệ số quy mô gia đình (1.0 cá nhân / 1.6 cặp đôi) × Hệ số PPP điểm đến</code>
                             <code>• Mức sống chuẩn tại Pháp: Cơ bản 1.600 €/tháng • Thoải mái 2.400 €/tháng • Thịnh vượng 4.000 €/tháng</code>
                             <code>• Nguồn dữ liệu: Tổng hợp từ khảo sát mức sống hộ gia đình OECD, INSEE (Pháp) &amp; VHLSS (Việt Nam)</code>
                           </div>
@@ -1220,11 +1232,11 @@
                           <div class="smile-phase-col-mini">
                             <div class="smile-phase-header-mini">
                               <span>1. Go-Go</span>
-                              <span class="smile-phase-badge-mini badge-gogo">+15%</span>
+                              <span class="smile-phase-badge-mini badge-gogo" id="badge-calc-gogo">+15%</span>
                             </div>
                             <div class="smile-phase-val-mini">
-                              <span>Đến 60 tuổi:</span>
-                              <strong class="font-mono text-success">~1.570 €/th</strong>
+                              <span id="lbl-calc-gogo-age">Đến 60 tuổi:</span>
+                              <strong class="font-mono text-success" id="lbl-calc-gogo-monthly">~1.570 €/th</strong>
                             </div>
                           </div>
 
@@ -1232,11 +1244,11 @@
                           <div class="smile-phase-col-mini">
                             <div class="smile-phase-header-mini">
                               <span>2. Slow-Go</span>
-                              <span class="smile-phase-badge-mini badge-slowgo">-10%</span>
+                              <span class="smile-phase-badge-mini badge-slowgo" id="badge-calc-slowgo">-10%</span>
                             </div>
                             <div class="smile-phase-val-mini">
-                              <span>61 - 75 tuổi:</span>
-                              <strong class="font-mono" style="color: #f59e0b;">~1.230 €/th</strong>
+                              <span id="lbl-calc-slowgo-age">61 - 75 tuổi:</span>
+                              <strong class="font-mono" style="color: #f59e0b;" id="lbl-calc-slowgo-monthly">~1.230 €/th</strong>
                             </div>
                           </div>
 
@@ -1244,11 +1256,11 @@
                           <div class="smile-phase-col-mini">
                             <div class="smile-phase-header-mini">
                               <span>3. No-Go</span>
-                              <span class="smile-phase-badge-mini badge-nogo">-25%</span>
+                              <span class="smile-phase-badge-mini badge-nogo" id="badge-calc-nogo">-25%</span>
                             </div>
                             <div class="smile-phase-val-mini">
-                              <span>Từ 76 tuổi+:</span>
-                              <strong class="font-mono" style="color: var(--text-muted);">~1.020 €/th</strong>
+                              <span id="lbl-calc-nogo-age">Từ 76 tuổi+:</span>
+                              <strong class="font-mono" style="color: var(--text-muted);" id="lbl-calc-nogo-monthly">~1.020 €/th</strong>
                             </div>
                           </div>
                         </div>
@@ -1806,7 +1818,7 @@
                       style="padding: 0.35rem 0.5rem; font-size: 0.95rem; font-weight: 700;" value="10000" step="1000">
                   </div>
                   <div class="account-desc" style="margin-top: 0.4rem;">Miễn thuế trên lợi nhuận lên đến 4,600 €/năm
-                    (độc thân) hoặc 9,200 €/năm (vợ chồng).</div>
+                    (độc thân) hoặc 9,200 €/năm (cặp đôi).</div>
                 </div>
 
                 <div class="account-card">
@@ -2060,7 +2072,7 @@
                     Giống như PEA, mốc <strong>8 năm ưu đãi thuế</strong> của Assurance-Vie tính từ <strong>ngày ký hợp
                       đồng</strong>, không phụ thuộc vào lúc bạn nạp các món tiền lớn sau này. Sau 8 năm, bạn mở khóa
                     hạn mức giảm trừ miễn thuế thu nhập (Abattement) hàng năm: <strong>4.600 €/năm (độc thân)</strong>
-                    và <strong>9.200 €/năm (vợ chồng)</strong>.
+                    và <strong>9.200 €/năm (cặp đôi)</strong>.
                   </p>
                   <div class="pea-callout-box">
                     <strong>Hành động:</strong> Mở ngay 1 hợp đồng với số vốn tối thiểu <strong>100 € – 300 €</strong>
@@ -2154,7 +2166,7 @@
                     <br><code>Tiền lãi tính thuế = Tiền rút × [1 - (Vốn nộp / Tổng giá trị)]</code>
                   </p>
                   <div class="pea-callout-box">
-                    <strong>Ví dụ:</strong> Vốn nạp 100k€, tài sản tăng lên 150k€ (lãi 33.3%). Vợ chồng rút
+                    <strong>Ví dụ:</strong> Vốn nạp 100k€, tài sản tăng lên 150k€ (lãi 33.3%). Cặp đôi rút
                     <strong>27.600 €</strong> thì tiền lãi chỉ là <strong>9.200 €</strong> — vừa khít mức Abattement
                     miễn thuế 100%! Hạn mức này reset vào 31/12 hàng năm, nên người làm FIRE mỗi năm đều rút đúng hạn
                     mức để tối ưu hóa dòng tiền.
@@ -2187,7 +2199,7 @@
                   <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span class="advisor-card-tag tag-critical">Mẹo 06 • Thừa kế vàng</span>
                     <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">ARTICLE
-                      990 I</span>
+                    990 I</span>
                   </div>
                   <h4 class="advisor-card-title">"Vũ Khí Hạt Nhân" Thừa Kế: Nạp Trước 70 Tuổi Miễn 152.5k€/Người</h4>
                   <p class="advisor-card-text">
@@ -2196,7 +2208,7 @@
                     thường (<em>Hors succession</em>).
                   </p>
                   <div class="pea-callout-box">
-                    <strong>Mẹo gia đình:</strong> 2 vợ chồng có 2 con có thể chuyển giao tới <strong>610.000 €</strong>
+                    <strong>Mẹo gia đình:</strong> Cặp đôi có 2 con có thể chuyển giao tới <strong>610.000 €</strong>
                     hoàn toàn 0% thuế thừa kế. Đặc biệt: Khi chuyển cư trú thuế về Việt Nam, hợp đồng vẫn duy trì bình
                     thường và được <strong>miễn 17.2% đóng góp xã hội CSG/CRDS</strong> của Pháp khi rút tiền!
                   </div>
@@ -2239,7 +2251,7 @@
                   <div class="pea-callout-box">
                     <strong>Thời điểm vàng:</strong> Những năm đầu mới đi làm, du học sinh vừa đổi visa, hoặc khi bắt
                     đầu FIRE (nghỉ việc khiến RFR tụt dốc) Hãy mở ngay LEP! Ngân hàng cho phép ân hạn thêm 1 năm
-                    (<em>délai de grâce</em>) kể cả khi năm sau bạn vượt trần thu nhập. 2 vợ chồng đủ điều kiện có thể
+                    (<em>délai de grâce</em>) kể cả khi năm sau bạn vượt trần thu nhập. Cả hai bạn đời đủ điều kiện có thể
                     mở <strong>2 LEP = 20.000 €</strong>.
                   </div>
                 </div>
@@ -2448,7 +2460,7 @@
                   <div class="pea-callout-box">
                     <strong>Chi trả trực tiếp & Tách bạch di sản:</strong> Tiền được công ty bảo hiểm chi trả trực tiếp cho con trong vài tuần, không cần chờ thủ tục phân chia di sản kéo dài 6–12 tháng tại phòng công chứng.
                     <div style="margin-top: 0.35rem; font-size: 0.73rem; color: var(--text-muted);">
-                      • Gia đình 2 vợ chồng có 2 con có thể chuyển giao tới <strong>610.000 €</strong> hoàn toàn 0% thuế.<br>
+                      • Cặp đôi có 2 con có thể chuyển giao tới <strong>610.000 €</strong> hoàn toàn 0% thuế.<br>
                       • Phần vượt quá 152.5k€ chỉ chịu thuế suất ưu đãi 20% (thay vì 45% biểu lũy tiến).
                     </div>
                   </div>
@@ -2528,6 +2540,84 @@
             Kết hợp 4 chỉ số sinh học lâm sàng và 5 thói quen vàng để đo lường khoảng cách Healthspan vs Lifespan và
             tuổi sinh học thực tế:
           </p>
+
+          <!-- KHỐI SO SÁNH SỨC KHỎE CẶP ĐÔI (CHỈ HIỂN THỊ KHI LÀ CẶP ĐÔI) -->
+          <div id="box-couple-health-overview" class="couple-health-overview-card" style="display: none; margin-bottom: 1.15rem; padding: 1rem; background: var(--bg-card-hover); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <iconify-icon icon="lucide:users" width="18" height="18" style="color: var(--accent-emerald);"></iconify-icon>
+                <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.02em;">
+                  Bảng So Sánh Sức Khỏe & Kỳ Vọng Sống Cặp Đôi
+                </span>
+              </div>
+              <span class="badge badge-info" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">Hồ sơ 2 người song hành</span>
+            </div>
+
+            <!-- Grid 2 Cột So Sánh Trực Quan Bạn & Bạn Đời -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.85rem; margin-bottom: 0.85rem;">
+              <!-- Cột 1: Bạn -->
+              <div id="card-couple-primary-col" style="background: var(--bg-card); padding: 0.85rem; border-radius: var(--radius-sm); border: 1.5px solid var(--accent-emerald); cursor: pointer; transition: all 0.2s ease;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
+                  <strong style="font-size: 0.85rem; color: var(--text-main);" id="lbl-couple-primary-name">👨 Bạn</strong>
+                  <span class="badge badge-success font-semibold" id="lbl-couple-primary-status">Tuổi sinh học: --</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.76rem; color: var(--text-muted);">
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Tuổi thực tế:</span>
+                    <strong style="color: var(--text-main);" id="lbl-couple-primary-age">-- tuổi</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Sống khỏe tự lập (Healthspan):</span>
+                    <strong style="color: var(--accent-emerald);" id="lbl-couple-primary-healthspan">-- tuổi</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Khoảng suy yếu cuối đời:</span>
+                    <strong style="color: #f59e0b;" id="lbl-couple-primary-gap">-- năm</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Cột 2: Bạn đời -->
+              <div id="card-couple-spouse-col" style="background: var(--bg-card); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); cursor: pointer; transition: all 0.2s ease;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
+                  <strong style="font-size: 0.85rem; color: var(--text-main);" id="lbl-couple-spouse-name">👩 Bạn đời</strong>
+                  <span class="badge badge-info font-semibold" id="lbl-couple-spouse-status">Tuổi sinh học: --</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.76rem; color: var(--text-muted);">
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Tuổi thực tế:</span>
+                    <strong style="color: var(--text-main);" id="lbl-couple-spouse-age">-- tuổi</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Sống khỏe tự lập (Healthspan):</span>
+                    <strong style="color: var(--accent-emerald);" id="lbl-couple-spouse-healthspan">-- tuổi</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Khoảng suy yếu cuối đời:</span>
+                    <strong style="color: #f59e0b;" id="lbl-couple-spouse-gap">-- năm</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Hộp Ghi Chú Đời Thường Về Chênh Lệch Tuổi Thọ -->
+            <div style="padding: 0.65rem 0.85rem; background: var(--bg-app); border-radius: var(--radius-sm); border: 1px dashed var(--border-subtle); font-size: 0.74rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.85rem;">
+              💡 <strong>Lưu ý gia đình:</strong> Phụ nữ có tuổi thọ sinh học trung bình cao hơn nam giới khoảng 3–5 năm. Việc chuẩn bị sớm quỹ an dưỡng và bảo hiểm y tế giúp đảm bảo người hôn phối không bị thiếu hụt tài chính trong giai đoạn sống đơn độc lúc xế chiều.
+            </div>
+
+            <!-- Thanh Chuyển Đổi Tab Nhập Liệu Bạn / Bạn Đời -->
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; padding-top: 0.65rem; border-top: 1px solid var(--border-subtle);">
+              <span style="font-size: 0.74rem; font-weight: 600; color: var(--text-muted);">Đang xem & điều chỉnh:</span>
+              <div class="btn-group" style="display: flex; gap: 0.4rem;">
+                <button type="button" class="btn btn-sm btn-primary" id="btn-health-tab-primary" style="padding: 0.35rem 0.75rem; font-size: 0.76rem; font-weight: 600;">
+                  👨 Hồ sơ Bạn
+                </button>
+                <button type="button" class="btn btn-sm btn-outline" id="btn-health-tab-spouse" style="padding: 0.35rem 0.75rem; font-size: 0.76rem; font-weight: 600;">
+                  👩 Hồ sơ Bạn đời
+                </button>
+              </div>
+            </div>
+          </div>
 
           <div class="healthspan-score-card">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.15rem;">
@@ -2732,7 +2822,7 @@
                   <div
                     style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
                     <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Thông số lâm sàng</span>
-                    <span class="badge badge-info" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">Tự hiệu chỉnh</span>
+                    <span class="badge badge-info" id="badge-bio-gender-indicator" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; cursor: pointer;" title="Nhấn để đổi tiêu chuẩn Nam / Nữ">Tiêu chuẩn: Nam 👨</span>
                   </div>
                   <div style="display: flex; flex-direction: column; gap: 0.6rem;">
                     <!-- Chỉ số 1: Nhịp tim nghỉ -->
@@ -2742,7 +2832,7 @@
                           style="font-size: 0.74rem; font-weight: 600; color: var(--text-main); cursor: pointer;">
                           1. Nhịp tim nghỉ (RHR)
                         </label>
-                        <span class="badge" style="font-size: 0.68rem; padding: 0.1rem 0.4rem; background: var(--bg-app); border: 1px solid var(--border-subtle); color: var(--text-muted);">Chuẩn: &lt;60 bpm</span>
+                        <span class="badge" id="lbl-bio-rhr-standard" style="font-size: 0.68rem; padding: 0.1rem 0.4rem; background: var(--bg-app); border: 1px solid var(--border-subtle); color: var(--text-muted);">Chuẩn: &lt;60 bpm</span>
                       </div>
                       <select id="sel-bio-rhr" class="form-input" style="padding: 0.4rem 0.55rem; font-size: 0.76rem; width: 100%;">
                         <option value="optimal">Dưới 60 bpm (Tối ưu)</option>
@@ -2759,7 +2849,7 @@
                           style="font-size: 0.74rem; font-weight: 600; color: var(--text-main); cursor: pointer;">
                           2. Huyết áp tâm thu
                         </label>
-                        <span class="badge" style="font-size: 0.68rem; padding: 0.1rem 0.4rem; background: var(--bg-app); border: 1px solid var(--border-subtle); color: var(--text-muted);">Chuẩn: &lt;120 mmHg</span>
+                        <span class="badge" id="lbl-bio-bp-standard" style="font-size: 0.68rem; padding: 0.1rem 0.4rem; background: var(--bg-app); border: 1px solid var(--border-subtle); color: var(--text-muted);">Chuẩn: &lt;120 mmHg</span>
                       </div>
                       <select id="sel-bio-bp" class="form-input" style="padding: 0.4rem 0.55rem; font-size: 0.76rem; width: 100%;">
                         <option value="optimal" selected>Dưới 120 mmHg (Chuẩn)</option>
@@ -2776,7 +2866,7 @@
                           style="font-size: 0.74rem; font-weight: 600; color: var(--text-main); cursor: pointer;">
                           3. Tỷ lệ Vòng eo / Chiều cao
                         </label>
-                        <span class="badge" style="font-size: 0.68rem; padding: 0.1rem 0.4rem; background: var(--bg-app); border: 1px solid var(--border-subtle); color: var(--text-muted);">Chuẩn: &lt;0.5</span>
+                        <span class="badge" id="lbl-bio-whtr-standard" style="font-size: 0.68rem; padding: 0.1rem 0.4rem; background: var(--bg-app); border: 1px solid var(--border-subtle); color: var(--text-muted);">Chuẩn: &lt;0.5</span>
                       </div>
                       <select id="sel-bio-whtr" class="form-input" style="padding: 0.4rem 0.55rem; font-size: 0.76rem; width: 100%;">
                         <option value="optimal" selected>Dưới 0.5 (Tối ưu mỡ tạng)</option>
@@ -2792,7 +2882,7 @@
                           style="font-size: 0.74rem; font-weight: 600; color: var(--text-main); cursor: pointer;">
                           4. Sức mạnh nắm tay / Hít đất
                         </label>
-                        <span class="badge" style="font-size: 0.68rem; padding: 0.1rem 0.4rem; background: var(--bg-app); border: 1px solid var(--border-subtle); color: var(--text-muted);">Chuẩn: &gt;20 cái</span>
+                        <span class="badge" id="lbl-bio-strength-standard" style="font-size: 0.68rem; padding: 0.1rem 0.4rem; background: var(--bg-app); border: 1px solid var(--border-subtle); color: var(--text-muted);">Chuẩn: &gt;20 cái</span>
                       </div>
                       <select id="sel-bio-strength" class="form-input" style="padding: 0.4rem 0.55rem; font-size: 0.76rem; width: 100%;">
                         <option value="high" selected>Rất khỏe (&gt;20 cái liên tục)</option>
@@ -3432,129 +3522,155 @@
           </div>
         </div>
 
-        <!-- 1. Kế hoạch này dành cho -->
-        <div class="form-group" style="margin-bottom: 1rem;">
-          <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.35rem; display: block;">
-            1. Kế hoạch này dành cho
+        <!-- 1. Người lập kế hoạch là -->
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.35rem; display: block;" data-i18n="profile_gender_title">
+            1. Người lập kế hoạch là
           </label>
           <div class="select-card-grid">
-            <div class="select-card-btn active" id="btn-plan-fam-single" onclick="this.classList.add('active'); document.getElementById('btn-plan-fam-married').classList.remove('active');" style="padding: 0.75rem 0.85rem;">
+            <div class="select-card-btn active" id="btn-plan-gender-male" onclick="window.setPlanGender('male')" style="padding: 0.75rem 0.85rem;">
+              <span class="btn-badge" id="lbl-modal-gender-male-badge" data-i18n="gender_male_badge">Tuổi hưu 62t</span>
+              <span style="font-weight: 600; font-size: 0.85rem; color: var(--text-main); display: inline-flex; align-items: center; gap: 0.45rem;">
+                <iconify-icon icon="lucide:user" width="16" height="16" style="color: #3b82f6;"></iconify-icon>
+                <span data-i18n="gender_male">Nam</span>
+              </span>
+            </div>
+            <div class="select-card-btn" id="btn-plan-gender-female" onclick="window.setPlanGender('female')" style="padding: 0.75rem 0.85rem;">
+              <span class="btn-badge" id="lbl-modal-gender-female-badge" data-i18n="gender_female_badge">Tuổi hưu 60t</span>
+              <span style="font-weight: 600; font-size: 0.85rem; color: var(--text-main); display: inline-flex; align-items: center; gap: 0.45rem;">
+                <iconify-icon icon="lucide:user-check" width="16" height="16" style="color: #ec4899;"></iconify-icon>
+                <span data-i18n="gender_female">Nữ</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Kế hoạch này dành cho -->
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.35rem; display: block;" data-i18n="profile_target_title">
+            2. Kế hoạch này dành cho
+          </label>
+          <div class="select-card-grid">
+            <div class="select-card-btn active" id="btn-plan-fam-single" onclick="window.setPlanFamily('single')" style="padding: 0.75rem 0.85rem;">
               <span class="btn-badge">1 người</span>
-              <span style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);">Cá nhân</span>
+              <span style="font-weight: 600; font-size: 0.85rem; color: var(--text-main); display: inline-flex; align-items: center; gap: 0.45rem;">
+                <iconify-icon icon="lucide:user" width="16" height="16"></iconify-icon>
+                <span data-i18n="profile_single_short">Cá nhân</span>
+              </span>
             </div>
-            <div class="select-card-btn" id="btn-plan-fam-married" onclick="this.classList.add('active'); document.getElementById('btn-plan-fam-single').classList.remove('active');" style="padding: 0.75rem 0.85rem;">
+            <div class="select-card-btn" id="btn-plan-fam-married" onclick="window.setPlanFamily('married')" style="padding: 0.75rem 0.85rem;">
               <span class="btn-badge">2 người</span>
-              <span style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);">Vợ chồng</span>
+              <span style="font-weight: 600; font-size: 0.85rem; color: var(--text-main); display: inline-flex; align-items: center; gap: 0.45rem;">
+                <iconify-icon icon="lucide:users" width="16" height="16"></iconify-icon>
+                <span data-i18n="profile_married_short">Cặp đôi</span>
+              </span>
             </div>
           </div>
         </div>
 
-        <!-- 2. Định hướng không gian sinh sống -->
+        <!-- 3. Nơi sinh sống khi nghỉ hưu -->
         <div class="form-group" style="margin-bottom: 0.85rem;">
-          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.35rem;">
-            <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-main); margin: 0;">
-              2. Định hướng không gian sinh sống
-            </label>
-            <span style="font-size: 0.7rem; color: var(--primary); font-weight: 600;">Lựa chọn chế độ</span>
-          </div>
+          <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.35rem; display: block;" data-i18n="profile_retire_mode">
+            3. Nơi sinh sống khi nghỉ hưu
+          </label>
 
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
-            <div class="select-card-btn" id="btn-plan-mode-domestic" style="padding: 0.55rem 0.65rem;" onclick="
-              document.querySelectorAll('.select-card-btn[id^=\'btn-plan-mode-\']').forEach(b => b.classList.remove('active'));
-              this.classList.add('active');
-              const ret = document.getElementById('inp-plan-retire-city');
-              const arr = document.getElementById('arrow-plan-transition');
-              arr.textContent = '=';
-              ret.value = document.getElementById('inp-plan-work-city').value;
-              ret.disabled = true;
-              ret.style.opacity = '0.7';
-              document.getElementById('tag-plan-retire-ppp').textContent = '100% Cùng chi phí';
-            ">
-              <span style="font-weight: 600; font-size: 0.78rem; color: var(--text-main);">Chỉ 1 nơi</span>
-              <span style="font-size: 0.67rem; color: var(--text-muted);">Ở lại nơi làm việc</span>
+          <div class="select-card-grid">
+            <div class="select-card-btn" id="btn-plan-mode-domestic" style="padding: 0.75rem 0.85rem;" onclick="window.setPlanRetireMode('domestic')">
+              <span style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);" data-i18n="profile_mode_domestic_short">Chỉ 1 nơi</span>
+              <span style="font-size: 0.72rem; color: var(--text-muted);" data-i18n="profile_mode_domestic_sub">Ở lại nơi làm việc</span>
             </div>
 
-            <div class="select-card-btn active" id="btn-plan-mode-relocate" style="padding: 0.55rem 0.65rem;" onclick="
-              document.querySelectorAll('.select-card-btn[id^=\'btn-plan-mode-\']').forEach(b => b.classList.remove('active'));
-              this.classList.add('active');
-              const ret = document.getElementById('inp-plan-retire-city');
-              const arr = document.getElementById('arrow-plan-transition');
-              arr.textContent = '➔';
-              ret.disabled = false;
-              ret.style.opacity = '1';
-              document.getElementById('tag-plan-retire-ppp').textContent = 'Giảm ~55% chi phí';
-            ">
-              <span style="font-weight: 600; font-size: 0.78rem; color: var(--text-main);">Chuyển hẳn</span>
-              <span style="font-size: 0.67rem; color: var(--text-muted);">Về nước khác</span>
-            </div>
-
-            <div class="select-card-btn" id="btn-plan-mode-hybrid" style="padding: 0.55rem 0.65rem;" onclick="
-              document.querySelectorAll('.select-card-btn[id^=\'btn-plan-mode-\']').forEach(b => b.classList.remove('active'));
-              this.classList.add('active');
-              const ret = document.getElementById('inp-plan-retire-city');
-              const arr = document.getElementById('arrow-plan-transition');
-              arr.textContent = '⇄';
-              ret.disabled = false;
-              ret.style.opacity = '1';
-              document.getElementById('tag-plan-retire-ppp').textContent = 'Bình quân 50/50';
-            ">
-              <span style="font-weight: 600; font-size: 0.78rem; color: var(--text-main);">Song hành</span>
-              <span style="font-size: 0.67rem; color: var(--text-muted);">Mỗi nơi 6 tháng</span>
+            <div class="select-card-btn active" id="btn-plan-mode-relocate" style="padding: 0.75rem 0.85rem;" onclick="window.setPlanRetireMode('relocate')">
+              <span style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);" data-i18n="profile_mode_relocate_short">Nhiều nơi</span>
+              <span style="font-size: 0.72rem; color: var(--text-muted);" data-i18n="profile_mode_relocate_sub">Chuyển đi hoặc sống giữa các nơi</span>
             </div>
           </div>
         </div>
 
-        <!-- 3. Nơi làm việc & Nơi nghỉ hưu (Side-by-Side) -->
+        <!-- 4. Nơi làm việc & Nơi nghỉ hưu (Side-by-Side) -->
         <div class="side-by-side-box">
           <!-- Cột Trái -->
           <div class="side-by-side-col">
-            <label for="inp-plan-work-city" style="font-size: 0.76rem; font-weight: 700; color: var(--text-main);">
+            <label for="inp-plan-work-city" style="font-size: 0.76rem; font-weight: 700; color: var(--text-main); display: block; min-height: 1.25rem; line-height: 1.25;">
               Nơi làm việc hiện tại
             </label>
-            <select id="inp-plan-work-city" class="form-input" style="font-size: 0.8rem; padding: 0.45rem 0.55rem;" onchange="
-              if (document.getElementById('btn-plan-mode-domestic').classList.contains('active')) {
-                document.getElementById('inp-plan-retire-city').value = this.value;
-              }
-            ">
-              <optgroup label="🇫🇷 Pháp">
-                <option value="fr_paris" selected>Paris &amp; Vùng Thủ Đô (1.00x)</option>
-                <option value="fr_province">Tỉnh lẻ (0.85x)</option>
-              </optgroup>
-              <optgroup label="🇻🇳 Việt Nam">
-                <option value="vn_hcm_hn">TP.HCM / Hà Nội (0.45x)</option>
-                <option value="vn_province">Đà Nẵng / Tỉnh lẻ (0.35x)</option>
-              </optgroup>
-              <optgroup label="🇵🇹 Bồ Đào Nha">
-                <option value="pt_lisbon">Lisbon / Porto (0.65x)</option>
-                <option value="pt_algarve">Algarve / Tỉnh lẻ (0.55x)</option>
-              </optgroup>
-              <optgroup label="🇪🇸 Tây Ban Nha">
-                <option value="es_valencia">Valencia / Alicante (0.68x)</option>
-                <option value="es_province">Tỉnh lẻ (0.58x)</option>
-              </optgroup>
-              <optgroup label="🇩🇪 Đức">
-                <option value="de_munich">Munich / Frankfurt (1.05x)</option>
-                <option value="de_berlin">Berlin / Tỉnh lẻ (0.90x)</option>
-              </optgroup>
-              <optgroup label="🇺🇸 Mỹ">
-                <option value="us_ny_sf">New York / San Francisco (1.35x)</option>
-                <option value="us_average">Bình quân các bang (1.00x)</option>
-              </optgroup>
-              <optgroup label="🇹🇭 Thái Lan">
-                <option value="th_bangkok">Bangkok (0.45x)</option>
-                <option value="th_chiangmai">Chiang Mai / Tỉnh lẻ (0.35x)</option>
-              </optgroup>
-              <optgroup label="🇲🇾 Malaysia">
-                <option value="my_kl">Kuala Lumpur / Penang (0.48x)</option>
-              </optgroup>
-              <optgroup label="🇨🇳 Trung Quốc">
-                <option value="cn_shanghai">Thượng Hải / Bắc Kinh (0.65x)</option>
-                <option value="cn_tier2">Thành Đô / Tỉnh lẻ (0.45x)</option>
-              </optgroup>
-            </select>
-            <span id="tag-plan-work-ppp" style="font-size: 0.68rem; color: var(--primary); font-weight: 600;">
-              Chuẩn gốc: 1.00x
-            </span>
+            <div class="city-select-wrapper" style="position: relative; width: 100%;">
+              <span id="flag-plan-work" class="city-select-flag" style="position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); font-size: 1.05rem; line-height: 1; pointer-events: none; z-index: 2;">🇫🇷</span>
+              <select id="inp-plan-work-city" class="form-input" style="font-size: 0.8rem; padding: 0.45rem 0.55rem 0.45rem 2.15rem; width: 100%;" onchange="window.handlePlanWorkCityChange(this.value)">
+                <!-- Khối Châu Âu (A - Z) -->
+                <optgroup label="🇬🇧 Anh">
+                  <option value="uk_london">London / Anh</option>
+                </optgroup>
+                <optgroup label="🇧🇪 Bỉ">
+                  <option value="be_brussels">Brussels / Bỉ</option>
+                </optgroup>
+                <optgroup label="🇵🇹 Bồ Đào Nha">
+                  <option value="pt_lisbon">Lisbon / Porto</option>
+                  <option value="pt_algarve">Algarve / Tỉnh lẻ</option>
+                </optgroup>
+                <optgroup label="🇩🇪 Đức">
+                  <option value="de_munich">Munich / Frankfurt</option>
+                  <option value="de_berlin">Berlin / Tỉnh lẻ</option>
+                </optgroup>
+                <optgroup label="🇬🇷 Hy Lạp">
+                  <option value="gr_athens">Athens / Hy Lạp</option>
+                </optgroup>
+                <optgroup label="🇫🇷 Pháp">
+                  <option value="fr_paris" selected>Paris &amp; Vùng Thủ Đô</option>
+                  <option value="fr_province">Tỉnh lẻ</option>
+                </optgroup>
+                <optgroup label="🇪🇸 Tây Ban Nha">
+                  <option value="es_valencia">Valencia / Alicante</option>
+                  <option value="es_province">Tỉnh lẻ</option>
+                </optgroup>
+                <optgroup label="🇨🇭 Thụy Sĩ">
+                  <option value="ch_zurich">Zurich / Geneva</option>
+                </optgroup>
+                <optgroup label="🇮🇹 Ý">
+                  <option value="it_rome">Rome / Milan</option>
+                </optgroup>
+
+                <!-- Khối Châu Á (A - Z) -->
+                <optgroup label="🇲🇾 Malaysia">
+                  <option value="my_kl">Kuala Lumpur / Penang</option>
+                </optgroup>
+                <optgroup label="🇯🇵 Nhật Bản">
+                  <option value="jp_tokyo">Tokyo / Nhật Bản</option>
+                </optgroup>
+                <optgroup label="🇸🇬 Singapore">
+                  <option value="sg_singapore">Singapore</option>
+                </optgroup>
+                <optgroup label="🇹🇭 Thái Lan">
+                  <option value="th_bangkok">Bangkok</option>
+                  <option value="th_chiangmai">Chiang Mai / Tỉnh lẻ</option>
+                </optgroup>
+                <optgroup label="🇨🇳 Trung Quốc">
+                  <option value="cn_shanghai">Thượng Hải / Bắc Kinh</option>
+                  <option value="cn_tier2">Thành Đô / Tỉnh lẻ</option>
+                </optgroup>
+                <optgroup label="🇻🇳 Việt Nam">
+                  <option value="vn_hcm_hn">TP.HCM / Hà Nội</option>
+                  <option value="vn_province">Đà Nẵng / Tỉnh lẻ</option>
+                </optgroup>
+
+                <!-- Khối Châu Mỹ & Châu Đại Dương (A - Z) -->
+                <optgroup label="🇨🇦 Canada">
+                  <option value="ca_toronto">Toronto / Vancouver</option>
+                </optgroup>
+                <optgroup label="🇺🇸 Mỹ">
+                  <option value="us_ny_sf">New York / San Francisco</option>
+                  <option value="us_average">Bình quân các bang</option>
+                </optgroup>
+                <optgroup label="🇦🇺 Úc">
+                  <option value="au_sydney">Sydney / Melbourne</option>
+                </optgroup>
+
+                <!-- Tùy chỉnh khác -->
+                <optgroup label="🌐 Khác">
+                  <option value="custom">Tùy chỉnh cá nhân</option>
+                </optgroup>
+              </select>
+            </div>
           </div>
 
           <!-- Mũi tên giữa -->
@@ -3564,47 +3680,89 @@
 
           <!-- Cột Phải -->
           <div class="side-by-side-col" id="col-plan-retire-destination">
-            <label for="inp-plan-retire-city" style="font-size: 0.76rem; font-weight: 700; color: var(--text-main);">
+            <label for="inp-plan-retire-city" style="font-size: 0.76rem; font-weight: 700; color: var(--text-main); display: block; min-height: 1.25rem; line-height: 1.25;">
               Nơi dự định nghỉ hưu
             </label>
-            <select id="inp-plan-retire-city" class="form-input" style="font-size: 0.8rem; padding: 0.45rem 0.55rem;">
-              <optgroup label="🇻🇳 Việt Nam">
-                <option value="vn_hcm_hn" selected>TP.HCM / Hà Nội (0.45x)</option>
-                <option value="vn_province">Đà Nẵng / Tỉnh lẻ (0.35x)</option>
-              </optgroup>
-              <optgroup label="🇵🇹 Bồ Đào Nha">
-                <option value="pt_lisbon">Lisbon / Porto (0.65x)</option>
-                <option value="pt_algarve">Algarve / Tỉnh lẻ (0.55x)</option>
-              </optgroup>
-              <optgroup label="🇪🇸 Tây Ban Nha">
-                <option value="es_valencia">Valencia / Alicante (0.68x)</option>
-                <option value="es_province">Tỉnh lẻ (0.58x)</option>
-              </optgroup>
-              <optgroup label="🇫🇷 Pháp">
-                <option value="fr_paris">Paris &amp; Vùng Thủ Đô (1.00x)</option>
-                <option value="fr_province">Tỉnh lẻ (0.85x)</option>
-              </optgroup>
-              <optgroup label="🇩🇪 Đức">
-                <option value="de_munich">Munich / Frankfurt (1.05x)</option>
-                <option value="de_berlin">Berlin / Tỉnh lẻ (0.90x)</option>
-              </optgroup>
-              <optgroup label="🇹🇭 Thái Lan">
-                <option value="th_bangkok">Bangkok (0.45x)</option>
-                <option value="th_chiangmai">Chiang Mai / Tỉnh lẻ (0.35x)</option>
-              </optgroup>
-              <optgroup label="🇲🇾 Malaysia">
-                <option value="my_kl">Kuala Lumpur / Penang (0.48x)</option>
-              </optgroup>
-              <optgroup label="🇺🇸 Mỹ">
-                <option value="us_ny_sf">New York / San Francisco (1.35x)</option>
-                <option value="us_average">Bình quân các bang (1.00x)</option>
-              </optgroup>
-              <optgroup label="🇨🇳 Trung Quốc">
-                <option value="cn_shanghai">Thượng Hải / Bắc Kinh (0.65x)</option>
-                <option value="cn_tier2">Thành Đô / Tỉnh lẻ (0.45x)</option>
-              </optgroup>
-            </select>
-            <span id="tag-plan-retire-ppp" style="font-size: 0.68rem; color: var(--accent-blue); font-weight: 600;">
+            <div class="city-select-wrapper" style="position: relative; width: 100%;">
+              <span id="flag-plan-retire" class="city-select-flag" style="position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); font-size: 1.05rem; line-height: 1; pointer-events: none; z-index: 2;">🇻🇳</span>
+              <select id="inp-plan-retire-city" class="form-input" style="font-size: 0.8rem; padding: 0.45rem 0.55rem 0.45rem 2.15rem; width: 100%;" onchange="
+                if (window.updatePlanModalPppTags) window.updatePlanModalPppTags();
+              ">
+                <!-- Khối Châu Âu (A - Z) -->
+                <optgroup label="🇬🇧 Anh">
+                  <option value="uk_london">London / Anh</option>
+                </optgroup>
+                <optgroup label="🇧🇪 Bỉ">
+                  <option value="be_brussels">Brussels / Bỉ</option>
+                </optgroup>
+                <optgroup label="🇵🇹 Bồ Đào Nha">
+                  <option value="pt_lisbon">Lisbon / Porto</option>
+                  <option value="pt_algarve">Algarve / Tỉnh lẻ</option>
+                </optgroup>
+                <optgroup label="🇩🇪 Đức">
+                  <option value="de_munich">Munich / Frankfurt</option>
+                  <option value="de_berlin">Berlin / Tỉnh lẻ</option>
+                </optgroup>
+                <optgroup label="🇬🇷 Hy Lạp">
+                  <option value="gr_athens">Athens / Hy Lạp</option>
+                </optgroup>
+                <optgroup label="🇫🇷 Pháp">
+                  <option value="fr_paris">Paris &amp; Vùng Thủ Đô</option>
+                  <option value="fr_province">Tỉnh lẻ</option>
+                </optgroup>
+                <optgroup label="🇪🇸 Tây Ban Nha">
+                  <option value="es_valencia">Valencia / Alicante</option>
+                  <option value="es_province">Tỉnh lẻ</option>
+                </optgroup>
+                <optgroup label="🇨🇭 Thụy Sĩ">
+                  <option value="ch_zurich">Zurich / Geneva</option>
+                </optgroup>
+                <optgroup label="🇮🇹 Ý">
+                  <option value="it_rome">Rome / Milan</option>
+                </optgroup>
+
+                <!-- Khối Châu Á (A - Z) -->
+                <optgroup label="🇲🇾 Malaysia">
+                  <option value="my_kl">Kuala Lumpur / Penang</option>
+                </optgroup>
+                <optgroup label="🇯🇵 Nhật Bản">
+                  <option value="jp_tokyo">Tokyo / Nhật Bản</option>
+                </optgroup>
+                <optgroup label="🇸🇬 Singapore">
+                  <option value="sg_singapore">Singapore</option>
+                </optgroup>
+                <optgroup label="🇹🇭 Thái Lan">
+                  <option value="th_bangkok">Bangkok</option>
+                  <option value="th_chiangmai">Chiang Mai / Tỉnh lẻ</option>
+                </optgroup>
+                <optgroup label="🇨🇳 Trung Quốc">
+                  <option value="cn_shanghai">Thượng Hải / Bắc Kinh</option>
+                  <option value="cn_tier2">Thành Đô / Tỉnh lẻ</option>
+                </optgroup>
+                <optgroup label="🇻🇳 Việt Nam">
+                  <option value="vn_hcm_hn" selected>TP.HCM / Hà Nội</option>
+                  <option value="vn_province">Đà Nẵng / Tỉnh lẻ</option>
+                </optgroup>
+
+                <!-- Khối Châu Mỹ & Châu Đại Dương (A - Z) -->
+                <optgroup label="🇨🇦 Canada">
+                  <option value="ca_toronto">Toronto / Vancouver</option>
+                </optgroup>
+                <optgroup label="🇺🇸 Mỹ">
+                  <option value="us_ny_sf">New York / San Francisco</option>
+                  <option value="us_average">Bình quân các bang</option>
+                </optgroup>
+                <optgroup label="🇦🇺 Úc">
+                  <option value="au_sydney">Sydney / Melbourne</option>
+                </optgroup>
+
+                <!-- Tùy chỉnh khác -->
+                <optgroup label="🌐 Khác">
+                  <option value="custom">Tùy chỉnh cá nhân</option>
+                </optgroup>
+              </select>
+            </div>
+            <span id="tag-plan-retire-ppp" style="font-size: 0.68rem; color: var(--accent-blue); font-weight: 600; display: block; line-height: 1.3; min-height: 1.1rem;">
               Giảm ~55% chi phí
             </span>
           </div>
@@ -4257,9 +4415,12 @@
           </div>
         </div>
       </div>
-      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
-        <button class="btn btn-ghost" id="btn-cancel-apt-modal">Hủy bỏ</button>
-        <button class="btn btn-primary" id="btn-save-apt-modal">Lưu Căn Hộ</button>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-top: 1rem;">
+        <button type="button" class="btn btn-outline" id="btn-delete-apt-modal" style="color: #f43f5e; border-color: rgba(244, 63, 94, 0.4); display: none; font-size: 0.85rem; padding: 0.45rem 0.85rem; cursor: pointer;">🗑️ Xóa Căn Hộ</button>
+        <div style="display: flex; gap: 0.5rem; margin-left: auto;">
+          <button class="btn btn-ghost" id="btn-cancel-apt-modal">Hủy bỏ</button>
+          <button class="btn btn-primary" id="btn-save-apt-modal">Lưu Căn Hộ</button>
+        </div>
       </div>
     </div>
   </div>
@@ -4902,23 +5063,23 @@
   </div>
 
   <!-- Application Logic Modules -->
-  <script src="js/i18n.js?v=20261018_v153"></script>
-  <script src="js/state.js?v=20261018_v157"></script>
-  <script src="js/engine.js?v=20261018_v149"></script>
+  <script src="js/i18n.js?v=20261018_v161"></script>
+  <script src="js/state.js?v=20261018_v158"></script>
+  <script src="js/engine.js?v=20261018_v150"></script>
   <script src="js/taxOptimizer.js?v=20261018_v149"></script>
   <script src="js/monteCarlo.js?v=20261018_v149"></script>
   <script src="js/scenarios.js?v=20261016_v103"></script>
   <script src="js/geminiAdvisor.js?v=20261016_v107"></script>
-  <script src="js/patrimoine.js?v=20261014_v94"></script>
+  <script src="js/patrimoine.js?v=20261018_v160"></script>
   <script src="js/export.js?v=20261013_v2"></script>
   <script src="js/auth.js?v=20261018_v157"></script>
   <!-- Tầng 3: Giao diện tách theo từng Tab độc lập + Modals + Nhạc trưởng điều phối -->
-  <script src="js/ui-modals.js?v=20261018_v153"></script>
+  <script src="js/ui-modals.js?v=20261018_v167"></script>
   <script src="js/ui-tab1-charts.js?v=20261018_v149"></script>
-  <script src="js/ui-tab1-streams.js?v=20261018_v153"></script>
-  <script src="js/ui-tab2-health.js?v=20261018_v156"></script>
-  <script src="js/ui-tab3-taxes.js?v=20261018_v155"></script>
-  <script src="js/ui.js?v=20261018_v149"></script>
+  <script src="js/ui-tab1-streams.js?v=20261018_v159"></script>
+  <script src="js/ui-tab2-health.js?v=20261018_v158"></script>
+  <script src="js/ui-tab3-taxes.js?v=20261018_v161"></script>
+  <script src="js/ui.js?v=20261018_v150"></script>
 </body>
 
 </html>

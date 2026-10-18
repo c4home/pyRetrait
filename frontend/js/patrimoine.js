@@ -44,11 +44,10 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Tính toán BĐS (LMNP) & Turo — hàm thuần, chạy 100% client-side.
-  // Port từ backend/main.py + pyLocation/calculator (mortgage.py, turo.py).
+  // Tính toán BĐS (LMNP) — hàm thuần, chạy 100% client-side.
+  // Port từ backend/main.py + pyLocation/calculator (mortgage.py).
   // Chỉ làm tròn ở giá trị đầu ra (giữ nguyên hành vi cũ của backend).
   // ---------------------------------------------------------------------------
-  const DEFAULT_TURO = { num_cars: 3, price: 5000, gross_gain: 1800, decote: 6.0, insurance: 350, repairs: 350, holding_years: 10 };
 
   /** Đọc số từ object: chỉ dùng giá trị mặc định khi thiếu (undefined/null). */
   function numOr(v, def) {
@@ -159,58 +158,18 @@
   }
 
   /**
-   * Lợi nhuận đội xe Turo (thuế micro-BIC 15%, décote theo năm).
-   * @param {Object} s - Cài đặt Turo thô
-   * @returns {Object} Chỉ số Turo đã tính (kèm `raw`)
-   * Ví dụ: 3 xe, 1800 gộp, BH 350, sửa 350 → net/xe 1100 × 0,85 = 935 → 2.805 €/năm
-   */
-  function computeTuroMetrics(s) {
-    s = s || {};
-    const price = numOr(s.price, 5000);
-    const gain = numOr(s.gross_gain, 1800);
-    const cars = Math.trunc(numOr(s.num_cars, 3));
-    const years = Math.trunc(numOr(s.holding_years, 10));
-    const decote = numOr(s.decote, 6.0);
-    const insurance = numOr(s.insurance, 350);
-    const repairs = numOr(s.repairs, 350);
-    const taxRate = 15.0;
-
-    const initialInvestment = price * cars;
-    const netBeforeTax = gain * cars - insurance * cars - repairs * cars;
-    const annualNet = netBeforeTax - Math.max(0, netBeforeTax * (taxRate / 100));
-
-    let resalePerCar = price * Math.pow(1 - decote / 100, years);
-    if (price >= 3000) resalePerCar = Math.max(1500, resalePerCar);
-    const resaleValue = resalePerCar * cars;
-
-    const netProfit = annualNet * years + resaleValue - initialInvestment;
-    const roi = initialInvestment > 0 ? (netProfit / initialInvestment * 100) : 0;
-
-    return {
-      num_cars: cars, initial_investment: Math.round(initialInvestment),
-      annual_gross_gain: Math.round(gain * cars),
-      annual_net_cash_flow: Math.round(annualNet),
-      monthly_net_cash_flow: Math.round(annualNet / 12),
-      roi_pct: Math.round(roi * 10) / 10, resale_value: Math.round(resaleValue),
-      holding_years: years, raw: s
-    };
-  }
-
-  /**
-   * Tổng hợp toàn bộ danh mục BĐS + Turo.
+   * Tổng hợp toàn bộ danh mục BĐS LMNP.
    * @param {Object} apartmentsRaw - { tênCănHộ: dữLiệuThô }
-   * @param {Object} turoRaw - Cài đặt Turo thô
+   * @param {Object} [_unused] - Tham số cũ (không còn sử dụng)
    * @param {Object} [wealthRaw] - Cài đặt tài sản (chỉ truyền qua)
-   * @returns {{apartments:Array, turo:Object, wealth:Object, summary:Object}}
+   * @returns {{apartments:Array, wealth:Object, summary:Object}}
    */
-  function computeFullPatrimoine(apartmentsRaw, turoRaw, wealthRaw) {
+  function computeFullPatrimoine(apartmentsRaw, _unused, wealthRaw) {
     const apartments = Object.entries(apartmentsRaw || {}).map(([n, a]) => computeApartmentMetrics(n, a || {}));
     const sum = (key) => apartments.reduce((acc, a) => acc + a[key], 0);
-    const turo = computeTuroMetrics(turoRaw || {});
     const postLoan = sum("monthly_post_loan_cashflow");
     return {
       apartments: apartments,
-      turo: turo,
       wealth: wealthRaw || {},
       summary: {
         total_properties: apartments.length,
@@ -222,8 +181,7 @@
         total_monthly_post_loan_cashflow: postLoan,
         total_annual_post_loan_cashflow: postLoan * 12,
         total_down_payment: sum("down_payment"),
-        total_turo_monthly_cashflow: turo.monthly_net_cash_flow,
-        total_turo_annual_cashflow: turo.annual_net_cash_flow
+        total_break_even_property_val: sum("break_even_property_val")
       }
     };
   }
@@ -252,14 +210,14 @@
         const res = await fetch("/api/patrimoine");
         if (res.ok) {
           const seed = await res.json();
-          guestData = { apartments: seed.apartments || {}, turo: seed.turo || DEFAULT_TURO, wealth: seed.wealth || {} };
+          guestData = { apartments: seed.apartments || {}, wealth: seed.wealth || {} };
           saveGuestPatrimoine(guestData);
         }
       } catch (e) {
         console.warn("Could not fetch template for guest:", e);
       }
     }
-    return guestData || { apartments: {}, turo: DEFAULT_TURO, wealth: {} };
+    return guestData || { apartments: {}, wealth: {} };
   }
 
   /** Lưu dữ liệu thô lên đám mây (chỉ khi đã đăng nhập). */
@@ -285,7 +243,6 @@
     renderKPIs(data);
     renderApartmentsList(data.apartments || []);
     renderBreakEvenSection(data);
-    renderTuroSection(data.turo || {});
     renderChart(data);
     renderGeminiAIBox(data);
   }
@@ -296,8 +253,7 @@
     const totalLoan = sm.total_loan_amount || 0;
     const duringCf = sm.total_monthly_cashflow || 0;
     const postloanCf = sm.total_monthly_post_loan_cashflow || 0;
-    const turoCf = sm.total_turo_monthly_cashflow || 0;
-    const totalPassive = postloanCf + turoCf;
+    const totalPassive = postloanCf;
     const vndRate = 27500; // EUR/VND approx
 
     const elProp = document.getElementById("patrimoine-kpi-property-val");
@@ -322,13 +278,6 @@
     }
     const elPostSub = document.getElementById("patrimoine-kpi-postloan-sub");
     if (elPostSub) elPostSub.innerText = `≈ ${formatMoneyVND(postloanCf * vndRate)}/tháng (Hết nợ 20 năm)`;
-
-    const elTuro = document.getElementById("patrimoine-kpi-turo-cashflow");
-    if (elTuro) {
-      elTuro.innerText = `+${formatMoneyEUR(turoCf)}/tháng`;
-    }
-    const elTuroSub = document.getElementById("patrimoine-kpi-turo-sub");
-    if (elTuroSub) elTuroSub.innerText = `Đội xe ${data.turo?.num_cars || 3} chiếc (ROI ${data.turo?.roi_pct || 0}%)`;
 
     const elTotalPassive = document.getElementById("patrimoine-kpi-total-passive");
     if (elTotalPassive) {
@@ -441,55 +390,17 @@
     });
   }
 
-  function renderTuroSection(turoData) {
-    const raw = turoData.raw || {};
-
-    const inpNum = document.getElementById("inp-turo-num-cars");
-    if (inpNum && (raw.num_cars !== undefined || turoData.num_cars !== undefined)) {
-      inpNum.value = raw.num_cars !== undefined ? raw.num_cars : turoData.num_cars;
-    }
-
-    const inpPrice = document.getElementById("inp-turo-price");
-    if (inpPrice && raw.price !== undefined) inpPrice.value = raw.price;
-
-    const inpGross = document.getElementById("inp-turo-gross");
-    if (inpGross && raw.gross_gain !== undefined) inpGross.value = raw.gross_gain;
-
-    const inpIns = document.getElementById("inp-turo-insurance");
-    if (inpIns && raw.insurance !== undefined) inpIns.value = raw.insurance;
-
-    const inpRepairs = document.getElementById("inp-turo-repairs");
-    if (inpRepairs && raw.repairs !== undefined) inpRepairs.value = raw.repairs;
-
-    const elProfitMonthly = document.getElementById("turo-metric-profit-monthly");
-    if (elProfitMonthly) elProfitMonthly.innerText = `+${formatMoneyEUR(turoData.monthly_net_cash_flow || 0)}/tháng`;
-
-    const elRoi = document.getElementById("turo-metric-roi");
-    if (elRoi) elRoi.innerText = `${turoData.roi_pct || 0}%`;
-
-    const elTotalVal = document.getElementById("turo-metric-total-invest");
-    if (elTotalVal) elTotalVal.innerText = formatMoneyEUR(turoData.initial_investment || 0);
-  }
-
   function renderChart(data) {
     const ctx = document.getElementById("chart-patrimoine");
     if (!ctx) return;
 
     const apts = data.apartments || [];
     const labels = apts.map(a => a.name.length > 18 ? a.name.substring(0, 18) + '...' : a.name);
-    labels.push("Đội xe Turo");
 
     const grossRents = apts.map(a => a.monthly_rent || 0);
-    grossRents.push(Math.round((data.turo?.annual_gross_gain || 5400) / 12));
-
     const loanPayments = apts.map(a => a.monthly_loan_payment || 0);
-    loanPayments.push(0);
-
     const duringNetCashflow = apts.map(a => a.monthly_cashflow || 0);
-    duringNetCashflow.push(data.turo?.monthly_net_cash_flow || 234);
-
     const postLoanNetCashflow = apts.map(a => a.monthly_post_loan_cashflow || 0);
-    postLoanNetCashflow.push(data.turo?.monthly_net_cash_flow || 234);
 
     if (chartInstance) {
       chartInstance.destroy();
@@ -1064,13 +975,12 @@
       total_loan_amount: sm.total_loan_amount || 304491,
       total_during_cashflow_monthly: sm.total_monthly_cashflow || -369,
       total_postloan_cashflow_monthly: sm.total_monthly_post_loan_cashflow || 1401,
-      turo_cashflow_monthly: sm.total_turo_monthly_cashflow || 234,
-      total_passive_monthly: (sm.total_monthly_post_loan_cashflow || 1401) + (sm.total_turo_monthly_cashflow || 234)
+      total_passive_monthly: sm.total_monthly_post_loan_cashflow || 1401
     };
 
     window.GeminiAdvisor.updateChartBox(
       "chart-patrimoine",
-      "Phân tích Đòn bẩy BĐS Pháp (LMNP) & Đội xe Turo",
+      "Phân tích Đòn bẩy BĐS Pháp (LMNP)",
       summary
     );
   }
@@ -1132,6 +1042,24 @@
 
   const syncToFire = autoSyncToFire;
 
+  /**
+   * Xóa căn hộ khỏi object an toàn, đối chiếu cả key chính xác lẫn chuẩn hóa trim/case-insensitive
+   */
+  function removeApartmentFromObject(aptsObj, targetName) {
+    if (!aptsObj || typeof aptsObj !== 'object') return false;
+    if (aptsObj[targetName]) {
+      delete aptsObj[targetName];
+      return true;
+    }
+    const cleanTarget = (targetName || '').trim().toLowerCase();
+    const foundKey = Object.keys(aptsObj).find(k => (k || '').trim().toLowerCase() === cleanTarget);
+    if (foundKey) {
+      delete aptsObj[foundKey];
+      return true;
+    }
+    return false;
+  }
+
   // Apartment Modal Handling
   function openApartmentModal(aptName = null) {
     const modal = document.getElementById("apartment-modal");
@@ -1140,10 +1068,12 @@
     const titleEl = document.getElementById("apartment-modal-title");
     const nameInp = document.getElementById("inp-apt-name");
     const origNameInp = document.getElementById("inp-apt-original-name");
+    const btnDelInModal = document.getElementById("btn-delete-apt-modal");
 
     let aptData = null;
     if (aptName && patrimoineData?.apartments) {
-      const found = patrimoineData.apartments.find(a => a.name === aptName);
+      const cleanSearch = (aptName || '').trim().toLowerCase();
+      const found = patrimoineData.apartments.find(a => a.name === aptName || (a.name || '').trim().toLowerCase() === cleanSearch);
       if (found) aptData = found;
     }
 
@@ -1152,6 +1082,10 @@
       if (titleEl) titleEl.innerText = `Chỉnh sửa Căn hộ: ${aptData.name}`;
       if (nameInp) nameInp.value = aptData.name;
       if (origNameInp) origNameInp.value = aptData.name;
+      if (btnDelInModal) {
+        btnDelInModal.style.display = "inline-flex";
+        btnDelInModal.setAttribute("data-name", aptData.name);
+      }
 
       const price = aptData.property_price || r.property_price || 90000;
       setVal("inp-apt-address", aptData.address || r.address || "");
@@ -1192,6 +1126,10 @@
       if (titleEl) titleEl.innerText = "Thêm Bất Động Sản Cho Thuê Mới";
       if (nameInp) nameInp.value = "";
       if (origNameInp) origNameInp.value = "";
+      if (btnDelInModal) {
+        btnDelInModal.style.display = "none";
+        btnDelInModal.removeAttribute("data-name");
+      }
       const defaultPrice = 95000;
       setVal("inp-apt-category", "apartment");
       setVal("inp-apt-appreciation", 0.0);
@@ -1317,7 +1255,9 @@
       try {
         const raw = await loadRawData();
         raw.apartments = raw.apartments || {};
-        if (originalName && originalName !== name) delete raw.apartments[originalName];
+        if (originalName && originalName !== name) {
+          removeApartmentFromObject(raw.apartments, originalName);
+        }
         raw.apartments[name] = aptParams;
         await saveRawToCloud(raw);
 
@@ -1330,14 +1270,22 @@
       return;
     }
 
-    // Guest Mode: save into localStorage
-    let guestData = getGuestPatrimoine() || { apartments: {}, turo: {} };
+    // Guest Mode: luôn đảm bảo nạp đầy đủ raw data trước khi lưu
+    let guestData = getGuestPatrimoine();
+    if (!guestData) {
+      guestData = await loadRawData();
+    }
+    guestData = guestData || { apartments: {}, turo: {}, wealth: {} };
     if (!guestData.apartments) guestData.apartments = {};
-    if (originalName && originalName !== name && guestData.apartments[originalName]) {
-      delete guestData.apartments[originalName];
+    if (originalName && originalName !== name) {
+      removeApartmentFromObject(guestData.apartments, originalName);
     }
     guestData.apartments[name] = aptParams;
     saveGuestPatrimoine(guestData);
+
+    try {
+      localStorage.removeItem("pyretrait_patrimoine_guest");
+    } catch (e) {}
 
     closeApartmentModal();
     await render();
@@ -1345,91 +1293,63 @@
   }
 
   async function deleteApartment(name) {
-    if (!confirm(`Bạn có chắc chắn muốn xóa căn hộ "${name}" không?`)) return;
+    if (!name) return;
 
-    const isLogged = window.Auth && window.Auth.isLoggedIn();
-    if (isLogged) {
-      try {
-        const raw = await loadRawData();
-        if (raw.apartments) delete raw.apartments[name];
-        await saveRawToCloud(raw);
+    const doDelete = async () => {
+      const isLogged = window.Auth && window.Auth.isLoggedIn();
+      if (isLogged) {
+        try {
+          const raw = await loadRawData();
+          raw.apartments = raw.apartments || {};
+          removeApartmentFromObject(raw.apartments, name);
+          await saveRawToCloud(raw);
 
-        await render();
-        await autoSyncToFire();
-      } catch (e) {
-        alert(e.message);
+          closeApartmentModal();
+          await render();
+          await autoSyncToFire();
+        } catch (e) {
+          alert("Lỗi khi xóa căn hộ trên đám mây: " + e.message);
+        }
+        return;
       }
-      return;
-    }
 
-    // Guest Mode: delete from localStorage
-    let guestData = getGuestPatrimoine() || { apartments: {}, turo: {} };
-    if (guestData.apartments && guestData.apartments[name]) {
-      delete guestData.apartments[name];
+      // Guest Mode: delete from localStorage (đảm bảo nạp dữ liệu nếu chưa có)
+      let guestData = getGuestPatrimoine();
+      if (!guestData) {
+        guestData = await loadRawData();
+      }
+      guestData = guestData || { apartments: {}, turo: {}, wealth: {} };
+      guestData.apartments = guestData.apartments || {};
+      removeApartmentFromObject(guestData.apartments, name);
       saveGuestPatrimoine(guestData);
-    }
-    await render();
-    await autoSyncToFire();
-  }
 
-  async function saveTuroSettings() {
-    const btn = document.getElementById("btn-save-turo");
-    if (btn) {
-      btn.disabled = true;
-      btn.innerText = "Đang lưu...";
-    }
+      // Xóa key legacy để tránh trường hợp tự hồi sinh căn hộ cũ
+      try {
+        localStorage.removeItem("pyretrait_patrimoine_guest");
+      } catch (e) {}
 
-    const payload = {
-      num_cars: Number(getVal("inp-turo-num-cars")) || 3,
-      price: Number(getVal("inp-turo-price")) || 5000,
-      gross_gain: Number(getVal("inp-turo-gross")) || 1800,
-      insurance: Number(getVal("inp-turo-insurance")) || 350,
-      repairs: Number(getVal("inp-turo-repairs")) || 350,
-      decote: 6.0,
-      holding_years: 10
+      closeApartmentModal();
+      await render();
+      await autoSyncToFire();
     };
 
-    const isLogged = window.Auth && window.Auth.isLoggedIn();
-    if (isLogged) {
-      try {
-        const raw = await loadRawData();
-        raw.turo = payload;
-        await saveRawToCloud(raw);
-
-        if (btn) {
-          btn.innerText = "Đã lưu đám mây!";
-          setTimeout(() => {
-            btn.disabled = false;
-            btn.innerText = "Lưu Cấu hình Turo";
-          }, 1500);
-        }
-        await render();
-        await autoSyncToFire();
-      } catch (e) {
-        alert(e.message);
-        if (btn) {
-          btn.disabled = false;
-          btn.innerText = "Lưu Cấu hình Turo";
-        }
+    if (typeof window.showConfirmDialog === "function") {
+      window.showConfirmDialog({
+        title: "Xác nhận xóa căn hộ",
+        message: `Bạn có chắc chắn muốn xóa căn hộ <strong>"${name}"</strong> khỏi danh mục BĐS LMNP?`,
+        confirmText: "Xóa Căn Hộ",
+        confirmColor: "danger",
+        icon: "🗑️",
+        onConfirm: doDelete
+      });
+    } else {
+      if (confirm(`Bạn có chắc chắn muốn xóa căn hộ "${name}" không?`)) {
+        await doDelete();
       }
-      return;
     }
-
-    // Guest Mode: save into localStorage
-    let guestData = getGuestPatrimoine() || { apartments: {}, turo: {} };
-    guestData.turo = payload;
-    saveGuestPatrimoine(guestData);
-
-    if (btn) {
-      btn.innerText = "Đã lưu vào trình duyệt!";
-      setTimeout(() => {
-        btn.disabled = false;
-        btn.innerText = "Lưu Cấu hình Turo";
-      }, 1500);
-    }
-    await render();
-    await autoSyncToFire();
   }
+
+
 
   function setVal(id, val) {
     const el = document.getElementById(id);
@@ -1528,8 +1448,19 @@
     const btnSaveModal = document.getElementById("btn-save-apt-modal");
     if (btnSaveModal) btnSaveModal.addEventListener("click", saveApartment);
 
-    const btnSaveTuro = document.getElementById("btn-save-turo");
-    if (btnSaveTuro) btnSaveTuro.addEventListener("click", saveTuroSettings);
+    const btnDeleteInModal = document.getElementById("btn-delete-apt-modal");
+    if (btnDeleteInModal) {
+      btnDeleteInModal.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const aptName = btnDeleteInModal.getAttribute("data-name") || getVal("inp-apt-original-name") || getVal("inp-apt-name");
+        if (aptName) {
+          deleteApartment(aptName);
+        }
+      });
+    }
+
+
 
     // Chuyển đổi công thức Nhà mặt đất vs Căn hộ chung cư
     const selCat = document.getElementById("inp-apt-category");

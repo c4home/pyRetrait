@@ -83,13 +83,163 @@
     return state.currency || 'EUR';
   }
 
+  // Quản lý thành viên đang xem trong Tab Sức Khỏe ('primary' = Bạn, 'spouse' = Bạn đời)
+  let activeHealthMember = 'primary';
+
+  function ensureHealthProfiles(plan) {
+    if (!plan || typeof plan !== 'object') return;
+    if (!plan.healthProfiles) {
+      plan.healthProfiles = {
+        primary: {
+          habits: [true, true, true, false, true],
+          biomarkers: { rhr: 'good', bp: 'optimal', whtr: 'optimal', strength: 'high' }
+        },
+        spouse: {
+          habits: [true, true, true, false, true],
+          biomarkers: { rhr: 'good', bp: 'optimal', whtr: 'optimal', strength: 'high' }
+        }
+      };
+    }
+    if (!plan.healthProfiles.primary) {
+      plan.healthProfiles.primary = {
+        habits: [true, true, true, false, true],
+        biomarkers: { rhr: 'good', bp: 'optimal', whtr: 'optimal', strength: 'high' }
+      };
+    }
+    if (!plan.healthProfiles.spouse) {
+      plan.healthProfiles.spouse = {
+        habits: [true, true, true, false, true],
+        biomarkers: { rhr: 'good', bp: 'optimal', whtr: 'optimal', strength: 'high' }
+      };
+    }
+  }
+
+  function saveCurrentHealthInputs(plan) {
+    if (!plan) plan = getActivePlan();
+    if (!plan) return;
+    ensureHealthProfiles(plan);
+
+    const habits = [
+      document.getElementById("chk-habit-exercise")?.checked ?? true,
+      document.getElementById("chk-habit-sleep")?.checked ?? true,
+      document.getElementById("chk-habit-diet")?.checked ?? true,
+      document.getElementById("chk-habit-checkup")?.checked ?? false,
+      document.getElementById("chk-habit-social")?.checked ?? true
+    ];
+    const biomarkers = {
+      rhr: document.getElementById("sel-bio-rhr")?.value || "good",
+      bp: document.getElementById("sel-bio-bp")?.value || "optimal",
+      whtr: document.getElementById("sel-bio-whtr")?.value || "optimal",
+      strength: document.getElementById("sel-bio-strength")?.value || "high"
+    };
+
+    plan.healthProfiles[activeHealthMember] = { habits, biomarkers };
+  }
+
+  function loadHealthMemberInputs(plan, member = 'primary') {
+    if (!plan) plan = getActivePlan();
+    if (!plan) return;
+    ensureHealthProfiles(plan);
+
+    const profile = plan.healthProfiles[member] || {};
+    const habits = profile.habits || [true, true, true, false, true];
+    ['chk-habit-exercise', 'chk-habit-sleep', 'chk-habit-diet', 'chk-habit-checkup', 'chk-habit-social'].forEach((id, idx) => {
+      const el = document.getElementById(id);
+      if (el && habits[idx] !== undefined) el.checked = Boolean(habits[idx]);
+    });
+
+    const bios = profile.biomarkers || {};
+    const selRhr = document.getElementById("sel-bio-rhr");
+    const selBp = document.getElementById("sel-bio-bp");
+    const selWhtr = document.getElementById("sel-bio-whtr");
+    const selStrength = document.getElementById("sel-bio-strength");
+    if (selRhr && bios.rhr) selRhr.value = bios.rhr;
+    if (selBp && bios.bp) selBp.value = bios.bp;
+    if (selWhtr && bios.whtr) selWhtr.value = bios.whtr;
+    if (selStrength && bios.strength) selStrength.value = bios.strength;
+
+    const userGender = plan.gender || 'male';
+    const memberGender = (member === 'primary') ? userGender : (userGender === 'female' ? 'male' : 'female');
+    updateBiomarkersForGender(memberGender);
+  }
+
+  function calculateMemberMetrics(plan, member = 'primary') {
+    if (!plan) plan = getActivePlan();
+    ensureHealthProfiles(plan);
+
+    const isPrimary = (member === 'primary');
+    const curYear = new Date().getFullYear();
+    const currentAge = isPrimary
+      ? (Number(plan?.currentAge) || 29)
+      : (curYear - (Number(plan?.spouseBirthYear) || (curYear - (Number(plan?.spouseAge) || Number(plan?.currentAge) || 29))));
+    const userGender = plan?.gender || 'male';
+    const memberGender = isPrimary ? userGender : (userGender === 'female' ? 'male' : 'female');
+    const isFemale = (memberGender === 'female');
+    const lifeExp = isPrimary
+      ? (Number(plan?.lifeExpectancy) || (isFemale ? 85 : 82))
+      : (isFemale ? 85 : 82);
+
+    const profile = plan?.healthProfiles?.[member] || {};
+    const habits = profile.habits || [true, true, true, false, true];
+    const bios = profile.biomarkers || { rhr: 'good', bp: 'optimal', whtr: 'optimal', strength: 'high' };
+
+    const parseBioVal = (val, type) => {
+      switch (val) {
+        case "optimal": return -1.5;
+        case "good": return 0;
+        case "average": return type === "strength" ? 0 : 1.0;
+        case "poor": return 2.5;
+        case "elevated": return 0.5;
+        case "stage1": return 1.5;
+        case "stage2": return 3.0;
+        case "moderate": return 1.0;
+        case "high": return type === "strength" ? -1.5 : 2.5;
+        case "low": return 2.0;
+        default: return 0;
+      }
+    };
+
+    const delta = Math.round((parseBioVal(bios.rhr, 'rhr') + parseBioVal(bios.bp, 'bp') + parseBioVal(bios.whtr, 'whtr') + parseBioVal(bios.strength, 'strength')) * 10) / 10;
+    const bioAge = Math.max(18, Math.round((currentAge + delta) * 10) / 10);
+    const habitCount = habits.filter(Boolean).length;
+    const score = habitCount * 20;
+
+    const habitBonus = (habitCount - 2.5) * 1.5;
+    const bioBonus = -delta * 0.5;
+    const baselineHealthAge = Math.min(lifeExp - 3, Math.max(currentAge + 8, Math.round(74 + habitBonus + bioBonus)));
+    const estimatedHealthspan = Math.min(lifeExp - 2, Math.max(currentAge + 5, baselineHealthAge));
+    const gapYears = Math.max(1, lifeExp - estimatedHealthspan);
+
+    return {
+      currentAge,
+      lifeExpectancy: lifeExp,
+      memberGender,
+      isFemale,
+      delta,
+      bioAge,
+      habitCount,
+      score,
+      estimatedHealthspan,
+      gapYears
+    };
+  }
+
   /**
    * Tính toán tuổi sinh học dựa trên 4 chỉ số sinh học đời thường
    */
   function updateBioAge() {
     const plan = getActivePlan();
-    const currentAge = plan ? Number(plan.currentAge) || 29 : 29;
-    const lifeExpectancy = plan ? Number(plan.lifeExpectancy) || 85 : 85;
+    const isPrimary = (activeHealthMember === 'primary');
+    const curYear = new Date().getFullYear();
+    const currentAge = isPrimary
+      ? (plan ? Number(plan.currentAge) || 29 : 29)
+      : (curYear - (Number(plan?.spouseBirthYear) || (curYear - (Number(plan?.spouseAge) || Number(plan?.currentAge) || 29))));
+    const userGender = plan?.gender || 'male';
+    const memberGender = isPrimary ? userGender : (userGender === 'female' ? 'male' : 'female');
+    const isFemale = (memberGender === 'female');
+    const lifeExpectancy = isPrimary
+      ? (plan ? Number(plan.lifeExpectancy) || (isFemale ? 85 : 82) : (isFemale ? 85 : 82))
+      : (isFemale ? 85 : 82);
 
     // Helper map giá trị sinh học an toàn
     const parseBioVal = (val, type) => {
@@ -334,9 +484,183 @@
   }
 
   /**
+   * Cập nhật 4 Chỉ Số Sinh Học Cơ Bản (Biomarkers) tối ưu cho Nam và Nữ
+   * @param {string} gender - 'male' hoặc 'female'
+   */
+  let currentActiveBioGender = 'male';
+
+  function updateBiomarkersForGender(gender) {
+    const isFemale = (String(gender).toLowerCase() === 'female' || String(gender).toLowerCase() === 'nu');
+    currentActiveBioGender = isFemale ? 'female' : 'male';
+
+    // 1. Cập nhật Badge hiển thị giới tính tiêu chuẩn
+    const badgeGender = document.getElementById("badge-bio-gender-indicator");
+    if (badgeGender) {
+      badgeGender.innerText = isFemale ? "Tiêu chuẩn: Nữ 👩" : "Tiêu chuẩn: Nam 👨";
+      badgeGender.setAttribute("title", isFemale ? "Đang áp dụng chuẩn sinh học Nữ (Nhấn để đổi sang Nam)" : "Đang áp dụng chuẩn sinh học Nam (Nhấn để đổi sang Nữ)");
+      badgeGender.className = isFemale ? "badge badge-warning" : "badge badge-info";
+    }
+
+    // 2. Cập nhật các badge chuẩn y khoa
+    const lblRhr = document.getElementById("lbl-bio-rhr-standard");
+    const lblBp = document.getElementById("lbl-bio-bp-standard");
+    const lblWhtr = document.getElementById("lbl-bio-whtr-standard");
+    const lblStrength = document.getElementById("lbl-bio-strength-standard");
+
+    if (lblRhr) lblRhr.innerText = isFemale ? "Chuẩn Nữ: <65 bpm" : "Chuẩn Nam: <60 bpm";
+    if (lblBp) lblBp.innerText = isFemale ? "Chuẩn: <120 mmHg (100–115)" : "Chuẩn: <120 mmHg";
+    if (lblWhtr) lblWhtr.innerText = isFemale ? "Chuẩn Nữ: <0.5 (Eo <80cm)" : "Chuẩn Nam: <0.5 (Eo <90cm)";
+    if (lblStrength) lblStrength.innerText = isFemale ? "Chuẩn Nữ: >12 cái (>25kg)" : "Chuẩn Nam: >20 cái (>40kg)";
+
+    // 3. Cập nhật các option trong select dropdowns (giữ nguyên value đang chọn)
+    const selRhr = document.getElementById("sel-bio-rhr");
+    if (selRhr) {
+      const curVal = selRhr.value || "good";
+      selRhr.innerHTML = isFemale ? `
+        <option value="optimal">Dưới 65 bpm (Tối ưu cho nữ)</option>
+        <option value="good">65 – 75 bpm (Tốt)</option>
+        <option value="average">76 – 85 bpm (Trung bình)</option>
+        <option value="poor">Trên 85 bpm (Cần cải thiện)</option>
+      ` : `
+        <option value="optimal">Dưới 60 bpm (Tối ưu cho nam)</option>
+        <option value="good">60 – 70 bpm (Tốt)</option>
+        <option value="average">71 – 80 bpm (Trung bình)</option>
+        <option value="poor">Trên 80 bpm (Cần cải thiện)</option>
+      `;
+      selRhr.value = curVal;
+    }
+
+    const selWhtr = document.getElementById("sel-bio-whtr");
+    if (selWhtr) {
+      const curVal = selWhtr.value || "optimal";
+      selWhtr.innerHTML = isFemale ? `
+        <option value="optimal">Dưới 0.5 (Vòng eo <80cm — Tối ưu)</option>
+        <option value="moderate">0.5 – 0.59 (Vòng eo 80–88cm — Tăng nhẹ)</option>
+        <option value="high">≥ 0.6 (Vòng eo ≥88cm — Nguy cơ tim mạch)</option>
+      ` : `
+        <option value="optimal">Dưới 0.5 (Vòng eo <90cm — Tối ưu)</option>
+        <option value="moderate">0.5 – 0.59 (Vòng eo 90–95cm — Tăng nhẹ)</option>
+        <option value="high">≥ 0.6 (Vòng eo ≥96cm — Nguy cơ tim mạch)</option>
+      `;
+      selWhtr.value = curVal;
+    }
+
+    const selStrength = document.getElementById("sel-bio-strength");
+    if (selStrength) {
+      const curVal = selStrength.value || "high";
+      selStrength.innerHTML = isFemale ? `
+        <option value="high">Rất khỏe (>12 cái hít đất / Lực nắm >25kg)</option>
+        <option value="average">Trung bình (6–12 cái / Lực 18–25kg)</option>
+        <option value="low">Yếu (<6 cái / Lực <18kg)</option>
+      ` : `
+        <option value="high">Rất khỏe (>20 cái liên tục / Lực >40kg)</option>
+        <option value="average">Trung bình (10–20 cái / Lực 30–40kg)</option>
+        <option value="low">Yếu (<10 cái / Lực <30kg)</option>
+      `;
+      selStrength.value = curVal;
+    }
+  }
+
+  /**
+   * Chuyển đổi thành viên xem & nhập liệu sức khỏe ('primary' = Bạn, 'spouse' = Bạn đời)
+   */
+  function switchHealthMember(member) {
+    if (member !== 'primary' && member !== 'spouse') return;
+    const plan = getActivePlan();
+    if (!plan) return;
+    saveCurrentHealthInputs(plan);
+    activeHealthMember = member;
+    loadHealthMemberInputs(plan, member);
+    updateCoupleHealthOverview(plan);
+    updateHealthspanScore();
+    debouncedSavePlansToStorage();
+  }
+
+  /**
+   * Cập nhật Bảng So Sánh Sức Khỏe & Kỳ Vọng Sống Cặp Đôi (chỉ hiển thị khi là Cặp Đôi)
+   */
+  function updateCoupleHealthOverview(plan) {
+    if (!plan) plan = getActivePlan();
+    const box = document.getElementById("box-couple-health-overview");
+    if (!box) return;
+    const isMarried = (plan?.maritalStatus === 'married');
+    if (!isMarried) {
+      box.style.display = 'none';
+      return;
+    }
+    box.style.display = 'block';
+
+    ensureHealthProfiles(plan);
+
+    const userGender = plan?.gender || 'male';
+    const spouseGender = (userGender === 'female') ? 'male' : 'female';
+    const primaryIcon = (userGender === 'female') ? '👩' : '👨';
+    const spouseIcon = (spouseGender === 'female') ? '👩' : '👨';
+
+    const primNameEl = document.getElementById("lbl-couple-primary-name");
+    const primStatusEl = document.getElementById("lbl-couple-primary-status");
+    const primAgeEl = document.getElementById("lbl-couple-primary-age");
+    const primHealthspanEl = document.getElementById("lbl-couple-primary-healthspan");
+    const primGapEl = document.getElementById("lbl-couple-primary-gap");
+
+    const spNameEl = document.getElementById("lbl-couple-spouse-name");
+    const spStatusEl = document.getElementById("lbl-couple-spouse-status");
+    const spAgeEl = document.getElementById("lbl-couple-spouse-age");
+    const spHealthspanEl = document.getElementById("lbl-couple-spouse-healthspan");
+    const spGapEl = document.getElementById("lbl-couple-spouse-gap");
+
+    const mPrim = calculateMemberMetrics(plan, 'primary');
+    const mSpouse = calculateMemberMetrics(plan, 'spouse');
+
+    if (primNameEl) primNameEl.innerText = `${primaryIcon} Bạn (${userGender === 'female' ? 'Nữ' : 'Nam'})`;
+    if (primAgeEl) primAgeEl.innerText = `${mPrim.currentAge} tuổi`;
+    if (primHealthspanEl) primHealthspanEl.innerText = `${mPrim.estimatedHealthspan} tuổi (kỳ vọng ${mPrim.lifeExpectancy}t)`;
+    if (primGapEl) primGapEl.innerText = `${mPrim.gapYears} năm (${mPrim.estimatedHealthspan}–${mPrim.lifeExpectancy}t)`;
+    if (primStatusEl) {
+      const diffText = mPrim.delta < 0 ? `Trẻ hơn ${Math.abs(mPrim.delta)}t` : mPrim.delta === 0 ? 'Bằng tuổi thực' : `Già hơn ${mPrim.delta}t`;
+      primStatusEl.innerText = `Tuổi sinh học: ${mPrim.bioAge}t (${diffText})`;
+      primStatusEl.className = mPrim.delta < 0 ? "badge badge-success font-semibold" : mPrim.delta === 0 ? "badge badge-info font-semibold" : "badge badge-danger font-semibold";
+    }
+
+    if (spNameEl) spNameEl.innerText = `${spouseIcon} Bạn đời (${spouseGender === 'female' ? 'Nữ' : 'Nam'})`;
+    if (spAgeEl) spAgeEl.innerText = `${mSpouse.currentAge} tuổi`;
+    if (spHealthspanEl) spHealthspanEl.innerText = `${mSpouse.estimatedHealthspan} tuổi (kỳ vọng ${mSpouse.lifeExpectancy}t)`;
+    if (spGapEl) spGapEl.innerText = `${mSpouse.gapYears} năm (${mSpouse.estimatedHealthspan}–${mSpouse.lifeExpectancy}t)`;
+    if (spStatusEl) {
+      const diffText = mSpouse.delta < 0 ? `Trẻ hơn ${Math.abs(mSpouse.delta)}t` : mSpouse.delta === 0 ? 'Bằng tuổi thực' : `Già hơn ${mSpouse.delta}t`;
+      spStatusEl.innerText = `Tuổi sinh học: ${mSpouse.bioAge}t (${diffText})`;
+      spStatusEl.className = mSpouse.delta < 0 ? "badge badge-success font-semibold" : mSpouse.delta === 0 ? "badge badge-info font-semibold" : "badge badge-danger font-semibold";
+    }
+
+    const btnPrim = document.getElementById("btn-health-tab-primary");
+    const btnSpouse = document.getElementById("btn-health-tab-spouse");
+    if (btnPrim) btnPrim.innerText = `${primaryIcon} Hồ sơ Bạn`;
+    if (btnSpouse) btnSpouse.innerText = `${spouseIcon} Hồ sơ Bạn đời`;
+
+    const cardPrim = document.getElementById("card-couple-primary-col");
+    const cardSpouse = document.getElementById("card-couple-spouse-col");
+
+    if (activeHealthMember === 'primary') {
+      if (btnPrim) { btnPrim.className = "btn btn-sm btn-primary"; }
+      if (btnSpouse) { btnSpouse.className = "btn btn-sm btn-outline"; }
+      if (cardPrim) cardPrim.style.border = "1.5px solid var(--accent-emerald)";
+      if (cardSpouse) cardSpouse.style.border = "1px solid var(--border-subtle)";
+    } else {
+      if (btnPrim) { btnPrim.className = "btn btn-sm btn-outline"; }
+      if (btnSpouse) { btnSpouse.className = "btn btn-sm btn-primary"; }
+      if (cardPrim) cardPrim.style.border = "1px solid var(--border-subtle)";
+      if (cardSpouse) cardSpouse.style.border = "1.5px solid var(--accent-emerald)";
+    }
+  }
+
+  /**
    * Render chính cho Tab Sức Khỏe
    */
   function renderHealthTab() {
+    const plan = getActivePlan();
+    ensureHealthProfiles(plan);
+    loadHealthMemberInputs(plan, activeHealthMember);
+    updateCoupleHealthOverview(plan);
     updateHealthspanScore();
     updateCrossBorderChecklist(false);
 
@@ -357,12 +681,47 @@
    * Đăng ký sự kiện tương tác cho Tab Sức Khỏe
    */
   function initHealthTabEvents() {
+    // Buttons chuyển đổi hồ sơ Bạn / Bạn đời
+    const btnPrim = document.getElementById("btn-health-tab-primary");
+    if (btnPrim) {
+      btnPrim.addEventListener("click", () => switchHealthMember('primary'));
+    }
+    const btnSpouse = document.getElementById("btn-health-tab-spouse");
+    if (btnSpouse) {
+      btnSpouse.addEventListener("click", () => switchHealthMember('spouse'));
+    }
+    const cardPrim = document.getElementById("card-couple-primary-col");
+    if (cardPrim) {
+      cardPrim.addEventListener("click", () => switchHealthMember('primary'));
+    }
+    const cardSpouse = document.getElementById("card-couple-spouse-col");
+    if (cardSpouse) {
+      cardSpouse.addEventListener("click", () => switchHealthMember('spouse'));
+    }
+
+    // Chuyển đổi nhanh tiêu chuẩn giới tính khi bấm vào badge
+    const badgeGender = document.getElementById("badge-bio-gender-indicator");
+    if (badgeGender) {
+      badgeGender.addEventListener("click", () => {
+        const nextGender = (currentActiveBioGender === 'female') ? 'male' : 'female';
+        updateBiomarkersForGender(nextGender);
+        const plan = getActivePlan();
+        saveCurrentHealthInputs(plan);
+        updateHealthspanScore();
+        updateCoupleHealthOverview(plan);
+      });
+    }
+
     // Thói quen sống khỏe
     ['chk-habit-exercise', 'chk-habit-sleep', 'chk-habit-diet', 'chk-habit-checkup', 'chk-habit-social'].forEach(id => {
       const el = document.getElementById(id);
       if (el) {
         el.addEventListener("change", () => {
+          const plan = getActivePlan();
+          saveCurrentHealthInputs(plan);
           updateHealthspanScore();
+          updateCoupleHealthOverview(plan);
+          debouncedSavePlansToStorage();
         });
       }
     });
@@ -372,7 +731,11 @@
       const el = document.getElementById(id);
       if (el) {
         el.addEventListener("change", () => {
+          const plan = getActivePlan();
+          saveCurrentHealthInputs(plan);
           updateHealthspanScore();
+          updateCoupleHealthOverview(plan);
+          debouncedSavePlansToStorage();
         });
       }
     });
@@ -1341,8 +1704,11 @@
     init: initHealthTabEvents,
     bindEvents: bindTab2Events,
     updateBioAge,
+    updateBiomarkersForGender,
     updateHealthspanScore,
     updateCrossBorderChecklist,
+    switchHealthMember,
+    updateCoupleHealthOverview,
     renderHealthTab,
     renderEstateTab,
     renderAdvisorTab,

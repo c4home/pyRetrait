@@ -769,16 +769,18 @@ window.RetirementEngine = (function() {
         if (plan.maritalStatus === 'married') {
           const b1 = plan.bhxhVnDetails.spouse1 || {};
           const b2 = plan.bhxhVnDetails.spouse2 || {};
-          const b1Claim = Number(b1.claimAge) || (b1.gender === 'female' ? 60 : 62);
-          const b2Claim = Number(b2.claimAge) || (b2.gender === 'female' ? 60 : 62);
+          const userGender = plan.gender || b1.gender || 'male';
+          const spouseGender = b2.gender || (userGender === 'female' ? 'male' : 'female');
+          const b1Claim = Number(b1.claimAge) || (userGender === 'female' ? 60 : 62);
+          const b2Claim = Number(b2.claimAge) || (spouseGender === 'female' ? 60 : 62);
           let b1Amt = 0;
           let b2Amt = 0;
           if (age >= b1Claim && window.TaxOptimizer && window.TaxOptimizer.calculateVietnamBhxhPension) {
-            const resB1 = window.TaxOptimizer.calculateVietnamBhxhPension(b1.monthlySalaryVnd || 0, b1.yearsContributed || 0, b1.gender || 'male', b1Claim);
+            const resB1 = window.TaxOptimizer.calculateVietnamBhxhPension(b1.monthlySalaryVnd || 0, b1.yearsContributed || 0, userGender, b1Claim);
             b1Amt = resB1.annualPensionVnd;
           }
           if (age >= b2Claim && window.TaxOptimizer && window.TaxOptimizer.calculateVietnamBhxhPension) {
-            const resB2 = window.TaxOptimizer.calculateVietnamBhxhPension(b2.monthlySalaryVnd || 0, b2.yearsContributed || 0, b2.gender || 'female', b2Claim);
+            const resB2 = window.TaxOptimizer.calculateVietnamBhxhPension(b2.monthlySalaryVnd || 0, b2.yearsContributed || 0, spouseGender, b2Claim);
             b2Amt = resB2.annualPensionVnd;
           }
           const totalBhxhVnd = (b1Amt + b2Amt) * cumInflation;

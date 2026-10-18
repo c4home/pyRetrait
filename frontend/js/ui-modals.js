@@ -4,7 +4,7 @@
  * Modal Nguồn thu / Khoản chi / Cột mốc / Số dư thực tế / Kế hoạch & Quick Setup Wizard 4 bước.
  */
 
-(function() {
+(function () {
   'use strict';
 
   // Shared State & Helpers Bridge (Tầng 2 & Tầng 3)
@@ -81,12 +81,12 @@
   /**
    * Hiển thị hộp thoại xác nhận toàn cục (Confirm Dialog)
    */
-  function showConfirmDialog({ 
-    icon = "", 
-    title = "Xác nhận thao tác", 
-    message = "Bạn có chắc chắn muốn thực hiện?", 
-    confirmText = "Xác nhận", 
-    onConfirm 
+  function showConfirmDialog({
+    icon = "",
+    title = "Xác nhận thao tác",
+    message = "Bạn có chắc chắn muốn thực hiện?",
+    confirmText = "Xác nhận",
+    onConfirm
   }) {
     const modal = document.getElementById("confirm-modal");
     if (!modal) {
@@ -225,7 +225,7 @@
           openFeatureIntroModal();
         }, 600);
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // -------------------------------------------------------------
@@ -290,6 +290,10 @@
     if (chkExpDebt) chkExpDebt.addEventListener("change", syncExpenseGrowthVisibility);
 
     // Plan Modal Events
+    document.getElementById("btn-plan-gender-male")?.addEventListener("click", () => setPlanGender('male'));
+    document.getElementById("btn-plan-gender-female")?.addEventListener("click", () => setPlanGender('female'));
+    document.getElementById("btn-plan-fam-single")?.addEventListener("click", () => setPlanFamily('single'));
+    document.getElementById("btn-plan-fam-married")?.addEventListener("click", () => setPlanFamily('married'));
     document.getElementById("btn-close-modal").addEventListener("click", closeModal);
     document.getElementById("btn-cancel-modal").addEventListener("click", closeModal);
     document.getElementById("btn-save-new-plan").addEventListener("click", saveNewPlanFromModal);
@@ -420,7 +424,7 @@
               }
             }
           }
-        } catch (e) {}
+        } catch (e) { }
       });
     }
 
@@ -716,7 +720,7 @@
           item.className = "custom-milestone-item";
           const sign = ms.type === "income" ? "+" : ms.type === "none" ? "" : "-";
           const amtStr = ms.type === "none" ? "Không ảnh hưởng tiền" : `${sign}${window.RetirementEngine.formatCurrency(ms.amount, state.currency, false)}`;
-          
+
           const patBadge = ms.source === 'patrimoine' ? `<span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; font-size: 0.65rem; padding: 0.1rem 0.4rem; border-radius: 4px; margin-left: 0.4rem;">Đồng bộ BĐS</span>` : '';
           item.innerHTML = `
             <div class="custom-ms-left">
@@ -846,7 +850,7 @@
   function openActualNetWorthModal() {
     const modal = document.getElementById("actual-networth-modal");
     if (!modal) return;
-    
+
     // Update currency units in modal
     const curSymbol = window.RetirementEngine.getCurrencySymbol(state.currency);
     document.querySelectorAll(".unit-actual-currency").forEach(el => el.innerText = curSymbol);
@@ -1063,39 +1067,36 @@
 
     if (mode === 'edit' && curPlan) {
       if (nameInp) nameInp.value = curPlan.name || "";
+      const userGender = curPlan.gender || 'male';
+      setPlanGender(userGender);
+
       const isMarried = curPlan.maritalStatus === 'married';
       if (famSingle) famSingle.classList.toggle("active", !isMarried);
       if (famMarried) famMarried.classList.toggle("active", isMarried);
 
       const rMode = curPlan.retireMode || (curPlan.workCountry === curPlan.retireCountry ? 'domestic' : 'relocate');
-      if (modeDomestic) modeDomestic.classList.toggle("active", rMode === 'domestic');
-      if (modeRelocate) modeRelocate.classList.toggle("active", rMode === 'relocate');
-      if (modeHybrid) modeHybrid.classList.toggle("active", rMode === 'hybrid');
+      const isDomestic = (rMode === 'domestic');
+      if (modeDomestic) modeDomestic.classList.toggle("active", isDomestic);
+      if (modeRelocate) modeRelocate.classList.toggle("active", !isDomestic);
+      if (modeHybrid) modeHybrid.classList.remove("active");
 
       if (workSelect) workSelect.value = curPlan.workCity || 'fr_paris';
       if (retireSelect) {
-        if (rMode === 'domestic') {
+        if (isDomestic) {
           retireSelect.value = workSelect ? workSelect.value : (curPlan.workCity || 'fr_paris');
           retireSelect.disabled = true;
           retireSelect.style.opacity = '0.7';
           if (arrowTransition) arrowTransition.textContent = '=';
-          if (tagRetirePpp) tagRetirePpp.textContent = '100% Cùng chi phí';
-        } else if (rMode === 'hybrid') {
-          retireSelect.value = curPlan.retireCity || 'vn_hcm_hn';
-          retireSelect.disabled = false;
-          retireSelect.style.opacity = '1';
-          if (arrowTransition) arrowTransition.textContent = '⇄';
-          if (tagRetirePpp) tagRetirePpp.textContent = 'Bình quân 50/50';
         } else {
           retireSelect.value = curPlan.retireCity || 'vn_hcm_hn';
           retireSelect.disabled = false;
           retireSelect.style.opacity = '1';
           if (arrowTransition) arrowTransition.textContent = '➔';
-          if (tagRetirePpp) tagRetirePpp.textContent = 'Giảm ~55% chi phí';
         }
       }
     } else {
       if (nameInp) nameInp.value = "";
+      setPlanGender('male');
       if (famSingle) famSingle.classList.add("active");
       if (famMarried) famMarried.classList.remove("active");
       if (modeDomestic) modeDomestic.classList.remove("active");
@@ -1108,10 +1109,125 @@
         retireSelect.style.opacity = '1';
       }
       if (arrowTransition) arrowTransition.textContent = '➔';
-      if (tagRetirePpp) tagRetirePpp.textContent = 'Giảm ~55% chi phí';
     }
 
+    updatePlanModalPppTags();
     modal.style.display = "flex";
+  }
+
+  function updatePlanModalPppTags() {
+    const workSelect = document.getElementById("inp-plan-work-city");
+    const retireSelect = document.getElementById("inp-plan-retire-city");
+    const flagWork = document.getElementById("flag-plan-work");
+    const flagRetire = document.getElementById("flag-plan-retire");
+    const tagRetirePpp = document.getElementById("tag-plan-retire-ppp");
+    const arrowTransition = document.getElementById("arrow-plan-transition");
+    const isDomestic = document.getElementById("btn-plan-mode-domestic")?.classList.contains("active");
+
+    const pppProfiles = (window.TaxOptimizer && window.TaxOptimizer.COUNTRY_PPP_PROFILES) ? window.TaxOptimizer.COUNTRY_PPP_PROFILES : {};
+    const workKey = workSelect ? workSelect.value : 'fr_paris';
+    const retireKey = (isDomestic) ? workKey : (retireSelect ? retireSelect.value : 'vn_hcm_hn');
+
+    const workProfile = pppProfiles[workKey] || { ppp: 1.0, flag: '🇫🇷', countryLabel: 'Pháp' };
+    const retireProfile = pppProfiles[retireKey] || { ppp: 0.45, flag: '🇻🇳', countryLabel: 'Việt Nam' };
+
+    if (flagWork) {
+      flagWork.textContent = workProfile.flag || '📍';
+    }
+    if (flagRetire) {
+      flagRetire.textContent = retireProfile.flag || '📍';
+    }
+
+    if (tagRetirePpp) {
+      if (isDomestic || workKey === retireKey) {
+        tagRetirePpp.textContent = '100% Cùng chi phí';
+        if (arrowTransition) arrowTransition.textContent = '=';
+      } else {
+        if (arrowTransition) arrowTransition.textContent = '➔';
+        const ratio = (retireProfile.ppp / workProfile.ppp) - 1;
+        const pct = Math.round(Math.abs(ratio) * 100);
+        if (ratio < 0) {
+          tagRetirePpp.textContent = `Giảm ~${pct}% chi phí`;
+        } else if (ratio > 0) {
+          tagRetirePpp.textContent = `Tăng ~${pct}% chi phí`;
+        } else {
+          tagRetirePpp.textContent = 'Cùng mức chi phí';
+        }
+      }
+    }
+  }
+
+  /**
+   * Chuyển đổi giới tính người lập kế hoạch (male: Nam, female: Nữ)
+   */
+  function setPlanGender(gender) {
+    const btnMale = document.getElementById("btn-plan-gender-male");
+    const btnFemale = document.getElementById("btn-plan-gender-female");
+    if (gender === 'female') {
+      if (btnFemale) btnFemale.classList.add("active");
+      if (btnMale) btnMale.classList.remove("active");
+    } else {
+      if (btnMale) btnMale.classList.add("active");
+      if (btnFemale) btnFemale.classList.remove("active");
+    }
+  }
+
+  /**
+   * Chuyển đổi đối tượng kế hoạch (single: Cá nhân, married: Cặp đôi)
+   */
+  function setPlanFamily(family) {
+    const famSingle = document.getElementById("btn-plan-fam-single");
+    const famMarried = document.getElementById("btn-plan-fam-married");
+    if (family === 'married') {
+      if (famMarried) famMarried.classList.add("active");
+      if (famSingle) famSingle.classList.remove("active");
+    } else {
+      if (famSingle) famSingle.classList.add("active");
+      if (famMarried) famMarried.classList.remove("active");
+    }
+  }
+
+  /**
+   * Chuyển đổi chế độ nơi sinh sống khi nghỉ hưu (domestic: chỉ 1 nơi, relocate: nhiều nơi)
+   */
+  function setPlanRetireMode(mode) {
+    const btnDomestic = document.getElementById('btn-plan-mode-domestic');
+    const btnRelocate = document.getElementById('btn-plan-mode-relocate');
+    const retireSelect = document.getElementById('inp-plan-retire-city');
+    const workSelect = document.getElementById('inp-plan-work-city');
+    const arrowTransition = document.getElementById('arrow-plan-transition');
+
+    if (mode === 'domestic') {
+      if (btnDomestic) btnDomestic.classList.add('active');
+      if (btnRelocate) btnRelocate.classList.remove('active');
+      if (arrowTransition) arrowTransition.textContent = '=';
+      if (retireSelect) {
+        if (workSelect) retireSelect.value = workSelect.value;
+        retireSelect.disabled = true;
+        retireSelect.style.opacity = '0.7';
+      }
+    } else {
+      if (btnDomestic) btnDomestic.classList.remove('active');
+      if (btnRelocate) btnRelocate.classList.add('active');
+      if (arrowTransition) arrowTransition.textContent = '➔';
+      if (retireSelect) {
+        retireSelect.disabled = false;
+        retireSelect.style.opacity = '1';
+      }
+    }
+    updatePlanModalPppTags();
+  }
+
+  /**
+   * Xử lý khi thay đổi địa điểm làm việc trong modal kế hoạch
+   */
+  function handlePlanWorkCityChange(val) {
+    const btnDomestic = document.getElementById('btn-plan-mode-domestic');
+    if (btnDomestic && btnDomestic.classList.contains('active')) {
+      const retireSelect = document.getElementById('inp-plan-retire-city');
+      if (retireSelect) retireSelect.value = val;
+    }
+    updatePlanModalPppTags();
   }
 
   function closeModal() {
@@ -1130,6 +1246,9 @@
     const modal = document.getElementById("plan-modal");
     const mode = modal?.dataset?.mode || 'create';
 
+    const isFemale = document.getElementById("btn-plan-gender-female")?.classList.contains("active") || false;
+    const userGender = isFemale ? 'female' : 'male';
+
     const isMarried = document.getElementById("btn-plan-fam-married")?.classList.contains("active") || false;
     const maritalStatus = isMarried ? 'married' : 'single';
     const taxParts = isMarried ? 2.0 : 1.0;
@@ -1137,8 +1256,6 @@
     let retireMode = 'relocate';
     if (document.getElementById("btn-plan-mode-domestic")?.classList.contains("active")) {
       retireMode = 'domestic';
-    } else if (document.getElementById("btn-plan-mode-hybrid")?.classList.contains("active")) {
-      retireMode = 'hybrid';
     }
 
     const workCity = document.getElementById("inp-plan-work-city")?.value || 'fr_paris';
@@ -1153,6 +1270,7 @@
       targetPlan = (typeof getActivePlan === 'function') ? getActivePlan() : null;
       if (!targetPlan) return;
       targetPlan.name = nameInput;
+      targetPlan.gender = userGender;
       targetPlan.maritalStatus = maritalStatus;
       targetPlan.taxParts = taxParts;
       targetPlan.retireMode = retireMode;
@@ -1167,6 +1285,7 @@
       targetPlan = basePlan ? JSON.parse(JSON.stringify(basePlan)) : {};
       targetPlan.id = newId;
       targetPlan.name = nameInput;
+      targetPlan.gender = userGender;
       targetPlan.maritalStatus = maritalStatus;
       targetPlan.taxParts = taxParts;
       targetPlan.retireMode = retireMode;
@@ -1692,7 +1811,12 @@
     openQuickSetupWizard,
     closeQuickSetupWizard,
     showWizardStep,
-    applyWizardAndCalculate
+    applyWizardAndCalculate,
+    updatePlanModalPppTags,
+    setPlanGender,
+    setPlanFamily,
+    setPlanRetireMode,
+    handlePlanWorkCityChange
   };
 
   window.ModalsUI = ModalsExports;

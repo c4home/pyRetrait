@@ -387,7 +387,7 @@
       if (!p.spendingPhases) p.spendingPhases = {};
       p.spendingPhases.enabled = e.target.checked;
       const cont = document.getElementById("container-card-smile-phases");
-      if (cont) cont.style.display = e.target.checked ? "flex" : "none";
+      if (cont) cont.style.display = e.target.checked ? "grid" : "none";
       savePlansToStorage();
       updateAll();
     });
@@ -1688,7 +1688,7 @@
     }
     const lblFrenchTitle = document.getElementById("lbl-french-pension-total-title");
     if (lblFrenchTitle) {
-      lblFrenchTitle.innerText = isMarried ? "Tổng lương hưu Pháp 2 vợ chồng:" : "Tổng lương hưu Pháp cá nhân:";
+      lblFrenchTitle.innerText = isMarried ? "Tổng lương hưu Pháp cả hai người:" : "Tổng lương hưu Pháp cá nhân:";
     }
 
     // BHXH VN card: show/hide spouse 2 & full-width single column
@@ -1704,13 +1704,25 @@
         cols[1].style.display = isMarried ? "" : "none";
       }
     }
+    const userGender = plan.gender || 'male';
+    const isFemale = (userGender === 'female');
+    const col1Title = document.getElementById("lbl-bhxh-col-spouse1-title");
+    const col2Title = document.getElementById("lbl-bhxh-col-spouse2-title");
+    const col1ClaimTitle = document.getElementById("lbl-bhxh-spouse1-claim-title");
+    const col2ClaimTitle = document.getElementById("lbl-bhxh-spouse2-claim-title");
+
+    if (col1Title) col1Title.innerText = isFemale ? "Bạn (Nữ — 60t)" : "Bạn (Nam — 62t)";
+    if (col2Title) col2Title.innerText = isFemale ? "Bạn đời (Nam — 62t)" : "Bạn đời (Nữ — 60t)";
+    if (col1ClaimTitle) col1ClaimTitle.innerText = isFemale ? "Hưu nhận lúc 60t:" : "Hưu nhận lúc 62t:";
+    if (col2ClaimTitle) col2ClaimTitle.innerText = isFemale ? "Hưu nhận lúc 62t:" : "Hưu nhận lúc 60t:";
+
     const badgeBhxh = document.getElementById("badge-bhxh-status");
     if (badgeBhxh) {
       badgeBhxh.innerText = isMarried ? "2 Người (Luật 2024)" : "1 Người (Luật 2024)";
     }
     const lblBhxhTitle = document.getElementById("lbl-bhxh-pension-total-title");
     if (lblBhxhTitle) {
-      lblBhxhTitle.innerText = isMarried ? "Tổng lương hưu BHXH 2 vợ chồng:" : "Tổng lương hưu BHXH cá nhân:";
+      lblBhxhTitle.innerText = isMarried ? "Tổng lương hưu BHXH cả hai người:" : "Tổng lương hưu BHXH cá nhân:";
     }
     const lblBhxhBenefit = document.getElementById("lbl-bhxh-medical-benefit");
     if (lblBhxhBenefit) {
@@ -1762,7 +1774,8 @@
 
       const targetCityProfile = (window.TaxOptimizer.COUNTRY_PPP_PROFILES && window.TaxOptimizer.COUNTRY_PPP_PROFILES[retireCityKey])
         ? window.TaxOptimizer.COUNTRY_PPP_PROFILES[retireCityKey]
-        : { cityNameVi: "Điểm đến", pppFactor: 0.45 };
+        : { label: "Điểm đến", flag: "📍", ppp: 0.45 };
+      const targetCityDisplayName = `${targetCityProfile.flag ? targetCityProfile.flag + ' ' : ''}${targetCityProfile.label || targetCityProfile.countryLabel || 'Điểm đến'}`;
 
       const pppFactorDisplay = (Number(calc.pppRatio) || 0.45).toFixed(2);
       const totalBudget = calc.monthlyRetireTotal || 1;
@@ -1781,7 +1794,7 @@
             <span>Gợi ý từ mức sống thực tế (${isMarried ? 'Vợ chồng' : 'Cá nhân'})</span>
           </div>
           <div class="retire-callout-step" style="color: var(--text-muted); font-size: 0.72rem; line-height: 1.4; padding: 0.2rem 0;">
-            Chưa có thu nhập trước hưu. pyRetrait áp dụng mức sống tham chiếu tiêu chuẩn tại <strong>${targetCityProfile.cityNameVi}</strong>:
+            Chưa có thu nhập trước hưu. pyRetrait áp dụng mức sống tham chiếu tiêu chuẩn tại <strong>${targetCityDisplayName}</strong>:
           </div>
           <div class="retire-callout-step">
             <span>Chi tiêu sinh hoạt ước tính:</span>
@@ -1818,7 +1831,7 @@
             <strong>${fmt(calc.currentLivingMonthly)}/th</strong>
           </div>
           <div class="retire-callout-step">
-            <span>Quy đổi sang ${targetCityProfile.cityNameVi} (${pppFactorDisplay}x):</span>
+            <span>Quy đổi sang ${targetCityDisplayName} (${pppFactorDisplay}x):</span>
             <strong>${fmt(calc.pppAdjustedLiving)}/th</strong>
           </div>
           <div class="retire-callout-step">
@@ -1955,7 +1968,7 @@
     const hint = document.getElementById("hint-retire-expenses");
     if (hint) {
       const isMarried = (plan.maritalStatus === 'married');
-      const householdLabel = isMarried ? "Hộ vợ chồng" : "Cá nhân";
+      const householdLabel = isMarried ? "Cặp đôi" : "Cá nhân";
       hint.innerText = `≈ ${fmt(activeAnnual)}/năm • ${householdLabel} ${activeDesc}`;
     }
 
@@ -1973,15 +1986,31 @@
     const lblSlowgo = document.getElementById("lbl-calc-slowgo-monthly");
     const lblNogo = document.getElementById("lbl-calc-nogo-monthly");
     const badgeSmile = document.getElementById("badge-card-smile-status");
+    const badgeGogo = document.getElementById("badge-calc-gogo");
+    const badgeSlowgo = document.getElementById("badge-calc-slowgo");
+    const badgeNogo = document.getElementById("badge-calc-nogo");
+    const lblGogoAge = document.getElementById("lbl-calc-gogo-age");
+    const lblSlowgoAge = document.getElementById("lbl-calc-slowgo-age");
+    const lblNogoAge = document.getElementById("lbl-calc-nogo-age");
 
     const formatDiff = (f) => {
       const pct = Math.round((f - 1.0) * 100);
       return pct >= 0 ? `+${pct}%` : `${pct}%`;
     };
 
-    if (lblGogo) lblGogo.innerText = `≈ ${fmt(gogoMonthly)}/tháng (${formatDiff(gFactor)})`;
-    if (lblSlowgo) lblSlowgo.innerText = `≈ ${fmt(slowgoMonthly)}/tháng (${formatDiff(sFactor)})`;
-    if (lblNogo) lblNogo.innerText = `≈ ${fmt(nogoMonthly)}/tháng (${formatDiff(nFactor)})`;
+    if (lblGogo) lblGogo.innerText = `~${fmt(gogoMonthly)}/th`;
+    if (lblSlowgo) lblSlowgo.innerText = `~${fmt(slowgoMonthly)}/th`;
+    if (lblNogo) lblNogo.innerText = `~${fmt(nogoMonthly)}/th`;
+
+    const gAgeVal = Number(plan.spendingPhases?.gogoAge) || 60;
+    const sAgeVal = Number(plan.spendingPhases?.slowgoAge) || 75;
+    if (lblGogoAge) lblGogoAge.innerText = `Đến ${gAgeVal} tuổi:`;
+    if (lblSlowgoAge) lblSlowgoAge.innerText = `${gAgeVal + 1} - ${sAgeVal} tuổi:`;
+    if (lblNogoAge) lblNogoAge.innerText = `Từ ${sAgeVal + 1} tuổi+:`;
+
+    if (badgeGogo) badgeGogo.innerText = formatDiff(gFactor);
+    if (badgeSlowgo) badgeSlowgo.innerText = formatDiff(sFactor);
+    if (badgeNogo) badgeNogo.innerText = formatDiff(nFactor);
 
     if (badgeSmile) {
       if (isSmile) {

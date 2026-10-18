@@ -488,7 +488,7 @@
       const chk2 = document.getElementById("chk-card-smile-enabled");
       if (chk2) chk2.checked = isSmileOn;
       const contPhases = document.getElementById("container-card-smile-phases");
-      if (contPhases) contPhases.style.display = isSmileOn ? "flex" : "none";
+      if (contPhases) contPhases.style.display = isSmileOn ? "grid" : "none";
 
       const gAge = p.spendingPhases.gogoAge || 60;
       const gFactor = p.spendingPhases.gogoFactor || 1.15;

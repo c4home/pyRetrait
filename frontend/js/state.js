@@ -110,6 +110,8 @@
       plan.taxParts = (plan.maritalStatus === 'married' ? 2.0 : 1.0);
     }
     if (plan.monthlyMortgagePaidOff === undefined) plan.monthlyMortgagePaidOff = 0;
+    if (!plan.gender) plan.gender = 'male';
+    const isFemale = (plan.gender === 'female');
     if (!plan.frenchPensionDetails) {
       plan.frenchPensionDetails = {
         spouse1: { startWorkAge: 24, claimAge: 64, targetAnnualPension: 18000 },
@@ -118,8 +120,27 @@
     }
     if (!plan.bhxhVnDetails) {
       plan.bhxhVnDetails = {
-        spouse1: { gender: 'male', yearsContributed: 20, monthlySalaryVnd: 10000000, claimAge: 62 },
-        spouse2: { gender: 'female', yearsContributed: 20, monthlySalaryVnd: 10000000, claimAge: 60 }
+        spouse1: { gender: isFemale ? 'female' : 'male', yearsContributed: (isFemale ? 15 : 20), monthlySalaryVnd: 10000000, claimAge: (isFemale ? 60 : 62) },
+        spouse2: { gender: isFemale ? 'male' : 'female', yearsContributed: (isFemale ? 20 : 15), monthlySalaryVnd: 10000000, claimAge: (isFemale ? 62 : 60) }
+      };
+    } else {
+      if (!plan.bhxhVnDetails.spouse1) plan.bhxhVnDetails.spouse1 = {};
+      if (!plan.bhxhVnDetails.spouse2) plan.bhxhVnDetails.spouse2 = {};
+      if (!plan.bhxhVnDetails.spouse1.gender) plan.bhxhVnDetails.spouse1.gender = isFemale ? 'female' : 'male';
+      if (!plan.bhxhVnDetails.spouse1.claimAge) plan.bhxhVnDetails.spouse1.claimAge = (isFemale ? 60 : 62);
+      if (!plan.bhxhVnDetails.spouse2.gender) plan.bhxhVnDetails.spouse2.gender = isFemale ? 'male' : 'female';
+      if (!plan.bhxhVnDetails.spouse2.claimAge) plan.bhxhVnDetails.spouse2.claimAge = (isFemale ? 62 : 60);
+    }
+    if (!plan.healthProfiles) {
+      plan.healthProfiles = {
+        primary: {
+          habits: [true, true, true, false, true],
+          biomarkers: { rhr: 'good', bp: 'optimal', whtr: 'optimal', strength: 'high' }
+        },
+        spouse: {
+          habits: [true, true, true, false, true],
+          biomarkers: { rhr: 'good', bp: 'optimal', whtr: 'optimal', strength: 'high' }
+        }
       };
     }
     syncSalaryStreamsWithMaritalStatus(plan);

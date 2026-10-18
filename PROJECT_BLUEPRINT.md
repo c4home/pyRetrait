@@ -244,7 +244,8 @@ Dưới đây là cấu trúc JSON chuẩn của một đối tượng kế ho�
 
 | Tên trường (camelCase) | Kiểu dữ liệu | Đơn vị nội bộ | Giá trị mặc định | Diễn giải & Cơ chế tương thích ngược (Backward Compatibility) |
 |---|---|---|---|---|
-| `maritalStatus` | `string` | enum: `'single'`, `'married'` | `'single'` | Tình trạng hôn nhân. Nếu `'single'`, các ô nhập Bạn đời được ẩn và áp dụng thuế cá nhân (`taxParts = 1.0`). |
+| `gender` | `string` | enum: `'male'`, `'female'` | `'male'` | Giới tính người lập kế hoạch. Quyết định tuổi nghỉ hưu chuẩn BHXH VN (Nam 62t, Nữ 60t), số năm đóng tối thiểu hưởng 45% (Nam 20 năm, Nữ 15 năm), và bảng chỉ số sinh học (Vòng eo/Chiều cao, Sức mạnh cơ bắp) ở Tab 2. |
+| `maritalStatus` | `string` | enum: `'single'`, `'married'` | `'single'` | Tình trạng kế hoạch: Cá nhân (`'single'`) hoặc Cặp đôi/Vợ chồng (`'married'`). Nếu `'single'`, các ô nhập Bạn đời được ẩn và áp dụng thuế cá nhân (`taxParts = 1.0`). |
 | `spouseBirthYear` | `number \| null` | Năm (YYYY) | `null` | Năm sinh Bạn đời. Nếu `null` hoặc ở chế độ `'single'`, tự động fallback an toàn về `birthYear` để tránh lỗi tính toán. |
 | `taxParts` | `number` | Số thực (parts) | `1.0` (single) / `2.0` (married) | Số phần gia cảnh (Quotient Familial Pháp). Tự động cộng thêm 0.5 suất cho con thứ 1 & 2, +1.0 cho con thứ 3+. |
 | `workCountry` | `string` | ISO-2 (`'FR'`, `'VN'`, `'US'`, `'DE'`) | `'FR'` | Quốc gia làm việc tích lũy chính. Quyết định chế độ thuế và nguồn lương hưu mặc định. |
@@ -259,7 +260,9 @@ Dưới đây là cấu trúc JSON chuẩn của một đối tượng kế ho�
 
 - **Cơ chế Fallback an toàn trong `state.js`**:
   Khi nạp kế hoạch cũ (`loadPlan` hoặc `migratePlan`):
+  - Nếu thiếu `gender`: Gán mặc định `'male'`.
   - Nếu thiếu `maritalStatus`: Gán mặc định `'single'`, `spouseBirthYear: null`.
+  - Nếu `maritalStatus === 'married'`: Tự động suy luận giới tính bạn đời `spouseGender` ngược lại với người lập (`isFemale ? 'male' : 'female'`) nếu chưa được khai báo riêng.
   - Nếu thiếu `workCountry` / `retireCountry`: Suy luận từ `taxRegime` hoặc `retireLocation` (ví dụ `retireLocation === 'vietnam'` ➔ `workCountry: 'FR'`, `retireCountry: 'VN'`).
   - Nếu thiếu `frenchPensionDetails`: Khởi tạo tự động từ `socialSecurityAge` và `socialSecurityAnnual` cho `spouse1`.
   - Nếu thiếu `bhxhVnDetails`: Khởi tạo tự động từ `bhxhVnIncome`, `bhxhVnYears`, `bhxhVnRetireAge` cho `spouse1`.

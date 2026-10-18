@@ -6,7 +6,7 @@
 
 ---
 
-## 1. `frontend/index.html` (4924 dòng)
+## 1. `frontend/index.html` (4907 dòng)
 | Khu vực / Thẻ ID | Khoảng dòng (`StartLine` – `EndLine`) |
 | :--- | :--- |
 | `<header>` (Thanh điều hướng trên cùng) | `32 – 254` |
@@ -42,18 +42,18 @@
 | `#card-health-roadmap` | `3120 – 3251` |
 | `#card-franco-viet-guide` | `3252 – 3347` |
 | `#card-elderly-care-comparison` | `3348 – 3413` |
-| `#plan-modal` | `3414 – 3623` |
-| `#income-modal` | `3624 – 3678` |
-| `#expense-modal` | `3679 – 3773` |
-| `#actual-networth-modal` | `3774 – 3854` |
-| `#milestone-modal` | `3855 – 3962` |
-| `#modal-gemini-settings` | `3963 – 4016` |
-| `#apartment-modal` | `4017 – 4267` |
-| `#auth-modal` | `4268 – 4351` |
-| `#modal-formula-guide` | `4352 – 4586` |
-| `#quick-setup-modal` | `4587 – 4802` |
-| `#confirm-modal` | `4803 – 4821` |
-| `#feature-intro-modal` | `4822 – 4924` |
+| `#plan-modal` | `3414 – 3606` |
+| `#income-modal` | `3607 – 3661` |
+| `#expense-modal` | `3662 – 3756` |
+| `#actual-networth-modal` | `3757 – 3837` |
+| `#milestone-modal` | `3838 – 3945` |
+| `#modal-gemini-settings` | `3946 – 3999` |
+| `#apartment-modal` | `4000 – 4250` |
+| `#auth-modal` | `4251 – 4334` |
+| `#modal-formula-guide` | `4335 – 4569` |
+| `#quick-setup-modal` | `4570 – 4785` |
+| `#confirm-modal` | `4786 – 4804` |
+| `#feature-intro-modal` | `4805 – 4907` |
 
 ---
 
@@ -273,7 +273,7 @@
 | `renderEstateTab()` | `1238 – 1244` |
 | `renderAdvisorTab()` | `1245 – 1361` |
 
-### 5.5. `frontend/js/ui-tab3-taxes.js` (1539 dòng — Tab 3: Tối ưu Thuế, Lương hưu Pháp/VN & LMNP)
+### 5.5. `frontend/js/ui-tab3-taxes.js` (1522 dòng — Tab 3: Tối ưu Thuế, Lương hưu Pháp/VN & LMNP)
 | Tên hàm (`function`) | Khoảng dòng (`StartLine` – `EndLine`) |
 | :--- | :--- |
 | `getVal()` | `14 – 18` |
@@ -295,16 +295,16 @@
 | `eurToPlanFactor()` | `829 – 836` |
 | `extractPatrimoineLoansEur()` | `837 – 867` |
 | `buildPatrimoineLoans()` | `868 – 888` |
-| `applyPatrimoineToPlan()` | `889 – 988` |
-| `fetchPatrimoineData()` | `989 – 1004` |
-| `syncFromPatrimoine()` | `1005 – 1017` |
-| `updateLmnpUI()` | `1018 – 1194` |
-| `renderPatrimoineLoansList()` | `1195 – 1217` |
-| `updateMortgageUI()` | `1218 – 1303` |
-| `syncMortgageToExpenseStreams()` | `1304 – 1393` |
-| `renderTaxTab()` | `1394 – 1539` |
+| `applyPatrimoineToPlan()` | `889 – 971` |
+| `fetchPatrimoineData()` | `972 – 987` |
+| `syncFromPatrimoine()` | `988 – 1000` |
+| `updateLmnpUI()` | `1001 – 1177` |
+| `renderPatrimoineLoansList()` | `1178 – 1200` |
+| `updateMortgageUI()` | `1201 – 1286` |
+| `syncMortgageToExpenseStreams()` | `1287 – 1376` |
+| `renderTaxTab()` | `1377 – 1522` |
 
-### 5.6. `frontend/js/ui-modals.js` (1701 dòng — Popup Modals & Thiết lập nhanh Wizard)
+### 5.6. `frontend/js/ui-modals.js` (1694 dòng — Popup Modals & Thiết lập nhanh Wizard)
 | Tên hàm (`function`) | Khoảng dòng (`StartLine` – `EndLine`) |
 | :--- | :--- |
 | `getVal()` | `14 – 18` |
@@ -342,60 +342,57 @@
 | `deleteActualRecord()` | `980 – 991` |
 | `fetchPatrimoineBalanceForActual()` | `992 – 1035` |
 | `renderPlanSelector()` | `1036 – 1042` |
-| `openModal()` | `1043 – 1116` |
-| `closeModal()` | `1117 – 1121` |
-| `saveNewPlanFromModal()` | `1122 – 1298` |
-| `duplicateCurrentPlan()` | `1299 – 1313` |
-| `deleteCurrentPlan()` | `1314 – 1340` |
-| `handleJSONImport()` | `1341 – 1370` |
-| `initQuickSetupWizard()` | `1371 – 1499` |
-| `updateSpendCalcText()` | `1500 – 1515` |
-| `openQuickSetupWizard()` | `1516 – 1572` |
-| `closeQuickSetupWizard()` | `1573 – 1577` |
-| `showWizardStep()` | `1578 – 1604` |
-| `applyWizardAndCalculate()` | `1605 – 1701` |
+| `openModal()` | `1043 – 1111` |
+| `closeModal()` | `1112 – 1116` |
+| `saveNewPlanFromModal()` | `1117 – 1291` |
+| `duplicateCurrentPlan()` | `1292 – 1306` |
+| `deleteCurrentPlan()` | `1307 – 1333` |
+| `handleJSONImport()` | `1334 – 1363` |
+| `initQuickSetupWizard()` | `1364 – 1492` |
+| `updateSpendCalcText()` | `1493 – 1508` |
+| `openQuickSetupWizard()` | `1509 – 1565` |
+| `closeQuickSetupWizard()` | `1566 – 1570` |
+| `showWizardStep()` | `1571 – 1597` |
+| `applyWizardAndCalculate()` | `1598 – 1694` |
 
 ---
 
-## 6. `frontend/js/patrimoine.js` (1622 dòng)
+## 6. `frontend/js/patrimoine.js` (1474 dòng)
 | Tên hàm (`function`) | Khoảng dòng (`StartLine` – `EndLine`) |
 | :--- | :--- |
 | `formatMoneyEUR()` | `14 – 18` |
 | `formatMoneyVND()` | `19 – 28` |
 | `getGuestPatrimoine()` | `29 – 37` |
-| `saveGuestPatrimoine()` | `38 – 53` |
-| `numOr()` | `54 – 58` |
-| `truthyOr()` | `59 – 70` |
-| `calcNotaryFees()` | `71 – 83` |
-| `calcMonthlyPayment()` | `84 – 97` |
-| `computeApartmentMetrics()` | `98 – 166` |
-| `computeTuroMetrics()` | `167 – 205` |
-| `computeFullPatrimoine()` | `206 – 235` |
-| `loadRawData()` | `236 – 265` |
-| `saveRawToCloud()` | `266 – 274` |
-| `loadData()` | `275 – 280` |
-| `render()` | `281 – 292` |
-| `renderKPIs()` | `293 – 342` |
-| `renderApartmentsList()` | `343 – 443` |
-| `renderTuroSection()` | `444 – 473` |
-| `renderChart()` | `474 – 582` |
-| `renderBreakEvenSection()` | `583 – 617` |
-| `updateBreakEvenView()` | `618 – 634` |
-| `renderBreakEvenSingleApt()` | `635 – 907` |
-| `renderBreakEvenComparisonAll()` | `908 – 1056` |
-| `renderGeminiAIBox()` | `1057 – 1080` |
-| `autoSyncToFire()` | `1081 – 1094` |
-| `showAutoSyncToast()` | `1095 – 1135` |
-| `openApartmentModal()` | `1136 – 1230` |
-| `updatePropertyFormulaUI()` | `1231 – 1254` |
-| `closeApartmentModal()` | `1255 – 1259` |
-| `saveApartment()` | `1260 – 1346` |
-| `deleteApartment()` | `1347 – 1374` |
-| `saveTuroSettings()` | `1375 – 1433` |
-| `setVal()` | `1434 – 1438` |
-| `getVal()` | `1439 – 1443` |
-| `updateAptLiveSummary()` | `1444 – 1514` |
-| `bindEvents()` | `1515 – 1622` |
+| `saveGuestPatrimoine()` | `38 – 52` |
+| `numOr()` | `53 – 57` |
+| `truthyOr()` | `58 – 69` |
+| `calcNotaryFees()` | `70 – 82` |
+| `calcMonthlyPayment()` | `83 – 96` |
+| `computeApartmentMetrics()` | `97 – 166` |
+| `computeFullPatrimoine()` | `167 – 193` |
+| `loadRawData()` | `194 – 223` |
+| `saveRawToCloud()` | `224 – 232` |
+| `loadData()` | `233 – 238` |
+| `render()` | `239 – 249` |
+| `renderKPIs()` | `250 – 291` |
+| `renderApartmentsList()` | `292 – 392` |
+| `renderChart()` | `393 – 493` |
+| `renderBreakEvenSection()` | `494 – 528` |
+| `updateBreakEvenView()` | `529 – 545` |
+| `renderBreakEvenSingleApt()` | `546 – 818` |
+| `renderBreakEvenComparisonAll()` | `819 – 967` |
+| `renderGeminiAIBox()` | `968 – 990` |
+| `autoSyncToFire()` | `991 – 1004` |
+| `showAutoSyncToast()` | `1005 – 1045` |
+| `openApartmentModal()` | `1046 – 1140` |
+| `updatePropertyFormulaUI()` | `1141 – 1164` |
+| `closeApartmentModal()` | `1165 – 1169` |
+| `saveApartment()` | `1170 – 1256` |
+| `deleteApartment()` | `1257 – 1286` |
+| `setVal()` | `1287 – 1291` |
+| `getVal()` | `1292 – 1296` |
+| `updateAptLiveSummary()` | `1297 – 1367` |
+| `bindEvents()` | `1368 – 1474` |
 
 ---
 
