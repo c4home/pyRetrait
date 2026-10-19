@@ -717,8 +717,16 @@ window.RetirementEngine = (function() {
       }
 
       // Add French Pension / BHXH if reached age (with realistic Décote calculation & couple support)
-      let pensionReceivedThisYear = 0;
-      if (isRetired && plan.enableFrenchPension !== false) {
+      // 1. Phân loại và tích hợp nguồn lương hưu an sinh theo quốc gia
+      const workC = plan.workCountry || 'FR';
+      const retireC = plan.retireCountry || plan.workCountry || 'FR';
+      const hasFrenchPension = (workC === 'FR' || retireC === 'FR');
+      const hasBhxhPension = (workC === 'VN' || retireC === 'VN');
+      const hasGermanPension = (workC === 'DE' || retireC === 'DE');
+      const hasUsPension = (workC === 'US' || retireC === 'US');
+
+      // 1.1 Lương hưu Pháp (CNAV + Agirc-Arrco)
+      if (isRetired && hasFrenchPension && plan.enableFrenchPension !== false) {
         if (plan.maritalStatus === 'married' && plan.frenchPensionDetails) {
           const s1 = plan.frenchPensionDetails.spouse1 || {};
           const s2 = plan.frenchPensionDetails.spouse2 || {};
@@ -737,59 +745,117 @@ window.RetirementEngine = (function() {
             const res2 = window.TaxOptimizer.calculateFrenchPension(raw2, Number(s2.startWorkAge) || 24, Math.min(retireAge, s2ClaimAge), s2ClaimAge);
             p2Amt = res2.totalAnnualPension * cumInflation;
           }
-          pensionReceivedThisYear = p1Amt + p2Amt;
-          annualIncome += pensionReceivedThisYear;
-          taxableIncome += pensionReceivedThisYear;
+          const frenchTotal = p1Amt + p2Amt;
+          annualIncome += frenchTotal;
+          taxableIncome += frenchTotal;
         } else {
-          const ssAge = Number(plan.socialSecurityAge) || 64;
+          const s1 = plan.frenchPensionDetails?.spouse1 || {};
+          const ssAge = Number(s1.claimAge) || Number(plan.socialSecurityAge) || 64;
           if (age >= ssAge) {
-            const rawSS = Number(plan.socialSecurityAnnual) || 0;
+            const rawSS = Number(s1.targetAnnualPension) || Number(plan.socialSecurityAnnual) || 18000;
             if (rawSS > 0) {
-              if (plan.enableFrenchDecote !== false) {
-                const startWorkAge = Number(plan.startWorkAge) || 24;
-                const yearsWorked = Math.max(0, Math.min(retireAge, ssAge) - startWorkAge);
-                const quarters = yearsWorked * 4;
-                const targetQuarters = 172; // Standard 43 years in France (Taux Plein)
-                const missingQuarters = Math.max(0, targetQuarters - quarters);
-                const prorata = Math.min(1.0, quarters / targetQuarters);
-                const decotePenalty = (age < 67 && missingQuarters > 0) ? Math.min(20, missingQuarters) * 0.0125 : 0;
-                pensionReceivedThisYear = rawSS * prorata * (1.0 - decotePenalty) * cumInflation;
+              const startWorkAge = Number(s1.startWorkAge) || Number(plan.startWorkAge) || 24;
+              if (window.TaxOptimizer && window.TaxOptimizer.calculateFrenchPension) {
+                const resSS = window.TaxOptimizer.calculateFrenchPension(rawSS, startWorkAge, Math.min(retireAge, ssAge), ssAge);
+                const pensionReceived = resSS.totalAnnualPension * cumInflation;
+                annualIncome += pensionReceived;
+                taxableIncome += pensionReceived;
               } else {
-                pensionReceivedThisYear = rawSS * cumInflation;
+                annualIncome += rawSS * cumInflation;
+                taxableIncome += rawSS * cumInflation;
               }
-              annualIncome += pensionReceivedThisYear;
-              taxableIncome += pensionReceivedThisYear;
             }
           }
         }
       }
 
-      // Add BHXH Vietnam Pension if reached age
-      if (isRetired && plan.enableBhxhVn !== false && plan.bhxhVnDetails) {
+      // 1.2 Lương hưu BHXH Việt Nam
+      if (isRetired && hasBhxhPension && plan.enableBhxhVn !== false && plan.bhxhVnDetails) {
+        const b1 = plan.bhxhVnDetails.spouse1 || {};
+        const b2 = plan.bhxhVnDetails.spouse2 || {};
+        const userGender = plan.gender || b1.gender || 'male';
+        const b1Claim = Number(b1.claimAge) || (userGender === 'female' ? 60 : 62);
+        let b1Amt = 0;
+        let b2Amt = 0;
+
+        if (age >= b1Claim && window.TaxOptimizer && window.TaxOptimizer.calculateVietnamBhxhPension) {
+          const resB1 = window.TaxOptimizer.calculateVietnamBhxhPension(b1.monthlySalaryVnd || 0, b1.yearsContributed || 0, userGender, b1Claim);
+          b1Amt = resB1.annualPensionVnd;
+        }
+
         if (plan.maritalStatus === 'married') {
-          const b1 = plan.bhxhVnDetails.spouse1 || {};
-          const b2 = plan.bhxhVnDetails.spouse2 || {};
-          const userGender = plan.gender || b1.gender || 'male';
           const spouseGender = b2.gender || (userGender === 'female' ? 'male' : 'female');
-          const b1Claim = Number(b1.claimAge) || (userGender === 'female' ? 60 : 62);
           const b2Claim = Number(b2.claimAge) || (spouseGender === 'female' ? 60 : 62);
-          let b1Amt = 0;
-          let b2Amt = 0;
-          if (age >= b1Claim && window.TaxOptimizer && window.TaxOptimizer.calculateVietnamBhxhPension) {
-            const resB1 = window.TaxOptimizer.calculateVietnamBhxhPension(b1.monthlySalaryVnd || 0, b1.yearsContributed || 0, userGender, b1Claim);
-            b1Amt = resB1.annualPensionVnd;
-          }
           if (age >= b2Claim && window.TaxOptimizer && window.TaxOptimizer.calculateVietnamBhxhPension) {
             const resB2 = window.TaxOptimizer.calculateVietnamBhxhPension(b2.monthlySalaryVnd || 0, b2.yearsContributed || 0, spouseGender, b2Claim);
             b2Amt = resB2.annualPensionVnd;
           }
-          const totalBhxhVnd = (b1Amt + b2Amt) * cumInflation;
-          if (totalBhxhVnd > 0) {
-            const conv = (plan.currency === 'VND') ? 1 : (currentEurVndRate || 27500);
-            const bhxhVal = (totalBhxhVnd / conv);
-            annualIncome += bhxhVal;
-            taxableIncome += bhxhVal;
+        }
+
+        const totalBhxhVnd = (b1Amt + b2Amt) * cumInflation;
+        if (totalBhxhVnd > 0) {
+          const conv = (plan.currency === 'VND') ? 1 : (currentEurVndRate || 27500);
+          const bhxhVal = (totalBhxhVnd / conv);
+          annualIncome += bhxhVal;
+          taxableIncome += bhxhVal;
+        }
+      }
+
+      // 1.3 Lương hưu Đức (Gesetzliche Rentenversicherung)
+      if (isRetired && hasGermanPension && plan.enableGermanPension !== false && plan.germanPensionDetails) {
+        const g1 = plan.germanPensionDetails.spouse1 || {};
+        const g2 = plan.germanPensionDetails.spouse2 || {};
+        const g1Claim = Number(g1.claimAge) || 67;
+        let g1Amt = 0;
+        let g2Amt = 0;
+
+        if (age >= g1Claim && window.TaxOptimizer && window.TaxOptimizer.calculateGermanPension) {
+          const resG1 = window.TaxOptimizer.calculateGermanPension(g1.grossAnnualSalary || 45000, g1.yearsContributed || 35, g1Claim);
+          g1Amt = resG1.totalAnnualPension;
+        }
+
+        if (plan.maritalStatus === 'married') {
+          const g2Claim = Number(g2.claimAge) || 67;
+          if (age >= g2Claim && window.TaxOptimizer && window.TaxOptimizer.calculateGermanPension) {
+            const resG2 = window.TaxOptimizer.calculateGermanPension(g2.grossAnnualSalary || 38000, g2.yearsContributed || 35, g2Claim);
+            g2Amt = resG2.totalAnnualPension;
           }
+        }
+
+        const totalGermanEur = (g1Amt + g2Amt) * cumInflation;
+        if (totalGermanEur > 0) {
+          annualIncome += totalGermanEur;
+          taxableIncome += totalGermanEur;
+        }
+      }
+
+      // 1.4 Lương hưu Mỹ (Social Security Administration)
+      if (isRetired && hasUsPension && plan.enableUsPension !== false && plan.usPensionDetails) {
+        const u1 = plan.usPensionDetails.spouse1 || {};
+        const u2 = plan.usPensionDetails.spouse2 || {};
+        const u1Claim = Number(u1.claimAge) || 67;
+        let u1Amt = 0;
+        let u2Amt = 0;
+
+        if (age >= u1Claim && window.TaxOptimizer && window.TaxOptimizer.calculateUsSocialSecurityPension) {
+          const resU1 = window.TaxOptimizer.calculateUsSocialSecurityPension(u1.grossAnnualSalary || 65000, u1.yearsWorked || 35, u1Claim);
+          u1Amt = resU1.totalAnnualPensionUsd;
+        }
+
+        if (plan.maritalStatus === 'married') {
+          const u2Claim = Number(u2.claimAge) || 67;
+          if (age >= u2Claim && window.TaxOptimizer && window.TaxOptimizer.calculateUsSocialSecurityPension) {
+            const resU2 = window.TaxOptimizer.calculateUsSocialSecurityPension(u2.grossAnnualSalary || 55000, u2.yearsWorked || 35, u2Claim);
+            u2Amt = resU2.totalAnnualPensionUsd;
+          }
+        }
+
+        const totalUsd = (u1Amt + u2Amt) * cumInflation;
+        if (totalUsd > 0) {
+          const usdToEurRate = 0.92;
+          const usPensionVal = (plan.currency === 'USD') ? totalUsd : (totalUsd * usdToEurRate);
+          annualIncome += usPensionVal;
+          taxableIncome += usPensionVal;
         }
       }
 
@@ -825,8 +891,12 @@ window.RetirementEngine = (function() {
           Number(plan.familyPlan.kid3Birth) || 2027,
           Number(plan.familyPlan.kid4Birth) || 2029
         ];
-        const kidCostMonthly = Number(plan.familyPlan.kidCostMonthly) || 350;
-        const kidUniMonthly = Number(plan.familyPlan.kidUniMonthly) || 900;
+        const workCityKey = plan.workCity || 'fr_paris';
+        const pppFactor = (window.TaxOptimizer && window.TaxOptimizer.COUNTRY_PPP_PROFILES && window.TaxOptimizer.COUNTRY_PPP_PROFILES[workCityKey])
+          ? (Number(window.TaxOptimizer.COUNTRY_PPP_PROFILES[workCityKey].ppp) || 1.0)
+          : 1.0;
+        const kidCostMonthly = (Number(plan.familyPlan.kidCostMonthly) || 350) * pppFactor;
+        const kidUniMonthly = (Number(plan.familyPlan.kidUniMonthly) || 900) * pppFactor;
 
         let grossChildCost = 0;
         let depCount = 0;
@@ -837,11 +907,13 @@ window.RetirementEngine = (function() {
           if (kAge >= 0 && kAge < 20) depCount++;
         }
 
-        // CAF Family Allowance in France (bù đắp chi phí nuôi con)
+        // CAF Family Allowance in France (chỉ áp dụng khi ở Pháp)
         let cafMonthly = 0;
-        if (depCount === 2) cafMonthly = 148;
-        else if (depCount === 3) cafMonthly = 338;
-        else if (depCount >= 4) cafMonthly = 529;
+        if (plan.workCountry === 'FR') {
+          if (depCount === 2) cafMonthly = 148;
+          else if (depCount === 3) cafMonthly = 338;
+          else if (depCount >= 4) cafMonthly = 529;
+        }
 
         const netAnnualChildCost = Math.max(0, grossChildCost - (cafMonthly * 12));
         childLifecycleCostThisYear = netAnnualChildCost * cumInflation;

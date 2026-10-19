@@ -28,7 +28,7 @@
   <script src="js/icons-bundle.js?v=20261018_v1"></script>
 
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=20261018_v157">
+  <link rel="stylesheet" href="css/styles.css?v=20261019_v165">
 </head>
 
 <body>
@@ -840,6 +840,265 @@
                     </div>
                   </div>
 
+                  <!-- Thẻ Lương Hưu Đức (Gesetzliche Rentenversicherung - GRV) -->
+                  <div class="income-item-french" id="card-german-pension-stream" style="display: none;">
+                    <div class="income-item-header">
+                      <div class="income-item-name" style="display: flex; align-items: center; gap: 0.45rem;">
+                        <input type="checkbox" id="chk-enable-german-pension" checked
+                          style="accent-color: #10b981; width: 15px; height: 15px; cursor: pointer;">
+                        <span>Lương hưu Đức (GRV Rentenpunkte)</span>
+                      </div>
+                      <div class="income-item-actions">
+                        <span class="field-badge font-mono" id="badge-german-status"
+                          style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.68rem; padding: 1px 6px;">Chuẩn 67 tuổi</span>
+                        <button type="button" class="income-item-btn" id="btn-edit-german-pension"
+                          title="Cấu hình chi tiết lương hưu Đức">Sửa</button>
+                        <button type="button" class="income-item-btn income-item-del" id="btn-del-german-pension"
+                          title="Xóa/Tắt lương hưu Đức">Xóa</button>
+                      </div>
+                    </div>
+
+                    <div class="income-item-body">
+                      <div class="income-item-amounts">
+                        <span class="income-amount-monthly" id="lbl-german-card-monthly">€1.820<small>/tháng</small></span>
+                        <span class="income-amount-annual" id="lbl-german-card-annual">≈ €21.840/năm</span>
+                      </div>
+                      <div class="income-item-timing"
+                        style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem;">
+                        <span class="income-age-range" id="lbl-german-card-age-range">67 - 85 tuổi</span>
+                        <span class="income-growth-badge" id="lbl-german-card-growth">Rentenwert 39.32€</span>
+                      </div>
+                    </div>
+
+                    <!-- Khu vực Cấu Hình Chi Tiết: Hiển thị trực tiếp 2 cột Bạn & Bạn đời -->
+                    <div class="french-config-box" id="german-inputs-body">
+                      <div class="spouse-pension-grid">
+                        <!-- Cột 1: Bạn -->
+                        <div class="spouse-col-card">
+                          <div class="spouse-col-header">
+                            <span class="spouse-col-title">Bạn</span>
+                            <span class="spouse-col-badge" id="lbl-german-spouse1-badge">35 năm • 34.6 RP</span>
+                          </div>
+                          <div class="form-row">
+                            <div class="form-group col-6" style="margin-bottom: 0.35rem;">
+                              <label style="font-size: 0.72rem; font-weight: 600;">Số năm đóng</label>
+                              <input type="number" id="inp-german-spouse1-years" min="5" max="50" value="35" class="form-input"
+                                style="padding: 0.3rem 0.5rem; font-size: 0.8rem;">
+                            </div>
+                            <div class="form-group col-6" style="margin-bottom: 0.35rem;">
+                              <label style="font-size: 0.72rem; font-weight: 600;">Nhận hưu</label>
+                              <input type="number" id="inp-german-spouse1-claim-age" min="63" max="72" value="67" class="form-input"
+                                style="padding: 0.3rem 0.5rem; font-size: 0.8rem;">
+                            </div>
+                          </div>
+                          <div class="form-group" style="margin-bottom: 0.35rem;">
+                            <label style="font-size: 0.72rem; font-weight: 600; margin-bottom: 0.15rem;">Lương gross (€/năm)</label>
+                            <input type="number" id="inp-german-spouse1-salary" value="45000" step="1000" class="form-input"
+                                style="padding: 0.3rem 0.5rem; font-size: 0.8rem;">
+                          </div>
+                          <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.15rem; background: var(--bg-app); padding: 0.35rem 0.45rem; border-radius: 4px; border: 1px solid var(--border-subtle);">
+                            <div style="display: flex; justify-content: space-between;">
+                              <span>Điều chỉnh:</span>
+                              <strong class="text-info" id="lbl-german-spouse1-adj">Chuẩn 67t: 0%</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                              <span>Hưu nhận:</span>
+                              <strong class="text-success" id="lbl-german-spouse1-pension">~1.361 €/tháng (~16.332 €/n)</strong>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Cột 2: Bạn đời -->
+                        <div class="spouse-col-card">
+                          <div class="spouse-col-header">
+                            <span class="spouse-col-title">Bạn đời</span>
+                            <span class="spouse-col-badge" id="lbl-german-spouse2-badge">35 năm • 29.3 RP</span>
+                          </div>
+                          <div class="form-row">
+                            <div class="form-group col-6" style="margin-bottom: 0.35rem;">
+                              <label style="font-size: 0.72rem; font-weight: 600;">Số năm đóng</label>
+                              <input type="number" id="inp-german-spouse2-years" min="5" max="50" value="35" class="form-input"
+                                style="padding: 0.3rem 0.5rem; font-size: 0.8rem;">
+                            </div>
+                            <div class="form-group col-6" style="margin-bottom: 0.35rem;">
+                              <label style="font-size: 0.72rem; font-weight: 600;">Nhận hưu</label>
+                              <input type="number" id="inp-german-spouse2-claim-age" min="63" max="72" value="67" class="form-input"
+                                style="padding: 0.3rem 0.5rem; font-size: 0.8rem;">
+                            </div>
+                          </div>
+                          <div class="form-group" style="margin-bottom: 0.35rem;">
+                            <label style="font-size: 0.72rem; font-weight: 600; margin-bottom: 0.15rem;">Lương gross (€/năm)</label>
+                            <input type="number" id="inp-german-spouse2-salary" value="38000" step="1000" class="form-input"
+                                style="padding: 0.3rem 0.5rem; font-size: 0.8rem;">
+                          </div>
+                          <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.15rem; background: var(--bg-app); padding: 0.35rem 0.45rem; border-radius: 4px; border: 1px solid var(--border-subtle);">
+                            <div style="display: flex; justify-content: space-between;">
+                              <span>Điều chỉnh:</span>
+                              <strong class="text-info" id="lbl-german-spouse2-adj">Chuẩn 67t: 0%</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                              <span>Hưu nhận:</span>
+                              <strong class="text-success" id="lbl-german-spouse2-pension">~1.149 €/tháng (~13.788 €/n)</strong>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div id="box-german-calc-live" class="pension-calc-live-box" style="margin-top: 0.55rem;">
+                        <div style="display: flex; justify-content: space-between;">
+                          <span id="lbl-german-pension-total-title">Tổng lương hưu Đức cả hai người:</span>
+                          <strong id="lbl-german-pension-effective" class="text-success" style="font-size: 0.82rem; font-weight: 700;">~2.510 €/tháng (~30.120 €/năm)</strong>
+                        </div>
+                      </div>
+
+                      <div class="formula-inline-box formula-success"
+                        style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
+                        <div class="formula-tag">Công thức Bảo hiểm Hưu trí Đức (Gesetzliche Rentenversicherung)</div>
+                        <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
+                          <code>• Điểm hưu trí Rentenpunkte (RP) = Lương gross / Thu nhập bình quân (~45.358 €/năm 2024)</code>
+                          <code>• Giá trị 1 điểm Rentenwert = 39,32 €/tháng • Tuổi chuẩn Regelaltersgrenze = 67 tuổi</code>
+                          <code>• Nhận sớm từ 63t giảm -3,6%/năm • Nhận muộn sau 67t thưởng +6,0%/năm</code>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Thẻ Lương Hưu Mỹ (Social Security Administration - SSA) -->
+                  <div class="income-item-french" id="card-us-pension-stream" style="display: none;">
+                    <div class="income-item-header">
+                      <div class="income-item-name" style="display: flex; align-items: center; gap: 0.45rem;">
+                        <input type="checkbox" id="chk-enable-us-pension" checked
+                          style="accent-color: #10b981; width: 15px; height: 15px; cursor: pointer;">
+                        <span>Lương hưu Mỹ (Social Security SSA)</span>
+                      </div>
+                      <div class="income-item-actions">
+                        <span class="field-badge font-mono" id="badge-us-status"
+                          style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.68rem; padding: 1px 6px;">FRA 67 tuổi</span>
+                        <button type="button" class="income-item-btn" id="btn-edit-us-pension"
+                          title="Cấu hình chi tiết lương hưu Mỹ">Sửa</button>
+                        <button type="button" class="income-item-btn income-item-del" id="btn-del-us-pension"
+                          title="Xóa/Tắt lương hưu Mỹ">Xóa</button>
+                      </div>
+                    </div>
+
+                    <div class="income-item-body">
+                      <div class="income-item-amounts">
+                        <span class="income-amount-monthly" id="lbl-us-card-monthly">$2.384<small>/tháng</small></span>
+                        <span class="income-amount-annual" id="lbl-us-card-annual">≈ $28.608/năm</span>
+                      </div>
+                      <div class="income-item-timing"
+                        style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem;">
+                        <span class="income-age-range" id="lbl-us-card-age-range">67 - 85 tuổi</span>
+                        <span class="income-growth-badge" id="lbl-us-card-growth">Bend Points 2024</span>
+                      </div>
+                    </div>
+
+                    <!-- Khu vực Cấu Hình Chi Tiết Mỹ -->
+                    <div class="french-config-box" id="us-inputs-body">
+                      <div class="spouse-pension-grid">
+                        <!-- Cột 1: Bạn -->
+                        <div class="spouse-col-card">
+                          <div class="spouse-col-header">
+                            <span class="spouse-col-title">Bạn</span>
+                            <span class="spouse-col-badge" id="lbl-us-spouse1-badge">35 năm • AIME $5.417</span>
+                          </div>
+                          <div class="form-row">
+                            <div class="form-group col-6" style="margin-bottom: 0.35rem;">
+                              <label style="font-size: 0.72rem; font-weight: 600;">Năm đóng FICA</label>
+                              <input type="number" id="inp-us-spouse1-years" min="10" max="45" value="35" class="form-input"
+                                style="padding: 0.3rem 0.5rem; font-size: 0.8rem;">
+                            </div>
+                            <div class="form-group col-6" style="margin-bottom: 0.35rem;">
+                              <label style="font-size: 0.72rem; font-weight: 600;">Tuổi nhận hưu</label>
+                              <input type="number" id="inp-us-spouse1-claim-age" min="62" max="70" value="67" class="form-input"
+                                style="padding: 0.3rem 0.5rem; font-size: 0.8rem;">
+                            </div>
+                          </div>
+                          <div class="form-group" style="margin-bottom: 0.35rem;">
+                            <label style="font-size: 0.72rem; font-weight: 600; margin-bottom: 0.15rem;">Lương gross ($/năm)</label>
+                            <input type="number" id="inp-us-spouse1-salary" value="65000" step="1000" class="form-input"
+                                style="padding: 0.3rem 0.5rem; font-size: 0.8rem;">
+                          </div>
+                          <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.15rem; background: var(--bg-app); padding: 0.35rem 0.45rem; border-radius: 4px; border: 1px solid var(--border-subtle);">
+                            <div style="display: flex; justify-content: space-between;">
+                              <span>Điều chỉnh FRA:</span>
+                              <strong class="text-info" id="lbl-us-spouse1-adj">Chuẩn FRA: 100%</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                              <span>Hưu nhận:</span>
+                              <strong class="text-success" id="lbl-us-spouse1-pension">~$2.414/tháng (~$28.968/n)</strong>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Cột 2: Bạn đời -->
+                        <div class="spouse-col-card">
+                          <div class="spouse-col-header">
+                            <span class="spouse-col-title">Bạn đời</span>
+                            <span class="spouse-col-badge" id="lbl-us-spouse2-badge">35 năm • AIME $4.583</span>
+                          </div>
+                          <div class="form-row">
+                            <div class="form-group col-6" style="margin-bottom: 0.35rem;">
+                              <label style="font-size: 0.72rem; font-weight: 600;">Năm đóng FICA</label>
+                              <input type="number" id="inp-us-spouse2-years" min="10" max="45" value="35" class="form-input"
+                                style="padding: 0.3rem 0.5rem; font-size: 0.8rem;">
+                            </div>
+                            <div class="form-group col-6" style="margin-bottom: 0.35rem;">
+                              <label style="font-size: 0.72rem; font-weight: 600;">Tuổi nhận hưu</label>
+                              <input type="number" id="inp-us-spouse2-claim-age" min="62" max="70" value="67" class="form-input"
+                                style="padding: 0.3rem 0.5rem; font-size: 0.8rem;">
+                            </div>
+                          </div>
+                          <div class="form-group" style="margin-bottom: 0.35rem;">
+                            <label style="font-size: 0.72rem; font-weight: 600; margin-bottom: 0.15rem;">Lương gross ($/năm)</label>
+                            <input type="number" id="inp-us-spouse2-salary" value="55000" step="1000" class="form-input"
+                                style="padding: 0.3rem 0.5rem; font-size: 0.8rem;">
+                          </div>
+                          <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.15rem; background: var(--bg-app); padding: 0.35rem 0.45rem; border-radius: 4px; border: 1px solid var(--border-subtle);">
+                            <div style="display: flex; justify-content: space-between;">
+                              <span>Điều chỉnh FRA:</span>
+                              <strong class="text-info" id="lbl-us-spouse2-adj">Chuẩn FRA: 100%</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                              <span>Hưu nhận:</span>
+                              <strong class="text-success" id="lbl-us-spouse2-pension">~$2.147/tháng (~$25.764/n)</strong>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div id="box-us-calc-live" class="pension-calc-live-box" style="margin-top: 0.55rem;">
+                        <div style="display: flex; justify-content: space-between;">
+                          <span id="lbl-us-pension-total-title">Tổng lương hưu Mỹ cả hai người:</span>
+                          <strong id="lbl-us-pension-effective" class="text-success" style="font-size: 0.82rem; font-weight: 700;">~$4.561/tháng (~$54.732/năm)</strong>
+                        </div>
+                      </div>
+
+                      <div class="formula-inline-box formula-success"
+                        style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
+                        <div class="formula-tag">Công thức An Sinh Xã Hội Mỹ (Social Security Administration)</div>
+                        <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
+                          <code>• Thu nhập tháng bình quân 35 năm (AIME) = Lương đóng FICA / 12</code>
+                          <code>• Bend Points 2024: 90% (AIME ≤ $1.174) + 32% (phần $1.174 - $7.078) + 15% (phần > $7.078)</code>
+                          <code>• Tuổi hưu chuẩn FRA = 67 tuổi • Nhận sớm từ 62t giảm tối đa -30% • Nhận muộn tới 70t tăng +8%/năm</code>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Khối Thông Báo Minh Bạch Khi Chưa Có Mô Hình Hưu Trí Nước Sở Tại -->
+                  <div id="callout-pension-unsupported" style="display: none; padding: 0.85rem; border-radius: 8px; background: var(--bg-card); border: 1px dashed var(--border-subtle); margin-bottom: 0.75rem;">
+                    <div style="display: flex; gap: 0.65rem; align-items: flex-start;">
+                      <span style="font-size: 1.3rem; line-height: 1;">🌐</span>
+                      <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.45;">
+                        <strong style="color: var(--text-main);" id="lbl-unsupported-pension-title">Lương hưu an sinh tại quốc gia này</strong>
+                        <p style="margin: 0.25rem 0 0 0;" id="lbl-unsupported-pension-desc">
+                          pyRetrait hiện chưa có mô hình tính toán lương hưu tự động theo luật của quốc gia này. Bạn có thể ước tính riêng và bổ sung trực tiếp khoản lương hưu này vào danh sách Luồng Thu Nhập tùy chỉnh bằng nút <strong>[+ Thêm Thu Nhập]</strong> bên dưới.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   <!-- Thẻ Chiến Lược Rút Tiền Hưu Trí đặt trực tiếp trong Cột Thu Nhập & Danh Mục -->
                   <div class="income-item-strategy" id="card-withdrawal-strategy-controls">
                     <div class="income-item-header">
@@ -1109,10 +1368,10 @@
                       <!-- [ TẦNG 1: ĐẦU VÀO CỐT LÕI & ĐỊA ĐIỂM HƯU TRÍ ] -->
                       <div class="form-group" style="margin-bottom: 0.45rem;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                          <label for="inp-monthly-retire-expenses" style="margin-bottom: 0; font-size: 0.76rem; font-weight: 600;">
+                          <label for="inp-monthly-retire-expenses" id="lbl-retire-base-title" style="margin-bottom: 0; font-size: 0.76rem; font-weight: 600;">
                             Mức chi cơ sở chuẩn Pháp (<span id="unit-retire-expenses">€</span>/tháng)
                           </label>
-                          <span style="font-size: 0.68rem; color: var(--text-muted);">Chuẩn nơi chi phí cao nhất</span>
+                          <span id="lbl-retire-base-subtitle" style="font-size: 0.68rem; color: var(--text-muted);">Chuẩn nơi chi phí cao nhất</span>
                         </div>
                         <input type="number" id="inp-monthly-retire-expenses" value="3000" step="50" class="form-input"
                           style="padding: 0.38rem 0.65rem; font-size: 0.85rem; font-weight: 600; color: var(--text-main);">
@@ -1715,8 +1974,8 @@
               <div class="liquid-explainer-strip" id="liquid-explainer-card">
                 <span class="liquid-strip-icon">💡</span>
                 <p class="liquid-strip-text">
-                  <strong data-i18n="why_liquid_strip_title">Tiền Mặt &amp; Quỹ Đầu Tư quan trọng hơn Tổng tài sản (gồm bất động sản)</strong>
-                  <span data-i18n="why_liquid_strip_desc">vì nó tạo dòng tiền hàng tháng để chi trả sinh hoạt (Căn nhà bạn ở có thể trị giá nhiều tỷ, nhưng không thể bẻ từng viên gạch để đi chợ, trả tiền điện hay viện phí) và tránh bẫy hết tiền mặt và quỹ đầu tư quá sớm, bạn sẽ rơi vào thế bị động phải bán tháo nhà đất khi về hưu.</span>
+                  <strong data-i18n="why_liquid_strip_title">Tiền mặt &amp; Quỹ đầu tư quan trọng hơn Tổng tài sản,</strong>
+                  <span data-i18n="why_liquid_strip_desc">vì đây là nguồn tạo dòng tiền sinh hoạt mỗi tháng. Căn nhà tiền tỷ không thể bẻ từng viên gạch để đi chợ hay trả viện phí. Nếu cạn tiền thanh khoản quá sớm, bạn sẽ rơi vào thế bị động và buộc phải bán tháo nhà đất lúc về hưu.</span>
                 </p>
               </div>
 
@@ -1866,6 +2125,23 @@
                   </div>
                   <span class="step-badge">Ưu tiên 3</span>
                 </div>
+              </div>
+            </div>
+
+            <!-- Cẩm Nang Danh Mục Tài Khoản Đầu Tư Quốc Tế (Dành cho US, Đức & Toàn Cầu) -->
+            <div class="card" id="card-global-accounts-guide" style="display: none; margin-top: 1.25rem;">
+              <div class="chart-header">
+                <div>
+                  <h3 class="card-title" id="lbl-global-accounts-title">Chiến Lược Tài Khoản Đầu Tư & Tối Ưu Thuế Quốc Tế</h3>
+                  <p class="chart-desc" id="lbl-global-accounts-desc">Tận dụng hạn mức miễn thuế lãi vốn, tài khoản hưu trí ưu đãi và ETF tích lũy (Accumulating) toàn cầu.</p>
+                </div>
+                <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center;">
+                  <span class="field-badge text-success" id="badge-global-tax-highlight">Ưu Đãi Thuế Sở Tại</span>
+                  <span class="field-badge" style="color: var(--accent-blue); background: rgba(59, 130, 246, 0.12);">Tài Khoản Quốc Tế</span>
+                </div>
+              </div>
+              <div class="advisor-grid" id="global-accounts-grid">
+                <!-- Nội dung động cập nhật bởi JS -->
               </div>
             </div>
 
@@ -3529,14 +3805,12 @@
           </label>
           <div class="select-card-grid">
             <div class="select-card-btn active" id="btn-plan-gender-male" onclick="window.setPlanGender('male')" style="padding: 0.75rem 0.85rem;">
-              <span class="btn-badge" id="lbl-modal-gender-male-badge" data-i18n="gender_male_badge">Tuổi hưu 62t</span>
               <span style="font-weight: 600; font-size: 0.85rem; color: var(--text-main); display: inline-flex; align-items: center; gap: 0.45rem;">
                 <iconify-icon icon="lucide:user" width="16" height="16" style="color: #3b82f6;"></iconify-icon>
                 <span data-i18n="gender_male">Nam</span>
               </span>
             </div>
             <div class="select-card-btn" id="btn-plan-gender-female" onclick="window.setPlanGender('female')" style="padding: 0.75rem 0.85rem;">
-              <span class="btn-badge" id="lbl-modal-gender-female-badge" data-i18n="gender_female_badge">Tuổi hưu 60t</span>
               <span style="font-weight: 600; font-size: 0.85rem; color: var(--text-main); display: inline-flex; align-items: center; gap: 0.45rem;">
                 <iconify-icon icon="lucide:user-check" width="16" height="16" style="color: #ec4899;"></iconify-icon>
                 <span data-i18n="gender_female">Nữ</span>
@@ -5063,23 +5337,23 @@
   </div>
 
   <!-- Application Logic Modules -->
-  <script src="js/i18n.js?v=20261018_v161"></script>
-  <script src="js/state.js?v=20261018_v158"></script>
-  <script src="js/engine.js?v=20261018_v150"></script>
-  <script src="js/taxOptimizer.js?v=20261018_v149"></script>
-  <script src="js/monteCarlo.js?v=20261018_v149"></script>
+  <script src="js/i18n.js?v=20261019_v165"></script>
+  <script src="js/state.js?v=20261019_v165"></script>
+  <script src="js/engine.js?v=20261019_v165"></script>
+  <script src="js/taxOptimizer.js?v=20261019_v165"></script>
+  <script src="js/monteCarlo.js?v=20261019_v165"></script>
   <script src="js/scenarios.js?v=20261016_v103"></script>
   <script src="js/geminiAdvisor.js?v=20261016_v107"></script>
   <script src="js/patrimoine.js?v=20261018_v160"></script>
   <script src="js/export.js?v=20261013_v2"></script>
   <script src="js/auth.js?v=20261018_v157"></script>
   <!-- Tầng 3: Giao diện tách theo từng Tab độc lập + Modals + Nhạc trưởng điều phối -->
-  <script src="js/ui-modals.js?v=20261018_v167"></script>
-  <script src="js/ui-tab1-charts.js?v=20261018_v149"></script>
-  <script src="js/ui-tab1-streams.js?v=20261018_v159"></script>
-  <script src="js/ui-tab2-health.js?v=20261018_v158"></script>
-  <script src="js/ui-tab3-taxes.js?v=20261018_v161"></script>
-  <script src="js/ui.js?v=20261018_v150"></script>
+  <script src="js/ui-modals.js?v=20261019_v165"></script>
+  <script src="js/ui-tab1-charts.js?v=20261019_v165"></script>
+  <script src="js/ui-tab1-streams.js?v=20261019_v165"></script>
+  <script src="js/ui-tab2-health.js?v=20261019_v165"></script>
+  <script src="js/ui-tab3-taxes.js?v=20261019_v165"></script>
+  <script src="js/ui.js?v=20261019_v165"></script>
 </body>
 
 </html>

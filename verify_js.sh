@@ -253,6 +253,10 @@ if legal_violations:
 print("=== 4. Kiểm tra tuân thủ Pháp lý & Từ vựng (Compliance-as-Code): [OK] Không có từ ngữ cam kết đầu tư trái phép ===")
 EOF
 
+if [ -f "tests/test_plan_creation_ui.js" ] && command -v node >/dev/null 2>&1; then
+  node tests/test_plan_creation_ui.js
+fi
+
 if [ "$1" = "--live" ] && [ -n "$2" ]; then
   LIVE_URL="${2%/}"
   echo "=== 4. KIỂM TRA BẢO MẬT TRỰC TIẾP TRÊN WEB THẬT (LIVE SECURITY AUDIT): $LIVE_URL ==="
@@ -349,8 +353,25 @@ elif [ -n "$1" ]; then
       const vm = require('vm');
       global.window = global;
       global.localStorage = { getItem: () => null, setItem: () => {} };
-      global.document = { addEventListener: () => {}, getElementById: () => null, querySelectorAll: () => [] };
-      for (const file of ['frontend/js/state.js', 'frontend/js/taxOptimizer.js', 'frontend/js/monteCarlo.js', 'frontend/js/engine.js', 'frontend/js/patrimoine.js', 'frontend/js/ui-modals.js']) {
+      global.document = {
+        addEventListener: () => {},
+        getElementById: () => null,
+        querySelectorAll: () => [],
+        querySelector: () => null,
+        documentElement: { getAttribute: () => 'dark', setAttribute: () => {} }
+      };
+      global.navigator = { userAgent: 'node' };
+      for (const file of [
+        'frontend/js/state.js',
+        'frontend/js/taxOptimizer.js',
+        'frontend/js/monteCarlo.js',
+        'frontend/js/engine.js',
+        'frontend/js/patrimoine.js',
+        'frontend/js/ui-modals.js',
+        'frontend/js/ui-tab1-streams.js',
+        'frontend/js/ui-tab2-health.js',
+        'frontend/js/ui-tab3-taxes.js'
+      ]) {
         vm.runInThisContext(fs.readFileSync(file, 'utf8'), { filename: file });
       }
       const result = ($1);
@@ -360,13 +381,23 @@ elif [ -n "$1" ]; then
     "$JSC" -e "
       var window = globalThis;
       var localStorage = { getItem: function() { return null; }, setItem: function() {} };
-      var document = { addEventListener: function() {}, getElementById: function() { return null; }, querySelectorAll: function() { return []; } };
+      var document = {
+        addEventListener: function() {},
+        getElementById: function() { return null; },
+        querySelectorAll: function() { return []; },
+        querySelector: function() { return null; },
+        documentElement: { getAttribute: function() { return 'dark'; }, setAttribute: function() {} }
+      };
+      var navigator = { userAgent: 'jsc' };
       load('frontend/js/state.js');
       load('frontend/js/taxOptimizer.js');
       load('frontend/js/monteCarlo.js');
       load('frontend/js/engine.js');
       load('frontend/js/patrimoine.js');
       load('frontend/js/ui-modals.js');
+      load('frontend/js/ui-tab1-streams.js');
+      load('frontend/js/ui-tab2-health.js');
+      load('frontend/js/ui-tab3-taxes.js');
       var result = ($1);
       print(JSON.stringify(result, null, 2));
     "

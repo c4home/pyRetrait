@@ -719,6 +719,173 @@ window.TaxOptimizer = (function() {
   }
 
   /**
+   * Tính Lương hưu Đức chuẩn Luật Bảo hiểm Hưu trí Gesetzliche Rentenversicherung (GRV)
+   * - Hệ thống Điểm Rentenpunkte (RP) = Lương_gross_năm / Thu_nhập_bình_quân_toàn_quốc (~45.358 € năm 2024)
+   * - Tuổi hưu chuẩn (Regelaltersgrenze): 67 tuổi
+   * - Nhận sớm (từ 63 tuổi): Giảm 0.3%/tháng = -3.6%/năm
+   * - Nhận muộn (sau 67 tuổi): Tăng 0.5%/tháng = +6.0%/năm
+   * - Giá trị 1 điểm Rentenwert = 39.32 €/tháng (năm 2024)
+   * @param {number|Object} grossAnnualSalary - Lương gộp hàng năm (hoặc object { spouse1, spouse2 })
+   * @param {number} yearsContributed - Số năm đóng bảo hiểm
+   * @param {number} claimAge - Tuổi bắt đầu nhận hưu
+   */
+  function calculateGermanPension(grossAnnualSalary, yearsContributed = 35, claimAge = 67) {
+    if (typeof grossAnnualSalary === 'object' && grossAnnualSalary !== null && (grossAnnualSalary.spouse1 || grossAnnualSalary.spouse2)) {
+      const s1 = grossAnnualSalary.spouse1 || {};
+      const s2 = grossAnnualSalary.spouse2 || {};
+      const p1 = calculateGermanPension(
+        s1.grossAnnualSalary || s1.salary || 0,
+        s1.yearsContributed !== undefined ? s1.yearsContributed : 35,
+        s1.claimAge !== undefined ? s1.claimAge : 67
+      );
+      const p2 = calculateGermanPension(
+        s2.grossAnnualSalary || s2.salary || 0,
+        s2.yearsContributed !== undefined ? s2.yearsContributed : 35,
+        s2.claimAge !== undefined ? s2.claimAge : 67
+      );
+      return {
+        spouse1: p1,
+        spouse2: p2,
+        totalMonthlyPension: p1.monthlyPension + p2.monthlyPension,
+        totalAnnualPension: p1.totalAnnualPension + p2.totalAnnualPension,
+        monthlyPension: p1.monthlyPension + p2.monthlyPension
+      };
+    }
+
+    const DURCHSCHNITTSENTGELT_2024 = 45358;
+    const RENTENWERT_2024 = 39.32;
+    const salary = Number(grossAnnualSalary) || 0;
+    const years = Math.max(0, Number(yearsContributed) || 0);
+    const actualClaimAge = (claimAge !== null && claimAge !== undefined) ? Number(claimAge) : 67;
+
+    // RP hàng năm
+    const rpPerYear = salary > 0 ? (salary / DURCHSCHNITTSENTGELT_2024) : 0;
+    const totalRP = Math.round(rpPerYear * years * 1000) / 1000;
+
+    // Hệ số Zugangsfaktor (ZF)
+    let zf = 1.0;
+    if (actualClaimAge < 67) {
+      const yearsEarly = Math.min(4, Math.max(0, 67 - actualClaimAge));
+      zf = Math.max(0.7, 1.0 - (yearsEarly * 0.036));
+    } else if (actualClaimAge > 67) {
+      const yearsLate = Math.min(5, Math.max(0, actualClaimAge - 67));
+      zf = 1.0 + (yearsLate * 0.06);
+    }
+    zf = Math.round(zf * 1000) / 1000;
+
+    const monthlyPension = Math.round(totalRP * zf * RENTENWERT_2024);
+    const totalAnnualPension = monthlyPension * 12;
+
+    return {
+      grossAnnualSalary: salary,
+      yearsContributed: years,
+      claimAge: actualClaimAge,
+      rpPerYear: Math.round(rpPerYear * 1000) / 1000,
+      totalRP,
+      zf,
+      adjustmentPercent: Math.round((zf - 1.0) * 100 * 10) / 10,
+      monthlyPension,
+      totalAnnualPension
+    };
+  }
+
+  /**
+   * Tính Lương hưu An sinh Xã hội Mỹ (Social Security Administration - SSA)
+   * - AIME: Thu nhập tháng bình quân 35 năm làm việc có FICA
+   * - Bend Points 2024: $1,174 và $7,078
+   * - 90% AIME <= $1,174; 32% từ $1,174 đến $7,078; 15% phần vượt
+   * - Tuổi Full Retirement Age (FRA): 67 tuổi
+   * - Nhận sớm từ 62t: giảm tối đa 30% ở tuổi 62
+   * - Nhận muộn đến 70t: tăng +8%/năm (+24% ở tuổi 70)
+   * @param {number|Object} grossAnnualSalary - Lương gộp hàng năm USD (hoặc object { spouse1, spouse2 })
+   * @param {number} yearsWorked - Số năm làm việc có đóng thuế FICA
+   * @param {number} claimAge - Tuổi bắt đầu nhận hưu
+   */
+  function calculateUsSocialSecurityPension(grossAnnualSalary, yearsWorked = 35, claimAge = 67) {
+    if (typeof grossAnnualSalary === 'object' && grossAnnualSalary !== null && (grossAnnualSalary.spouse1 || grossAnnualSalary.spouse2)) {
+      const s1 = grossAnnualSalary.spouse1 || {};
+      const s2 = grossAnnualSalary.spouse2 || {};
+      const p1 = calculateUsSocialSecurityPension(
+        s1.grossAnnualSalary || s1.salary || 0,
+        s1.yearsWorked !== undefined ? s1.yearsWorked : 35,
+        s1.claimAge !== undefined ? s1.claimAge : 67
+      );
+      const p2 = calculateUsSocialSecurityPension(
+        s2.grossAnnualSalary || s2.salary || 0,
+        s2.yearsWorked !== undefined ? s2.yearsWorked : 35,
+        s2.claimAge !== undefined ? s2.claimAge : 67
+      );
+      return {
+        spouse1: p1,
+        spouse2: p2,
+        totalMonthlyPensionUsd: p1.monthlyPensionUsd + p2.monthlyPensionUsd,
+        totalAnnualPensionUsd: p1.totalAnnualPensionUsd + p2.totalAnnualPensionUsd,
+        monthlyPension: p1.monthlyPension + p2.monthlyPension,
+        totalAnnualPension: p1.totalAnnualPension + p2.totalAnnualPension
+      };
+    }
+
+    const salary = Number(grossAnnualSalary) || 0;
+    const years = Math.max(0, Number(yearsWorked) || 0);
+    const actualClaimAge = (claimAge !== null && claimAge !== undefined) ? Number(claimAge) : 67;
+
+    // FICA Cap 2024: $168,600 / năm -> $14,050 / tháng
+    const FICA_CAP_ANNUAL = 168600;
+    const cappedSalary = Math.min(salary, FICA_CAP_ANNUAL);
+
+    // AIME tính trên 35 năm làm việc
+    const prorata35 = Math.min(1.0, years / 35.0);
+    const aime = Math.round((cappedSalary / 12.0) * prorata35);
+
+    // Bend Points 2024
+    const BEND_1 = 1174;
+    const BEND_2 = 7078;
+    let pia = 0;
+    if (aime <= BEND_1) {
+      pia = 0.90 * aime;
+    } else if (aime <= BEND_2) {
+      pia = 0.90 * BEND_1 + 0.32 * (aime - BEND_1);
+    } else {
+      pia = 0.90 * BEND_1 + 0.32 * (BEND_2 - BEND_1) + 0.15 * (aime - BEND_2);
+    }
+    pia = Math.round(pia * 10) / 10;
+
+    // Hệ số điều chỉnh tuổi hưởng
+    let adjustmentFactor = 1.0;
+    if (actualClaimAge < 67) {
+      const monthsEarly = Math.min(60, Math.max(0, (67 - actualClaimAge) * 12));
+      let reduction = 0;
+      if (monthsEarly <= 36) {
+        reduction = monthsEarly * (5.0 / 900.0);
+      } else {
+        reduction = 36 * (5.0 / 900.0) + (monthsEarly - 36) * (5.0 / 1200.0);
+      }
+      adjustmentFactor = Math.max(0.70, 1.0 - reduction);
+    } else if (actualClaimAge > 67) {
+      const delayYears = Math.min(3, Math.max(0, actualClaimAge - 67));
+      adjustmentFactor = 1.0 + (delayYears * 0.08);
+    }
+    adjustmentFactor = Math.round(adjustmentFactor * 1000) / 1000;
+
+    const monthlyPensionUsd = Math.round(pia * adjustmentFactor);
+    const totalAnnualPensionUsd = monthlyPensionUsd * 12;
+
+    return {
+      grossAnnualSalary: salary,
+      yearsWorked: years,
+      claimAge: actualClaimAge,
+      aime,
+      pia,
+      adjustmentFactor,
+      adjustmentPercent: Math.round((adjustmentFactor - 1.0) * 100 * 10) / 10,
+      monthlyPensionUsd,
+      totalAnnualPensionUsd,
+      monthlyPension: monthlyPensionUsd,
+      totalAnnualPension: totalAnnualPensionUsd
+    };
+  }
+
+  /**
    * Tax-Efficient French Account Withdrawal Waterfall
    * Priority:
    * 1. Livret A / Cash (100% tax free, low yield)
@@ -799,6 +966,8 @@ window.TaxOptimizer = (function() {
     getSuggestedRetirementBudget,
     calculateFrenchPension,
     calculateVietnamBhxhPension,
+    calculateGermanPension,
+    calculateUsSocialSecurityPension,
     simulateWithdrawalWaterfall
   };
 })();

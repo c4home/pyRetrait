@@ -32,7 +32,21 @@
        3. **Bố cục Side-by-Side song song (Dropdown 2 lớp chuẩn mực):**
           - Lớp 1 (Nhóm cha `<optgroup>`): Cờ quốc gia + Tên nước (`🇫🇷 Pháp`, `🇻🇳 Việt Nam`, `🇵🇹 Bồ Đào Nha`, `🇪🇸 Tây Ban Nha`, `🇩🇪 Đức`, `🇺🇸 Mỹ`...).
           - Lớp 2 (Lựa chọn con `<option>`): Khu vực/Thành phố + Tỷ lệ PPP (`Lisbon / Porto (0.65x)`, `Tỉnh lẻ (0.55x)`...).
-     - Tự động ẩn/hiện thẻ giao diện theo Hồ sơ: Nếu chọn **`Chỉ 1 nơi`**, tự động ẩn thẻ *Lạm phát 2 chặng & Tỷ giá* (`#card-dual-inflation-stream`) và ẩn cụm 3 radio *Pháp / Việt / Song hành*; nếu không liên quan đến Pháp/Việt Nam thì tự động ẩn thẻ *BĐS LMNP Pháp* và *BHXH Việt Nam*.
+     - **Quy chuẩn hiển thị thẻ theo Quốc gia & Thẻ Chung Toàn Cầu (Country-Specific vs Global Cards):**
+       * **1. Nhóm Thẻ Đặc Thù Theo Nơi Làm Việc & Nơi Nghỉ Hưu (`Country-Specific Pension Cards`):**
+         - Khi người dùng chọn **Nơi làm việc (`workCountry`)**, thẻ lương hưu nước sở tại của nơi đó sẽ tự động xuất hiện (ví dụ: làm việc tại Pháp ➔ hiện thẻ *Lương hưu Pháp*; làm việc tại Việt Nam ➔ hiện thẻ *Lương hưu BHXH Việt Nam*; làm việc tại Đức ➔ hiện thẻ *Lương hưu Đức*; Mỹ ➔ *Lương hưu Social Security*...).
+         - **Trường hợp Nơi làm việc KHÁC Nơi nghỉ hưu (`workCountry !== retireCountry`)**: Hệ thống **TỰ ĐỘNG BẬT CẢ HAI THẺ LƯƠNG HƯU Ở HAI NƠI**.
+           * Ví dụ: Đi làm ở Pháp (`FR`), về hưu ở Việt Nam (`VN`) ➔ Bật cả **Thẻ Lương hưu Pháp** (quyền lợi tích lũy năm tháng đi làm) VÀ **Thẻ Lương hưu BHXH Việt Nam** (đóng tự nguyện hoặc tiếp nối tại quê hương).
+           * Mỗi thẻ này được thiết kế và tính toán riêng biệt cho từng nơi theo luật hưu trí sở tại.
+         - **Trường hợp Nơi làm việc CÙNG Nơi nghỉ hưu (`workCountry === retireCountry` hoặc `retireMode === 'domestic'`)**: Chỉ bật **1 thẻ lương hưu duy nhất** của nước đó, ẩn thẻ hưu trí của các nước khác; đồng thời tự động ẩn thẻ *Lạm phát 2 chặng & Tỷ giá* (`#card-dual-inflation-stream`) và ẩn cụm 3 radio *Pháp / Việt / Song hành*.
+       * **2. Nhóm Thẻ Chung Toàn Cầu — Luôn Luôn Hiển Thị Cho Mọi Quốc Gia (`Global Shared Cards`):**
+         - Các thẻ nền tảng tài chính và gia đình sau đây là thẻ chung toàn cầu, **LUÔN LUÔN HIỂN THỊ** đối với tất cả mọi hồ sơ người dùng (bất kể làm việc hay nghỉ hưu ở Pháp, Việt Nam, Đức, Mỹ hay bất kỳ quốc gia nào):
+           1. **Kế hoạch Nuôi con** (`#card-children-family-stream`): Chi phí nuôi con và đại học tự động quy đổi theo hệ số PPP của thành phố sở tại.
+           2. **Chi tiêu/tháng khi về hưu** (`#card-retire-expense-stream`): Tự động tính từ dòng tiền hiện tại (Thu nhập - Tiết kiệm - Nợ nhà), áp dụng PPP và bảng bóc tách 7 nhóm chi tiêu.
+           3. **Dự phòng Chăm sóc Tuổi Già (78t+)** (`#card-senior-care-stream`): Chi phí điều dưỡng và hỗ trợ sinh hoạt cuối đời theo PPP.
+           4. **Kế Hoạch Thừa Kế & Di Sản** (`#card-estate-legacy-combined`): Hoạch định di sản chuyển giao cho thế hệ sau.
+           5. **Danh mục đầu tư & Bất động sản** (`#card-asset-allocation-stream` + `#card-lmnp-income-stream` / Căn hộ cho thuê): Quản lý tài sản sinh lời và dòng tiền thuê nhà toàn cầu.
+           6. **Chiến Lược Rút Tiền Hưu Trí** (`#card-withdrawal-strategy-controls`): 4 chiến lược rút vốn chuẩn khoa học (Bengen 4%, Guyton-Klinger, VPW, Fixed %).
   2. **Công thức Mặc định: Tính Chi tiêu Hưu trí từ Số dư Hàng tháng Hiện tại (`Cashflow-Derived Retirement Spending`)**:
      - `Chi tiêu sinh hoạt hiện tại/tháng = Thu nhập sau thuế/tháng - Số tiền tiết kiệm đầu tư/tháng - Tiền trả góp mua nhà/tháng (đã trả xong trước khi nghỉ hưu)`
      - `Chi tiêu hưu trí dự kiến/tháng = Chi tiêu sinh hoạt hiện tại/tháng * Hệ_số_PPP + Phụ phí Y tế tuổi già`
@@ -66,8 +80,10 @@
 | **Task 1** [x] | `frontend/js/taxOptimizer.js` | Dòng `1 – 747` | Bổ sung `COUNTRY_PPP_PROFILES` (22+ khu vực), hàm `calculateRetireBudgetFromCashflow()` (tính từ Thu nhập - Tiết kiệm - Trả góp nhà), thước đo tham chiếu 3 mức sống, chia thuế theo `taxParts` & lương hưu tham số hóa cho cả 2 vợ chồng |
 | **Task 2** [x] | `frontend/js/state.js`<br>`frontend/js/engine.js`<br>`frontend/js/ui.js` | Dòng `99 – 339`<br>Dòng `525 – 1354`<br>Dòng `752 – 881` | Chuẩn hóa schema Hồ sơ theo Blueprint (`workCountry`, `retireMode`, `retireCountry`, `retireCity`, `maritalStatus`, `taxParts`), chế độ 1 quốc gia (`isSingleCountry`), gộp lương hưu độc lập 2 vợ chồng và đồng bộ Cloud preferences (`theme`, `lang`, `currency`, `viewMode`) |
 | **Task 3** [x] | `frontend/index.html`<br>`frontend/js/ui-modals.js`<br>`frontend/js/ui.js` | Dòng `3386 – 3595`<br>Dòng `1022 – 1215`<br>Dòng `255 – 353` | Hoàn thiện đấu nối DOM cho `#plan-modal` (lưu profile đa quốc gia & gia đình, đồng bộ select khi chọn Chỉ 1 nơi) |
-| **Task 4** | `frontend/index.html`<br>`frontend/js/ui-tab1-streams.js` | Dòng `410 – 745`, `1067 – 1280`, `1573 – 1695`<br>Dòng `878 – 903`, `1540 – 1649` | Tự động ẩn/hiện thẻ theo Hồ sơ (`applyProfileVisibilityRules`), hiển thị trực tiếp (inline, không popup) cấu hình Bạn & Bạn đời trên thẻ hưu trí khi chọn Vợ chồng; công thức chi tiêu từ Số dư + dòng tham chiếu tĩnh & bảng 7 khoản chi luôn mở sẵn |
-| **Task 5** | `frontend/js/i18n.js`<br>`frontend/js/engine.js`<br>`frontend/index.html` | Dòng `21 – 620`<br>Dòng `9 – 47`<br>Dòng `27`, `4850 – 4896` | Bổ sung đầy đủ bản dịch (`vi`, `en`, `fr`), hỗ trợ tiền tệ `CNY`, xóa file nháp `frontend/preview.html` và tăng query version cache-busting `?v=...` trên `index.html` |
+| **Task 4** [x] | `frontend/index.html`<br>`frontend/js/ui-tab1-streams.js` | Dòng `410 – 745`, `1067 – 1280`, `1573 – 1695`<br>Dòng `878 – 903`, `1540 – 1649` | Tự động ẩn/hiện thẻ theo Hồ sơ (`applyProfileVisibilityRules`), hiển thị trực tiếp (inline, không popup) cấu hình Bạn & Bạn đời trên thẻ hưu trí khi chọn Vợ chồng; công thức chi tiêu từ Số dư + dòng tham chiếu tĩnh & bảng 7 khoản chi luôn mở sẵn |
+| **Task 5** [x] | `frontend/js/i18n.js`<br>`frontend/js/engine.js`<br>`frontend/index.html` | Dòng `21 – 620`<br>Dòng `9 – 47`<br>Dòng `27`, `4850 – 4896` | Bổ sung đầy đủ bản dịch (`vi`, `en`, `fr`), hỗ trợ tiền tệ `CNY`, xóa file nháp `frontend/preview.html` và tăng query version cache-busting `?v=...` trên `index.html` |
+| **Task 6** [ ] | `frontend/index.html`<br>`frontend/js/taxOptimizer.js`<br>`frontend/js/engine.js`<br>`frontend/js/ui-tab1-streams.js` | Dòng `579 – 745`<br>Dòng `220 – 450`<br>Dòng `600 – 750`<br>Dòng `1640 – 1760` | Xây dựng **thẻ hưu trí riêng biệt chuẩn luật cho từng quốc gia** (`#card-french-pension-stream`, `#card-bhxh-income-stream`, `#card-german-pension-stream`, `#card-us-pension-stream`), tuyệt đối không dùng thẻ chung đoán mò khi chưa có dữ liệu chuẩn; hiển thị thông báo minh bạch hướng dẫn tự nhập thu nhập tùy chỉnh cho các nước chưa hỗ trợ; tích hợp engine dòng tiền và nhân chi phí nuôi con theo PPP |
+| **Task 7** [ ] | `frontend/js/ui-tab3-taxes.js`<br>`frontend/js/ui-tab2-health.js`<br>`frontend/js/i18n.js` | Dòng `470 – 550`<br>Dòng `580 – 660`, `1270 – 1320`<br>Dòng `25 – 650` | Tab 3 tự động chuyển biểu thuế nước sở tại và ẩn tài khoản đặc thù Pháp (PEA/AV) thay bằng tài khoản quốc tế; Tab 2 chuẩn hóa y tế tuổi già và bỏ trợ cấp CAF Pháp; đa ngôn ngữ |
 
 ---
 
@@ -84,6 +100,23 @@
   - Công thức `calculateRetireBudgetFromCashflow()` tự động trừ khoản trả góp ngân hàng mua nhà sẽ tất toán trước tuổi nghỉ hưu ra khỏi chi tiêu hiện tại trước khi quy đổi PPP.
 - **Trường hợp 4 — Tương thích ngược với Kế hoạch cũ (Backward Compatibility)**:
   - Khi nạp kế hoạch cũ từ `localStorage` hoặc SQLite chưa có các trường mới, `ensurePlanDefaults(plan)` trong `state.js` tự động bổ sung giá trị mặc định an toàn: `maritalStatus: 'single'`, `taxParts: 1.0`, suy luận `workCountry` và `retireCountry` từ `taxRegime` hoặc `retireLocation`.
+
+### Bảng Ma Trận Hiển Thị Thẻ Giao Diện Theo Nơi Làm Việc & Nơi Nghỉ Hưu
+
+| Kịch Bản Thiết Lập | Thẻ Lương Hưu Nước Làm Việc | Thẻ Lương Hưu Nước Nghỉ Hưu | Thẻ Lạm Phát Kép (`#card-dual-inflation-stream`) | Nhóm Thẻ Chung Toàn Cầu (Con Cái, Chi Tiêu Hưu Trí, Chăm Sóc Tuổi Già, Thừa Kế, Danh Mục Đầu Tư, Chiến Lược Rút) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Làm Pháp ➔ Nghỉ Pháp** (`FR ➔ FR`) | 🇫🇷 **HIỆN** (Lương hưu Pháp) | — (Trùng nhau) | ❌ **ẨN** | ✅ **LUÔN HIỂN THỊ 100%** |
+| **Làm VN ➔ Nghỉ VN** (`VN ➔ VN`) | 🇻🇳 **HIỆN** (BHXH Việt Nam) | — (Trùng nhau) | ❌ **ẨN** | ✅ **LUÔN HIỂN THỊ 100%** |
+| **Làm Pháp ➔ Nghỉ VN** (`FR ➔ VN`) | 🇫🇷 **HIỆN** (Lương hưu Pháp) | 🇻🇳 **HIỆN** (BHXH Việt Nam)<br>*(Bật cả 2 thẻ)* | ✅ **HIỆN** | ✅ **LUÔN HIỂN THỊ 100%** |
+| **Làm VN ➔ Nghỉ Pháp** (`VN ➔ FR`) | 🇻🇳 **HIỆN** (BHXH Việt Nam) | 🇫🇷 **HIỆN** (Lương hưu Pháp)<br>*(Bật cả 2 thẻ)* | ✅ **HIỆN** | ✅ **LUÔN HIỂN THỊ 100%** |
+| **Làm Đức ➔ Nghỉ VN** (`DE ➔ VN`) | 🇩🇪 **HIỆN** (Lương hưu Đức) | 🇻🇳 **HIỆN** (BHXH Việt Nam)<br>*(Bật cả 2 thẻ)* | ✅ **HIỆN** | ✅ **LUÔN HIỂN THỊ 100%** |
+| **Làm Mỹ ➔ Nghỉ VN** (`US ➔ VN`) | 🇺🇸 **HIỆN** (Social Security) | 🇻🇳 **HIỆN** (BHXH Việt Nam)<br>*(Bật cả 2 thẻ)* | ✅ **HIỆN** | ✅ **LUÔN HIỂN THỊ 100%** |
+| **Quốc tế khác ➔ Quốc tế khác** | 🌐 **HIỆN** (Hưu trí nước làm việc) | 🌐 **HIỆN** (Hưu trí nước nghỉ hưu) | ✅ **HIỆN** (nếu khác nước) | ✅ **LUÔN HIỂN THỊ 100%** |
+
+> **Nguyên tắc cốt lõi bất di bất dịch:**
+> 1. Đi làm ở đâu thì thẻ lương hưu nước đó xuất hiện.
+> 2. Nếu nơi làm việc KHÁC nơi nghỉ hưu thì **BẬT CẢ HAI THẺ LƯƠNG HƯU Ở HAI NƠI**. Mỗi thẻ được thiết kế riêng biệt cho mỗi nơi (Pháp: quý đóng/décote; VN: năm đóng/luật BHXH; Đức: Rentenpunkte; Mỹ: Bend Points...).
+> 3. Các thẻ chung: Con cái, Chi tiêu/tháng khi về hưu, Dự phòng Chăm sóc Tuổi Già (78t+), Kế Hoạch Thừa Kế, Danh mục đầu tư & BĐS, Chiến Lược Rút Tiền Hưu Trí là **THẺ CHUNG LUÔN HIỂN THỊ** cho mọi quốc gia.
 
 ---
 
@@ -243,15 +276,25 @@
     - Bên dưới là **dòng tham chiếu tĩnh (Read-only, chỉ để xem đối chiếu)** (`#lbl-ppp-static-benchmarks`):
       `Mốc tham khảo tại [Thành phố]: Cơ bản ~X €/tháng • Thoải mái ~Y €/tháng • Thịnh vượng ~Z €/tháng`.
     - **Bảng bóc tách 7 khoản chi tiêu thực tế hàng tháng (`#box-ppp-breakdown-detail`):** Luôn luôn hiển thị mở sẵn (show all by default), không cần bấm click mở/đóng hay giấu trong accordion. Người dùng nhìn thấy ngay chi tiết từng nhóm chi phí (Ăn uống, Nhà ở, Y tế, Năng lượng, Đi lại, Đồ gia dụng, Giải trí/Giao lưu).
-  - `frontend/js/ui-tab1-streams.js` dòng `1540 – 1649` (hàm `applyProfileVisibilityRules(plan)`):
-    1. **Nếu `plan.retireMode === 'domestic'` (Chỉ 1 nơi — Làm việc và nghỉ hưu cùng chỗ)**:
-       - Ẩn hoàn toàn thẻ `#card-dual-inflation-stream` (Lạm phát 2 chặng & Tỷ giá).
-       - Ẩn cụm `#retire-location-radios` (3 nút Pháp / Việt / Song hành).
-    2. **Nếu `plan.workCountry !== 'FR'`**:
-       - Ẩn thẻ `#card-lmnp-income-stream` (BĐS LMNP Pháp).
-    3. **Nếu `plan.workCountry !== 'VN'` và `plan.retireCountry !== 'VN'`**:
-       - Ẩn thẻ `#card-bhxh-income-stream` (BHXH Việt Nam).
-    4. Tự động gọi `window.TaxOptimizer.calculateRetireBudgetFromCashflow()` để cập nhật chi tiêu hưu trí, dòng tham chiếu tĩnh và bảng 7 khoản chi tiêu.
+  - `frontend/js/ui-tab1-streams.js` dòng `1640 – 1760` (hàm `applyProfileVisibilityRules(plan)`):
+    1. **Nhóm Thẻ Đặc Thù Theo Quốc Gia (Country-Specific Cards)**:
+       - **Thẻ theo Nơi làm việc (`workCountry`)**: Xuất hiện thẻ lương hưu của quốc gia nơi làm việc (làm việc ở Pháp ➔ hiện `#card-french-pension-stream`; làm việc ở VN ➔ hiện `#card-bhxh-income-stream`).
+       - **Khi Nơi làm việc KHÁC Nơi nghỉ hưu (`workCountry !== retireCountry`)**:
+         * **Tự động BẬT CẢ HAI THẺ LƯƠNG HƯU Ở HAI NƠI** (`cardFrench.style.display = ""`, `cardBhxh.style.display = ""`). Mỗi thẻ được thiết kế riêng biệt cho từng nơi theo luật hưu trí và công thức đặc thù.
+         * Bật thẻ *Lạm phát 2 chặng & Tỷ giá* (`#card-dual-inflation-stream`) và cụm 3 radio *Pháp / Việt / Song hành*.
+       - **Khi Nơi làm việc CÙNG Nơi nghỉ hưu (`workCountry === retireCountry` hoặc `retireMode === 'domestic'`)**:
+         * Chỉ hiển thị **1 thẻ lương hưu duy nhất** của quốc gia đó, ẩn thẻ của các nước khác.
+         * Ẩn hoàn toàn thẻ *Lạm phát 2 chặng & Tỷ giá* (`#card-dual-inflation-stream`) và cụm 3 radio.
+    2. **Nhóm Thẻ Chung Toàn Cầu — Luôn Luôn Hiển Thị Cho Mọi Quốc Gia (Global Shared Cards)**:
+       - Tất cả 6 thẻ chung sau đây được thiết lập `display = ""` vĩnh viễn, không bao giờ bị ẩn:
+         * **Bất Động Sản Cho Thuê** (`#card-lmnp-income-stream` / Doanh thu BĐS & Quản lý Căn hộ): Lớp tài sản đầu tư chung toàn cầu.
+         * **Danh mục đầu tư & Phân bổ tài sản** (`#card-asset-allocation-stream`).
+         * **Chi tiêu/tháng khi về hưu** (`#card-retire-expense-stream`): Đi kèm công thức tính từ Số dư + dòng tham chiếu tĩnh & bảng 7 nhóm chi tiêu.
+         * **Kế hoạch Nuôi con** (`#card-children-family-stream`).
+         * **Dự phòng Chăm sóc Tuổi Già (78t+)** (`#card-senior-care-stream`).
+         * **Kế Hoạch Thừa Kế & Di Sản** (`#card-estate-legacy-combined`).
+         * **Chiến Lược Rút Tiền Hưu Trí** (`#card-withdrawal-strategy-controls`).
+    3. Tự động gọi `window.TaxOptimizer.calculateRetireBudgetFromCashflow()` để cập nhật chi tiêu hưu trí, dòng tham chiếu tĩnh và bảng 7 khoản chi tiêu.
 - **Biểu thức kiểm thử bằng `./verify_js.sh`**:
   ```zsh
   ./verify_js.sh "Object.keys(window.TaxOptimizer.COUNTRY_PPP_PROFILES).slice(0, 6).map(k => ({ city: k, fromCashflow: window.TaxOptimizer.calculateRetireBudgetFromCashflow({ monthlyNetIncome: 3500, monthlySavings: 1300, monthlyMortgagePaidOff: 0, workCityKey: 'fr_paris', retireCityKey: k, retireMode: 'relocate', householdSize: 1 }).monthlyRetireTotal }))"
@@ -273,6 +316,111 @@
 - **Biểu thức kiểm thử bằng `./verify_js.sh`**:
   ```zsh
   ./verify_js.sh "({ eur: window.RetirementEngine.formatCurrency(1600, 'EUR'), cny: window.RetirementEngine.formatCurrency(12000, 'CNY'), vnd: window.RetirementEngine.formatCurrency(25000000, 'VND') })"
+  ```
+
+---
+
+### [x] Task 6 — Mở Rộng Hệ Thống Thẻ Lương Hưu Riêng Biệt Chuẩn Luật (Đức, Mỹ) & Nguyên Tắc Minh Bạch Khi Chưa Có Dữ Liệu (`frontend/index.html`, `frontend/js/taxOptimizer.js`, `frontend/js/engine.js`, `frontend/js/ui-tab1-streams.js`)
+
+- **File cần sửa**:
+  1. `frontend/index.html` (Thêm khối HTML thẻ chuyên biệt cho Đức, Mỹ ngay dưới các thẻ Pháp và BHXH VN; thêm khối thông báo minh bạch khi quốc gia chưa có dữ liệu hưu trí tự động).
+  2. `frontend/js/taxOptimizer.js` (Bổ sung công thức tính lương hưu chuyên sâu chuẩn luật cho Đức, Mỹ).
+  3. `frontend/js/engine.js` (Tích hợp nguồn lương hưu an sinh tương ứng theo quốc gia vào dòng tiền `runProjection`).
+  4. `frontend/js/ui-tab1-streams.js` (Bổ sung render, ràng buộc sự kiện cho từng thẻ và cập nhật `applyProfileVisibilityRules` để bật/tắt thẻ độc lập theo `workCountry`/`retireCountry`).
+- **Danh Sách Các Thẻ Hưu Trí Chuyên Biệt Từng Quốc Gia (Dedicated Country Pension Cards)**:
+  1. 🇫🇷 **`#card-french-pension-stream`**: Thẻ Lương hưu Pháp (CNAV + Agirc-Arrco, Quý đóng trimestres, Phạt décote).
+  2. 🇻🇳 **`#card-bhxh-income-stream`**: Thẻ Lương hưu BHXH Việt Nam (Chuẩn 35 năm Nam / 30 năm Nữ = 75%, Quỹ lương VND).
+  3. 🇩🇪 **`#card-german-pension-stream`**: Thẻ Lương hưu Đức (*Gesetzliche Rentenversicherung* — Hệ thống Điểm Rentenpunkte `RP`, Tuổi chuẩn 67t, Phạt nhận sớm -3.6%/năm, Giá trị điểm Rentenwert ~39.32€).
+  4. 🇺🇸 **`#card-us-pension-stream`**: Thẻ Lương hưu Mỹ (*Social Security SSA* — AIME bình quân 35 năm, 3 bậc tỷ lệ cong Bend Points, Tuổi chuẩn FRA 67t).
+- **Nguyên Tắc Minh Bạch Khi Chưa Có Dữ Liệu Hưu Trí Chuẩn (Anti-Hallucination & Financial Accuracy)**:
+  - **Tuyệt đối KHÔNG sử dụng thẻ chung / công thức generic phỏng đoán**: Đối với các quốc gia chưa được nghiên cứu và lập trình đầy đủ luật an sinh (ví dụ Bồ Đào Nha, Tây Ban Nha, Thái Lan, Singapore, Úc, Canada...), hệ thống **tuyệt đối không áp dụng tỷ lệ đoán mò** vì sẽ làm sai lệch nghiêm trọng kế hoạch tài chính của người dùng.
+  - **Khối thông báo minh bạch `#callout-pension-unsupported`**:
+    * Khi `workCountry` thuộc quốc gia chưa có thẻ hưu trí chuyên biệt, hệ thống ẩn toàn bộ các thẻ lương hưu tự động và hiển thị một khối thông báo trang nhã, minh bạch:  
+      *"pyRetrait hiện chưa có mô hình tính toán lương hưu tự động theo luật của [Tên Quốc Gia]. Bạn có thể ước tính riêng và bổ sung trực tiếp khoản lương hưu này vào danh sách Luồng Thu Nhập tùy chỉnh bằng nút `[+ Thêm Thu Nhập]` bên dưới."*
+- **Tọa độ dòng code theo `CODEBASE_MAP.md`**:
+  - `frontend/index.html` dòng `579 – 745`:
+    - Tạo các thẻ độc lập với cấu trúc HTML đồng nhất, có hỗ trợ hiển thị 2 cột (Bạn & Bạn đời khi chọn Vợ chồng):
+      * Thẻ hưu trí Đức `#card-german-pension-stream`
+      * Thẻ hưu trí Mỹ `#card-us-pension-stream`
+      * Khối thông báo minh bạch `#callout-pension-unsupported`
+  - `frontend/js/taxOptimizer.js` dòng `220 – 450`:
+    - **Công thức Lương hưu Đức (`calculateGermanPension`)**:
+      * Chuẩn hưu trí luật Đức (*Gesetzliche Rentenversicherung*):
+      * Điểm hưu trí tích lũy hàng năm: `Rentenpunkte (RP) = Lương_gross_hàng_năm / Thu_nhập_bình_quân_toàn_quốc` (năm 2024 bình quân ~45.358 EUR/năm).
+      * Tuổi nghỉ hưu chuẩn (*Regelaltersgrenze*): 67 tuổi. Nhận sớm tối thiểu từ 63 tuổi: mỗi tháng nhận sớm bị giảm `0.3%` (`-3.6%/năm`). Nhận muộn sau 67 tuổi: mỗi tháng được thưởng `+0.5%` (`+6.0%/năm`).
+      * Giá trị 1 điểm hưu trí (*Aktueller Rentenwert*): ~39.32 EUR/tháng.
+      * `Lương hưu tháng = Tổng_RP * Hệ_số_tuổi_nhận * 39.32 EUR`.
+    - **Công thức Lương hưu An sinh Mỹ (`calculateUsSocialSecurityPension`)**:
+      * Chuẩn An sinh Xã hội Mỹ (*Social Security Administration*):
+      * Thu nhập bình quân 35 năm làm việc có đóng thuế FICA (tính theo tháng - AIME).
+      * Công thức tính mức hưởng chuẩn tại tuổi hưu tròn (Primary Insurance Amount - PIA) theo 3 bậc tỷ lệ cong (Bend Points 2024: $1.174 và $7.078):
+        - Bậc 1: 90% phần AIME đến $1.174.
+        - Bậc 2: 32% phần AIME từ $1.174 đến $7.078.
+        - Bậc 3: 15% phần AIME vượt $7.078.
+      * Tuổi hưu chuẩn (*Full Retirement Age - FRA*): 67 tuổi. Nhận sớm từ 62 tuổi giảm tối đa 30%; nhận muộn đến 70 tuổi tăng 8%/năm.
+  - `frontend/js/engine.js` dòng `600 – 750` (trong hàm `runProjection`):
+    - Tích hợp đúng dòng tiền lương hưu từ thẻ quốc gia tương ứng (Pháp, Đức, Mỹ, Việt Nam) vào tổng thu nhập an sinh hưu trí của kế hoạch. Nếu là quốc gia khác, không tự cộng nguồn lương hưu giả định.
+  - `frontend/js/ui-tab1-streams.js` dòng `1640 – 1760` (hàm `applyProfileVisibilityRules`):
+    - **Cơ chế Ẩn/Hiện Thẻ Độc Lập Theo Nơi Làm Việc & Nơi Nghỉ Hưu**:
+      * Ẩn tất cả các thẻ lương hưu mặc định (`display = "none"`).
+      * **Bật thẻ nước làm việc (`workCountry`)**:
+        - Nếu `workCountry === 'FR'`: Hiện `#card-french-pension-stream`.
+        - Nếu `workCountry === 'DE'`: Hiện `#card-german-pension-stream`.
+        - Nếu `workCountry === 'US'`: Hiện `#card-us-pension-stream`.
+        - Nếu `workCountry === 'VN'`: Hiện `#card-bhxh-income-stream`.
+        - Nếu thuộc quốc gia khác: Hiện thông báo minh bạch `#callout-pension-unsupported`.
+      * **Bật thêm thẻ nước nghỉ hưu nếu khác nước làm việc (`workCountry !== retireCountry`)**:
+        - Nếu nghỉ hưu ở VN (`retireCountry === 'VN'`) và làm việc ở nước ngoài: Tự động BẬT THÊM `#card-bhxh-income-stream`.
+        - Nếu làm việc ở VN và nghỉ hưu ở nước ngoài: Tự động BẬT THÊM thẻ hưu trí tương ứng của nước nghỉ hưu (nếu là Pháp, Đức, Mỹ).
+    - **Nhóm Thẻ Chung Toàn Cầu — Luôn Luôn Hiển Thị Cho Mọi Quốc Gia**:
+      * Con cái (`#card-children-family-stream`), Chi tiêu/tháng khi về hưu (`#card-retire-expense-stream`), Dự phòng Chăm sóc Tuổi Già (78t+) (`#card-senior-care-stream`), Kế Hoạch Thừa Kế (`#card-estate-legacy-combined`), Danh mục đầu tư & BĐS (`#card-asset-allocation-stream` + `#card-lmnp-income-stream`), Chiến Lược Rút Tiền Hưu Trí (`#card-withdrawal-strategy-controls`) là các thẻ chung toàn cầu luôn luôn hiển thị.
+    - **Khi chọn Hồ sơ Cá nhân (`plan.maritalStatus === 'single'`)**:
+      * Tất cả các thẻ lương hưu chỉ hiển thị 1 cột duy nhất của Bạn (ẩn cột Bạn đời).
+    - **Chi phí Kế hoạch Nuôi con**:
+      * Chi phí nuôi con và học phí đại học tự động nhân với hệ số PPP của thành phố nước sở tại (`targetCityProfile.ppp`).
+      * Ẩn hoàn toàn khoản trợ cấp gia đình CAF Pháp khi `plan.workCountry !== 'FR'`.
+- **Biểu thức kiểm thử bằng `./verify_js.sh`**:
+  ```zsh
+  ./verify_js.sh "({ dePension: window.TaxOptimizer.calculateGermanPension(60000, 35, 67), usPension: window.TaxOptimizer.calculateUsSocialSecurityPension(80000, 35, 67) })"
+  ```
+
+---
+
+### [x] Task 7 — Thích Ứng Thuế Nước Sở Tại, Thay Thế Tài Khoản Đầu Tư Quốc Tế & Y Tế Tuổi Già Trung Tính (`frontend/js/ui-tab3-taxes.js`, `frontend/js/ui-tab2-health.js`, `frontend/js/i18n.js`, `frontend/index.html`)
+
+- **File cần sửa**:
+  1. `frontend/js/ui-tab3-taxes.js` (Tự động thích ứng biểu thuế và ẩn các thẻ tài khoản đặc thù của Pháp, thay bằng tài khoản quốc tế).
+  2. `frontend/js/ui-tab2-health.js` (Chuẩn sinh học Nam, ẩn bạn đời khi độc thân, chi phí y tế theo PPP nước sở tại và bỏ trợ cấp CAF Pháp).
+  3. `frontend/js/i18n.js` (Cập nhật từ điển dịch `vi`, `en`, `fr`).
+  4. `frontend/index.html` (Tăng query version `?v=...` cache-busting).
+- **Tọa độ dòng code theo `CODEBASE_MAP.md`**:
+  - `frontend/js/ui-tab3-taxes.js` dòng `470 – 550` (hàm `updateTaxRegimeUI`):
+    - Tự động phát hiện quốc gia của kế hoạch (`plan.workCountry` / `plan.retireCountry`):
+      * Nếu ở Mỹ (`US`): Tự động áp dụng biểu thuế Liên bang Mỹ (`us`), hiển thị thông tin về tài khoản hưu trí 401(k), Roth IRA, HSA.
+      * Nếu ở Đức (`DE`) hoặc Châu Âu khác: Tự động áp dụng biểu thuế nước sở tại / thuế phẳng quốc tế.
+      * Nếu ở Pháp (`FR`): Giữ nguyên biểu thuế IR Pháp và cơ chế Quotient Familial.
+    - **Ẩn các thẻ đặc thù của Pháp khi `plan.workCountry !== 'FR'`**:
+      * Ẩn `#card-pea-masterclass` (PEA Pháp).
+      * Ẩn `#card-assurance-vie-masterclass` (Bảo hiểm nhân thọ AV Pháp).
+      * Ẩn `#card-livret-masterclass` (Sổ tiết kiệm Livret A Pháp).
+      * Hiển thị thẻ Danh mục Tài khoản Đầu tư Quốc tế / Nước sở tại thay thế.
+  - `frontend/js/ui-tab2-health.js` dòng `580 – 660`, `1270 – 1320`:
+    - **Bảo đảm chuẩn sinh học theo giới tính**:
+      * Khi `plan.gender === 'male'`: Áp dụng chuẩn sinh học Nam 👨 (vòng eo < 90cm, mỡ máu, chỉ số cơ xương, testosterone), kỳ vọng tuổi thọ chuẩn nam giới.
+    - **Bố cục Cá nhân**:
+      * Khi `plan.maritalStatus === 'single'`: Ẩn toàn bộ thẻ so sánh song song Bạn đời, chỉ hiển thị cột chỉ số của Bạn.
+    - **Chi phí Chăm sóc Y tế Tuổi già (sau 78 tuổi)**:
+      * Sử dụng chi phí cơ sở `healthCostBase` của nước sở tại từ `COUNTRY_PPP_PROFILES` (Đức 200€, Thụy Sĩ 350€, Mỹ 300$, Bồ Đào Nha 140€...).
+      * Sử dụng ngôn ngữ y tế chuẩn mực, trung tính và phổ thông đại chúng: không nhắc BHYT Pháp (Sécurité Sociale/Mutuelle) hay BHXH Việt Nam khi ở nước khác.
+    - **Nuôi con & Trợ cấp**:
+      * Bỏ nhãn và dòng tính trợ cấp CAF Pháp khi `plan.workCountry !== 'FR'`.
+  - `frontend/js/i18n.js` dòng `25 – 650`:
+    - Bổ sung các bản dịch đầy đủ cho 3 ngôn ngữ (`vi`, `en`, `fr`) về lương hưu nước sở tại (Đức, Mỹ, Quốc tế), tài khoản đầu tư quốc tế và các nhãn liên quan.
+  - `frontend/index.html` dòng `27` và cuối trang:
+    - Tăng query version `?v=...` cho các file stylesheet và script.
+- **Biểu thức kiểm thử bằng `./verify_js.sh`**:
+  ```zsh
+  ./verify_js.sh "typeof window.TaxOptimizer.calculateGermanPension === 'function' && typeof window.updateTaxRegimeUI === 'function'"
   ```
 
 ---

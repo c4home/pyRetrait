@@ -1223,9 +1223,26 @@
    */
   function handlePlanWorkCityChange(val) {
     const btnDomestic = document.getElementById('btn-plan-mode-domestic');
+    const btnRelocate = document.getElementById('btn-plan-mode-relocate');
+    const retireSelect = document.getElementById('inp-plan-retire-city');
+    const arrowTransition = document.getElementById('arrow-plan-transition');
+
+    const pppProfiles = (window.TaxOptimizer && window.TaxOptimizer.COUNTRY_PPP_PROFILES) ? window.TaxOptimizer.COUNTRY_PPP_PROFILES : {};
+    const workCountry = pppProfiles[val]?.countryCode || 'FR';
+    const retireCountry = pppProfiles[retireSelect?.value]?.countryCode || 'VN';
+
     if (btnDomestic && btnDomestic.classList.contains('active')) {
-      const retireSelect = document.getElementById('inp-plan-retire-city');
       if (retireSelect) retireSelect.value = val;
+    } else if (retireSelect && (retireSelect.value === val || workCountry === retireCountry)) {
+      // Khi chọn nơi làm việc cùng quốc gia với nơi nghỉ hưu
+      if (btnDomestic) btnDomestic.classList.add('active');
+      if (btnRelocate) btnRelocate.classList.remove('active');
+      if (retireSelect) {
+        retireSelect.value = val;
+        retireSelect.disabled = true;
+        retireSelect.style.opacity = '0.7';
+      }
+      if (arrowTransition) arrowTransition.textContent = '=';
     }
     updatePlanModalPppTags();
   }
@@ -1253,17 +1270,19 @@
     const maritalStatus = isMarried ? 'married' : 'single';
     const taxParts = isMarried ? 2.0 : 1.0;
 
+    const workCity = document.getElementById("inp-plan-work-city")?.value || 'fr_paris';
+    const pppProfiles = (window.TaxOptimizer && window.TaxOptimizer.COUNTRY_PPP_PROFILES) ? window.TaxOptimizer.COUNTRY_PPP_PROFILES : {};
+    const rawRetireCity = document.getElementById("inp-plan-retire-city")?.value || 'vn_hcm_hn';
+
+    const workCountry = pppProfiles[workCity]?.countryCode || 'FR';
+    const retireCountry = pppProfiles[rawRetireCity]?.countryCode || 'VN';
+
     let retireMode = 'relocate';
-    if (document.getElementById("btn-plan-mode-domestic")?.classList.contains("active")) {
+    if (document.getElementById("btn-plan-mode-domestic")?.classList.contains("active") || workCountry === retireCountry || workCity === rawRetireCity) {
       retireMode = 'domestic';
     }
 
-    const workCity = document.getElementById("inp-plan-work-city")?.value || 'fr_paris';
-    const retireCity = (retireMode === 'domestic') ? workCity : (document.getElementById("inp-plan-retire-city")?.value || 'vn_hcm_hn');
-
-    const pppProfiles = (window.TaxOptimizer && window.TaxOptimizer.COUNTRY_PPP_PROFILES) ? window.TaxOptimizer.COUNTRY_PPP_PROFILES : {};
-    const workCountry = pppProfiles[workCity]?.countryCode || 'FR';
-    const retireCountry = pppProfiles[retireCity]?.countryCode || 'VN';
+    const retireCity = (retireMode === 'domestic') ? workCity : rawRetireCity;
 
     let targetPlan;
     if (mode === 'edit') {
@@ -1293,6 +1312,54 @@
       targetPlan.workCountry = workCountry;
       targetPlan.retireCity = retireCity;
       targetPlan.retireCountry = retireCountry;
+
+      // Khởi tạo sạch sẽ khi người dùng lập kế hoạch làm việc tại Việt Nam
+      if (workCountry === 'VN') {
+        targetPlan.taxRegime = 'vietnam_standard';
+        targetPlan.socialSecurityAnnual = 0;
+        targetPlan.socialSecurityAge = isFemale ? 60 : 62;
+        targetPlan.frenchAccounts = { peaBalance: 0, assuranceVieBalance: 0, livretABalance: 0, perBalance: 0 };
+
+        // Loại bỏ các luồng thu nhập đặc thù Pháp từ template mẫu
+        if (Array.isArray(targetPlan.incomes)) {
+          targetPlan.incomes = targetPlan.incomes.filter(s => {
+            if (!s) return false;
+            const name = (s.name || "").toLowerCase();
+            return !name.includes("lmnp") && !name.includes("turo") && !name.includes("pháp");
+          });
+        }
+
+        const cur = targetPlan.currency || state.currency || 'EUR';
+        const isVnd = (cur === 'VND');
+        const defaultSalary = isVnd ? 360000000 : 14400; // ~30tr/tháng hoặc ~1.200€/tháng
+        const defaultMonthlyRetire = isVnd ? 15000000 : 600; // ~15tr/tháng hoặc ~600€/tháng
+
+        targetPlan.baseRetireMonthly = defaultMonthlyRetire;
+        targetPlan.retirementExpenses = defaultMonthlyRetire * 12;
+        targetPlan.annualExpenses = Math.round(defaultSalary * 0.65);
+        targetPlan.annualSavings = Math.round(defaultSalary * 0.35);
+        targetPlan.currentSavings = isVnd ? 100000000 : 5000;
+
+        let primarySalary = targetPlan.incomes.find(s => s && (s.isPrimarySalary || /lương/i.test(s.name || "")));
+        if (primarySalary) {
+          primarySalary.name = "Lương hiện tại của bạn";
+          primarySalary.amount = defaultSalary;
+          primarySalary.growth = 3.5;
+          primarySalary.isPrimarySalary = true;
+          primarySalary.isSalary = true;
+        } else {
+          targetPlan.incomes.unshift({
+            name: "Lương hiện tại của bạn",
+            amount: defaultSalary,
+            startAge: Number(targetPlan.currentAge) || 29,
+            endAge: Number(targetPlan.retirementAge) || 60,
+            growth: 3.5,
+            taxable: true,
+            isSalary: true,
+            isPrimarySalary: true
+          });
+        }
+      }
 
       // Khi Tạo Kế hoạch Hưu trí Mới:
       if (isMarried) {

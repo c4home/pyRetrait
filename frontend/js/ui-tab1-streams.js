@@ -294,9 +294,10 @@
           const baseMonthly = Number(rawVal);
           if (isNaN(baseMonthly) || baseMonthly < 0) return;
           p.baseRetireMonthly = baseMonthly;
+          const isDomestic = (p.retireMode === 'domestic' || (p.workCountry && p.retireCountry && p.workCountry === p.retireCountry));
           const loc = p.retirementLocation || 'vietnam';
           const pppFactors = { 'france': 1.0, 'hybrid': 0.70, 'vietnam': 0.45 };
-          const factor = pppFactors[loc] || 1.0;
+          const factor = isDomestic ? 1.0 : (pppFactors[loc] || 1.0);
           p.retirementExpenses = Math.round(baseMonthly * 12 * factor);
           updateRetirementLocationRadiosUI(p);
           updateExpenseSavingsHints(p);
@@ -316,8 +317,9 @@
         const selLocation = document.getElementById("sel-retirement-location");
         if (selLocation) selLocation.value = newLoc;
 
+        const isDomestic = (p.retireMode === 'domestic' || (p.workCountry && p.retireCountry && p.workCountry === p.retireCountry));
         const pppFactors = { 'france': 1.0, 'hybrid': 0.70, 'vietnam': 0.45 };
-        const factor = pppFactors[newLoc] || 1.0;
+        const factor = isDomestic ? 1.0 : (pppFactors[newLoc] || 1.0);
 
         const inp = document.getElementById("inp-monthly-retire-expenses");
         let baseMonthly = Number(p.baseRetireMonthly);
@@ -444,8 +446,9 @@
         const rad = document.querySelector(`input[name='rad-retire-location'][value='${newLoc}']`);
         if (rad) rad.checked = true;
 
+        const isDomestic = (plan.retireMode === 'domestic' || (plan.workCountry && plan.retireCountry && plan.workCountry === plan.retireCountry));
         const pppFactors = { 'france': 1.0, 'hybrid': 0.70, 'vietnam': 0.45 };
-        const factor = pppFactors[newLoc] || 1.0;
+        const factor = isDomestic ? 1.0 : (pppFactors[newLoc] || 1.0);
 
         const inpRetireMonthly = document.getElementById("inp-monthly-retire-expenses");
         let baseMonthly = Number(plan.baseRetireMonthly);
@@ -1648,19 +1651,81 @@
       locRadios.style.display = isDomestic ? "none" : "";
     }
 
-    const cardLmnp = document.getElementById("card-lmnp-income-stream");
-    if (cardLmnp) {
-      const isFranceWork = (!plan.workCountry || plan.workCountry === 'FR');
-      cardLmnp.style.display = isFranceWork ? "" : "none";
+    // 1. Nhóm Thẻ Đặc thù theo Nơi làm việc & Nơi nghỉ hưu:
+    // - Đi làm ở đâu thì hiện thẻ lương hưu của nơi đó.
+    // - Nếu nơi làm việc KHÁC nơi nghỉ hưu thì bật cả 2 thẻ lương hưu ở 2 nơi (mỗi thẻ thiết kế riêng cho mỗi nơi).
+    const workC = plan.workCountry || 'FR';
+    const retireC = plan.retireCountry || plan.workCountry || 'FR';
+    const hasFr = (workC === 'FR' || retireC === 'FR');
+    const cardFrench = document.getElementById("card-french-pension-stream");
+    if (cardFrench) {
+      cardFrench.style.display = hasFr ? "" : "none";
     }
 
+    const hasVn = (workC === 'VN' || retireC === 'VN');
     const cardBhxh = document.getElementById("card-bhxh-income-stream");
     if (cardBhxh) {
-      const hasVn = (plan.workCountry === 'VN' || plan.retireCountry === 'VN');
       cardBhxh.style.display = hasVn ? "" : "none";
     }
 
-    // Couple vs Single layout for French Pension and BHXH VN
+    const hasDe = (workC === 'DE' || retireC === 'DE');
+    const cardGerman = document.getElementById("card-german-pension-stream");
+    if (cardGerman) {
+      cardGerman.style.display = hasDe ? "" : "none";
+    }
+
+    const hasUs = (workC === 'US' || retireC === 'US');
+    const cardUs = document.getElementById("card-us-pension-stream");
+    if (cardUs) {
+      cardUs.style.display = hasUs ? "" : "none";
+    }
+
+    // Khối thông báo minh bạch khi quốc gia chưa có mô hình hưu trí tự động
+    const isSupportedCountry = ['FR', 'VN', 'DE', 'US'].includes(workC) || ['FR', 'VN', 'DE', 'US'].includes(retireC);
+    const calloutUnsupported = document.getElementById("callout-pension-unsupported");
+    if (calloutUnsupported) {
+      calloutUnsupported.style.display = !isSupportedCountry ? "block" : "none";
+      if (!isSupportedCountry) {
+        const countryProfile = (window.TaxOptimizer && window.TaxOptimizer.COUNTRY_PPP_PROFILES)
+          ? (window.TaxOptimizer.COUNTRY_PPP_PROFILES[plan.workCity || ''] || {})
+          : {};
+        const countryName = countryProfile.countryLabel || workC;
+        const descEl = document.getElementById("lbl-unsupported-pension-desc");
+        if (descEl) {
+          descEl.innerHTML = `pyRetrait hiện chưa có mô hình tính toán lương hưu tự động theo luật của <strong>${countryName}</strong>. Bạn có thể ước tính riêng và bổ sung trực tiếp khoản lương hưu này vào danh sách Luồng Thu Nhập tùy chỉnh bằng nút <strong>[+ Thêm Thu Nhập]</strong> bên dưới.`;
+        }
+      }
+    }
+
+    // 2. Nhóm Thẻ Chung Toàn Cầu — Luôn Luôn Hiển Thị Cho Mọi Quốc Gia:
+    // Con cái, Chi tiêu/tháng khi về hưu, Dự phòng chăm sóc tuổi già (78t+), Kế hoạch thừa kế, Danh mục đầu tư, Chiến lược rút tiền
+    const cardLmnp = document.getElementById("card-lmnp-income-stream");
+    if (cardLmnp) cardLmnp.style.display = "";
+
+    const cardAssetAlloc = document.getElementById("card-asset-allocation-stream");
+    if (cardAssetAlloc) cardAssetAlloc.style.display = "";
+
+    const cardWithdrawal = document.getElementById("card-withdrawal-strategy-controls");
+    if (cardWithdrawal) cardWithdrawal.style.display = "";
+
+    const cardRetireExpense = document.getElementById("card-retire-expense-stream");
+    if (cardRetireExpense) cardRetireExpense.style.display = "";
+
+    const cardChildren = document.getElementById("card-children-family-stream");
+    if (cardChildren) cardChildren.style.display = "";
+
+    const hintFamily = document.getElementById("hint-stream-family");
+    if (hintFamily) {
+      hintFamily.style.display = (workC === 'FR') ? "block" : "none";
+    }
+
+    const cardSeniorCare = document.getElementById("card-senior-care-stream");
+    if (cardSeniorCare) cardSeniorCare.style.display = "";
+
+    const cardEstateLegacy = document.getElementById("card-estate-legacy-combined");
+    if (cardEstateLegacy) cardEstateLegacy.style.display = "";
+
+    // Couple vs Single layout for all pension cards
     const isMarried = (plan.maritalStatus === 'married');
 
     // Hide / Show Spouse birth year in Baseline Parameters Card
@@ -1727,6 +1792,58 @@
     const lblBhxhBenefit = document.getElementById("lbl-bhxh-medical-benefit");
     if (lblBhxhBenefit) {
       lblBhxhBenefit.innerText = isMarried ? "2 Thẻ BHYT miễn phí 95% trọn đời" : "1 Thẻ BHYT miễn phí 95% trọn đời";
+    }
+
+    // German Pension card: show/hide spouse 2 & full-width single column
+    const germanInputsBody = document.getElementById("german-inputs-body");
+    if (germanInputsBody) {
+      const grid = germanInputsBody.querySelector(".spouse-pension-grid");
+      if (grid) {
+        if (isMarried) grid.classList.remove("is-single");
+        else grid.classList.add("is-single");
+      }
+      const cols = germanInputsBody.querySelectorAll(".spouse-col-card");
+      if (cols && cols.length >= 2) {
+        cols[1].style.display = isMarried ? "" : "none";
+      }
+    }
+    const badgeGerman = document.getElementById("badge-german-status");
+    if (badgeGerman) {
+      badgeGerman.innerText = isMarried ? "2 Người (GRV)" : "1 Người (GRV)";
+    }
+    const lblGermanTitle = document.getElementById("lbl-german-pension-total-title");
+    if (lblGermanTitle) {
+      lblGermanTitle.innerText = isMarried ? "Tổng lương hưu Đức cả hai người:" : "Tổng lương hưu Đức cá nhân:";
+    }
+
+    // US Pension card: show/hide spouse 2 & full-width single column
+    const usInputsBody = document.getElementById("us-inputs-body");
+    if (usInputsBody) {
+      const grid = usInputsBody.querySelector(".spouse-pension-grid");
+      if (grid) {
+        if (isMarried) grid.classList.remove("is-single");
+        else grid.classList.add("is-single");
+      }
+      const cols = usInputsBody.querySelectorAll(".spouse-col-card");
+      if (cols && cols.length >= 2) {
+        cols[1].style.display = isMarried ? "" : "none";
+      }
+    }
+    const badgeUs = document.getElementById("badge-us-status");
+    if (badgeUs) {
+      badgeUs.innerText = isMarried ? "2 Người (FRA 67t)" : "1 Người (FRA 67t)";
+    }
+    const lblUsTitle = document.getElementById("lbl-us-pension-total-title");
+    if (lblUsTitle) {
+      lblUsTitle.innerText = isMarried ? "Tổng lương hưu Mỹ cả hai người:" : "Tổng lương hưu Mỹ cá nhân:";
+    }
+
+    // Cập nhật giá trị hiển thị cho các thẻ đang bật
+    if (hasDe && window.Tab3TaxesUI && typeof window.Tab3TaxesUI.updateGermanPensionUI === 'function') {
+      window.Tab3TaxesUI.updateGermanPensionUI(plan);
+    }
+    if (hasUs && window.Tab3TaxesUI && typeof window.Tab3TaxesUI.updateUsPensionUI === 'function') {
+      window.Tab3TaxesUI.updateUsPensionUI(plan);
     }
 
     // Callout & Breakdown 7 items calculation
@@ -1884,9 +2001,8 @@
         <div class="formula-inline-box formula-info" style="grid-column: 1 / -1; margin-top: 0.35rem; font-size: 0.68rem; padding: 0.35rem 0.55rem; border-radius: 4px;">
           <div class="formula-tag" style="font-size: 0.65rem; margin-bottom: 0.15rem;">Nguồn dữ liệu &amp; Công thức đối chiếu</div>
           <div style="display: flex; flex-direction: column; gap: 0.12rem; line-height: 1.35;">
-            <code>• Chi tiêu hưu trí = (Thu nhập - Tiết kiệm - Nợ nhà) × PPP (${targetCityProfile.cityNameVi}: ${pppFactorDisplay}x) + Y tế (${calc.seniorHealthAddon} €)</code>
-            <code>• Mốc tham chiếu: Cơ bản ${fmt(calc.referenceBenchmarks?.lean || 0)} • Thoải mái ${fmt(calc.referenceBenchmarks?.standard || 0)} • Thịnh vượng ${fmt(calc.referenceBenchmarks?.fat || 0)}</code>
-            <code>• Công thức 3 mốc = Mức sống chuẩn tại Pháp × ${isMarried ? '1.6 (hộ 2 người)' : '1.0 (cá nhân 1 người)'} × ${pppFactorDisplay} (${targetCityProfile.cityNameVi})</code>
+            <code>• Chi tiêu hưu trí = (Thu nhập - Tiết kiệm - Nợ nhà) × PPP (${targetCityDisplayName}: ${pppFactorDisplay}x) + Y tế (${calc.seniorHealthAddon} ${cur === 'EUR' ? '€' : cur})</code>
+            <code>• Công thức 3 mốc = Mức sống tham chiếu ${isDomestic ? targetCityDisplayName : 'quy đổi PPP (' + targetCityDisplayName + ')'} × ${isMarried ? '1.6 (hộ 2 người)' : '1.0 (cá nhân 1 người)'} × ${pppFactorDisplay}</code>
             <code>• Nguồn dữ liệu: Khảo sát mức sống hộ gia đình OECD, INSEE, World Bank PPP &amp; Numbeo 2024</code>
           </div>
         </div>
@@ -1899,9 +2015,40 @@
     if (!plan) return;
     applyProfileVisibilityRules(plan);
     const inpRetireMonthly = document.getElementById("inp-monthly-retire-expenses");
+    const isDomestic = (plan.retireMode === 'domestic' || (plan.workCountry && plan.retireCountry && plan.workCountry === plan.retireCountry));
+
+    const pppProfiles = (window.TaxOptimizer && window.TaxOptimizer.COUNTRY_PPP_PROFILES) ? window.TaxOptimizer.COUNTRY_PPP_PROFILES : {};
+    const workKey = plan.workCity || 'fr_paris';
+    const retireKey = plan.retireCity || (isDomestic ? workKey : 'vn_hcm_hn');
+    const workProfile = pppProfiles[workKey] || { label: 'Nơi làm việc', countryLabel: 'Pháp', flag: '🇫🇷', ppp: 1.0 };
+    const retireProfile = pppProfiles[retireKey] || { label: 'Nơi nghỉ hưu', countryLabel: 'Việt Nam', flag: '🇻🇳', ppp: 0.45 };
+    const targetCityDisplayName = `${retireProfile.flag ? retireProfile.flag + ' ' : ''}${retireProfile.label || retireProfile.countryLabel || 'Điểm đến'}`;
+
+    const cur = state.currency || 'EUR';
+    const curSymbol = cur === 'EUR' ? '€' : (cur === 'USD' ? '$' : '₫');
+    const fmt = (v) => window.RetirementEngine.formatCurrency(v, cur);
+
+    // Cập nhật nhãn và phụ đề ô nhập chi phí hưu trí cơ sở
+    const lblTitle = document.getElementById("lbl-retire-base-title");
+    const lblSub = document.getElementById("lbl-retire-base-subtitle");
+    if (lblTitle) {
+      if (isDomestic) {
+        lblTitle.innerHTML = `Mức chi tiêu khi về hưu (<span id="unit-retire-expenses">${curSymbol}</span>/tháng)`;
+      } else {
+        lblTitle.innerHTML = `Mức chi cơ sở chuẩn ${workProfile.countryLabel || 'nơi làm việc'} (<span id="unit-retire-expenses">${curSymbol}</span>/tháng)`;
+      }
+    }
+    if (lblSub) {
+      if (isDomestic) {
+        lblSub.innerText = `Chi tiêu thực tế tại ${retireProfile.label || retireProfile.countryLabel}`;
+      } else {
+        lblSub.innerText = `Chuẩn nơi chi phí cao nhất`;
+      }
+    }
+
     const loc = plan.retirementLocation || 'vietnam';
     const pppFactors = { 'france': 1.0, 'hybrid': 0.70, 'vietnam': 0.45 };
-    const curFactor = pppFactors[loc] || 1.0;
+    const curFactor = isDomestic ? 1.0 : (pppFactors[loc] || 1.0);
 
     let baseMonthly = Number(plan.baseRetireMonthly);
     if (!baseMonthly || isNaN(baseMonthly) || baseMonthly <= 0) {
@@ -1909,7 +2056,7 @@
       if (ann > 0) {
         baseMonthly = Math.round((ann / curFactor) / 12);
       } else {
-        baseMonthly = 1000;
+        baseMonthly = isDomestic && (plan.workCountry === 'VN' || plan.retireCountry === 'VN') ? (cur === 'VND' ? 15000000 : 600) : 1000;
       }
       plan.baseRetireMonthly = baseMonthly;
     }
@@ -1917,41 +2064,47 @@
       inpRetireMonthly.value = baseMonthly;
     }
 
-    const cur = state.currency || 'EUR';
-    const fmt = (v) => window.RetirementEngine.formatCurrency(v, cur);
+    let activeMonthly, activeAnnual, activeDesc;
 
-    const monthlyFrance = Math.round(baseMonthly * 1.0);
-    const annualFrance = Math.round(baseMonthly * 12 * 1.0);
+    if (isDomestic) {
+      activeMonthly = baseMonthly;
+      activeAnnual = baseMonthly * 12;
+      activeDesc = `chi tiêu tại ${retireProfile.label || retireProfile.countryLabel}`;
+      plan.retirementExpenses = activeAnnual;
+    } else {
+      const monthlyFrance = Math.round(baseMonthly * 1.0);
+      const annualFrance = Math.round(baseMonthly * 12 * 1.0);
 
-    const monthlyVietnam = Math.round(baseMonthly * 0.45);
-    const annualVietnam = Math.round(baseMonthly * 12 * 0.45);
+      const monthlyVietnam = Math.round(baseMonthly * 0.45);
+      const annualVietnam = Math.round(baseMonthly * 12 * 0.45);
 
-    const monthlyHybrid = Math.round(baseMonthly * 0.70);
-    const annualHybrid = Math.round(baseMonthly * 12 * 0.70);
+      const monthlyHybrid = Math.round(baseMonthly * 0.70);
+      const annualHybrid = Math.round(baseMonthly * 12 * 0.70);
 
-    const lblFrance = document.getElementById("label-loc-france");
-    const lblVietnam = document.getElementById("label-loc-vietnam");
-    const lblHybrid = document.getElementById("label-loc-hybrid");
+      const lblFrance = document.getElementById("label-loc-france");
+      const lblVietnam = document.getElementById("label-loc-vietnam");
+      const lblHybrid = document.getElementById("label-loc-hybrid");
 
-    if (lblFrance) lblFrance.innerText = `≈ ${fmt(monthlyFrance)}/tháng ≈ ${fmt(annualFrance)}/năm`;
-    if (lblVietnam) lblVietnam.innerText = `≈ ${fmt(monthlyVietnam)}/tháng ≈ ${fmt(annualVietnam)}/năm`;
-    if (lblHybrid) lblHybrid.innerText = `≈ ${fmt(monthlyHybrid)}/tháng ≈ ${fmt(annualHybrid)}/năm`;
+      if (lblFrance) lblFrance.innerText = `≈ ${fmt(monthlyFrance)}/tháng ≈ ${fmt(annualFrance)}/năm`;
+      if (lblVietnam) lblVietnam.innerText = `≈ ${fmt(monthlyVietnam)}/tháng ≈ ${fmt(annualVietnam)}/năm`;
+      if (lblHybrid) lblHybrid.innerText = `≈ ${fmt(monthlyHybrid)}/tháng ≈ ${fmt(annualHybrid)}/năm`;
 
-    document.querySelectorAll(".location-radio-item").forEach(item => {
-      const radio = item.querySelector("input[type='radio']");
-      if (radio && radio.value === loc) {
-        radio.checked = true;
-        item.classList.add("active");
-      } else {
-        item.classList.remove("active");
-      }
-    });
+      document.querySelectorAll(".location-radio-item").forEach(item => {
+        const radio = item.querySelector("input[type='radio']");
+        if (radio && radio.value === loc) {
+          radio.checked = true;
+          item.classList.add("active");
+        } else {
+          item.classList.remove("active");
+        }
+      });
 
-    let activeMonthly = monthlyVietnam;
-    let activeAnnual = annualVietnam;
-    let activeDesc = "chi tiêu tại Việt Nam";
-    if (loc === 'france') { activeMonthly = monthlyFrance; activeAnnual = annualFrance; activeDesc = "chi tiêu tại Pháp"; }
-    else if (loc === 'hybrid') { activeMonthly = monthlyHybrid; activeAnnual = annualHybrid; activeDesc = "Song hành Pháp - Việt"; }
+      activeMonthly = monthlyVietnam;
+      activeAnnual = annualVietnam;
+      activeDesc = "chi tiêu tại Việt Nam";
+      if (loc === 'france') { activeMonthly = monthlyFrance; activeAnnual = annualFrance; activeDesc = "chi tiêu tại Pháp"; }
+      else if (loc === 'hybrid') { activeMonthly = monthlyHybrid; activeAnnual = annualHybrid; activeDesc = "Song hành Pháp - Việt"; }
+    }
 
     const cardMonthly = document.getElementById("lbl-retire-card-monthly");
     const cardAge = document.getElementById("lbl-retire-card-age-range");

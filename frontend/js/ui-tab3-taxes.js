@@ -320,6 +320,204 @@
       });
     }
 
+    // German Pension Card Events
+    const chkGerman = document.getElementById("chk-enable-german-pension");
+    if (chkGerman) {
+      chkGerman.addEventListener("change", () => {
+        const plan = getActivePlan();
+        plan.enableGermanPension = chkGerman.checked;
+        savePlansToStorage();
+        updateGermanPensionUI(plan);
+        if (typeof renderIncomeStreamsList === 'function') renderIncomeStreamsList();
+        if (typeof updateCashflowBalanceUI === 'function') updateCashflowBalanceUI(plan);
+        updateAll();
+      });
+    }
+
+    const btnEditGerman = document.getElementById("btn-edit-german-pension");
+    if (btnEditGerman) {
+      btnEditGerman.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const body = document.getElementById("german-inputs-body");
+        if (body) {
+          if (body.style.display === "none") {
+            body.style.display = "block";
+            btnEditGerman.innerText = "Sửa";
+          } else {
+            body.style.display = "none";
+            btnEditGerman.innerText = "Mở rộng";
+          }
+        }
+      });
+    }
+
+    const btnDelGerman = document.getElementById("btn-del-german-pension");
+    if (btnDelGerman) {
+      btnDelGerman.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const plan = getActivePlan();
+        if (plan.enableGermanPension !== false) {
+          showConfirmDialog({
+            icon: "",
+            title: "Xác nhận xóa Lương hưu Đức",
+            message: `Bạn có chắc chắn muốn tắt <strong>Lương hưu An sinh Đức (GRV)</strong>?<br><span style="font-size:0.75rem; color:var(--text-faint); margin-top:6px; display:inline-block;">Các luồng lương hưu Đức sẽ bị tạm tắt và các chỉ số FIRE được tính toán lại.</span>`,
+            confirmText: "Xóa nguồn thu",
+            onConfirm: () => {
+              plan.enableGermanPension = false;
+              const chk = document.getElementById("chk-enable-german-pension");
+              if (chk) chk.checked = false;
+              savePlansToStorage();
+              updateGermanPensionUI(plan);
+              if (typeof renderIncomeStreamsList === 'function') renderIncomeStreamsList();
+              if (typeof updateCashflowBalanceUI === 'function') updateCashflowBalanceUI(plan);
+              updateAll();
+            }
+          });
+        } else {
+          plan.enableGermanPension = true;
+          const chk = document.getElementById("chk-enable-german-pension");
+          if (chk) chk.checked = true;
+          savePlansToStorage();
+          updateGermanPensionUI(plan);
+          if (typeof renderIncomeStreamsList === 'function') renderIncomeStreamsList();
+          if (typeof updateCashflowBalanceUI === 'function') updateCashflowBalanceUI(plan);
+          updateAll();
+        }
+      });
+    }
+
+    ['inp-german-spouse1-years', 'inp-german-spouse1-claim-age', 'inp-german-spouse1-salary',
+     'inp-german-spouse2-years', 'inp-german-spouse2-claim-age', 'inp-german-spouse2-salary'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        ['input', 'change'].forEach(evt => {
+          el.addEventListener(evt, () => {
+            const plan = getActivePlan();
+            if (!plan.germanPensionDetails) {
+              plan.germanPensionDetails = { spouse1: {}, spouse2: {} };
+            }
+            if (!plan.germanPensionDetails.spouse1) plan.germanPensionDetails.spouse1 = {};
+            if (!plan.germanPensionDetails.spouse2) plan.germanPensionDetails.spouse2 = {};
+
+            plan.germanPensionDetails.spouse1.yearsContributed = Number(document.getElementById("inp-german-spouse1-years")?.value) || 35;
+            plan.germanPensionDetails.spouse1.claimAge = Number(document.getElementById("inp-german-spouse1-claim-age")?.value) || 67;
+            plan.germanPensionDetails.spouse1.grossAnnualSalary = Number(document.getElementById("inp-german-spouse1-salary")?.value) || 45000;
+
+            plan.germanPensionDetails.spouse2.yearsContributed = Number(document.getElementById("inp-german-spouse2-years")?.value) || 35;
+            plan.germanPensionDetails.spouse2.claimAge = Number(document.getElementById("inp-german-spouse2-claim-age")?.value) || 67;
+            plan.germanPensionDetails.spouse2.grossAnnualSalary = Number(document.getElementById("inp-german-spouse2-salary")?.value) || 38000;
+
+            savePlansToStorage();
+            updateGermanPensionUI(plan);
+            if (typeof renderIncomeStreamsList === 'function') renderIncomeStreamsList();
+            if (typeof updateCashflowBalanceUI === 'function') updateCashflowBalanceUI(plan);
+            updateAll();
+          });
+        });
+      }
+    });
+
+    // US Social Security Card Events
+    const chkUs = document.getElementById("chk-enable-us-pension");
+    if (chkUs) {
+      chkUs.addEventListener("change", () => {
+        const plan = getActivePlan();
+        plan.enableUsPension = chkUs.checked;
+        savePlansToStorage();
+        updateUsPensionUI(plan);
+        if (typeof renderIncomeStreamsList === 'function') renderIncomeStreamsList();
+        if (typeof updateCashflowBalanceUI === 'function') updateCashflowBalanceUI(plan);
+        updateAll();
+      });
+    }
+
+    const btnEditUs = document.getElementById("btn-edit-us-pension");
+    if (btnEditUs) {
+      btnEditUs.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const body = document.getElementById("us-inputs-body");
+        if (body) {
+          if (body.style.display === "none") {
+            body.style.display = "block";
+            btnEditUs.innerText = "Sửa";
+          } else {
+            body.style.display = "none";
+            btnEditUs.innerText = "Mở rộng";
+          }
+        }
+      });
+    }
+
+    const btnDelUs = document.getElementById("btn-del-us-pension");
+    if (btnDelUs) {
+      btnDelUs.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const plan = getActivePlan();
+        if (plan.enableUsPension !== false) {
+          showConfirmDialog({
+            icon: "",
+            title: "Xác nhận xóa Lương hưu Mỹ",
+            message: `Bạn có chắc chắn muốn tắt <strong>Lương hưu An sinh Mỹ (Social Security)</strong>?<br><span style="font-size:0.75rem; color:var(--text-faint); margin-top:6px; display:inline-block;">Các luồng lương hưu Mỹ sẽ bị tạm tắt và các chỉ số FIRE được tính toán lại.</span>`,
+            confirmText: "Xóa nguồn thu",
+            onConfirm: () => {
+              plan.enableUsPension = false;
+              const chk = document.getElementById("chk-enable-us-pension");
+              if (chk) chk.checked = false;
+              savePlansToStorage();
+              updateUsPensionUI(plan);
+              if (typeof renderIncomeStreamsList === 'function') renderIncomeStreamsList();
+              if (typeof updateCashflowBalanceUI === 'function') updateCashflowBalanceUI(plan);
+              updateAll();
+            }
+          });
+        } else {
+          plan.enableUsPension = true;
+          const chk = document.getElementById("chk-enable-us-pension");
+          if (chk) chk.checked = true;
+          savePlansToStorage();
+          updateUsPensionUI(plan);
+          if (typeof renderIncomeStreamsList === 'function') renderIncomeStreamsList();
+          if (typeof updateCashflowBalanceUI === 'function') updateCashflowBalanceUI(plan);
+          updateAll();
+        }
+      });
+    }
+
+    ['inp-us-spouse1-years', 'inp-us-spouse1-claim-age', 'inp-us-spouse1-salary',
+     'inp-us-spouse2-years', 'inp-us-spouse2-claim-age', 'inp-us-spouse2-salary'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        ['input', 'change'].forEach(evt => {
+          el.addEventListener(evt, () => {
+            const plan = getActivePlan();
+            if (!plan.usPensionDetails) {
+              plan.usPensionDetails = { spouse1: {}, spouse2: {} };
+            }
+            if (!plan.usPensionDetails.spouse1) plan.usPensionDetails.spouse1 = {};
+            if (!plan.usPensionDetails.spouse2) plan.usPensionDetails.spouse2 = {};
+
+            plan.usPensionDetails.spouse1.yearsWorked = Number(document.getElementById("inp-us-spouse1-years")?.value) || 35;
+            plan.usPensionDetails.spouse1.claimAge = Number(document.getElementById("inp-us-spouse1-claim-age")?.value) || 67;
+            plan.usPensionDetails.spouse1.grossAnnualSalary = Number(document.getElementById("inp-us-spouse1-salary")?.value) || 65000;
+
+            plan.usPensionDetails.spouse2.yearsWorked = Number(document.getElementById("inp-us-spouse2-years")?.value) || 35;
+            plan.usPensionDetails.spouse2.claimAge = Number(document.getElementById("inp-us-spouse2-claim-age")?.value) || 67;
+            plan.usPensionDetails.spouse2.grossAnnualSalary = Number(document.getElementById("inp-us-spouse2-salary")?.value) || 55000;
+
+            savePlansToStorage();
+            updateUsPensionUI(plan);
+            if (typeof renderIncomeStreamsList === 'function') renderIncomeStreamsList();
+            if (typeof updateCashflowBalanceUI === 'function') updateCashflowBalanceUI(plan);
+            updateAll();
+          });
+        });
+      }
+    });
+
     // LMNP Stream Card Events
     const btnEditLmnp = document.getElementById("btn-edit-lmnp-stream");
     if (btnEditLmnp) {
@@ -472,15 +670,23 @@
 
   function updateTaxRegimeUI(regime) {
     const plan = getActivePlan();
-    // Masterclass and Waterfall cards are always visible
+    const workC = plan?.workCountry || 'FR';
+    const isFrance = (workC === 'FR');
+
     const frAccountsCard = document.getElementById("card-french-accounts");
     const peaCard = document.getElementById("card-pea-masterclass");
     const avCard = document.getElementById("card-assurance-vie-masterclass");
     const livretCard = document.getElementById("card-livret-masterclass");
-    if (frAccountsCard) frAccountsCard.style.display = "block";
-    if (peaCard) peaCard.style.display = "block";
-    if (avCard) avCard.style.display = "block";
-    if (livretCard) livretCard.style.display = "block";
+    const globalAccountsCard = document.getElementById("card-global-accounts-guide");
+
+    if (frAccountsCard) frAccountsCard.style.display = isFrance ? "block" : "none";
+    if (peaCard) peaCard.style.display = isFrance ? "block" : "none";
+    if (avCard) avCard.style.display = isFrance ? "block" : "none";
+    if (livretCard) livretCard.style.display = isFrance ? "block" : "none";
+    if (globalAccountsCard) {
+      globalAccountsCard.style.display = isFrance ? "none" : "block";
+      renderGlobalAccountsContent(plan, workC);
+    }
 
     // Visual display of family taxParts (Quotient Familial)
     const isSingle = (plan?.maritalStatus !== 'married');
@@ -492,6 +698,97 @@
     const elTaxParts = document.getElementById("badge-tax-parts-display");
     if (elTaxParts) {
       elTaxParts.innerText = `${taxParts} suất (${isSingle ? 'Độc thân' : 'Vợ chồng'}${kidsCount > 0 ? ` + ${kidsCount} con` : ''})`;
+    }
+  }
+
+  function renderGlobalAccountsContent(plan, countryCode) {
+    const grid = document.getElementById("global-accounts-grid");
+    const titleEl = document.getElementById("lbl-global-accounts-title");
+    const descEl = document.getElementById("lbl-global-accounts-desc");
+    const badgeEl = document.getElementById("badge-global-tax-highlight");
+    if (!grid) return;
+
+    if (countryCode === 'US') {
+      if (titleEl) titleEl.innerText = "Cẩm Nang Chiến Lược Tài Khoản Đầu Tư Mỹ (401k, Roth IRA, HSA & Brokerage)";
+      if (descEl) descEl.innerText = "Tận dụng tối đa thứ tự ưu tiên dòng tiền: Đóng match 401(k) -> Max HSA -> Max Roth IRA -> Taxable Brokerage.";
+      if (badgeEl) badgeEl.innerText = "IRS Code 2024";
+      grid.innerHTML = `
+        <div class="advisor-card">
+          <span class="advisor-card-tag tag-critical">Ưu tiên 1 • Nhận tiền miễn phí</span>
+          <h4 class="advisor-card-title">401(k) Employer Match — 100% Lợi Nhuận Tức Thì</h4>
+          <p class="advisor-card-text">
+            Đóng đủ mức lương để nhận trọn vẹn tiền đóng đối ứng của công ty (Match). Đây là khoản sinh lời 50% - 100% ngay tại nguồn mà không có bất kỳ kênh đầu tư nào vượt qua được.
+          </p>
+        </div>
+        <div class="advisor-card">
+          <span class="advisor-card-tag tag-opportunity">Ưu tiên 2 • Miễn thuế 3 lần</span>
+          <h4 class="advisor-card-title">HSA (Health Savings Account) — Triple Tax Advantage</h4>
+          <p class="advisor-card-text">
+            Miễn thuế thu nhập khi nạp tiền, miễn thuế khi tiền sinh lời và miễn thuế 100% khi rút chi trả y tế. Sau tuổi 65, HSA hoạt động tương tự như một tài khoản Traditional IRA.
+          </p>
+        </div>
+        <div class="advisor-card">
+          <span class="advisor-card-tag tag-growth">Ưu tiên 3 • Tự do tài chính</span>
+          <h4 class="advisor-card-title">Roth IRA ($7.000/năm) — Tăng Trưởng & Rút 0% Thuế</h4>
+          <p class="advisor-card-text">
+            Đóng tiền sau thuế, toàn bộ cổ tức và lãi vốn tăng trưởng hàng chục năm được miễn thuế vĩnh viễn khi rút sau tuổi 59½. Phần vốn gốc (contributions) có thể rút bất kỳ lúc nào không bị phạt.
+          </p>
+        </div>
+      `;
+    } else if (countryCode === 'DE') {
+      if (titleEl) titleEl.innerText = "Chiến Lược Đầu Tư & Tối Ưu Thuế Tại Đức (Depot & Sparer-Pauschbetrag)";
+      if (descEl) descEl.innerText = "Tối ưu hóa 1.000 € (độc thân) hoặc 2.000 € (vợ chồng) miễn thuế lãi vốn hàng năm và chọn quỹ UCITS ETF phù hợp.";
+      if (badgeEl) badgeEl.innerText = "Abgeltungsteuer 25%";
+      grid.innerHTML = `
+        <div class="advisor-card">
+          <span class="advisor-card-tag tag-critical">Mẹo 01 • Miễn thuế vốn</span>
+          <h4 class="advisor-card-title">Freistellungsauftrag — Tận Dụng Sparer-Pauschbetrag</h4>
+          <p class="advisor-card-text">
+            Nộp đơn Freistellungsauftrag cho ngân hàng/broker (Trade Republic, Scalable, ING) để kích hoạt hạn mức miễn thuế lãi vốn 1.000 €/năm (hoặc 2.000 € đối với vợ chồng).
+          </p>
+        </div>
+        <div class="advisor-card">
+          <span class="advisor-card-tag tag-opportunity">Mẹo 02 • Danh mục ETF</span>
+          <h4 class="advisor-card-title">Thesaurierend (Accumulating) ETF & Vorabpauschale</h4>
+          <p class="advisor-card-text">
+            Sử dụng các quỹ ETF tích lũy (ví dụ VWCE, FWRA) để tự động tái đầu tư cổ tức. Nắm vững cơ chế thuế trả trước Vorabpauschale hàng năm theo lãi suất cơ bản của Bundesbank.
+          </p>
+        </div>
+        <div class="advisor-card">
+          <span class="advisor-card-tag tag-growth">Mẹo 03 • Khấu trừ thuế</span>
+          <h4 class="advisor-card-title">Verlustverrechnungstopf — Bù Trừ Lỗ Lãi Khoa Học</h4>
+          <p class="advisor-card-text">
+            Khoản lỗ từ cổ phiếu được tự động lưu trong 'nồi bù trừ lỗ' (Verlusttopf) để cấn trừ vào các khoản lãi trong tương lai vô thời hạn mà không bị mất đi qua các năm tài chính.
+          </p>
+        </div>
+      `;
+    } else {
+      if (titleEl) titleEl.innerText = "Cẩm Nang Tài Khoản Đầu Tư Quốc Tế Cho Người Định Cư & Nghỉ Hưu Toàn Cầu";
+      if (descEl) descEl.innerText = "Sử dụng sàn giao dịch quốc tế uy tín, đầu tư ETF Ireland (UCITS) để tránh thuế thừa kế Mỹ và tối ưu dòng tiền rút.";
+      if (badgeEl) badgeEl.innerText = "Quốc Tế 0% Withholding";
+      grid.innerHTML = `
+        <div class="advisor-card">
+          <span class="advisor-card-tag tag-critical">Chiến lược 01 • Tránh thuế Mỹ</span>
+          <h4 class="advisor-card-title">Đầu Tư ETF Domiciled Tại Ireland (IE / UCITS)</h4>
+          <p class="advisor-card-text">
+            Người không mang quốc tịch Mỹ (Non-US Resident) khi mua ETF tại Ireland (mã bắt đầu bằng IE) chỉ chịu 15% thuế cổ tức nội bộ nhờ hiệp định song phương, và hoàn toàn tránh được thuế di sản Mỹ lên đến 40%.
+          </p>
+        </div>
+        <div class="advisor-card">
+          <span class="advisor-card-tag tag-opportunity">Chiến lược 02 • Tái đầu tư</span>
+          <h4 class="advisor-card-title">Ưu Tiên Quỹ Tích Lũy Cổ Tức (Accumulating ETF)</h4>
+          <p class="advisor-card-text">
+            Cổ tức được tự động gom vào giá chứng chỉ quỹ, không sinh ra dòng tiền mặt cổ tức chịu thuế thu nhập hàng năm tại nước cư trú, giúp tối đa hóa hiệu ứng lãi kép dài hạn.
+          </p>
+        </div>
+        <div class="advisor-card">
+          <span class="advisor-card-tag tag-growth">Chiến lược 03 • Thanh khoản</span>
+          <h4 class="advisor-card-title">Broker Đa Tiền Tệ & Phân Bổ An Toàn (IBKR)</h4>
+          <p class="advisor-card-text">
+            Duy trì tài khoản tại các sàn uy tín toàn cầu (Interactive Brokers, Saxo Bank) hỗ trợ đa tiền tệ (EUR, USD, SGD) giúp bạn dễ dàng chuyển đổi chi tiêu bất kể nghỉ hưu ở đâu.
+          </p>
+        </div>
+      `;
     }
   }
 
@@ -842,6 +1139,186 @@
     }
     if (cardContainer) {
       cardContainer.style.opacity = isEnabled ? "1" : "0.75";
+    }
+  }
+
+  function updateGermanPensionUI(p) {
+    if (!p) p = getActivePlan();
+    const isEnabled = p.enableGermanPension !== false;
+    const chk = document.getElementById("chk-enable-german-pension");
+    if (chk) chk.checked = isEnabled;
+
+    if (!p.germanPensionDetails) {
+      p.germanPensionDetails = {
+        spouse1: { grossAnnualSalary: 45000, yearsContributed: 35, claimAge: 67 },
+        spouse2: { grossAnnualSalary: 38000, yearsContributed: 35, claimAge: 67 }
+      };
+    }
+    const s1 = p.germanPensionDetails.spouse1 || {};
+    const s2 = p.germanPensionDetails.spouse2 || {};
+    const isMarried = (p.maritalStatus === 'married');
+
+    const s1Years = Number(s1.yearsContributed) || 35;
+    const s1Age = Number(s1.claimAge) || 67;
+    const s1Salary = Number(s1.grossAnnualSalary) || 45000;
+
+    const s2Years = Number(s2.yearsContributed) || 35;
+    const s2Age = Number(s2.claimAge) || 67;
+    const s2Salary = Number(s2.grossAnnualSalary) || 38000;
+
+    // Sync inputs
+    const inpS1Years = document.getElementById("inp-german-spouse1-years");
+    const inpS1Age = document.getElementById("inp-german-spouse1-claim-age");
+    const inpS1Sal = document.getElementById("inp-german-spouse1-salary");
+    const inpS2Years = document.getElementById("inp-german-spouse2-years");
+    const inpS2Age = document.getElementById("inp-german-spouse2-claim-age");
+    const inpS2Sal = document.getElementById("inp-german-spouse2-salary");
+
+    if (inpS1Years && Number(inpS1Years.value) !== s1Years) inpS1Years.value = s1Years;
+    if (inpS1Age && Number(inpS1Age.value) !== s1Age) inpS1Age.value = s1Age;
+    if (inpS1Sal && Number(inpS1Sal.value) !== s1Salary) inpS1Sal.value = s1Salary;
+    if (inpS2Years && Number(inpS2Years.value) !== s2Years) inpS2Years.value = s2Years;
+    if (inpS2Age && Number(inpS2Age.value) !== s2Age) inpS2Age.value = s2Age;
+    if (inpS2Sal && Number(inpS2Sal.value) !== s2Salary) inpS2Sal.value = s2Salary;
+
+    let res1 = { totalRP: 34.6, monthlyPension: 1361, totalAnnualPension: 16332, adjustmentPercent: 0 };
+    let res2 = { totalRP: 29.3, monthlyPension: 1149, totalAnnualPension: 13788, adjustmentPercent: 0 };
+
+    if (window.TaxOptimizer && window.TaxOptimizer.calculateGermanPension) {
+      res1 = window.TaxOptimizer.calculateGermanPension(s1Salary, s1Years, s1Age);
+      res2 = window.TaxOptimizer.calculateGermanPension(s2Salary, s2Years, s2Age);
+    }
+
+    const b1Badge = document.getElementById("lbl-german-spouse1-badge");
+    const b2Badge = document.getElementById("lbl-german-spouse2-badge");
+    const b1Adj = document.getElementById("lbl-german-spouse1-adj");
+    const b2Adj = document.getElementById("lbl-german-spouse2-adj");
+    const b1Pen = document.getElementById("lbl-german-spouse1-pension");
+    const b2Pen = document.getElementById("lbl-german-spouse2-pension");
+
+    if (b1Badge) b1Badge.innerText = `${s1Years} năm • ${res1.totalRP} RP`;
+    if (b2Badge) b2Badge.innerText = `${s2Years} năm • ${res2.totalRP} RP`;
+    if (b1Adj) b1Adj.innerText = res1.adjustmentPercent === 0 ? "Chuẩn 67t: 0%" : (res1.adjustmentPercent > 0 ? `+${res1.adjustmentPercent}%` : `${res1.adjustmentPercent}%`);
+    if (b2Adj) b2Adj.innerText = res2.adjustmentPercent === 0 ? "Chuẩn 67t: 0%" : (res2.adjustmentPercent > 0 ? `+${res2.adjustmentPercent}%` : `${res2.adjustmentPercent}%`);
+    if (b1Pen) b1Pen.innerText = `~${window.RetirementEngine.formatCurrency(res1.monthlyPension, 'EUR')}/tháng (~${window.RetirementEngine.formatCurrency(res1.totalAnnualPension, 'EUR')}/n)`;
+    if (b2Pen) b2Pen.innerText = `~${window.RetirementEngine.formatCurrency(res2.monthlyPension, 'EUR')}/tháng (~${window.RetirementEngine.formatCurrency(res2.totalAnnualPension, 'EUR')}/n)`;
+
+    const totalMonthly = res1.monthlyPension + (isMarried ? res2.monthlyPension : 0);
+    const totalAnnual = res1.totalAnnualPension + (isMarried ? res2.totalAnnualPension : 0);
+
+    const lblMonthly = document.getElementById("lbl-german-card-monthly");
+    const lblAnnual = document.getElementById("lbl-german-card-annual");
+    const lblTotal = document.getElementById("lbl-german-pension-effective");
+    const badgeStatus = document.getElementById("badge-german-status");
+    const btnDel = document.getElementById("btn-del-german-pension");
+    const cardAgeRange = document.getElementById("lbl-german-card-age-range");
+
+    if (badgeStatus) badgeStatus.innerText = isMarried ? "2 Người (GRV)" : "1 Người (GRV)";
+    if (btnDel) {
+      btnDel.innerText = isEnabled ? "Xóa" : "Kích hoạt";
+      btnDel.className = isEnabled ? "income-item-btn income-item-del" : "income-item-btn";
+    }
+    if (lblMonthly) {
+      lblMonthly.innerHTML = isEnabled ? `${window.RetirementEngine.formatCurrency(totalMonthly, 'EUR')}<small>/tháng</small>` : `<span style="color: var(--text-faint);">0<small>/tháng</small></span>`;
+    }
+    if (lblAnnual) {
+      lblAnnual.innerText = isEnabled ? `≈ ${window.RetirementEngine.formatCurrency(totalAnnual, 'EUR')}/năm` : "Lương hưu Đức đang tạm tắt";
+    }
+    if (lblTotal) {
+      lblTotal.innerText = `~${window.RetirementEngine.formatCurrency(totalMonthly, 'EUR')}/tháng (~${window.RetirementEngine.formatCurrency(totalAnnual, 'EUR')}/năm)`;
+    }
+    if (cardAgeRange) {
+      cardAgeRange.innerText = `${s1Age} - ${Number(p.lifeExpectancy) || 85} tuổi`;
+    }
+  }
+
+  function updateUsPensionUI(p) {
+    if (!p) p = getActivePlan();
+    const isEnabled = p.enableUsPension !== false;
+    const chk = document.getElementById("chk-enable-us-pension");
+    if (chk) chk.checked = isEnabled;
+
+    if (!p.usPensionDetails) {
+      p.usPensionDetails = {
+        spouse1: { grossAnnualSalary: 65000, yearsWorked: 35, claimAge: 67 },
+        spouse2: { grossAnnualSalary: 55000, yearsWorked: 35, claimAge: 67 }
+      };
+    }
+    const s1 = p.usPensionDetails.spouse1 || {};
+    const s2 = p.usPensionDetails.spouse2 || {};
+    const isMarried = (p.maritalStatus === 'married');
+
+    const s1Years = Number(s1.yearsWorked) || 35;
+    const s1Age = Number(s1.claimAge) || 67;
+    const s1Salary = Number(s1.grossAnnualSalary) || 65000;
+
+    const s2Years = Number(s2.yearsWorked) || 35;
+    const s2Age = Number(s2.claimAge) || 67;
+    const s2Salary = Number(s2.grossAnnualSalary) || 55000;
+
+    // Sync inputs
+    const inpS1Years = document.getElementById("inp-us-spouse1-years");
+    const inpS1Age = document.getElementById("inp-us-spouse1-claim-age");
+    const inpS1Sal = document.getElementById("inp-us-spouse1-salary");
+    const inpS2Years = document.getElementById("inp-us-spouse2-years");
+    const inpS2Age = document.getElementById("inp-us-spouse2-claim-age");
+    const inpS2Sal = document.getElementById("inp-us-spouse2-salary");
+
+    if (inpS1Years && Number(inpS1Years.value) !== s1Years) inpS1Years.value = s1Years;
+    if (inpS1Age && Number(inpS1Age.value) !== s1Age) inpS1Age.value = s1Age;
+    if (inpS1Sal && Number(inpS1Sal.value) !== s1Salary) inpS1Sal.value = s1Salary;
+    if (inpS2Years && Number(inpS2Years.value) !== s2Years) inpS2Years.value = s2Years;
+    if (inpS2Age && Number(inpS2Age.value) !== s2Age) inpS2Age.value = s2Age;
+    if (inpS2Sal && Number(inpS2Sal.value) !== s2Salary) inpS2Sal.value = s2Salary;
+
+    let res1 = { aime: 5417, pia: 2414, adjustmentFactor: 1.0, monthlyPensionUsd: 2414, totalAnnualPensionUsd: 28968, adjustmentPercent: 0 };
+    let res2 = { aime: 4583, pia: 2147, adjustmentFactor: 1.0, monthlyPensionUsd: 2147, totalAnnualPensionUsd: 25764, adjustmentPercent: 0 };
+
+    if (window.TaxOptimizer && window.TaxOptimizer.calculateUsSocialSecurityPension) {
+      res1 = window.TaxOptimizer.calculateUsSocialSecurityPension(s1Salary, s1Years, s1Age);
+      res2 = window.TaxOptimizer.calculateUsSocialSecurityPension(s2Salary, s2Years, s2Age);
+    }
+
+    const b1Badge = document.getElementById("lbl-us-spouse1-badge");
+    const b2Badge = document.getElementById("lbl-us-spouse2-badge");
+    const b1Adj = document.getElementById("lbl-us-spouse1-adj");
+    const b2Adj = document.getElementById("lbl-us-spouse2-adj");
+    const b1Pen = document.getElementById("lbl-us-spouse1-pension");
+    const b2Pen = document.getElementById("lbl-us-spouse2-pension");
+
+    if (b1Badge) b1Badge.innerText = `${s1Years} năm • AIME $${res1.aime}`;
+    if (b2Badge) b2Badge.innerText = `${s2Years} năm • AIME $${res2.aime}`;
+    if (b1Adj) b1Adj.innerText = res1.adjustmentPercent === 0 ? "Chuẩn FRA: 100%" : (res1.adjustmentPercent > 0 ? `+${res1.adjustmentPercent}%` : `${res1.adjustmentPercent}%`);
+    if (b2Adj) b2Adj.innerText = res2.adjustmentPercent === 0 ? "Chuẩn FRA: 100%" : (res2.adjustmentPercent > 0 ? `+${res2.adjustmentPercent}%` : `${res2.adjustmentPercent}%`);
+    if (b1Pen) b1Pen.innerText = `~$${res1.monthlyPensionUsd}/tháng (~$${res1.totalAnnualPensionUsd}/n)`;
+    if (b2Pen) b2Pen.innerText = `~$${res2.monthlyPensionUsd}/tháng (~$${res2.totalAnnualPensionUsd}/n)`;
+
+    const totalMonthlyUsd = res1.monthlyPensionUsd + (isMarried ? res2.monthlyPensionUsd : 0);
+    const totalAnnualUsd = res1.totalAnnualPensionUsd + (isMarried ? res2.totalAnnualPensionUsd : 0);
+
+    const lblMonthly = document.getElementById("lbl-us-card-monthly");
+    const lblAnnual = document.getElementById("lbl-us-card-annual");
+    const lblTotal = document.getElementById("lbl-us-pension-effective");
+    const badgeStatus = document.getElementById("badge-us-status");
+    const btnDel = document.getElementById("btn-del-us-pension");
+    const cardAgeRange = document.getElementById("lbl-us-card-age-range");
+
+    if (badgeStatus) badgeStatus.innerText = isMarried ? "2 Người (FRA 67t)" : "1 Người (FRA 67t)";
+    if (btnDel) {
+      btnDel.innerText = isEnabled ? "Xóa" : "Kích hoạt";
+      btnDel.className = isEnabled ? "income-item-btn income-item-del" : "income-item-btn";
+    }
+    if (lblMonthly) {
+      lblMonthly.innerHTML = isEnabled ? `$${totalMonthlyUsd}<small>/tháng</small>` : `<span style="color: var(--text-faint);">$0<small>/tháng</small></span>`;
+    }
+    if (lblAnnual) {
+      lblAnnual.innerText = isEnabled ? `≈ $${totalAnnualUsd}/năm` : "Lương hưu Mỹ đang tạm tắt";
+    }
+    if (lblTotal) {
+      lblTotal.innerText = `~$${totalMonthlyUsd}/tháng (~$${totalAnnualUsd}/năm)`;
+    }
+    if (cardAgeRange) {
+      cardAgeRange.innerText = `${s1Age} - ${Number(p.lifeExpectancy) || 85} tuổi`;
     }
   }
 
@@ -1615,6 +2092,8 @@
     syncPensionBaseAuto,
     updatePensionDecoteUI,
     updateBhxhVnUI,
+    updateGermanPensionUI,
+    updateUsPensionUI,
     syncBhxhVnStreams,
     eurToPlanFactor,
     extractPatrimoineLoansEur,

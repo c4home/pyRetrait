@@ -586,6 +586,7 @@
     const isMarried = (plan?.maritalStatus === 'married');
     if (!isMarried) {
       box.style.display = 'none';
+      activeHealthMember = 'primary';
       return;
     }
     box.style.display = 'block';
@@ -658,23 +659,39 @@
    */
   function renderHealthTab() {
     const plan = getActivePlan();
+    if (plan?.maritalStatus !== 'married') {
+      activeHealthMember = 'primary';
+    }
     ensureHealthProfiles(plan);
     loadHealthMemberInputs(plan, activeHealthMember);
     updateCoupleHealthOverview(plan);
     updateHealthspanScore();
     updateCrossBorderChecklist(false);
 
+    // Thích ứng ẩn/hiện cẩm nang y tế Pháp-Việt theo quốc gia kế hoạch
+    const cardFrancoViet = document.getElementById("card-franco-viet-guide");
+    if (cardFrancoViet) {
+      const hasFrance = (plan?.workCountry === 'FR' || plan?.retireCountry === 'FR' || (!plan?.workCountry && !plan?.retireCountry));
+      cardFrancoViet.style.display = hasFrance ? 'block' : 'none';
+    }
+
     const currency = getCurrency();
-    const isVnd = currency === 'VND';
-    const isUsd = currency === 'USD';
+    const retireCityKey = plan?.retireCityKey || plan?.retireCity || 'fr_paris';
+    const pppProfiles = (window.TaxOptimizer && window.TaxOptimizer.COUNTRY_PPP_PROFILES) || {};
+    const cityProf = pppProfiles[retireCityKey] || pppProfiles['fr_paris'] || { healthCostBase: 180 };
+    const baseHealth60 = cityProf.healthCostBase || 180;
+    const baseHealth45 = Math.round(baseHealth60 * 0.55);
+    const baseHealth30 = Math.round(baseHealth60 * 0.22);
+
+    const fmt = (val) => window.RetirementEngine ? window.RetirementEngine.formatCurrency(val, currency) : `${val} ${currency}`;
 
     const b30 = document.getElementById("lbl-budget-age-30");
     const b45 = document.getElementById("lbl-budget-age-45");
     const b60 = document.getElementById("lbl-budget-age-60");
 
-    if (b30) b30.innerText = isVnd ? "≈ 1.1 Tr ₫/tháng" : isUsd ? "≈ $45/tháng" : "≈ 40 €/tháng";
-    if (b45) b45.innerText = isVnd ? "≈ 2.7 Tr ₫/tháng" : isUsd ? "≈ $110/tháng" : "≈ 100 €/tháng";
-    if (b60) b60.innerText = isVnd ? "≈ 4.9 Tr ₫/tháng" : isUsd ? "≈ $195/tháng" : "≈ 180 €/tháng";
+    if (b30) b30.innerText = `≈ ${fmt(baseHealth30)}/tháng`;
+    if (b45) b45.innerText = `≈ ${fmt(baseHealth45)}/tháng`;
+    if (b60) b60.innerText = `≈ ${fmt(baseHealth60)}/tháng`;
   }
 
   /**
@@ -1270,21 +1287,34 @@
       if (lblParts) lblParts.innerText = `${totalParts.toFixed(1)} Parts Fiscales`;
 
       // 2. Income Tax Savings (Capped at 1,759 € per half-part in France)
+      const plan = getActivePlan();
+      const isFranceWork = (plan?.workCountry === 'FR' || (!plan?.workCountry && (!plan?.retireCountry || plan?.retireCountry === 'FR')));
+
       const halfParts = kidParts * 2;
-      const maxTaxSaving = Math.round(halfParts * 1759);
+      const maxTaxSaving = isFranceWork ? Math.round(halfParts * 1759) : 0;
       const lblTaxSaving = document.getElementById("lbl-family-tax-saving");
       if (lblTaxSaving) {
-        lblTaxSaving.innerText = count > 0 ? `~${new Intl.NumberFormat('fr-FR').format(maxTaxSaving)} €/năm` : "0 €";
+        if (isFranceWork) {
+          lblTaxSaving.innerText = count > 0 ? `~${new Intl.NumberFormat('fr-FR').format(maxTaxSaving)} €/năm` : "0 €";
+        } else {
+          lblTaxSaving.innerText = "Theo luật nước sở tại";
+        }
       }
 
       // 3. CAF Monthly Family Allowance (2+ children in France)
       let cafMonthly = 0;
-      if (count === 2) cafMonthly = 148;
-      else if (count === 3) cafMonthly = 338;
-      else if (count >= 4) cafMonthly = 529;
+      if (isFranceWork) {
+        if (count === 2) cafMonthly = 148;
+        else if (count === 3) cafMonthly = 338;
+        else if (count >= 4) cafMonthly = 529;
+      }
       const lblCaf = document.getElementById("lbl-family-caf");
       if (lblCaf) {
-        lblCaf.innerText = count >= 2 ? `~${cafMonthly} €/tháng (~${new Intl.NumberFormat('fr-FR').format(cafMonthly * 12)} €/năm)` : "0 € (chưa đủ 2 con)";
+        if (isFranceWork) {
+          lblCaf.innerText = count >= 2 ? `~${cafMonthly} €/tháng (~${new Intl.NumberFormat('fr-FR').format(cafMonthly * 12)} €/năm)` : "0 € (chưa đủ 2 con)";
+        } else {
+          lblCaf.innerText = "Không áp dụng (Chỉ có tại Pháp)";
+        }
       }
 
       // 4. University Milestones (Birth Year + 18)
@@ -1310,13 +1340,13 @@
       }
 
       // 6. Render Chart: Family Cash Flow Trajectory
-      renderFamilyCashFlowChart(count, kid1Birth, kid2Birth, kidCostMonthly, kidUniMonthly, cafMonthly, maxTaxSaving);
+      renderFamilyCashFlowChart(count, kid1Birth, kid2Birth, kidCostMonthly, kidUniMonthly, cafMonthly, maxTaxSaving, isFranceWork);
     } catch (err) {
       console.warn("Family children simulation update error:", err);
     }
   }
 
-  function renderFamilyCashFlowChart(count, kid1Birth, kid2Birth, kidCostMonthly, kidUniMonthly, cafMonthly, maxTaxSaving) {
+  function renderFamilyCashFlowChart(count, kid1Birth, kid2Birth, kidCostMonthly, kidUniMonthly, cafMonthly, maxTaxSaving, isFranceWork = true) {
     const canvas = document.getElementById("chart-family-cashflow");
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -1368,10 +1398,12 @@
       if (count >= 1 && (yr - kid1Birth) >= 0 && (yr - kid1Birth) < 21) depCount++;
       if (count >= 2 && (yr - kid2Birth) >= 0 && (yr - kid2Birth) < 21) depCount++;
 
-      if (depCount >= 2) {
-        annualBenefits = cafMonthly * 12 + maxTaxSaving;
-      } else if (depCount === 1) {
-        annualBenefits = Math.round(maxTaxSaving * 0.5);
+      if (isFranceWork) {
+        if (depCount >= 2) {
+          annualBenefits = cafMonthly * 12 + maxTaxSaving;
+        } else if (depCount === 1) {
+          annualBenefits = Math.round(maxTaxSaving * 0.5);
+        }
       }
       familyBenefits.push(annualBenefits);
 
@@ -1430,7 +1462,7 @@
             tension: 0.25
           },
           {
-            label: 'Trợ cấp CAF & Tiết kiệm Thuế (€/năm)',
+            label: isFranceWork ? 'Trợ cấp CAF & Tiết kiệm Thuế (€/năm)' : 'Hỗ trợ gia đình & Thuế (€/năm)',
             data: familyBenefits,
             borderColor: '#38bdf8',
             backgroundColor: 'rgba(56, 189, 248, 0.2)',

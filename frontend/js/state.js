@@ -102,8 +102,8 @@
     if (!plan.workCity) plan.workCity = 'fr_paris';
     if (!plan.retireCountry) plan.retireCountry = 'VN';
     if (!plan.retireCity) plan.retireCity = 'vn_hcm_hn';
-    if (!plan.retireMode) {
-      plan.retireMode = (plan.workCountry === plan.retireCountry ? 'domestic' : 'relocate');
+    if (!plan.retireMode || (plan.workCountry && plan.retireCountry && plan.workCountry === plan.retireCountry) || (plan.workCity && plan.retireCity && plan.workCity === plan.retireCity)) {
+      plan.retireMode = (plan.workCountry === plan.retireCountry || plan.workCity === plan.retireCity) ? 'domestic' : (plan.retireMode || 'relocate');
     }
     if (!plan.maritalStatus) plan.maritalStatus = 'single';
     if (plan.taxParts === undefined || plan.taxParts === null) {
@@ -130,6 +130,24 @@
       if (!plan.bhxhVnDetails.spouse1.claimAge) plan.bhxhVnDetails.spouse1.claimAge = (isFemale ? 60 : 62);
       if (!plan.bhxhVnDetails.spouse2.gender) plan.bhxhVnDetails.spouse2.gender = isFemale ? 'male' : 'female';
       if (!plan.bhxhVnDetails.spouse2.claimAge) plan.bhxhVnDetails.spouse2.claimAge = (isFemale ? 62 : 60);
+    }
+    if (!plan.germanPensionDetails) {
+      plan.germanPensionDetails = {
+        spouse1: { grossAnnualSalary: 45000, yearsContributed: 35, claimAge: 67 },
+        spouse2: { grossAnnualSalary: 38000, yearsContributed: 35, claimAge: 67 }
+      };
+    } else {
+      if (!plan.germanPensionDetails.spouse1) plan.germanPensionDetails.spouse1 = { grossAnnualSalary: 45000, yearsContributed: 35, claimAge: 67 };
+      if (!plan.germanPensionDetails.spouse2) plan.germanPensionDetails.spouse2 = { grossAnnualSalary: 38000, yearsContributed: 35, claimAge: 67 };
+    }
+    if (!plan.usPensionDetails) {
+      plan.usPensionDetails = {
+        spouse1: { grossAnnualSalary: 65000, yearsWorked: 35, claimAge: 67 },
+        spouse2: { grossAnnualSalary: 55000, yearsWorked: 35, claimAge: 67 }
+      };
+    } else {
+      if (!plan.usPensionDetails.spouse1) plan.usPensionDetails.spouse1 = { grossAnnualSalary: 65000, yearsWorked: 35, claimAge: 67 };
+      if (!plan.usPensionDetails.spouse2) plan.usPensionDetails.spouse2 = { grossAnnualSalary: 55000, yearsWorked: 35, claimAge: 67 };
     }
     if (!plan.healthProfiles) {
       plan.healthProfiles = {
