@@ -149,6 +149,56 @@
       if (!plan.usPensionDetails.spouse1) plan.usPensionDetails.spouse1 = { grossAnnualSalary: 65000, yearsWorked: 35, claimAge: 67 };
       if (!plan.usPensionDetails.spouse2) plan.usPensionDetails.spouse2 = { grossAnnualSalary: 55000, yearsWorked: 35, claimAge: 67 };
     }
+    // Japan Pension (Nenkin)
+    if (!plan.japanPensionDetails) {
+      plan.japanPensionDetails = {
+        spouse1: { grossAnnualSalary: 4500000, yearsContributed: 25, claimAge: 65 },
+        spouse2: { grossAnnualSalary: 3500000, yearsContributed: 20, claimAge: 65 }
+      };
+    } else {
+      if (!plan.japanPensionDetails.spouse1) plan.japanPensionDetails.spouse1 = { grossAnnualSalary: 4500000, yearsContributed: 25, claimAge: 65 };
+      if (!plan.japanPensionDetails.spouse2) plan.japanPensionDetails.spouse2 = { grossAnnualSalary: 3500000, yearsContributed: 20, claimAge: 65 };
+    }
+    // Canada Pension (CPP & OAS)
+    if (!plan.canadaPensionDetails) {
+      plan.canadaPensionDetails = {
+        spouse1: { grossAnnualSalary: 65000, yearsContributed: 30, yearsResident: 30, claimAge: 65 },
+        spouse2: { grossAnnualSalary: 50000, yearsContributed: 25, yearsResident: 25, claimAge: 65 }
+      };
+    } else {
+      if (!plan.canadaPensionDetails.spouse1) plan.canadaPensionDetails.spouse1 = { grossAnnualSalary: 65000, yearsContributed: 30, yearsResident: 30, claimAge: 65 };
+      if (!plan.canadaPensionDetails.spouse2) plan.canadaPensionDetails.spouse2 = { grossAnnualSalary: 50000, yearsContributed: 25, yearsResident: 25, claimAge: 65 };
+    }
+    // Australia Pension (Super & Age Pension)
+    if (!plan.australiaPensionDetails) {
+      plan.australiaPensionDetails = {
+        spouse1: { grossAnnualSalary: 85000, yearsWorked: 25, superBalance: 250000, claimAge: 67 },
+        spouse2: { grossAnnualSalary: 65000, yearsWorked: 20, superBalance: 180000, claimAge: 67 }
+      };
+    } else {
+      if (!plan.australiaPensionDetails.spouse1) plan.australiaPensionDetails.spouse1 = { grossAnnualSalary: 85000, yearsWorked: 25, superBalance: 250000, claimAge: 67 };
+      if (!plan.australiaPensionDetails.spouse2) plan.australiaPensionDetails.spouse2 = { grossAnnualSalary: 65000, yearsWorked: 20, superBalance: 180000, claimAge: 67 };
+    }
+    // South Korea Pension (NPS)
+    if (!plan.koreaPensionDetails) {
+      plan.koreaPensionDetails = {
+        spouse1: { grossMonthlySalary: 3500000, yearsContributed: 20, claimAge: 65 },
+        spouse2: { grossMonthlySalary: 2800000, yearsContributed: 15, claimAge: 65 }
+      };
+    } else {
+      if (!plan.koreaPensionDetails.spouse1) plan.koreaPensionDetails.spouse1 = { grossMonthlySalary: 3500000, yearsContributed: 20, claimAge: 65 };
+      if (!plan.koreaPensionDetails.spouse2) plan.koreaPensionDetails.spouse2 = { grossMonthlySalary: 2800000, yearsContributed: 15, claimAge: 65 };
+    }
+    // Taiwan Pension (Labor Insurance & Labor Pension)
+    if (!plan.taiwanPensionDetails) {
+      plan.taiwanPensionDetails = {
+        spouse1: { insuredMonthlySalary: 45800, yearsContributed: 20, claimAge: 65 },
+        spouse2: { insuredMonthlySalary: 36000, yearsContributed: 15, claimAge: 65 }
+      };
+    } else {
+      if (!plan.taiwanPensionDetails.spouse1) plan.taiwanPensionDetails.spouse1 = { insuredMonthlySalary: 45800, yearsContributed: 20, claimAge: 65 };
+      if (!plan.taiwanPensionDetails.spouse2) plan.taiwanPensionDetails.spouse2 = { insuredMonthlySalary: 36000, yearsContributed: 15, claimAge: 65 };
+    }
     if (!plan.healthProfiles) {
       plan.healthProfiles = {
         primary: {

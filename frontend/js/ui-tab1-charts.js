@@ -694,7 +694,7 @@
 
     const strategies = [
       { key: "guyton_klinger", name: "Lan can Guyton-Klinger", color: isLight ? "#047857" : "#10b981", borderDash: [] },
-      { key: "bengen_4pct", name: "Quy tắc 4% Cố định (Bengen)", color: isLight ? "#0284c7" : "#38bdf8", borderDash: [] },
+      { key: "bengen_4pct", name: "Quy tắc 4% Cố định (Bengen)", color: isLight ? "#0284c7" : "#38bdf8", borderDash: [6, 4] },
       { key: "vpw", name: "Tỷ lệ Thay đổi (VPW)", color: isLight ? "#7c3aed" : "#c084fc", borderDash: [6, 3] },
       { key: "fixed_pct", name: "Tỷ lệ Cố định (Fixed %)", color: isLight ? "#ea580c" : "#fb923c", borderDash: [4, 4] }
     ];

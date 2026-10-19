@@ -753,6 +753,11 @@ window.RetirementEngine = (function() {
       const hasBhxhPension = (workC === 'VN' || retireC === 'VN');
       const hasGermanPension = (workC === 'DE' || retireC === 'DE');
       const hasUsPension = (workC === 'US' || retireC === 'US');
+      const hasJapanPension = (workC === 'JP' || retireC === 'JP');
+      const hasCanadaPension = (workC === 'CA' || retireC === 'CA');
+      const hasAustraliaPension = (workC === 'AU' || retireC === 'AU');
+      const hasKoreaPension = (workC === 'KR' || retireC === 'KR');
+      const hasTaiwanPension = (workC === 'TW' || retireC === 'TW');
 
       // 1.1 Lương hưu Pháp (CNAV + Agirc-Arrco)
       if (isRetired && hasFrenchPension && plan.enableFrenchPension !== false) {
@@ -885,6 +890,151 @@ window.RetirementEngine = (function() {
           const usPensionVal = (plan.currency === 'USD') ? totalUsd : (totalUsd * usdToEurRate);
           annualIncome += usPensionVal;
           taxableIncome += usPensionVal;
+        }
+      }
+
+      // 1.5 Lương hưu Nhật Bản (Kokumin & Kōsei Nenkin)
+      if (isRetired && hasJapanPension && plan.enableJapanPension !== false && plan.japanPensionDetails) {
+        const j1 = plan.japanPensionDetails.spouse1 || {};
+        const j2 = plan.japanPensionDetails.spouse2 || {};
+        const j1Claim = Number(j1.claimAge) || 65;
+        let j1Amt = 0;
+        let j2Amt = 0;
+
+        if (age >= j1Claim && window.TaxOptimizer && window.TaxOptimizer.calculateJapanPension) {
+          const resJ1 = window.TaxOptimizer.calculateJapanPension(j1.grossAnnualSalary || 4500000, j1.yearsContributed || 25, j1Claim);
+          j1Amt = resJ1.totalAnnualPensionEur;
+        }
+
+        if (plan.maritalStatus === 'married') {
+          const j2Claim = Number(j2.claimAge) || 65;
+          if (age >= j2Claim && window.TaxOptimizer && window.TaxOptimizer.calculateJapanPension) {
+            const resJ2 = window.TaxOptimizer.calculateJapanPension(j2.grossAnnualSalary || 3500000, j2.yearsContributed || 20, j2Claim);
+            j2Amt = resJ2.totalAnnualPensionEur;
+          }
+        }
+
+        const totalJpEur = (j1Amt + j2Amt) * cumInflation;
+        if (totalJpEur > 0) {
+          const jpVal = (plan.currency === 'EUR') ? totalJpEur : (plan.currency === 'USD' ? totalJpEur / 0.92 : totalJpEur * (currentEurVndRate || 27500));
+          annualIncome += jpVal;
+          taxableIncome += jpVal;
+        }
+      }
+
+      // 1.6 Lương hưu Canada (CPP & OAS)
+      if (isRetired && hasCanadaPension && plan.enableCanadaPension !== false && plan.canadaPensionDetails) {
+        const c1 = plan.canadaPensionDetails.spouse1 || {};
+        const c2 = plan.canadaPensionDetails.spouse2 || {};
+        const c1Claim = Number(c1.claimAge) || 65;
+        let c1Amt = 0;
+        let c2Amt = 0;
+
+        if (age >= c1Claim && window.TaxOptimizer && window.TaxOptimizer.calculateCanadaPension) {
+          const resC1 = window.TaxOptimizer.calculateCanadaPension(c1.grossAnnualSalary || 65000, c1.yearsContributed || 30, c1.yearsResident || 30, c1Claim);
+          c1Amt = resC1.totalAnnualPensionEur;
+        }
+
+        if (plan.maritalStatus === 'married') {
+          const c2Claim = Number(c2.claimAge) || 65;
+          if (age >= c2Claim && window.TaxOptimizer && window.TaxOptimizer.calculateCanadaPension) {
+            const resC2 = window.TaxOptimizer.calculateCanadaPension(c2.grossAnnualSalary || 50000, c2.yearsContributed || 25, c2.yearsResident || 25, c2Claim);
+            c2Amt = resC2.totalAnnualPensionEur;
+          }
+        }
+
+        const totalCaEur = (c1Amt + c2Amt) * cumInflation;
+        if (totalCaEur > 0) {
+          const caVal = (plan.currency === 'EUR') ? totalCaEur : (plan.currency === 'USD' ? totalCaEur / 0.92 : totalCaEur * (currentEurVndRate || 27500));
+          annualIncome += caVal;
+          taxableIncome += caVal;
+        }
+      }
+
+      // 1.7 Lương hưu Úc (Superannuation & Age Pension)
+      if (isRetired && hasAustraliaPension && plan.enableAustraliaPension !== false && plan.australiaPensionDetails) {
+        const a1 = plan.australiaPensionDetails.spouse1 || {};
+        const a2 = plan.australiaPensionDetails.spouse2 || {};
+        const a1Claim = Number(a1.claimAge) || 67;
+        let a1Amt = 0;
+        let a2Amt = 0;
+
+        if (age >= a1Claim && window.TaxOptimizer && window.TaxOptimizer.calculateAustraliaPension) {
+          const resA1 = window.TaxOptimizer.calculateAustraliaPension(a1.grossAnnualSalary || 85000, a1.yearsWorked || 25, a1.superBalance || 250000, a1Claim);
+          a1Amt = resA1.totalAnnualPensionEur;
+        }
+
+        if (plan.maritalStatus === 'married') {
+          const a2Claim = Number(a2.claimAge) || 67;
+          if (age >= a2Claim && window.TaxOptimizer && window.TaxOptimizer.calculateAustraliaPension) {
+            const resA2 = window.TaxOptimizer.calculateAustraliaPension(a2.grossAnnualSalary || 65000, a2.yearsWorked || 20, a2.superBalance || 180000, a2Claim);
+            a2Amt = resA2.totalAnnualPensionEur;
+          }
+        }
+
+        const totalAuEur = (a1Amt + a2Amt) * cumInflation;
+        if (totalAuEur > 0) {
+          const auVal = (plan.currency === 'EUR') ? totalAuEur : (plan.currency === 'USD' ? totalAuEur / 0.92 : totalAuEur * (currentEurVndRate || 27500));
+          annualIncome += auVal;
+          taxableIncome += auVal;
+        }
+      }
+
+      // 1.8 Lương hưu Hàn Quốc (NPS)
+      if (isRetired && hasKoreaPension && plan.enableKoreaPension !== false && plan.koreaPensionDetails) {
+        const k1 = plan.koreaPensionDetails.spouse1 || {};
+        const k2 = plan.koreaPensionDetails.spouse2 || {};
+        const k1Claim = Number(k1.claimAge) || 65;
+        let k1Amt = 0;
+        let k2Amt = 0;
+
+        if (age >= k1Claim && window.TaxOptimizer && window.TaxOptimizer.calculateKoreaPension) {
+          const resK1 = window.TaxOptimizer.calculateKoreaPension(k1.grossMonthlySalary || 3500000, k1.yearsContributed || 20, k1Claim);
+          k1Amt = resK1.totalAnnualPensionEur;
+        }
+
+        if (plan.maritalStatus === 'married') {
+          const k2Claim = Number(k2.claimAge) || 65;
+          if (age >= k2Claim && window.TaxOptimizer && window.TaxOptimizer.calculateKoreaPension) {
+            const resK2 = window.TaxOptimizer.calculateKoreaPension(k2.grossMonthlySalary || 2800000, k2.yearsContributed || 15, k2Claim);
+            k2Amt = resK2.totalAnnualPensionEur;
+          }
+        }
+
+        const totalKrEur = (k1Amt + k2Amt) * cumInflation;
+        if (totalKrEur > 0) {
+          const krVal = (plan.currency === 'EUR') ? totalKrEur : (plan.currency === 'USD' ? totalKrEur / 0.92 : totalKrEur * (currentEurVndRate || 27500));
+          annualIncome += krVal;
+          taxableIncome += krVal;
+        }
+      }
+
+      // 1.9 Lương hưu Đài Loan (Labor Insurance & Labor Pension)
+      if (isRetired && hasTaiwanPension && plan.enableTaiwanPension !== false && plan.taiwanPensionDetails) {
+        const t1 = plan.taiwanPensionDetails.spouse1 || {};
+        const t2 = plan.taiwanPensionDetails.spouse2 || {};
+        const t1Claim = Number(t1.claimAge) || 65;
+        let t1Amt = 0;
+        let t2Amt = 0;
+
+        if (age >= t1Claim && window.TaxOptimizer && window.TaxOptimizer.calculateTaiwanPension) {
+          const resT1 = window.TaxOptimizer.calculateTaiwanPension(t1.insuredMonthlySalary || 45800, t1.yearsContributed || 20, t1Claim);
+          t1Amt = resT1.totalAnnualPensionEur;
+        }
+
+        if (plan.maritalStatus === 'married') {
+          const t2Claim = Number(t2.claimAge) || 65;
+          if (age >= t2Claim && window.TaxOptimizer && window.TaxOptimizer.calculateTaiwanPension) {
+            const resT2 = window.TaxOptimizer.calculateTaiwanPension(t2.insuredMonthlySalary || 36000, t2.yearsContributed || 15, t2Claim);
+            t2Amt = resT2.totalAnnualPensionEur;
+          }
+        }
+
+        const totalTwEur = (t1Amt + t2Amt) * cumInflation;
+        if (totalTwEur > 0) {
+          const twVal = (plan.currency === 'EUR') ? totalTwEur : (plan.currency === 'USD' ? totalTwEur / 0.92 : totalTwEur * (currentEurVndRate || 27500));
+          annualIncome += twVal;
+          taxableIncome += twVal;
         }
       }
 

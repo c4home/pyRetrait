@@ -1155,6 +1155,51 @@
         }
       }
     }
+
+    // Cập nhật % chi phí (+% / -%) ở bên phải từng vùng trong danh sách Nơi bạn có thể đến
+    updateRetireCityOptionsDiff(workKey);
+  }
+
+  /**
+   * Cập nhật nhãn hiển thị % chi phí (+% hoặc -%) ở bên phải từng vùng trong danh sách 'Nơi bạn có thể đến'
+   */
+  function updateRetireCityOptionsDiff(workKey) {
+    const retireSelect = document.getElementById("inp-plan-retire-city");
+    if (!retireSelect) return;
+
+    const currentWorkKey = workKey || document.getElementById("inp-plan-work-city")?.value || 'fr_paris';
+    const pppProfiles = (window.TaxOptimizer && window.TaxOptimizer.COUNTRY_PPP_PROFILES) ? window.TaxOptimizer.COUNTRY_PPP_PROFILES : {};
+    const workProfile = pppProfiles[currentWorkKey] || { ppp: 1.0 };
+    const workPpp = Number(workProfile.ppp) || 1.0;
+
+    const options = retireSelect.querySelectorAll("option");
+    options.forEach(opt => {
+      if (!opt.dataset.baseText) {
+        opt.dataset.baseText = opt.textContent.trim().replace(/\s*\([+-]?\d+%\)$/, '').trim();
+      }
+      const base = opt.dataset.baseText;
+      const optVal = opt.value;
+
+      if (optVal === 'custom' || !pppProfiles[optVal] || typeof pppProfiles[optVal].ppp !== 'number') {
+        opt.textContent = base;
+        return;
+      }
+
+      const destPpp = pppProfiles[optVal].ppp;
+      const ratio = (destPpp / workPpp) - 1;
+      const pct = Math.round(ratio * 100);
+
+      let pctBadge = '';
+      if (pct > 0) {
+        pctBadge = `(+${pct}%)`;
+      } else if (pct < 0) {
+        pctBadge = `(-${Math.abs(pct)}%)`;
+      } else {
+        pctBadge = `(0%)`;
+      }
+
+      opt.textContent = `${base} ${pctBadge}`;
+    });
   }
 
   /**
@@ -1188,7 +1233,7 @@
   }
 
   /**
-   * Chuyển đổi chế độ nơi sinh sống khi nghỉ hưu (domestic: chỉ 1 nơi, relocate: nhiều nơi)
+   * Chuyển đổi chế độ nơi sinh sống (domestic: chỉ 1 nơi, relocate: nhiều nơi)
    */
   function setPlanRetireMode(mode) {
     const btnDomestic = document.getElementById('btn-plan-mode-domestic');
@@ -1880,6 +1925,7 @@
     showWizardStep,
     applyWizardAndCalculate,
     updatePlanModalPppTags,
+    updateRetireCityOptionsDiff,
     setPlanGender,
     setPlanFamily,
     setPlanRetireMode,

@@ -518,6 +518,183 @@
       }
     });
 
+    // ----------------------------------------------------
+    // International Pensions Event Bindings (JP, CA, AU, KR, TW)
+    // ----------------------------------------------------
+    const newPensionConfigs = [
+      {
+        key: 'japan',
+        name: 'Nhật Bản (Nenkin)',
+        planProp: 'enableJapanPension',
+        detailsProp: 'japanPensionDetails',
+        updateFn: updateJapanPensionUI,
+        inputs: [
+          { id: 'inp-japan-spouse1-years', prop: 'yearsContributed', spouse: 'spouse1', def: 25 },
+          { id: 'inp-japan-spouse1-claim-age', prop: 'claimAge', spouse: 'spouse1', def: 65 },
+          { id: 'inp-japan-spouse1-salary', prop: 'grossAnnualSalary', spouse: 'spouse1', def: 4500000 },
+          { id: 'inp-japan-spouse2-years', prop: 'yearsContributed', spouse: 'spouse2', def: 20 },
+          { id: 'inp-japan-spouse2-claim-age', prop: 'claimAge', spouse: 'spouse2', def: 65 },
+          { id: 'inp-japan-spouse2-salary', prop: 'grossAnnualSalary', spouse: 'spouse2', def: 3500000 }
+        ]
+      },
+      {
+        key: 'canada',
+        name: 'Canada (CPP & OAS)',
+        planProp: 'enableCanadaPension',
+        detailsProp: 'canadaPensionDetails',
+        updateFn: updateCanadaPensionUI,
+        inputs: [
+          { id: 'inp-canada-spouse1-years', prop: 'yearsContributed', spouse: 'spouse1', def: 30 },
+          { id: 'inp-canada-spouse1-res-years', prop: 'yearsResident', spouse: 'spouse1', def: 30 },
+          { id: 'inp-canada-spouse1-claim-age', prop: 'claimAge', spouse: 'spouse1', def: 65 },
+          { id: 'inp-canada-spouse1-salary', prop: 'grossAnnualSalary', spouse: 'spouse1', def: 65000 },
+          { id: 'inp-canada-spouse2-years', prop: 'yearsContributed', spouse: 'spouse2', def: 25 },
+          { id: 'inp-canada-spouse2-res-years', prop: 'yearsResident', spouse: 'spouse2', def: 25 },
+          { id: 'inp-canada-spouse2-claim-age', prop: 'claimAge', spouse: 'spouse2', def: 65 },
+          { id: 'inp-canada-spouse2-salary', prop: 'grossAnnualSalary', spouse: 'spouse2', def: 50000 }
+        ]
+      },
+      {
+        key: 'australia',
+        name: 'Úc (Superannuation & Age)',
+        planProp: 'enableAustraliaPension',
+        detailsProp: 'australiaPensionDetails',
+        updateFn: updateAustraliaPensionUI,
+        inputs: [
+          { id: 'inp-australia-spouse1-years', prop: 'yearsWorked', spouse: 'spouse1', def: 25 },
+          { id: 'inp-australia-spouse1-super', prop: 'superBalance', spouse: 'spouse1', def: 250000 },
+          { id: 'inp-australia-spouse1-claim-age', prop: 'claimAge', spouse: 'spouse1', def: 67 },
+          { id: 'inp-australia-spouse1-salary', prop: 'grossAnnualSalary', spouse: 'spouse1', def: 85000 },
+          { id: 'inp-australia-spouse2-years', prop: 'yearsWorked', spouse: 'spouse2', def: 20 },
+          { id: 'inp-australia-spouse2-super', prop: 'superBalance', spouse: 'spouse2', def: 180000 },
+          { id: 'inp-australia-spouse2-claim-age', prop: 'claimAge', spouse: 'spouse2', def: 67 },
+          { id: 'inp-australia-spouse2-salary', prop: 'grossAnnualSalary', spouse: 'spouse2', def: 65000 }
+        ]
+      },
+      {
+        key: 'korea',
+        name: 'Hàn Quốc (NPS)',
+        planProp: 'enableKoreaPension',
+        detailsProp: 'koreaPensionDetails',
+        updateFn: updateKoreaPensionUI,
+        inputs: [
+          { id: 'inp-korea-spouse1-years', prop: 'yearsContributed', spouse: 'spouse1', def: 20 },
+          { id: 'inp-korea-spouse1-claim-age', prop: 'claimAge', spouse: 'spouse1', def: 65 },
+          { id: 'inp-korea-spouse1-salary', prop: 'grossMonthlySalary', spouse: 'spouse1', def: 3500000 },
+          { id: 'inp-korea-spouse2-years', prop: 'yearsContributed', spouse: 'spouse2', def: 15 },
+          { id: 'inp-korea-spouse2-claim-age', prop: 'claimAge', spouse: 'spouse2', def: 65 },
+          { id: 'inp-korea-spouse2-salary', prop: 'grossMonthlySalary', spouse: 'spouse2', def: 2800000 }
+        ]
+      },
+      {
+        key: 'taiwan',
+        name: 'Đài Loan (勞保 & 勞退)',
+        planProp: 'enableTaiwanPension',
+        detailsProp: 'taiwanPensionDetails',
+        updateFn: updateTaiwanPensionUI,
+        inputs: [
+          { id: 'inp-taiwan-spouse1-years', prop: 'yearsContributed', spouse: 'spouse1', def: 20 },
+          { id: 'inp-taiwan-spouse1-claim-age', prop: 'claimAge', spouse: 'spouse1', def: 65 },
+          { id: 'inp-taiwan-spouse1-salary', prop: 'insuredMonthlySalary', spouse: 'spouse1', def: 45800 },
+          { id: 'inp-taiwan-spouse2-years', prop: 'yearsContributed', spouse: 'spouse2', def: 15 },
+          { id: 'inp-taiwan-spouse2-claim-age', prop: 'claimAge', spouse: 'spouse2', def: 65 },
+          { id: 'inp-taiwan-spouse2-salary', prop: 'insuredMonthlySalary', spouse: 'spouse2', def: 36000 }
+        ]
+      }
+    ];
+
+    newPensionConfigs.forEach(cfg => {
+      // Checkbox
+      const chk = document.getElementById(`chk-enable-${cfg.key}-pension`);
+      if (chk) {
+        chk.addEventListener("change", () => {
+          const plan = getActivePlan();
+          plan[cfg.planProp] = chk.checked;
+          savePlansToStorage();
+          cfg.updateFn(plan);
+          if (typeof renderIncomeStreamsList === 'function') renderIncomeStreamsList();
+          if (typeof updateCashflowBalanceUI === 'function') updateCashflowBalanceUI(plan);
+          updateAll();
+        });
+      }
+
+      // Edit Button
+      const btnEdit = document.getElementById(`btn-edit-${cfg.key}-pension`);
+      if (btnEdit) {
+        btnEdit.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const body = document.getElementById(`${cfg.key}-inputs-body`);
+          if (body) {
+            if (body.style.display === "none") {
+              body.style.display = "block";
+              btnEdit.innerText = "Sửa";
+            } else {
+              body.style.display = "none";
+              btnEdit.innerText = "Mở rộng";
+            }
+          }
+        });
+      }
+
+      // Delete / Toggle Button
+      const btnDel = document.getElementById(`btn-del-${cfg.key}-pension`);
+      if (btnDel) {
+        btnDel.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const plan = getActivePlan();
+          if (plan[cfg.planProp] !== false) {
+            showConfirmDialog({
+              icon: "",
+              title: `Xác nhận xóa Lương hưu ${cfg.name}`,
+              message: `Bạn có chắc chắn muốn tắt <strong>Lương hưu ${cfg.name}</strong>?<br><span style="font-size:0.75rem; color:var(--text-faint); margin-top:6px; display:inline-block;">Các luồng lương hưu này sẽ bị tạm tắt và các chỉ số FIRE được tính toán lại.</span>`,
+              confirmText: "Xóa nguồn thu",
+              onConfirm: () => {
+                plan[cfg.planProp] = false;
+                const c = document.getElementById(`chk-enable-${cfg.key}-pension`);
+                if (c) c.checked = false;
+                savePlansToStorage();
+                cfg.updateFn(plan);
+                if (typeof renderIncomeStreamsList === 'function') renderIncomeStreamsList();
+                if (typeof updateCashflowBalanceUI === 'function') updateCashflowBalanceUI(plan);
+                updateAll();
+              }
+            });
+          } else {
+            plan[cfg.planProp] = true;
+            const c = document.getElementById(`chk-enable-${cfg.key}-pension`);
+            if (c) c.checked = true;
+            savePlansToStorage();
+            cfg.updateFn(plan);
+            if (typeof renderIncomeStreamsList === 'function') renderIncomeStreamsList();
+            if (typeof updateCashflowBalanceUI === 'function') updateCashflowBalanceUI(plan);
+            updateAll();
+          }
+        });
+      }
+
+      // Inputs
+      cfg.inputs.forEach(inpDef => {
+        const el = document.getElementById(inpDef.id);
+        if (el) {
+          ['input', 'change'].forEach(evt => {
+            el.addEventListener(evt, () => {
+              const plan = getActivePlan();
+              if (!plan[cfg.detailsProp]) plan[cfg.detailsProp] = { spouse1: {}, spouse2: {} };
+              if (!plan[cfg.detailsProp][inpDef.spouse]) plan[cfg.detailsProp][inpDef.spouse] = {};
+              plan[cfg.detailsProp][inpDef.spouse][inpDef.prop] = Number(el.value) || inpDef.def;
+              savePlansToStorage();
+              cfg.updateFn(plan);
+              if (typeof renderIncomeStreamsList === 'function') renderIncomeStreamsList();
+              if (typeof updateCashflowBalanceUI === 'function') updateCashflowBalanceUI(plan);
+              updateAll();
+            });
+          });
+        }
+      });
+    });
+
     // LMNP Stream Card Events
     const btnEditLmnp = document.getElementById("btn-edit-lmnp-stream");
     if (btnEditLmnp) {
@@ -1322,6 +1499,478 @@
     }
   }
 
+  function updateJapanPensionUI(p) {
+    if (!p) p = getActivePlan();
+    const isEnabled = p.enableJapanPension !== false;
+    const chk = document.getElementById("chk-enable-japan-pension");
+    if (chk) chk.checked = isEnabled;
+
+    if (!p.japanPensionDetails) {
+      p.japanPensionDetails = {
+        spouse1: { grossAnnualSalary: 4500000, yearsContributed: 25, claimAge: 65 },
+        spouse2: { grossAnnualSalary: 3500000, yearsContributed: 20, claimAge: 65 }
+      };
+    }
+    const s1 = p.japanPensionDetails.spouse1 || {};
+    const s2 = p.japanPensionDetails.spouse2 || {};
+    const isMarried = (p.maritalStatus === 'married');
+
+    const s1Years = Number(s1.yearsContributed) || 25;
+    const s1Age = Number(s1.claimAge) || 65;
+    const s1Salary = Number(s1.grossAnnualSalary) || 4500000;
+
+    const s2Years = Number(s2.yearsContributed) || 20;
+    const s2Age = Number(s2.claimAge) || 65;
+    const s2Salary = Number(s2.grossAnnualSalary) || 3500000;
+
+    // Sync inputs
+    const inpS1Years = document.getElementById("inp-japan-spouse1-years");
+    const inpS1Age = document.getElementById("inp-japan-spouse1-claim-age");
+    const inpS1Sal = document.getElementById("inp-japan-spouse1-salary");
+    const inpS2Years = document.getElementById("inp-japan-spouse2-years");
+    const inpS2Age = document.getElementById("inp-japan-spouse2-claim-age");
+    const inpS2Sal = document.getElementById("inp-japan-spouse2-salary");
+
+    if (inpS1Years && Number(inpS1Years.value) !== s1Years) inpS1Years.value = s1Years;
+    if (inpS1Age && Number(inpS1Age.value) !== s1Age) inpS1Age.value = s1Age;
+    if (inpS1Sal && Number(inpS1Sal.value) !== s1Salary) inpS1Sal.value = s1Salary;
+    if (inpS2Years && Number(inpS2Years.value) !== s2Years) inpS2Years.value = s2Years;
+    if (inpS2Age && Number(inpS2Age.value) !== s2Age) inpS2Age.value = s2Age;
+    if (inpS2Sal && Number(inpS2Sal.value) !== s2Salary) inpS2Sal.value = s2Salary;
+
+    let res1 = { monthlyPensionJpy: 93800, totalAnnualPensionJpy: 1125600, monthlyPensionEur: 579, totalAnnualPensionEur: 6948, adjustmentPercent: 0, koseiJpy: 616000 };
+    let res2 = { monthlyPensionJpy: 65900, totalAnnualPensionJpy: 790800, monthlyPensionEur: 407, totalAnnualPensionEur: 4884, adjustmentPercent: 0, koseiJpy: 383000 };
+
+    if (window.TaxOptimizer && window.TaxOptimizer.calculateJapanPension) {
+      res1 = window.TaxOptimizer.calculateJapanPension(s1Salary, s1Years, s1Age);
+      res2 = window.TaxOptimizer.calculateJapanPension(s2Salary, s2Years, s2Age);
+    }
+
+    const b1Badge = document.getElementById("lbl-japan-spouse1-badge");
+    const b2Badge = document.getElementById("lbl-japan-spouse2-badge");
+    const b1Adj = document.getElementById("lbl-japan-spouse1-adj");
+    const b2Adj = document.getElementById("lbl-japan-spouse2-adj");
+    const b1Pen = document.getElementById("lbl-japan-spouse1-pension");
+    const b2Pen = document.getElementById("lbl-japan-spouse2-pension");
+
+    if (b1Badge) b1Badge.innerText = `${s1Years} năm • Nenkin 2 tầng`;
+    if (b2Badge) b2Badge.innerText = `${s2Years} năm • Nenkin 2 tầng`;
+    if (b1Adj) b1Adj.innerText = res1.adjustmentPercent === 0 ? "Chuẩn 65t: 0%" : (res1.adjustmentPercent > 0 ? `+${res1.adjustmentPercent}%` : `${res1.adjustmentPercent}%`);
+    if (b2Adj) b2Adj.innerText = res2.adjustmentPercent === 0 ? "Chuẩn 65t: 0%" : (res2.adjustmentPercent > 0 ? `+${res2.adjustmentPercent}%` : `${res2.adjustmentPercent}%`);
+    if (b1Pen) b1Pen.innerText = `~¥${res1.monthlyPensionJpy.toLocaleString()}/th (~${window.RetirementEngine.formatCurrency(res1.monthlyPensionEur, 'EUR')}/th)`;
+    if (b2Pen) b2Pen.innerText = `~¥${res2.monthlyPensionJpy.toLocaleString()}/th (~${window.RetirementEngine.formatCurrency(res2.monthlyPensionEur, 'EUR')}/th)`;
+
+    const totalMonthlyJpy = res1.monthlyPensionJpy + (isMarried ? res2.monthlyPensionJpy : 0);
+    const totalAnnualJpy = res1.totalAnnualPensionJpy + (isMarried ? res2.totalAnnualPensionJpy : 0);
+    const totalMonthlyEur = res1.monthlyPensionEur + (isMarried ? res2.monthlyPensionEur : 0);
+    const totalAnnualEur = res1.totalAnnualPensionEur + (isMarried ? res2.totalAnnualPensionEur : 0);
+
+    const lblMonthly = document.getElementById("lbl-japan-card-monthly");
+    const lblAnnual = document.getElementById("lbl-japan-card-annual");
+    const lblTotal = document.getElementById("lbl-japan-pension-effective");
+    const badgeStatus = document.getElementById("badge-japan-status");
+    const btnDel = document.getElementById("btn-del-japan-pension");
+    const cardAgeRange = document.getElementById("lbl-japan-card-age-range");
+
+    if (badgeStatus) badgeStatus.innerText = isMarried ? "2 Người (Nenkin)" : "1 Người (Nenkin)";
+    if (btnDel) {
+      btnDel.innerText = isEnabled ? "Xóa" : "Kích hoạt";
+      btnDel.className = isEnabled ? "income-item-btn income-item-del" : "income-item-btn";
+    }
+    if (lblMonthly) {
+      lblMonthly.innerHTML = isEnabled ? `¥${totalMonthlyJpy.toLocaleString()}<small>/tháng</small>` : `<span style="color: var(--text-faint);">¥0<small>/tháng</small></span>`;
+    }
+    if (lblAnnual) {
+      lblAnnual.innerText = isEnabled ? `≈ ¥${totalAnnualJpy.toLocaleString()}/năm (~${window.RetirementEngine.formatCurrency(totalAnnualEur, 'EUR')}/n)` : "Lương hưu Nhật Bản đang tạm tắt";
+    }
+    if (lblTotal) {
+      lblTotal.innerText = `~¥${totalMonthlyJpy.toLocaleString()}/tháng (~${window.RetirementEngine.formatCurrency(totalMonthlyEur, 'EUR')}/tháng)`;
+    }
+    if (cardAgeRange) {
+      cardAgeRange.innerText = `${s1Age} - ${Number(p.lifeExpectancy) || 85} tuổi`;
+    }
+  }
+
+  function updateCanadaPensionUI(p) {
+    if (!p) p = getActivePlan();
+    const isEnabled = p.enableCanadaPension !== false;
+    const chk = document.getElementById("chk-enable-canada-pension");
+    if (chk) chk.checked = isEnabled;
+
+    if (!p.canadaPensionDetails) {
+      p.canadaPensionDetails = {
+        spouse1: { grossAnnualSalary: 65000, yearsContributed: 30, yearsResident: 30, claimAge: 65 },
+        spouse2: { grossAnnualSalary: 50000, yearsContributed: 25, yearsResident: 25, claimAge: 65 }
+      };
+    }
+    const s1 = p.canadaPensionDetails.spouse1 || {};
+    const s2 = p.canadaPensionDetails.spouse2 || {};
+    const isMarried = (p.maritalStatus === 'married');
+
+    const s1Years = Number(s1.yearsContributed) || 30;
+    const s1ResYears = Number(s1.yearsResident) || 30;
+    const s1Age = Number(s1.claimAge) || 65;
+    const s1Salary = Number(s1.grossAnnualSalary) || 65000;
+
+    const s2Years = Number(s2.yearsContributed) || 25;
+    const s2ResYears = Number(s2.yearsResident) || 25;
+    const s2Age = Number(s2.claimAge) || 65;
+    const s2Salary = Number(s2.grossAnnualSalary) || 50000;
+
+    // Sync inputs
+    const inpS1Years = document.getElementById("inp-canada-spouse1-years");
+    const inpS1Res = document.getElementById("inp-canada-spouse1-res-years");
+    const inpS1Age = document.getElementById("inp-canada-spouse1-claim-age");
+    const inpS1Sal = document.getElementById("inp-canada-spouse1-salary");
+    const inpS2Years = document.getElementById("inp-canada-spouse2-years");
+    const inpS2Res = document.getElementById("inp-canada-spouse2-res-years");
+    const inpS2Age = document.getElementById("inp-canada-spouse2-claim-age");
+    const inpS2Sal = document.getElementById("inp-canada-spouse2-salary");
+
+    if (inpS1Years && Number(inpS1Years.value) !== s1Years) inpS1Years.value = s1Years;
+    if (inpS1Res && Number(inpS1Res.value) !== s1ResYears) inpS1Res.value = s1ResYears;
+    if (inpS1Age && Number(inpS1Age.value) !== s1Age) inpS1Age.value = s1Age;
+    if (inpS1Sal && Number(inpS1Sal.value) !== s1Salary) inpS1Sal.value = s1Salary;
+    if (inpS2Years && Number(inpS2Years.value) !== s2Years) inpS2Years.value = s2Years;
+    if (inpS2Res && Number(inpS2Res.value) !== s2ResYears) inpS2Res.value = s2ResYears;
+    if (inpS2Age && Number(inpS2Age.value) !== s2Age) inpS2Age.value = s2Age;
+    if (inpS2Sal && Number(inpS2Sal.value) !== s2Salary) inpS2Sal.value = s2Salary;
+
+    let res1 = { monthlyPensionCad: 1577, totalAnnualPensionCad: 18920, monthlyPensionEur: 1072, totalAnnualPensionEur: 12866, adjustmentPercent: 0 };
+    let res2 = { monthlyPensionCad: 1115, totalAnnualPensionCad: 13380, monthlyPensionEur: 758, totalAnnualPensionEur: 9098, adjustmentPercent: 0 };
+
+    if (window.TaxOptimizer && window.TaxOptimizer.calculateCanadaPension) {
+      res1 = window.TaxOptimizer.calculateCanadaPension(s1Salary, s1Years, s1ResYears, s1Age);
+      res2 = window.TaxOptimizer.calculateCanadaPension(s2Salary, s2Years, s2ResYears, s2Age);
+    }
+
+    const b1Badge = document.getElementById("lbl-canada-spouse1-badge");
+    const b2Badge = document.getElementById("lbl-canada-spouse2-badge");
+    const b1Adj = document.getElementById("lbl-canada-spouse1-adj");
+    const b2Adj = document.getElementById("lbl-canada-spouse2-adj");
+    const b1Pen = document.getElementById("lbl-canada-spouse1-pension");
+    const b2Pen = document.getElementById("lbl-canada-spouse2-pension");
+
+    if (b1Badge) b1Badge.innerText = `${s1Years}n CPP • ${s1ResYears}n OAS`;
+    if (b2Badge) b2Badge.innerText = `${s2Years}n CPP • ${s2ResYears}n OAS`;
+    if (b1Adj) b1Adj.innerText = res1.adjustmentPercent === 0 ? "Chuẩn 65t: 0%" : (res1.adjustmentPercent > 0 ? `+${res1.adjustmentPercent}%` : `${res1.adjustmentPercent}%`);
+    if (b2Adj) b2Adj.innerText = res2.adjustmentPercent === 0 ? "Chuẩn 65t: 0%" : (res2.adjustmentPercent > 0 ? `+${res2.adjustmentPercent}%` : `${res2.adjustmentPercent}%`);
+    if (b1Pen) b1Pen.innerText = `~$${res1.monthlyPensionCad.toLocaleString()} CAD/th (~${window.RetirementEngine.formatCurrency(res1.monthlyPensionEur, 'EUR')}/th)`;
+    if (b2Pen) b2Pen.innerText = `~$${res2.monthlyPensionCad.toLocaleString()} CAD/th (~${window.RetirementEngine.formatCurrency(res2.monthlyPensionEur, 'EUR')}/th)`;
+
+    const totalMonthlyCad = res1.monthlyPensionCad + (isMarried ? res2.monthlyPensionCad : 0);
+    const totalAnnualCad = res1.totalAnnualPensionCad + (isMarried ? res2.totalAnnualPensionCad : 0);
+    const totalMonthlyEur = res1.monthlyPensionEur + (isMarried ? res2.monthlyPensionEur : 0);
+    const totalAnnualEur = res1.totalAnnualPensionEur + (isMarried ? res2.totalAnnualPensionEur : 0);
+
+    const lblMonthly = document.getElementById("lbl-canada-card-monthly");
+    const lblAnnual = document.getElementById("lbl-canada-card-annual");
+    const lblTotal = document.getElementById("lbl-canada-pension-effective");
+    const badgeStatus = document.getElementById("badge-canada-status");
+    const btnDel = document.getElementById("btn-del-canada-pension");
+    const cardAgeRange = document.getElementById("lbl-canada-card-age-range");
+
+    if (badgeStatus) badgeStatus.innerText = isMarried ? "2 Người (CPP & OAS)" : "1 Người (CPP & OAS)";
+    if (btnDel) {
+      btnDel.innerText = isEnabled ? "Xóa" : "Kích hoạt";
+      btnDel.className = isEnabled ? "income-item-btn income-item-del" : "income-item-btn";
+    }
+    if (lblMonthly) {
+      lblMonthly.innerHTML = isEnabled ? `$${totalMonthlyCad.toLocaleString()} CAD<small>/tháng</small>` : `<span style="color: var(--text-faint);">$0 CAD<small>/tháng</small></span>`;
+    }
+    if (lblAnnual) {
+      lblAnnual.innerText = isEnabled ? `≈ $${totalAnnualCad.toLocaleString()} CAD/năm (~${window.RetirementEngine.formatCurrency(totalAnnualEur, 'EUR')}/n)` : "Lương hưu Canada đang tạm tắt";
+    }
+    if (lblTotal) {
+      lblTotal.innerText = `~$${totalMonthlyCad.toLocaleString()} CAD/tháng (~${window.RetirementEngine.formatCurrency(totalMonthlyEur, 'EUR')}/tháng)`;
+    }
+    if (cardAgeRange) {
+      cardAgeRange.innerText = `${s1Age} - ${Number(p.lifeExpectancy) || 85} tuổi`;
+    }
+  }
+
+  function updateAustraliaPensionUI(p) {
+    if (!p) p = getActivePlan();
+    const isEnabled = p.enableAustraliaPension !== false;
+    const chk = document.getElementById("chk-enable-australia-pension");
+    if (chk) chk.checked = isEnabled;
+
+    if (!p.australiaPensionDetails) {
+      p.australiaPensionDetails = {
+        spouse1: { grossAnnualSalary: 85000, yearsWorked: 25, superBalance: 250000, claimAge: 67 },
+        spouse2: { grossAnnualSalary: 65000, yearsWorked: 20, superBalance: 180000, claimAge: 67 }
+      };
+    }
+    const s1 = p.australiaPensionDetails.spouse1 || {};
+    const s2 = p.australiaPensionDetails.spouse2 || {};
+    const isMarried = (p.maritalStatus === 'married');
+
+    const s1Years = Number(s1.yearsWorked) || 25;
+    const s1Super = Number(s1.superBalance) || 250000;
+    const s1Age = Number(s1.claimAge) || 67;
+    const s1Salary = Number(s1.grossAnnualSalary) || 85000;
+
+    const s2Years = Number(s2.yearsWorked) || 20;
+    const s2Super = Number(s2.superBalance) || 180000;
+    const s2Age = Number(s2.claimAge) || 67;
+    const s2Salary = Number(s2.grossAnnualSalary) || 65000;
+
+    // Sync inputs
+    const inpS1Years = document.getElementById("inp-australia-spouse1-years");
+    const inpS1Super = document.getElementById("inp-australia-spouse1-super");
+    const inpS1Age = document.getElementById("inp-australia-spouse1-claim-age");
+    const inpS1Sal = document.getElementById("inp-australia-spouse1-salary");
+    const inpS2Years = document.getElementById("inp-australia-spouse2-years");
+    const inpS2Super = document.getElementById("inp-australia-spouse2-super");
+    const inpS2Age = document.getElementById("inp-australia-spouse2-claim-age");
+    const inpS2Sal = document.getElementById("inp-australia-spouse2-salary");
+
+    if (inpS1Years && Number(inpS1Years.value) !== s1Years) inpS1Years.value = s1Years;
+    if (inpS1Super && Number(inpS1Super.value) !== s1Super) inpS1Super.value = s1Super;
+    if (inpS1Age && Number(inpS1Age.value) !== s1Age) inpS1Age.value = s1Age;
+    if (inpS1Sal && Number(inpS1Sal.value) !== s1Salary) inpS1Sal.value = s1Salary;
+    if (inpS2Years && Number(inpS2Years.value) !== s2Years) inpS2Years.value = s2Years;
+    if (inpS2Super && Number(inpS2Super.value) !== s2Super) inpS2Super.value = s2Super;
+    if (inpS2Age && Number(inpS2Age.value) !== s2Age) inpS2Age.value = s2Age;
+    if (inpS2Sal && Number(inpS2Sal.value) !== s2Salary) inpS2Sal.value = s2Salary;
+
+    let res1 = { monthlyPensionAud: 2225, totalAnnualPensionAud: 26700, monthlyPensionEur: 1357, totalAnnualPensionEur: 16287, superAnnual: 12500, centrelinkAnnual: 14200 };
+    let res2 = { monthlyPensionAud: 1933, totalAnnualPensionAud: 23200, monthlyPensionEur: 1179, totalAnnualPensionEur: 14152, superAnnual: 9000, centrelinkAnnual: 14200 };
+
+    if (window.TaxOptimizer && window.TaxOptimizer.calculateAustraliaPension) {
+      res1 = window.TaxOptimizer.calculateAustraliaPension(s1Salary, s1Years, s1Super, s1Age);
+      res2 = window.TaxOptimizer.calculateAustraliaPension(s2Salary, s2Years, s2Super, s2Age);
+    }
+
+    const b1Badge = document.getElementById("lbl-australia-spouse1-badge");
+    const b2Badge = document.getElementById("lbl-australia-spouse2-badge");
+    const b1Adj = document.getElementById("lbl-australia-spouse1-adj");
+    const b2Adj = document.getElementById("lbl-australia-spouse2-adj");
+    const b1Pen = document.getElementById("lbl-australia-spouse1-pension");
+    const b2Pen = document.getElementById("lbl-australia-spouse2-pension");
+
+    if (b1Badge) b1Badge.innerText = `Super $${Math.round(s1Super/1000)}k • ${s1Years} năm`;
+    if (b2Badge) b2Badge.innerText = `Super $${Math.round(s2Super/1000)}k • ${s2Years} năm`;
+    if (b1Adj) b1Adj.innerText = s1Age >= 67 ? "Super + Age Pension" : "Chỉ rút Super (<67t)";
+    if (b2Adj) b2Adj.innerText = s2Age >= 67 ? "Super + Age Pension" : "Chỉ rút Super (<67t)";
+    if (b1Pen) b1Pen.innerText = `~$${res1.monthlyPensionAud.toLocaleString()} AUD/th (~${window.RetirementEngine.formatCurrency(res1.monthlyPensionEur, 'EUR')}/th)`;
+    if (b2Pen) b2Pen.innerText = `~$${res2.monthlyPensionAud.toLocaleString()} AUD/th (~${window.RetirementEngine.formatCurrency(res2.monthlyPensionEur, 'EUR')}/th)`;
+
+    const totalMonthlyAud = res1.monthlyPensionAud + (isMarried ? res2.monthlyPensionAud : 0);
+    const totalAnnualAud = res1.totalAnnualPensionAud + (isMarried ? res2.totalAnnualPensionAud : 0);
+    const totalMonthlyEur = res1.monthlyPensionEur + (isMarried ? res2.monthlyPensionEur : 0);
+    const totalAnnualEur = res1.totalAnnualPensionEur + (isMarried ? res2.totalAnnualPensionEur : 0);
+
+    const lblMonthly = document.getElementById("lbl-australia-card-monthly");
+    const lblAnnual = document.getElementById("lbl-australia-card-annual");
+    const lblTotal = document.getElementById("lbl-australia-pension-effective");
+    const badgeStatus = document.getElementById("badge-australia-status");
+    const btnDel = document.getElementById("btn-del-australia-pension");
+    const cardAgeRange = document.getElementById("lbl-australia-card-age-range");
+
+    if (badgeStatus) badgeStatus.innerText = isMarried ? "2 Người (Super & Age)" : "1 Người (Super & Age)";
+    if (btnDel) {
+      btnDel.innerText = isEnabled ? "Xóa" : "Kích hoạt";
+      btnDel.className = isEnabled ? "income-item-btn income-item-del" : "income-item-btn";
+    }
+    if (lblMonthly) {
+      lblMonthly.innerHTML = isEnabled ? `$${totalMonthlyAud.toLocaleString()} AUD<small>/tháng</small>` : `<span style="color: var(--text-faint);">$0 AUD<small>/tháng</small></span>`;
+    }
+    if (lblAnnual) {
+      lblAnnual.innerText = isEnabled ? `≈ $${totalAnnualAud.toLocaleString()} AUD/năm (~${window.RetirementEngine.formatCurrency(totalAnnualEur, 'EUR')}/n)` : "Lương hưu Úc đang tạm tắt";
+    }
+    if (lblTotal) {
+      lblTotal.innerText = `~$${totalMonthlyAud.toLocaleString()} AUD/tháng (~${window.RetirementEngine.formatCurrency(totalMonthlyEur, 'EUR')}/tháng)`;
+    }
+    if (cardAgeRange) {
+      cardAgeRange.innerText = `${s1Age} - ${Number(p.lifeExpectancy) || 85} tuổi`;
+    }
+  }
+
+  function updateKoreaPensionUI(p) {
+    if (!p) p = getActivePlan();
+    const isEnabled = p.enableKoreaPension !== false;
+    const chk = document.getElementById("chk-enable-korea-pension");
+    if (chk) chk.checked = isEnabled;
+
+    if (!p.koreaPensionDetails) {
+      p.koreaPensionDetails = {
+        spouse1: { grossMonthlySalary: 3500000, yearsContributed: 20, claimAge: 65 },
+        spouse2: { grossMonthlySalary: 2800000, yearsContributed: 15, claimAge: 65 }
+      };
+    }
+    const s1 = p.koreaPensionDetails.spouse1 || {};
+    const s2 = p.koreaPensionDetails.spouse2 || {};
+    const isMarried = (p.maritalStatus === 'married');
+
+    const s1Years = Number(s1.yearsContributed) || 20;
+    const s1Age = Number(s1.claimAge) || 65;
+    const s1Salary = Number(s1.grossMonthlySalary) || 3500000;
+
+    const s2Years = Number(s2.yearsContributed) || 15;
+    const s2Age = Number(s2.claimAge) || 65;
+    const s2Salary = Number(s2.grossMonthlySalary) || 2800000;
+
+    // Sync inputs
+    const inpS1Years = document.getElementById("inp-korea-spouse1-years");
+    const inpS1Age = document.getElementById("inp-korea-spouse1-claim-age");
+    const inpS1Sal = document.getElementById("inp-korea-spouse1-salary");
+    const inpS2Years = document.getElementById("inp-korea-spouse2-years");
+    const inpS2Age = document.getElementById("inp-korea-spouse2-claim-age");
+    const inpS2Sal = document.getElementById("inp-korea-spouse2-salary");
+
+    if (inpS1Years && Number(inpS1Years.value) !== s1Years) inpS1Years.value = s1Years;
+    if (inpS1Age && Number(inpS1Age.value) !== s1Age) inpS1Age.value = s1Age;
+    if (inpS1Sal && Number(inpS1Sal.value) !== s1Salary) inpS1Sal.value = s1Salary;
+    if (inpS2Years && Number(inpS2Years.value) !== s2Years) inpS2Years.value = s2Years;
+    if (inpS2Age && Number(inpS2Age.value) !== s2Age) inpS2Age.value = s2Age;
+    if (inpS2Sal && Number(inpS2Sal.value) !== s2Salary) inpS2Sal.value = s2Salary;
+
+    let res1 = { monthlyPensionKrw: 648900, totalAnnualPensionKrw: 7786800, monthlyPensionEur: 441, totalAnnualPensionEur: 5295, adjustmentPercent: 0 };
+    let res2 = { monthlyPensionKrw: 434200, totalAnnualPensionKrw: 5210400, monthlyPensionEur: 295, totalAnnualPensionEur: 3543, adjustmentPercent: 0 };
+
+    if (window.TaxOptimizer && window.TaxOptimizer.calculateKoreaPension) {
+      res1 = window.TaxOptimizer.calculateKoreaPension(s1Salary, s1Years, s1Age);
+      res2 = window.TaxOptimizer.calculateKoreaPension(s2Salary, s2Years, s2Age);
+    }
+
+    const b1Badge = document.getElementById("lbl-korea-spouse1-badge");
+    const b2Badge = document.getElementById("lbl-korea-spouse2-badge");
+    const b1Adj = document.getElementById("lbl-korea-spouse1-adj");
+    const b2Adj = document.getElementById("lbl-korea-spouse2-adj");
+    const b1Pen = document.getElementById("lbl-korea-spouse1-pension");
+    const b2Pen = document.getElementById("lbl-korea-spouse2-pension");
+
+    if (b1Badge) b1Badge.innerText = `${s1Years} năm • NPS`;
+    if (b2Badge) b2Badge.innerText = `${s2Years} năm • NPS`;
+    if (b1Adj) b1Adj.innerText = res1.adjustmentPercent === 0 ? "Chuẩn 65t: 0%" : (res1.adjustmentPercent > 0 ? `+${res1.adjustmentPercent}%` : `${res1.adjustmentPercent}%`);
+    if (b2Adj) b2Adj.innerText = res2.adjustmentPercent === 0 ? "Chuẩn 65t: 0%" : (res2.adjustmentPercent > 0 ? `+${res2.adjustmentPercent}%` : `${res2.adjustmentPercent}%`);
+    if (b1Pen) b1Pen.innerText = `~₩${res1.monthlyPensionKrw.toLocaleString()}/th (~${window.RetirementEngine.formatCurrency(res1.monthlyPensionEur, 'EUR')}/th)`;
+    if (b2Pen) b2Pen.innerText = `~₩${res2.monthlyPensionKrw.toLocaleString()}/th (~${window.RetirementEngine.formatCurrency(res2.monthlyPensionEur, 'EUR')}/th)`;
+
+    const totalMonthlyKrw = res1.monthlyPensionKrw + (isMarried ? res2.monthlyPensionKrw : 0);
+    const totalAnnualKrw = res1.totalAnnualPensionKrw + (isMarried ? res2.totalAnnualPensionKrw : 0);
+    const totalMonthlyEur = res1.monthlyPensionEur + (isMarried ? res2.monthlyPensionEur : 0);
+    const totalAnnualEur = res1.totalAnnualPensionEur + (isMarried ? res2.totalAnnualPensionEur : 0);
+
+    const lblMonthly = document.getElementById("lbl-korea-card-monthly");
+    const lblAnnual = document.getElementById("lbl-korea-card-annual");
+    const lblTotal = document.getElementById("lbl-korea-pension-effective");
+    const badgeStatus = document.getElementById("badge-korea-status");
+    const btnDel = document.getElementById("btn-del-korea-pension");
+    const cardAgeRange = document.getElementById("lbl-korea-card-age-range");
+
+    if (badgeStatus) badgeStatus.innerText = isMarried ? "2 Người (NPS)" : "1 Người (NPS)";
+    if (btnDel) {
+      btnDel.innerText = isEnabled ? "Xóa" : "Kích hoạt";
+      btnDel.className = isEnabled ? "income-item-btn income-item-del" : "income-item-btn";
+    }
+    if (lblMonthly) {
+      lblMonthly.innerHTML = isEnabled ? `₩${totalMonthlyKrw.toLocaleString()}<small>/tháng</small>` : `<span style="color: var(--text-faint);">₩0<small>/tháng</small></span>`;
+    }
+    if (lblAnnual) {
+      lblAnnual.innerText = isEnabled ? `≈ ₩${totalAnnualKrw.toLocaleString()}/năm (~${window.RetirementEngine.formatCurrency(totalAnnualEur, 'EUR')}/n)` : "Lương hưu Hàn Quốc đang tạm tắt";
+    }
+    if (lblTotal) {
+      lblTotal.innerText = `~₩${totalMonthlyKrw.toLocaleString()}/tháng (~${window.RetirementEngine.formatCurrency(totalMonthlyEur, 'EUR')}/tháng)`;
+    }
+    if (cardAgeRange) {
+      cardAgeRange.innerText = `${s1Age} - ${Number(p.lifeExpectancy) || 85} tuổi`;
+    }
+  }
+
+  function updateTaiwanPensionUI(p) {
+    if (!p) p = getActivePlan();
+    const isEnabled = p.enableTaiwanPension !== false;
+    const chk = document.getElementById("chk-enable-taiwan-pension");
+    if (chk) chk.checked = isEnabled;
+
+    if (!p.taiwanPensionDetails) {
+      p.taiwanPensionDetails = {
+        spouse1: { insuredMonthlySalary: 45800, yearsContributed: 20, claimAge: 65 },
+        spouse2: { insuredMonthlySalary: 36000, yearsContributed: 15, claimAge: 65 }
+      };
+    }
+    const s1 = p.taiwanPensionDetails.spouse1 || {};
+    const s2 = p.taiwanPensionDetails.spouse2 || {};
+    const isMarried = (p.maritalStatus === 'married');
+
+    const s1Years = Number(s1.yearsContributed) || 20;
+    const s1Age = Number(s1.claimAge) || 65;
+    const s1Salary = Number(s1.insuredMonthlySalary) || 45800;
+
+    const s2Years = Number(s2.yearsContributed) || 15;
+    const s2Age = Number(s2.claimAge) || 65;
+    const s2Salary = Number(s2.insuredMonthlySalary) || 36000;
+
+    // Sync inputs
+    const inpS1Years = document.getElementById("inp-taiwan-spouse1-years");
+    const inpS1Age = document.getElementById("inp-taiwan-spouse1-claim-age");
+    const inpS1Sal = document.getElementById("inp-taiwan-spouse1-salary");
+    const inpS2Years = document.getElementById("inp-taiwan-spouse2-years");
+    const inpS2Age = document.getElementById("inp-taiwan-spouse2-claim-age");
+    const inpS2Sal = document.getElementById("inp-taiwan-spouse2-salary");
+
+    if (inpS1Years && Number(inpS1Years.value) !== s1Years) inpS1Years.value = s1Years;
+    if (inpS1Age && Number(inpS1Age.value) !== s1Age) inpS1Age.value = s1Age;
+    if (inpS1Sal && Number(inpS1Sal.value) !== s1Salary) inpS1Sal.value = s1Salary;
+    if (inpS2Years && Number(inpS2Years.value) !== s2Years) inpS2Years.value = s2Years;
+    if (inpS2Age && Number(inpS2Age.value) !== s2Age) inpS2Age.value = s2Age;
+    if (inpS2Sal && Number(inpS2Sal.value) !== s2Salary) inpS2Sal.value = s2Salary;
+
+    let res1 = { monthlyPensionTwd: 17862, totalAnnualPensionTwd: 214344, monthlyPensionEur: 518, totalAnnualPensionEur: 6216, adjustmentPercent: 0 };
+    let res2 = { monthlyPensionTwd: 10530, totalAnnualPensionTwd: 126360, monthlyPensionEur: 305, totalAnnualPensionEur: 3664, adjustmentPercent: 0 };
+
+    if (window.TaxOptimizer && window.TaxOptimizer.calculateTaiwanPension) {
+      res1 = window.TaxOptimizer.calculateTaiwanPension(s1Salary, s1Years, s1Age);
+      res2 = window.TaxOptimizer.calculateTaiwanPension(s2Salary, s2Years, s2Age);
+    }
+
+    const b1Badge = document.getElementById("lbl-taiwan-spouse1-badge");
+    const b2Badge = document.getElementById("lbl-taiwan-spouse2-badge");
+    const b1Adj = document.getElementById("lbl-taiwan-spouse1-adj");
+    const b2Adj = document.getElementById("lbl-taiwan-spouse2-adj");
+    const b1Pen = document.getElementById("lbl-taiwan-spouse1-pension");
+    const b2Pen = document.getElementById("lbl-taiwan-spouse2-pension");
+
+    if (b1Badge) b1Badge.innerText = `${s1Years} năm • 勞保+勞退`;
+    if (b2Badge) b2Badge.innerText = `${s2Years} năm • 勞保+勞退`;
+    if (b1Adj) b1Adj.innerText = res1.adjustmentPercent === 0 ? "Chuẩn 65t: 0%" : (res1.adjustmentPercent > 0 ? `+${res1.adjustmentPercent}%` : `${res1.adjustmentPercent}%`);
+    if (b2Adj) b2Adj.innerText = res2.adjustmentPercent === 0 ? "Chuẩn 65t: 0%" : (res2.adjustmentPercent > 0 ? `+${res2.adjustmentPercent}%` : `${res2.adjustmentPercent}%`);
+    if (b1Pen) b1Pen.innerText = `~NT$${res1.monthlyPensionTwd.toLocaleString()}/th (~${window.RetirementEngine.formatCurrency(res1.monthlyPensionEur, 'EUR')}/th)`;
+    if (b2Pen) b2Pen.innerText = `~NT$${res2.monthlyPensionTwd.toLocaleString()}/th (~${window.RetirementEngine.formatCurrency(res2.monthlyPensionEur, 'EUR')}/th)`;
+
+    const totalMonthlyTwd = res1.monthlyPensionTwd + (isMarried ? res2.monthlyPensionTwd : 0);
+    const totalAnnualTwd = res1.totalAnnualPensionTwd + (isMarried ? res2.totalAnnualPensionTwd : 0);
+    const totalMonthlyEur = res1.monthlyPensionEur + (isMarried ? res2.monthlyPensionEur : 0);
+    const totalAnnualEur = res1.totalAnnualPensionEur + (isMarried ? res2.totalAnnualPensionEur : 0);
+
+    const lblMonthly = document.getElementById("lbl-taiwan-card-monthly");
+    const lblAnnual = document.getElementById("lbl-taiwan-card-annual");
+    const lblTotal = document.getElementById("lbl-taiwan-pension-effective");
+    const badgeStatus = document.getElementById("badge-taiwan-status");
+    const btnDel = document.getElementById("btn-del-taiwan-pension");
+    const cardAgeRange = document.getElementById("lbl-taiwan-card-age-range");
+
+    if (badgeStatus) badgeStatus.innerText = isMarried ? "2 Người (勞保 & 勞退)" : "1 Người (勞保 & 勞退)";
+    if (btnDel) {
+      btnDel.innerText = isEnabled ? "Xóa" : "Kích hoạt";
+      btnDel.className = isEnabled ? "income-item-btn income-item-del" : "income-item-btn";
+    }
+    if (lblMonthly) {
+      lblMonthly.innerHTML = isEnabled ? `NT$${totalMonthlyTwd.toLocaleString()}<small>/tháng</small>` : `<span style="color: var(--text-faint);">NT$0<small>/tháng</small></span>`;
+    }
+    if (lblAnnual) {
+      lblAnnual.innerText = isEnabled ? `≈ NT$${totalAnnualTwd.toLocaleString()}/năm (~${window.RetirementEngine.formatCurrency(totalAnnualEur, 'EUR')}/n)` : "Lương hưu Đài Loan đang tạm tắt";
+    }
+    if (lblTotal) {
+      lblTotal.innerText = `~NT$${totalMonthlyTwd.toLocaleString()}/tháng (~${window.RetirementEngine.formatCurrency(totalMonthlyEur, 'EUR')}/tháng)`;
+    }
+    if (cardAgeRange) {
+      cardAgeRange.innerText = `${s1Age} - ${Number(p.lifeExpectancy) || 85} tuổi`;
+    }
+  }
+
   function syncBhxhVnStreams(p) {
     if (!p) p = getActivePlan();
     if (!Array.isArray(p.expenses)) p.expenses = [];
@@ -2094,6 +2743,11 @@
     updateBhxhVnUI,
     updateGermanPensionUI,
     updateUsPensionUI,
+    updateJapanPensionUI,
+    updateCanadaPensionUI,
+    updateAustraliaPensionUI,
+    updateKoreaPensionUI,
+    updateTaiwanPensionUI,
     syncBhxhVnStreams,
     eurToPlanFactor,
     extractPatrimoineLoansEur,

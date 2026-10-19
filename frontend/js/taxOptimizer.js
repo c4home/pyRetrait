@@ -49,6 +49,8 @@ window.TaxOptimizer = (function() {
     'cn_shanghai': { countryCode: 'CN', label: 'Thượng Hải / Bắc Kinh', countryLabel: 'Trung Quốc', flag: '🇨🇳', ppp: 0.65, inflation: 0.025, healthCostBase: 120 },
     'cn_tier2': { countryCode: 'CN', label: 'Thành Đô / Tỉnh lẻ', countryLabel: 'Trung Quốc', flag: '🇨🇳', ppp: 0.45, inflation: 0.025, healthCostBase: 100 },
     'jp_tokyo': { countryCode: 'JP', label: 'Tokyo / Nhật Bản', countryLabel: 'Nhật Bản', flag: '🇯🇵', ppp: 0.85, inflation: 0.015, healthCostBase: 160 },
+    'kr_seoul': { countryCode: 'KR', label: 'Seoul / Hàn Quốc', countryLabel: 'Hàn Quốc', flag: '🇰🇷', ppp: 0.82, inflation: 0.022, healthCostBase: 150 },
+    'tw_taipei': { countryCode: 'TW', label: 'Đài Bắc / Đài Loan', countryLabel: 'Đài Loan', flag: '🇹🇼', ppp: 0.70, inflation: 0.020, healthCostBase: 130 },
 
     // 5. Tùy chỉnh cá nhân
     'custom': { countryCode: 'CUSTOM', label: 'Tùy chỉnh cá nhân', countryLabel: 'Khác', flag: '🌐', ppp: 1.00, inflation: 0.025, healthCostBase: 150 }
@@ -886,6 +888,401 @@ window.TaxOptimizer = (function() {
   }
 
   /**
+   * Tính Lương hưu An sinh Nhật Bản (Kokumin Nenkin & Kōsei Nenkin)
+   * - Tầng 1: Lương hưu cơ sở (Kokumin Nenkin): chuẩn 40 năm nhận ~816.000 JPY/năm (~68.000 JPY/tháng)
+   * - Tầng 2: Lương hưu phúc lợi (Kōsei Nenkin): Lương gộp x 0.5481% x Số năm làm việc
+   * - Tuổi chuẩn: 65 tuổi
+   * - Nhận sớm (60-64): -0.4%/tháng (-4.8%/năm)
+   * - Nhận muộn (66-75): +0.7%/tháng (+8.4%/năm)
+   */
+  function calculateJapanPension(grossAnnualSalaryJpy, yearsContributed = 25, claimAge = 65) {
+    if (typeof grossAnnualSalaryJpy === 'object' && grossAnnualSalaryJpy !== null && (grossAnnualSalaryJpy.spouse1 || grossAnnualSalaryJpy.spouse2)) {
+      const s1 = grossAnnualSalaryJpy.spouse1 || {};
+      const s2 = grossAnnualSalaryJpy.spouse2 || {};
+      const p1 = calculateJapanPension(
+        s1.grossAnnualSalary || s1.salary || 4500000,
+        s1.yearsContributed !== undefined ? s1.yearsContributed : 25,
+        s1.claimAge !== undefined ? s1.claimAge : 65
+      );
+      const p2 = calculateJapanPension(
+        s2.grossAnnualSalary || s2.salary || 3500000,
+        s2.yearsContributed !== undefined ? s2.yearsContributed : 20,
+        s2.claimAge !== undefined ? s2.claimAge : 65
+      );
+      return {
+        spouse1: p1,
+        spouse2: p2,
+        totalMonthlyPensionJpy: p1.monthlyPensionJpy + p2.monthlyPensionJpy,
+        totalAnnualPensionJpy: p1.totalAnnualPensionJpy + p2.totalAnnualPensionJpy,
+        totalMonthlyPensionEur: p1.monthlyPensionEur + p2.monthlyPensionEur,
+        totalAnnualPensionEur: p1.totalAnnualPensionEur + p2.totalAnnualPensionEur,
+        monthlyPension: p1.monthlyPensionEur + p2.monthlyPensionEur,
+        totalAnnualPension: p1.totalAnnualPensionEur + p2.totalAnnualPensionEur
+      };
+    }
+
+    const salary = Number(grossAnnualSalaryJpy) || 0;
+    const years = Math.max(0, Number(yearsContributed) || 0);
+    const actualClaimAge = (claimAge !== null && claimAge !== undefined) ? Number(claimAge) : 65;
+
+    // Tầng 1: Kokumin Nenkin (chuẩn 40 năm = 816,000 JPY/năm 2024)
+    const baseJpy = Math.round(816000 * Math.min(40, years) / 40);
+    // Tầng 2: Kōsei Nenkin (0.5481% mỗi năm trên thu nhập hàng năm)
+    const koseiJpy = Math.round(salary * 0.005481 * years);
+
+    // Hệ số tuổi nhận hưu (chuẩn 65t)
+    let adj = 1.0;
+    if (actualClaimAge < 65) {
+      const yearsEarly = Math.min(5, Math.max(0, 65 - actualClaimAge));
+      adj = Math.max(0.76, 1.0 - (yearsEarly * 0.048));
+    } else if (actualClaimAge > 65) {
+      const yearsLate = Math.min(10, Math.max(0, actualClaimAge - 65));
+      adj = 1.0 + (yearsLate * 0.084);
+    }
+    adj = Math.round(adj * 1000) / 1000;
+
+    const totalAnnualPensionJpy = Math.round((baseJpy + koseiJpy) * adj);
+    const monthlyPensionJpy = Math.round(totalAnnualPensionJpy / 12);
+
+    // Tỷ giá quy đổi ước tính 1 EUR ~ 162 JPY
+    const EUR_JPY_RATE = 162.0;
+    const monthlyPensionEur = Math.round(monthlyPensionJpy / EUR_JPY_RATE);
+    const totalAnnualPensionEur = Math.round(totalAnnualPensionJpy / EUR_JPY_RATE);
+
+    return {
+      grossAnnualSalaryJpy: salary,
+      yearsContributed: years,
+      claimAge: actualClaimAge,
+      baseJpy,
+      koseiJpy,
+      adjustmentPercent: Math.round((adj - 1.0) * 100 * 10) / 10,
+      monthlyPensionJpy,
+      totalAnnualPensionJpy,
+      monthlyPensionEur,
+      totalAnnualPensionEur,
+      monthlyPension: monthlyPensionEur,
+      totalAnnualPension: totalAnnualPensionEur
+    };
+  }
+
+  /**
+   * Tính Lương hưu Canada (CPP & OAS)
+   * - CPP: 25% thu nhập bình quân tới mức trần YMPE ($68.500 CAD 2024) chuẩn 39 năm
+   * - OAS: Trợ cấp tuổi già không cần đóng góp, cư trú 10-40 năm ($8.560 CAD/năm)
+   * - Tuổi chuẩn: 65 tuổi
+   * - Nhận sớm CPP (60-64): -7.2%/năm (-0.6%/tháng)
+   * - Nhận muộn CPP & OAS (66-70): +8.4%/năm cho CPP, +7.2%/năm cho OAS
+   */
+  function calculateCanadaPension(grossAnnualSalaryCad, yearsContributed = 30, yearsResident = 30, claimAge = 65) {
+    if (typeof grossAnnualSalaryCad === 'object' && grossAnnualSalaryCad !== null && (grossAnnualSalaryCad.spouse1 || grossAnnualSalaryCad.spouse2)) {
+      const s1 = grossAnnualSalaryCad.spouse1 || {};
+      const s2 = grossAnnualSalaryCad.spouse2 || {};
+      const p1 = calculateCanadaPension(
+        s1.grossAnnualSalary || s1.salary || 65000,
+        s1.yearsContributed !== undefined ? s1.yearsContributed : 30,
+        s1.yearsResident !== undefined ? s1.yearsResident : 30,
+        s1.claimAge !== undefined ? s1.claimAge : 65
+      );
+      const p2 = calculateCanadaPension(
+        s2.grossAnnualSalary || s2.salary || 50000,
+        s2.yearsContributed !== undefined ? s2.yearsContributed : 25,
+        s2.yearsResident !== undefined ? s2.yearsResident : 25,
+        s2.claimAge !== undefined ? s2.claimAge : 65
+      );
+      return {
+        spouse1: p1,
+        spouse2: p2,
+        totalMonthlyPensionCad: p1.monthlyPensionCad + p2.monthlyPensionCad,
+        totalAnnualPensionCad: p1.totalAnnualPensionCad + p2.totalAnnualPensionCad,
+        totalMonthlyPensionEur: p1.monthlyPensionEur + p2.monthlyPensionEur,
+        totalAnnualPensionEur: p1.totalAnnualPensionEur + p2.totalAnnualPensionEur,
+        monthlyPension: p1.monthlyPensionEur + p2.monthlyPensionEur,
+        totalAnnualPension: p1.totalAnnualPensionEur + p2.totalAnnualPensionEur
+      };
+    }
+
+    const salary = Number(grossAnnualSalaryCad) || 0;
+    const years = Math.max(0, Number(yearsContributed) || 0);
+    const resYears = Math.max(0, Number(yearsResident) || 0);
+    const actualClaimAge = (claimAge !== null && claimAge !== undefined) ? Number(claimAge) : 65;
+
+    // CPP: Trần YMPE 2024 = $68,500 CAD
+    const YMPE_2024 = 68500;
+    const cappedEarnings = Math.min(salary, YMPE_2024);
+    const cppBase = (cappedEarnings * 0.25) * Math.min(1.0, years / 39.0);
+
+    let adjCpp = 1.0;
+    if (actualClaimAge < 65) {
+      const yearsEarly = Math.min(5, Math.max(0, 65 - actualClaimAge));
+      adjCpp = Math.max(0.64, 1.0 - (yearsEarly * 0.072));
+    } else if (actualClaimAge > 65) {
+      const yearsLate = Math.min(5, Math.max(0, actualClaimAge - 65));
+      adjCpp = 1.0 + (yearsLate * 0.084);
+    }
+    const cppAnnual = Math.round(cppBase * adjCpp);
+
+    // OAS: Cư trú tối thiểu 10 năm sau 18 tuổi, max 40 năm ($8,560 CAD/năm)
+    let oasAnnual = 0;
+    if (resYears >= 10 && actualClaimAge >= 65) {
+      const oasBase = 8560 * Math.min(40, resYears) / 40;
+      const yearsLateOas = Math.min(5, Math.max(0, actualClaimAge - 65));
+      const adjOas = 1.0 + (yearsLateOas * 0.072);
+      oasAnnual = Math.round(oasBase * adjOas);
+    }
+
+    const totalAnnualPensionCad = cppAnnual + oasAnnual;
+    const monthlyPensionCad = Math.round(totalAnnualPensionCad / 12);
+
+    // Tỷ giá quy đổi ước tính 1 CAD ~ 0.68 EUR
+    const CAD_EUR_RATE = 0.68;
+    const monthlyPensionEur = Math.round(monthlyPensionCad * CAD_EUR_RATE);
+    const totalAnnualPensionEur = Math.round(totalAnnualPensionCad * CAD_EUR_RATE);
+
+    return {
+      grossAnnualSalaryCad: salary,
+      yearsContributed: years,
+      yearsResident: resYears,
+      claimAge: actualClaimAge,
+      cppAnnual,
+      oasAnnual,
+      adjustmentPercent: Math.round((adjCpp - 1.0) * 100 * 10) / 10,
+      monthlyPensionCad,
+      totalAnnualPensionCad,
+      monthlyPensionEur,
+      totalAnnualPensionEur,
+      monthlyPension: monthlyPensionEur,
+      totalAnnualPension: totalAnnualPensionEur
+    };
+  }
+
+  /**
+   * Tính Lương hưu Úc (Superannuation & Age Pension Centrelink)
+   * - Superannuation: Niên kim trích từ quỹ Super tích lũy (SG 11.5% lương, rút ~5%/năm)
+   * - Age Pension: Trợ cấp an sinh chính phủ (FRA 67t, tối đa ~$29.000 AUD/năm độc thân, ~$21.850 AUD/người cặp đôi)
+   */
+  function calculateAustraliaPension(grossAnnualSalaryAud, yearsWorked = 25, superBalanceAud = 200000, claimAge = 67) {
+    if (typeof grossAnnualSalaryAud === 'object' && grossAnnualSalaryAud !== null && (grossAnnualSalaryAud.spouse1 || grossAnnualSalaryAud.spouse2)) {
+      const s1 = grossAnnualSalaryAud.spouse1 || {};
+      const s2 = grossAnnualSalaryAud.spouse2 || {};
+      const p1 = calculateAustraliaPension(
+        s1.grossAnnualSalary || s1.salary || 85000,
+        s1.yearsWorked !== undefined ? s1.yearsWorked : 25,
+        s1.superBalance !== undefined ? s1.superBalance : 250000,
+        s1.claimAge !== undefined ? s1.claimAge : 67
+      );
+      const p2 = calculateAustraliaPension(
+        s2.grossAnnualSalary || s2.salary || 65000,
+        s2.yearsWorked !== undefined ? s2.yearsWorked : 20,
+        s2.superBalance !== undefined ? s2.superBalance : 180000,
+        s2.claimAge !== undefined ? s2.claimAge : 67
+      );
+      return {
+        spouse1: p1,
+        spouse2: p2,
+        totalMonthlyPensionAud: p1.monthlyPensionAud + p2.monthlyPensionAud,
+        totalAnnualPensionAud: p1.totalAnnualPensionAud + p2.totalAnnualPensionAud,
+        totalMonthlyPensionEur: p1.monthlyPensionEur + p2.monthlyPensionEur,
+        totalAnnualPensionEur: p1.totalAnnualPensionEur + p2.totalAnnualPensionEur,
+        monthlyPension: p1.monthlyPensionEur + p2.monthlyPensionEur,
+        totalAnnualPension: p1.totalAnnualPensionEur + p2.totalAnnualPensionEur
+      };
+    }
+
+    const salary = Number(grossAnnualSalaryAud) || 0;
+    const years = Math.max(0, Number(yearsWorked) || 0);
+    const actualClaimAge = (claimAge !== null && claimAge !== undefined) ? Number(claimAge) : 67;
+
+    // Super Balance ước tính hoặc đã nhập
+    let superBal = Number(superBalanceAud);
+    if (!superBal || isNaN(superBal)) {
+      superBal = Math.round(salary * 0.115 * years * 1.5);
+    }
+    // Rút niên kim an toàn 5%/năm từ quỹ Super
+    const superAnnual = Math.round(superBal * 0.05);
+
+    // Age Pension (Centrelink): Chuẩn 67 tuổi, ước tính 65% mức chuẩn cặp đôi ($21,850 AUD/năm)
+    const centrelinkAnnual = (actualClaimAge >= 67) ? Math.round(21850 * 0.65) : 0;
+
+    const totalAnnualPensionAud = superAnnual + centrelinkAnnual;
+    const monthlyPensionAud = Math.round(totalAnnualPensionAud / 12);
+
+    // Tỷ giá quy đổi ước tính 1 AUD ~ 0.61 EUR
+    const AUD_EUR_RATE = 0.61;
+    const monthlyPensionEur = Math.round(monthlyPensionAud * AUD_EUR_RATE);
+    const totalAnnualPensionEur = Math.round(totalAnnualPensionAud * AUD_EUR_RATE);
+
+    return {
+      grossAnnualSalaryAud: salary,
+      yearsWorked: years,
+      superBalanceAud: superBal,
+      claimAge: actualClaimAge,
+      superAnnual,
+      centrelinkAnnual,
+      monthlyPensionAud,
+      totalAnnualPensionAud,
+      monthlyPensionEur,
+      totalAnnualPensionEur,
+      monthlyPension: monthlyPensionEur,
+      totalAnnualPension: totalAnnualPensionEur
+    };
+  }
+
+  /**
+   * Tính Lương hưu Quốc gia Hàn Quốc (National Pension Service - NPS)
+   * - Công thức: Lương tháng bình quân NPS = ((A + B) / 2) x (1.0% x Số năm đóng)
+   * - A = Lương bình quân toàn quốc (2.989.237 KRW)
+   * - B = Lương bình quân cá nhân (trần 6.170.000 KRW)
+   * - Tuổi chuẩn: 65 tuổi
+   * - Nhận sớm (60-64): -6%/năm
+   * - Nhận muộn (66-70): +7.2%/năm
+   */
+  function calculateKoreaPension(grossMonthlySalaryKrw, yearsContributed = 20, claimAge = 65) {
+    if (typeof grossMonthlySalaryKrw === 'object' && grossMonthlySalaryKrw !== null && (grossMonthlySalaryKrw.spouse1 || grossMonthlySalaryKrw.spouse2)) {
+      const s1 = grossMonthlySalaryKrw.spouse1 || {};
+      const s2 = grossMonthlySalaryKrw.spouse2 || {};
+      const p1 = calculateKoreaPension(
+        s1.grossMonthlySalary || s1.salary || 3500000,
+        s1.yearsContributed !== undefined ? s1.yearsContributed : 20,
+        s1.claimAge !== undefined ? s1.claimAge : 65
+      );
+      const p2 = calculateKoreaPension(
+        s2.grossMonthlySalary || s2.salary || 2800000,
+        s2.yearsContributed !== undefined ? s2.yearsContributed : 15,
+        s2.claimAge !== undefined ? s2.claimAge : 65
+      );
+      return {
+        spouse1: p1,
+        spouse2: p2,
+        totalMonthlyPensionKrw: p1.monthlyPensionKrw + p2.monthlyPensionKrw,
+        totalAnnualPensionKrw: p1.totalAnnualPensionKrw + p2.totalAnnualPensionKrw,
+        totalMonthlyPensionEur: p1.monthlyPensionEur + p2.monthlyPensionEur,
+        totalAnnualPensionEur: p1.totalAnnualPensionEur + p2.totalAnnualPensionEur,
+        monthlyPension: p1.monthlyPensionEur + p2.monthlyPensionEur,
+        totalAnnualPension: p1.totalAnnualPensionEur + p2.totalAnnualPensionEur
+      };
+    }
+
+    const salary = Number(grossMonthlySalaryKrw) || 0;
+    const years = Math.max(0, Number(yearsContributed) || 0);
+    const actualClaimAge = (claimAge !== null && claimAge !== undefined) ? Number(claimAge) : 65;
+
+    const A_VALUE = 2989237; // Thu nhập bình quân toàn quốc NPS 2024
+    const B_VALUE = Math.min(salary, 6170000); // Trần thu nhập NPS 2024
+
+    // Tỷ lệ thay thế 1% mỗi năm đóng góp
+    const baseMonthlyKrw = Math.round(((A_VALUE + B_VALUE) / 2) * (years * 0.01));
+
+    let adj = 1.0;
+    if (actualClaimAge < 65) {
+      const yearsEarly = Math.min(5, Math.max(0, 65 - actualClaimAge));
+      adj = Math.max(0.70, 1.0 - (yearsEarly * 0.06));
+    } else if (actualClaimAge > 65) {
+      const yearsLate = Math.min(5, Math.max(0, actualClaimAge - 65));
+      adj = 1.0 + (yearsLate * 0.072);
+    }
+    adj = Math.round(adj * 1000) / 1000;
+
+    const monthlyPensionKrw = Math.round(baseMonthlyKrw * adj);
+    const totalAnnualPensionKrw = monthlyPensionKrw * 12;
+
+    // Tỷ giá quy đổi ước tính 1 KRW ~ 0.00068 EUR (1 EUR ~ 1,470 KRW)
+    const KRW_EUR_RATE = 0.00068;
+    const monthlyPensionEur = Math.round(monthlyPensionKrw * KRW_EUR_RATE);
+    const totalAnnualPensionEur = Math.round(totalAnnualPensionKrw * KRW_EUR_RATE);
+
+    return {
+      grossMonthlySalaryKrw: salary,
+      yearsContributed: years,
+      claimAge: actualClaimAge,
+      baseMonthlyKrw,
+      adjustmentPercent: Math.round((adj - 1.0) * 100 * 10) / 10,
+      monthlyPensionKrw,
+      totalAnnualPensionKrw,
+      monthlyPensionEur,
+      totalAnnualPensionEur,
+      monthlyPension: monthlyPensionEur,
+      totalAnnualPension: totalAnnualPensionEur
+    };
+  }
+
+  /**
+   * Tính Lương hưu Đài Loan (Bảo hiểm Lao động 勞保 & Hưu trí Lao động 勞退)
+   * - Trụ cột 1 (勞保老年年金): Lương đóng (trần 45.800 TWD) x Số năm tham gia x 1.55%
+   * - Trụ cột 2 (勞退新制): Niên kim trích từ tài khoản tích lũy 6% chủ sử dụng lao động
+   * - Tuổi chuẩn: 65 tuổi
+   * - Nhận sớm (60-64): -4%/năm (tối đa -20%)
+   * - Nhận muộn (66-70): +4%/năm (tối đa +20%)
+   */
+  function calculateTaiwanPension(insuredMonthlySalaryTwd, yearsContributed = 20, claimAge = 65) {
+    if (typeof insuredMonthlySalaryTwd === 'object' && insuredMonthlySalaryTwd !== null && (insuredMonthlySalaryTwd.spouse1 || insuredMonthlySalaryTwd.spouse2)) {
+      const s1 = insuredMonthlySalaryTwd.spouse1 || {};
+      const s2 = insuredMonthlySalaryTwd.spouse2 || {};
+      const p1 = calculateTaiwanPension(
+        s1.insuredMonthlySalary || s1.salary || 45800,
+        s1.yearsContributed !== undefined ? s1.yearsContributed : 20,
+        s1.claimAge !== undefined ? s1.claimAge : 65
+      );
+      const p2 = calculateTaiwanPension(
+        s2.insuredMonthlySalary || s2.salary || 36000,
+        s2.yearsContributed !== undefined ? s2.yearsContributed : 15,
+        s2.claimAge !== undefined ? s2.claimAge : 65
+      );
+      return {
+        spouse1: p1,
+        spouse2: p2,
+        totalMonthlyPensionTwd: p1.monthlyPensionTwd + p2.monthlyPensionTwd,
+        totalAnnualPensionTwd: p1.totalAnnualPensionTwd + p2.totalAnnualPensionTwd,
+        totalMonthlyPensionEur: p1.monthlyPensionEur + p2.monthlyPensionEur,
+        totalAnnualPensionEur: p1.totalAnnualPensionEur + p2.totalAnnualPensionEur,
+        monthlyPension: p1.monthlyPensionEur + p2.monthlyPensionEur,
+        totalAnnualPension: p1.totalAnnualPensionEur + p2.totalAnnualPensionEur
+      };
+    }
+
+    const salary = Math.min(Number(insuredMonthlySalaryTwd) || 45800, 45800);
+    const years = Math.max(0, Number(yearsContributed) || 0);
+    const actualClaimAge = (claimAge !== null && claimAge !== undefined) ? Number(claimAge) : 65;
+
+    // Trụ cột 1: Bảo hiểm lao động (Phương án B: 1.55% mỗi năm)
+    const laborInsBase = salary * years * 0.0155;
+    let adj = 1.0;
+    if (actualClaimAge < 65) {
+      const yearsEarly = Math.min(5, Math.max(0, 65 - actualClaimAge));
+      adj = Math.max(0.80, 1.0 - (yearsEarly * 0.04));
+    } else if (actualClaimAge > 65) {
+      const yearsLate = Math.min(5, Math.max(0, actualClaimAge - 65));
+      adj = Math.min(1.20, 1.0 + (yearsLate * 0.04));
+    }
+    const laborInsMonthly = Math.round(laborInsBase * adj);
+
+    // Trụ cột 2: Hưu trí lao động mới 勞退 (~0.4% lương mỗi năm tích lũy)
+    const laborPensionMonthly = (actualClaimAge >= 60) ? Math.round(salary * years * 0.004) : 0;
+
+    const monthlyPensionTwd = laborInsMonthly + laborPensionMonthly;
+    const totalAnnualPensionTwd = monthlyPensionTwd * 12;
+
+    // Tỷ giá quy đổi ước tính 1 TWD ~ 0.029 EUR (1 EUR ~ 34.5 TWD)
+    const TWD_EUR_RATE = 0.029;
+    const monthlyPensionEur = Math.round(monthlyPensionTwd * TWD_EUR_RATE);
+    const totalAnnualPensionEur = Math.round(totalAnnualPensionTwd * TWD_EUR_RATE);
+
+    return {
+      insuredMonthlySalaryTwd: salary,
+      yearsContributed: years,
+      claimAge: actualClaimAge,
+      laborInsMonthly,
+      laborPensionMonthly,
+      adjustmentPercent: Math.round((adj - 1.0) * 100 * 10) / 10,
+      monthlyPensionTwd,
+      totalAnnualPensionTwd,
+      monthlyPensionEur,
+      totalAnnualPensionEur,
+      monthlyPension: monthlyPensionEur,
+      totalAnnualPension: totalAnnualPensionEur
+    };
+  }
+
+  /**
    * Tax-Efficient French Account Withdrawal Waterfall
    * Priority:
    * 1. Livret A / Cash (100% tax free, low yield)
@@ -968,6 +1365,11 @@ window.TaxOptimizer = (function() {
     calculateVietnamBhxhPension,
     calculateGermanPension,
     calculateUsSocialSecurityPension,
+    calculateJapanPension,
+    calculateCanadaPension,
+    calculateAustraliaPension,
+    calculateKoreaPension,
+    calculateTaiwanPension,
     simulateWithdrawalWaterfall
   };
 })();

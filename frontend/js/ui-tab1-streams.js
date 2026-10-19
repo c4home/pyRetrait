@@ -924,7 +924,7 @@
     if (!p) p = getActivePlan();
     if (!p) return;
 
-    const isDomestic = (p.retireMode === 'domestic' || (p.workCountry && p.retireCountry && p.workCountry === p.retireCountry));
+    const isDomestic = (p.retireMode === 'domestic' || (p.workCountry && p.retireCountry && p.workCountry === p.retireCountry) || (p.workCity && p.retireCity && p.workCity === p.retireCity));
     const chk = document.getElementById("chk-dual-inflation-enabled");
     const cardEl = document.getElementById("card-dual-inflation-stream");
     const lblTitle = document.getElementById("lbl-inflation-card-title");
@@ -1732,14 +1732,18 @@
     if (!plan) plan = getActivePlan();
     if (!plan) return;
 
-    const isDomestic = (plan.retireMode === 'domestic' || (plan.workCountry && plan.retireCountry && plan.workCountry === plan.retireCountry));
+    const isDomestic = (plan.retireMode === 'domestic' || (plan.workCountry && plan.retireCountry && plan.workCountry === plan.retireCountry) || (plan.workCity && plan.retireCity && plan.workCity === plan.retireCity));
     const cardDualInf = document.getElementById("card-dual-inflation-stream");
     const locRadios = document.getElementById("retire-location-radios");
+    const badgeRetirePpp = document.getElementById("badge-retire-ppp");
     if (cardDualInf) {
       cardDualInf.style.display = ""; // Luôn hiển thị thẻ lạm phát trong Cột Chi Tiêu
     }
     if (locRadios) {
       locRadios.style.display = isDomestic ? "none" : "";
+    }
+    if (badgeRetirePpp) {
+      badgeRetirePpp.style.display = isDomestic ? "none" : "";
     }
     updateDualInflationUI(plan);
 
@@ -1772,8 +1776,39 @@
       cardUs.style.display = hasUs ? "" : "none";
     }
 
+    const hasJp = (workC === 'JP' || retireC === 'JP');
+    const cardJapan = document.getElementById("card-japan-pension-stream");
+    if (cardJapan) {
+      cardJapan.style.display = hasJp ? "" : "none";
+    }
+
+    const hasCa = (workC === 'CA' || retireC === 'CA');
+    const cardCanada = document.getElementById("card-canada-pension-stream");
+    if (cardCanada) {
+      cardCanada.style.display = hasCa ? "" : "none";
+    }
+
+    const hasAu = (workC === 'AU' || retireC === 'AU');
+    const cardAustralia = document.getElementById("card-australia-pension-stream");
+    if (cardAustralia) {
+      cardAustralia.style.display = hasAu ? "" : "none";
+    }
+
+    const hasKr = (workC === 'KR' || retireC === 'KR');
+    const cardKorea = document.getElementById("card-korea-pension-stream");
+    if (cardKorea) {
+      cardKorea.style.display = hasKr ? "" : "none";
+    }
+
+    const hasTw = (workC === 'TW' || retireC === 'TW');
+    const cardTaiwan = document.getElementById("card-taiwan-pension-stream");
+    if (cardTaiwan) {
+      cardTaiwan.style.display = hasTw ? "" : "none";
+    }
+
     // Khối thông báo minh bạch khi quốc gia chưa có mô hình hưu trí tự động
-    const isSupportedCountry = ['FR', 'VN', 'DE', 'US'].includes(workC) || ['FR', 'VN', 'DE', 'US'].includes(retireC);
+    const supportedCountryCodes = ['FR', 'VN', 'DE', 'US', 'JP', 'CA', 'AU', 'KR', 'TW'];
+    const isSupportedCountry = supportedCountryCodes.includes(workC) || supportedCountryCodes.includes(retireC);
     const calloutUnsupported = document.getElementById("callout-pension-unsupported");
     if (calloutUnsupported) {
       calloutUnsupported.style.display = !isSupportedCountry ? "block" : "none";
@@ -1930,12 +1965,137 @@
       lblUsTitle.innerText = isMarried ? "Tổng lương hưu Mỹ cả hai người:" : "Tổng lương hưu Mỹ cá nhân:";
     }
 
+    // Japan Pension card: show/hide spouse 2 & full-width single column
+    const japanInputsBody = document.getElementById("japan-inputs-body");
+    if (japanInputsBody) {
+      const grid = japanInputsBody.querySelector(".spouse-pension-grid");
+      if (grid) {
+        if (isMarried) grid.classList.remove("is-single");
+        else grid.classList.add("is-single");
+      }
+      const cols = japanInputsBody.querySelectorAll(".spouse-col-card");
+      if (cols && cols.length >= 2) {
+        cols[1].style.display = isMarried ? "" : "none";
+      }
+    }
+    const badgeJapan = document.getElementById("badge-japan-status");
+    if (badgeJapan) {
+      badgeJapan.innerText = isMarried ? "2 Người (Nenkin)" : "1 Người (Nenkin)";
+    }
+    const lblJapanTitle = document.getElementById("lbl-japan-pension-total-title");
+    if (lblJapanTitle) {
+      lblJapanTitle.innerText = isMarried ? "Tổng lương hưu Nhật Bản cả hai người:" : "Tổng lương hưu Nhật Bản cá nhân:";
+    }
+
+    // Canada Pension card
+    const canadaInputsBody = document.getElementById("canada-inputs-body");
+    if (canadaInputsBody) {
+      const grid = canadaInputsBody.querySelector(".spouse-pension-grid");
+      if (grid) {
+        if (isMarried) grid.classList.remove("is-single");
+        else grid.classList.add("is-single");
+      }
+      const cols = canadaInputsBody.querySelectorAll(".spouse-col-card");
+      if (cols && cols.length >= 2) {
+        cols[1].style.display = isMarried ? "" : "none";
+      }
+    }
+    const badgeCanada = document.getElementById("badge-canada-status");
+    if (badgeCanada) {
+      badgeCanada.innerText = isMarried ? "2 Người (CPP & OAS)" : "1 Người (CPP & OAS)";
+    }
+    const lblCanadaTitle = document.getElementById("lbl-canada-pension-total-title");
+    if (lblCanadaTitle) {
+      lblCanadaTitle.innerText = isMarried ? "Tổng lương hưu Canada cả hai người:" : "Tổng lương hưu Canada cá nhân:";
+    }
+
+    // Australia Pension card
+    const australiaInputsBody = document.getElementById("australia-inputs-body");
+    if (australiaInputsBody) {
+      const grid = australiaInputsBody.querySelector(".spouse-pension-grid");
+      if (grid) {
+        if (isMarried) grid.classList.remove("is-single");
+        else grid.classList.add("is-single");
+      }
+      const cols = australiaInputsBody.querySelectorAll(".spouse-col-card");
+      if (cols && cols.length >= 2) {
+        cols[1].style.display = isMarried ? "" : "none";
+      }
+    }
+    const badgeAustralia = document.getElementById("badge-australia-status");
+    if (badgeAustralia) {
+      badgeAustralia.innerText = isMarried ? "2 Người (Super & Age)" : "1 Người (Super & Age)";
+    }
+    const lblAustraliaTitle = document.getElementById("lbl-australia-pension-total-title");
+    if (lblAustraliaTitle) {
+      lblAustraliaTitle.innerText = isMarried ? "Tổng lương hưu Úc cả hai người:" : "Tổng lương hưu Úc cá nhân:";
+    }
+
+    // South Korea Pension card
+    const koreaInputsBody = document.getElementById("korea-inputs-body");
+    if (koreaInputsBody) {
+      const grid = koreaInputsBody.querySelector(".spouse-pension-grid");
+      if (grid) {
+        if (isMarried) grid.classList.remove("is-single");
+        else grid.classList.add("is-single");
+      }
+      const cols = koreaInputsBody.querySelectorAll(".spouse-col-card");
+      if (cols && cols.length >= 2) {
+        cols[1].style.display = isMarried ? "" : "none";
+      }
+    }
+    const badgeKorea = document.getElementById("badge-korea-status");
+    if (badgeKorea) {
+      badgeKorea.innerText = isMarried ? "2 Người (NPS)" : "1 Người (NPS)";
+    }
+    const lblKoreaTitle = document.getElementById("lbl-korea-pension-total-title");
+    if (lblKoreaTitle) {
+      lblKoreaTitle.innerText = isMarried ? "Tổng lương hưu Hàn Quốc cả hai người:" : "Tổng lương hưu Hàn Quốc cá nhân:";
+    }
+
+    // Taiwan Pension card
+    const taiwanInputsBody = document.getElementById("taiwan-inputs-body");
+    if (taiwanInputsBody) {
+      const grid = taiwanInputsBody.querySelector(".spouse-pension-grid");
+      if (grid) {
+        if (isMarried) grid.classList.remove("is-single");
+        else grid.classList.add("is-single");
+      }
+      const cols = taiwanInputsBody.querySelectorAll(".spouse-col-card");
+      if (cols && cols.length >= 2) {
+        cols[1].style.display = isMarried ? "" : "none";
+      }
+    }
+    const badgeTaiwan = document.getElementById("badge-taiwan-status");
+    if (badgeTaiwan) {
+      badgeTaiwan.innerText = isMarried ? "2 Người (勞保 & 勞退)" : "1 Người (勞保 & 勞退)";
+    }
+    const lblTaiwanTitle = document.getElementById("lbl-taiwan-pension-total-title");
+    if (lblTaiwanTitle) {
+      lblTaiwanTitle.innerText = isMarried ? "Tổng lương hưu Đài Loan cả hai người:" : "Tổng lương hưu Đài Loan cá nhân:";
+    }
+
     // Cập nhật giá trị hiển thị cho các thẻ đang bật
     if (hasDe && window.Tab3TaxesUI && typeof window.Tab3TaxesUI.updateGermanPensionUI === 'function') {
       window.Tab3TaxesUI.updateGermanPensionUI(plan);
     }
     if (hasUs && window.Tab3TaxesUI && typeof window.Tab3TaxesUI.updateUsPensionUI === 'function') {
       window.Tab3TaxesUI.updateUsPensionUI(plan);
+    }
+    if (hasJp && window.Tab3TaxesUI && typeof window.Tab3TaxesUI.updateJapanPensionUI === 'function') {
+      window.Tab3TaxesUI.updateJapanPensionUI(plan);
+    }
+    if (hasCa && window.Tab3TaxesUI && typeof window.Tab3TaxesUI.updateCanadaPensionUI === 'function') {
+      window.Tab3TaxesUI.updateCanadaPensionUI(plan);
+    }
+    if (hasAu && window.Tab3TaxesUI && typeof window.Tab3TaxesUI.updateAustraliaPensionUI === 'function') {
+      window.Tab3TaxesUI.updateAustraliaPensionUI(plan);
+    }
+    if (hasKr && window.Tab3TaxesUI && typeof window.Tab3TaxesUI.updateKoreaPensionUI === 'function') {
+      window.Tab3TaxesUI.updateKoreaPensionUI(plan);
+    }
+    if (hasTw && window.Tab3TaxesUI && typeof window.Tab3TaxesUI.updateTaiwanPensionUI === 'function') {
+      window.Tab3TaxesUI.updateTaiwanPensionUI(plan);
     }
 
     // Callout & Breakdown 7 items calculation
@@ -1957,6 +2117,7 @@
       const retireCityKey = plan.retireCity || (plan.retireMode === 'domestic' ? workCityKey : 'vn_hcm_hn');
       const retireMode = plan.retireMode || 'relocate';
       const householdSize = isMarried ? 2 : 1;
+      const isDomestic = (plan.retireMode === 'domestic' || workCityKey === retireCityKey || (plan.workCountry && plan.retireCountry && plan.workCountry === plan.retireCountry));
 
       // Nếu người dùng chưa nhập luồng thu nhập nào, nhưng có nhập chi tiêu hiện tại:
       if (!hasCustomIncome || monthlyIncome <= 0) {
@@ -2019,6 +2180,12 @@
           </div>
         `;
       } else {
+        const pppStepHtml = isDomestic ? '' : `
+          <div class="retire-callout-step">
+            <span>Quy đổi sang ${targetCityDisplayName} (${pppFactorDisplay}x):</span>
+            <strong>${fmt(calc.pppAdjustedLiving)}/th</strong>
+          </div>
+        `;
         leftColHtml = `
           <div class="retire-callout-title">
             <span>Gợi ý từ mức sống thực tế (${isMarried ? 'Vợ chồng' : 'Cá nhân'})</span>
@@ -2039,10 +2206,7 @@
             <span>Chi tiêu sinh hoạt thực tế:</span>
             <strong>${fmt(calc.currentLivingMonthly)}/th</strong>
           </div>
-          <div class="retire-callout-step">
-            <span>Quy đổi sang ${targetCityDisplayName} (${pppFactorDisplay}x):</span>
-            <strong>${fmt(calc.pppAdjustedLiving)}/th</strong>
-          </div>
+          ${pppStepHtml}
           <div class="retire-callout-step">
             <span>Phụ phí Y tế tuổi già (${householdSize} ng):</span>
             <strong>+ ${fmt(calc.seniorHealthAddon)}/th</strong>
@@ -2093,9 +2257,11 @@
         <div class="formula-inline-box formula-info" style="grid-column: 1 / -1; margin-top: 0.35rem; font-size: 0.68rem; padding: 0.35rem 0.55rem; border-radius: 4px;">
           <div class="formula-tag" style="font-size: 0.65rem; margin-bottom: 0.15rem;">Nguồn dữ liệu &amp; Công thức đối chiếu</div>
           <div style="display: flex; flex-direction: column; gap: 0.12rem; line-height: 1.35;">
-            <code>• Chi tiêu hưu trí = (Thu nhập - Tiết kiệm - Nợ nhà) × PPP (${targetCityDisplayName}: ${pppFactorDisplay}x) + Y tế (${calc.seniorHealthAddon} ${cur === 'EUR' ? '€' : cur})</code>
-            <code>• Công thức 3 mốc = Mức sống tham chiếu ${isDomestic ? targetCityDisplayName : 'quy đổi PPP (' + targetCityDisplayName + ')'} × ${isMarried ? '1.6 (hộ 2 người)' : '1.0 (cá nhân 1 người)'} × ${pppFactorDisplay}</code>
-            <code>• Nguồn dữ liệu: Khảo sát mức sống hộ gia đình OECD, INSEE, World Bank PPP &amp; Numbeo 2024</code>
+            <code>• Chi tiêu hưu trí = ${(!hasCustomIncome || monthlyIncome <= 0)
+              ? `Mức sống tham chiếu ${targetCityDisplayName}`
+              : (isDomestic ? '(Thu nhập - Tiết kiệm - Nợ nhà)' : `(Thu nhập - Tiết kiệm - Nợ nhà) × PPP (${targetCityDisplayName}: ${pppFactorDisplay}x)`)} + Y tế (${calc.seniorHealthAddon} ${cur === 'EUR' ? '€' : cur})</code>
+            <code>• Công thức 3 mốc = Mức sống tham chiếu ${isDomestic ? targetCityDisplayName : 'quy đổi PPP (' + targetCityDisplayName + ')'} × ${isMarried ? '1.6 (hộ 2 người)' : '1.0 (cá nhân 1 người)'}${isDomestic ? '' : ` × ${pppFactorDisplay}`}</code>
+            <code>• Nguồn dữ liệu: Khảo sát mức sống hộ gia đình OECD, INSEE, World Bank${isDomestic ? '' : ' PPP'} &amp; Numbeo 2024</code>
           </div>
         </div>
       `;
@@ -2107,7 +2273,11 @@
     if (!plan) return;
     applyProfileVisibilityRules(plan);
     const inpRetireMonthly = document.getElementById("inp-monthly-retire-expenses");
-    const isDomestic = (plan.retireMode === 'domestic' || (plan.workCountry && plan.retireCountry && plan.workCountry === plan.retireCountry));
+    const isDomestic = (plan.retireMode === 'domestic' || (plan.workCountry && plan.retireCountry && plan.workCountry === plan.retireCountry) || (plan.workCity && plan.retireCity && plan.workCity === plan.retireCity));
+    const badgeRetirePpp = document.getElementById("badge-retire-ppp");
+    if (badgeRetirePpp) {
+      badgeRetirePpp.style.display = isDomestic ? "none" : "";
+    }
 
     const pppProfiles = (window.TaxOptimizer && window.TaxOptimizer.COUNTRY_PPP_PROFILES) ? window.TaxOptimizer.COUNTRY_PPP_PROFILES : {};
     const workKey = plan.workCity || 'fr_paris';
