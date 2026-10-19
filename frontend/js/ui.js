@@ -362,7 +362,12 @@
     setVal("inp-birth-year", bYear);
     setVal("inp-current-age", p.currentAge);
     const lblCurrentAge = document.getElementById("lbl-current-age");
-    if (lblCurrentAge) lblCurrentAge.innerText = `${p.currentAge}t`;
+    if (lblCurrentAge) {
+      const g = p.gender || 'male';
+      lblCurrentAge.innerText = (window.Tab1StreamsUI && window.Tab1StreamsUI.formatGenderAgeText)
+        ? window.Tab1StreamsUI.formatGenderAgeText(g, p.currentAge)
+        : `${g === 'female' ? 'Nữ' : 'Nam'} (${p.currentAge} tuổi)`;
+    }
 
     const isMarried = (p.maritalStatus === 'married');
     const boxSpouseBirth = document.getElementById("box-spouse-birth-year");
@@ -376,7 +381,12 @@
       setVal("inp-spouse-birth-year", spouseBYear);
       setVal("inp-spouse-current-age", p.spouseAge);
       const lblSpouseAge = document.getElementById("lbl-spouse-age");
-      if (lblSpouseAge) lblSpouseAge.innerText = `${p.spouseAge}t`;
+      if (lblSpouseAge) {
+        const spouseGender = (p.gender === 'female' ? 'male' : 'female');
+        lblSpouseAge.innerText = (window.Tab1StreamsUI && window.Tab1StreamsUI.formatGenderAgeText)
+          ? window.Tab1StreamsUI.formatGenderAgeText(spouseGender, p.spouseAge)
+          : `${spouseGender === 'female' ? 'Nữ' : 'Nam'} (${p.spouseAge} tuổi)`;
+      }
     }
 
     setVal("inp-retire-age", p.retirementAge);
@@ -505,11 +515,13 @@
 
     // 1. Asset Allocation Sync
     if (!p.assetAllocation) {
-      p.assetAllocation = { stocks: 60, bonds: 20, realEstate: 20, cash: 0 };
+      p.assetAllocation = { stocks: 80, bonds: 20, realEstate: 0, cash: 0 };
     }
-    setVal("inp-alloc-stocks", p.assetAllocation.stocks !== undefined ? p.assetAllocation.stocks : 60);
+    setVal("inp-alloc-stocks", p.assetAllocation.stocks !== undefined ? p.assetAllocation.stocks : 80);
     setVal("inp-alloc-bonds", p.assetAllocation.bonds !== undefined ? p.assetAllocation.bonds : 20);
-    setVal("inp-alloc-re", p.assetAllocation.realEstate !== undefined ? p.assetAllocation.realEstate : 20);
+    if (document.getElementById("inp-alloc-re")) {
+      setVal("inp-alloc-re", p.assetAllocation.realEstate !== undefined ? p.assetAllocation.realEstate : 0);
+    }
     setVal("inp-alloc-cash", p.assetAllocation.cash !== undefined ? p.assetAllocation.cash : 0);
     updateAssetAllocationUI(p, false);
 
@@ -643,14 +655,15 @@
     // Update Sidebar
     document.getElementById("summary-retire-age").innerText = plan.retirementAge + " tuổi";
     const optimalSummaryEl = document.getElementById("summary-optimal-age");
-    const optAge = proj.optimalFireAge || proj.fireAge;
+    const optAge = proj.optimalFireAge;
+    const t = (k, fb) => (window.I18n ? window.I18n.t(k, fb) : fb);
     if (optimalSummaryEl) {
-      optimalSummaryEl.innerText = optAge ? `${optAge} tuổi` : "Chưa khả thi";
+      optimalSummaryEl.innerText = optAge ? `${optAge} tuổi` : t('summary_not_feasible', 'Chưa khả thi');
       optimalSummaryEl.className = "metric-value font-semibold " + (optAge && optAge <= plan.retirementAge ? "text-success" : "text-warning");
     }
     const lblOptimalAge = document.getElementById("lbl-optimal-age");
     if (lblOptimalAge) {
-      lblOptimalAge.innerText = optAge ? `${optAge}t` : "Chưa khả thi";
+      lblOptimalAge.innerText = optAge ? `${optAge}t` : t('summary_not_feasible', 'Chưa khả thi');
     }
     document.getElementById("summary-years-to-fire").innerText = proj.yearsToFIRE + " năm nữa";
 
@@ -679,8 +692,7 @@
     const statusEl = document.getElementById("summary-fire-status");
 
     const userRetireAge = Number(plan.retirementAge) || 42;
-    const isOptimalReached = optAge ? (userRetireAge >= optAge) : proj.survived;
-    const t = (k, fb) => (window.I18n ? window.I18n.t(k, fb) : fb);
+    const isOptimalReached = optAge ? (userRetireAge >= optAge) : false;
 
     if (mcSuccessRate !== null) {
       if (probEl) {

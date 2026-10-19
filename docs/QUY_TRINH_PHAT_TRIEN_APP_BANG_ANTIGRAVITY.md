@@ -38,7 +38,7 @@ Hãy tận dụng tối đa 4 lệnh nội bộ của Antigravity tương ứng 
 
 ---
 
-### 3. Mười Nguyên Tắc Vàng Trong Thao Tác Hàng Ngày
+### 3. Mười Hai Nguyên Tắc Vàng Trong Thao Tác Hàng Ngày
 
 1. **Nguyên Tắc "1 Nhiệm Vụ = 1 Phiên Chat Mới" (Quan Trọng Số 1):**
    - **Bắt buộc bấm `New Chat (+)` khi:** (a) Vừa hoàn thành xong 1 Task trong file kế hoạch hoặc sửa xong 1 bug lớn; (b) Chuẩn bị chuyển từ việc sửa thuật toán (`engine.js`) sang việc chỉnh giao diện (`index.html`, `styles.css`); (c) Phiên chat đã chạm ngưỡng **10 – 12 lượt đối thoại**.
@@ -86,6 +86,15 @@ Hãy tận dụng tối đa 4 lệnh nội bộ của Antigravity tương ứng 
 10. **Tự Động Hóa 100% Việc Cập Nhật `docs/CODEBASE_MAP.md` (Tốn 0 Token):**
     - Bạn không bao giờ cần nhắc AI sửa file `docs/CODEBASE_MAP.md` bằng tay. Mọi thao tác quét lại số dòng mới đều được tích hợp tự động bên trong `./verify_js.sh` (chạy bằng Python hệ thống trong 0.05 giây, **tốn 0 token**).
 
+11. **Kiểm Thử Kịch Bản UI Tĩnh Bằng Mock DOM Trong Node.js (0-Token UI Runner):**
+    - Khi kiểm tra tương tác UI động (đổi quốc gia thì thẻ nào ẩn/hiện, chọn độc thân thì ẩn bạn đời, cưới thì hiện 2 cột song song), **tuyệt đối không bật browser để click từng nút**.
+    - Tích hợp mock DOM tối giản (`document.getElementById`, `classList`, `style.display`) vào `./verify_js.sh` để chạy tự động hàng chục kịch bản giao diện (ví dụ: bộ 42 test cases) trong **0.25 giây**, phát hiện lỗi logic giao diện tức thì mà **tốn 0 token browser**.
+
+12. **Kỷ Luật Quản Lý Versioning Toàn Diện (Asset, Schema, SemVer & Git Tagging):**
+    - **Asset Cache-Busting (`?v=...`):** Mỗi khi sửa file JavaScript hoặc CSS, bắt buộc phải tăng query version parameter (`?v=YYYYMMDD_vNNN`) trong thẻ `<link>` và `<script>` của `index.html`. Tránh tuyệt đối tình trạng người dùng/tester mở web vẫn dính cache cũ và lầm tưởng code AI bị lỗi.
+    - **Data Schema Versioning (`_schemaVersion`):** Mọi đối tượng lưu trữ (`localStorage`, JSON backup, SQLite) bắt buộc có số phiên bản dữ liệu (`_schemaVersion: 1, 2, 3...`). Khi nâng cấp app, luôn có pipeline chuyển đổi tuần tự (migration) để dữ liệu cũ không bao giờ bị hỏng hay mất.
+    - **Semantic Release Versioning (`SemVer`):** Đánh số phiên bản phát hành (`vMAJOR.MINOR.PATCH`) hiển thị rõ trên UI và gắn Git tag để dễ dàng truy vết và rollback tức thì trong 1 giây nếu gặp sự cố.
+
 ---
 
 ## Phần II. Quy Trình Khép Kín Phát Triển Ứng Dụng Từ Con Số 0 Đến Khi Vận Hành Thực Tế (Giai Đoạn 0 ➔ Giai Đoạn 6)
@@ -94,27 +103,27 @@ Hãy tận dụng tối đa 4 lệnh nội bộ của Antigravity tương ứng 
 
 ```mermaid
 flowchart TD
-    G0["Giai đoạn 0: Khởi Tạo Dự Án Mới & Bộ 5 File Xương Sống (Day-0 Bootstrap)"] --> G1["Giai đoạn 1: Khai Phá Ý Tưởng, Phản Biện (/grill-me) & Phác Thảo Sơ Bộ"]
-    G1 --> G2["Giai đoạn 2: Chốt Kiến Trúc, Đóng Băng Schema (PROJECT_BLUEPRINT.md) & Migration"]
+    G0["Giai đoạn 0: Khởi Tạo Dự Án Mới, Bộ 5 File Xương Sống & Khóa Chính Sách Versioning (Day-0 Bootstrap)"] --> G1["Giai đoạn 1: Khai Phá Ý Tưởng, Phản Biện (/grill-me) & Phác Thảo Sơ Bộ"]
+    G1 --> G2["Giai đoạn 2: Chốt Kiến Trúc, Đóng Băng Schema (PROJECT_BLUEPRINT.md) & Migration Pipeline"]
     G2 --> G3["Giai đoạn 3: Thiết Lập Quy Chuẩn UI/UX, Chia Nhỏ File & Mobile-First (.agents/rules/GEMINI.md)"]
     G3 --> G4["Giai đoạn 4: Bẻ Nhỏ Lộ Trình Thành Từng Task Độc Lập (docs/plans/*.md & /plan)"]
-    G4 --> G5["Giai đoạn 5: Thi Công Cuốn Chiếu (Engine -> UI), Test ./verify_js.sh, Git Checkpoint & Gỡ Lỗi 2-Strike"]
-    G5 --> G6["Giai đoạn 6: Kiểm Duyệt Pháp Lý (GDPR/AI), Bảo Mật OWASP, Hoàn Thiện SEO & Deploy (./deploy.sh)"]
+    G4 --> G5["Giai đoạn 5: Thi Công Cuốn Chiếu (Engine -> UI), Test ./verify_js.sh, Cache-Busting & Git Checkpoint"]
+    G5 --> G6["Giai đoạn 6: Kiểm Duyệt Pháp Lý, Bảo Mật, SemVer Release, UI Version Badge & Deploy"]
 ```
 
 ---
 
 ### Giai Đoạn 0: Khởi Tạo Dự Án Mới & Hệ Thống 5 File Hạ Tầng Chống Đốt Token (Day-0 Bootstrap)
 
-Khi bắt đầu một dự án mới tinh (hoặc chuẩn hóa một dự án hiện có), **tuyệt đối không bảo AI viết tính năng ngay**. Việc đầu tiên là thiết lập **Bộ 5 File Xương Sống** để bảo vệ token và duy trì kỷ luật kiến trúc tự động:
+Khi bắt đầu một dự án mới tinh (hoặc chuẩn hóa một dự án hiện có), **tuyệt đối không bảo AI viết tính năng ngay**. Việc đầu tiên là thiết lập **Bộ 5 File Xương Sống Kèm Khóa Chính Sách Versioning Ngay Từ Ngày Đầu Tiên** để bảo vệ token và duy trì kỷ luật kiến trúc tự động:
 
 | File hạ tầng | Vai trò bảo vệ Token & Kỷ luật Kiến trúc |
 | :--- | :--- |
-| **1. `.agents/rules/GEMINI.md`** | Khóa cứng quy tắc giao tiếp Tiếng Việt, kiến trúc tách 3 tầng chống file khổng lồ, quy chuẩn biến màu Dark/Light Mode, ngôn ngữ đại chúng và cấm tự ý bật `browser_subagent`. |
-| **2. `PROJECT_BLUEPRINT.md`** | Bản thiết kế gốc chứa mục tiêu, những thứ cố tình không làm (Out-of-Scope), đơn vị chuẩn nội bộ và **Bảng JSON Schema dữ liệu duy nhất** (kèm `_schemaVersion`). |
+| **1. `.agents/rules/GEMINI.md`** | Khóa cứng quy tắc giao tiếp Tiếng Việt, kiến trúc tách 3 tầng chống file khổng lồ, quy chuẩn biến màu Dark/Light Mode, ngôn ngữ đại chúng, kỷ luật versioning và cấm tự ý bật `browser_subagent`. |
+| **2. `PROJECT_BLUEPRINT.md`** | Bản thiết kế gốc chứa mục tiêu, những thứ cố tình không làm (Out-of-Scope), đơn vị chuẩn nội bộ, quy ước SemVer ứng dụng (`v1.0.0`) và **Bảng JSON Schema dữ liệu duy nhất** (khóa cứng `_schemaVersion: 1`). |
 | **3. `docs/CODEBASE_MAP.md`** | **Bản đồ tọa độ dòng code (`StartLine` – `EndLine`) tự động 100%** của mọi hàm, thẻ HTML, phân mục CSS và khối từ điển. Giúp AI nhảy thẳng tới đúng 50–100 dòng cần sửa. |
-| **4. `./verify_js.sh`** | **Công cụ kiểm thử & đồng bộ chỉ mục tự động (tốn 0 token cập nhật map, chạy 100% trong Sandbox):** Kiểm tra cú pháp toàn bộ file JS, chạy thử công thức toán học, quét rò rỉ API Key/từ vựng pháp lý và tự động cập nhật `docs/CODEBASE_MAP.md` trong 0.15 giây. |
-| **5. `.antigravityignore` & `deploy.sh`** | `.antigravityignore` chặn công cụ tìm kiếm quét vào file nhị phân SQLite (`*.db`), thư viện nén (`*.min.js`), cache; `deploy.sh` đẩy code lên VPS an toàn và tự động sao lưu database. |
+| **4. `./verify_js.sh`** | **Công cụ kiểm thử & đồng bộ chỉ mục tự động (tốn 0 token cập nhật map, chạy 100% trong Sandbox):** Kiểm tra cú pháp toàn bộ file JS, chạy thử công thức toán học, quét rò rỉ API Key/từ vựng pháp lý, kiểm tra tính hợp lệ của schema version và tự động cập nhật `docs/CODEBASE_MAP.md` trong 0.15 giây. |
+| **5. `.antigravityignore`, `CHANGELOG.md` & `deploy.sh`** | `.antigravityignore` chặn công cụ tìm kiếm quét vào file nhị phân SQLite (`*.db`), thư viện nén (`*.min.js`), cache; `CHANGELOG.md` theo dõi lịch sử phiên bản phát hành; `deploy.sh` đẩy code lên VPS an toàn và tự động sao lưu database. |
 
 - **Câu lệnh Khởi Tạo Dự Án Mới Từ Con Số 0 (Day-0 Bootstrap Prompt — Copy & Paste):**
   ```text
@@ -123,11 +132,12 @@ Khi bắt đầu một dự án mới tinh (hoặc chuẩn hóa một dự án h
   Tech stack mong muốn: [Ví dụ: Vanilla JS + FastAPI + SQLite / hoặc Next.js + PostgreSQL].
 
   Khoan viết code giao diện hay tính năng. Hãy khởi tạo ngay Bộ 5 File Xương Sống chuẩn hóa sau đây:
-  1. .agents/rules/GEMINI.md: Khóa cứng quy tắc giao tiếp Tiếng Việt, kiến trúc tách 3 tầng (Core Engine độc lập DOM, State/Sync, và UI chia nhỏ theo từng Tab dưới 1.500 dòng/file), hỗ trợ Dark/Light Mode bằng biến CSS, cấm tự ý bật browser_subagent.
-  2. PROJECT_BLUEPRINT.md: Định nghĩa mục tiêu, những thứ cố tình không làm (Out-of-Scope), đơn vị chuẩn nội bộ và Bảng JSON Schema dữ liệu duy nhất (kèm trường _schemaVersion: 1).
-  3. .antigravityignore: Chặn các thư mục/file nặng (*.db, *.min.js, node_modules, __pycache__, .git, data/).
-  4. verify.sh (chmod +x): Script chạy 100% trong Sandbox giúp (a) kiểm tra cú pháp toàn bộ file code, (b) tự động quét vị trí dòng code của mọi hàm/thẻ HTML/CSS để sinh ra docs/CODEBASE_MAP.md tốn 0 token, (c) quét rò rỉ API Key/Secret và từ vựng pháp lý.
-  5. deploy.sh: Script rsync đẩy code lên Server VPS an toàn (tự động exclude .env, database thật, file nháp preview.html và tự động backup database trên server trước khi restart).
+  1. .agents/rules/GEMINI.md: Khóa cứng quy tắc giao tiếp Tiếng Việt, kiến trúc tách 3 tầng (Core Engine độc lập DOM, State/Sync, và UI chia nhỏ theo từng Tab dưới 1.500 dòng/file), hỗ trợ Dark/Light Mode bằng biến CSS, kỷ luật tăng ?v=... cache-busting khi sửa CSS/JS, cấm tự ý bật browser_subagent.
+  2. PROJECT_BLUEPRINT.md: Định nghĩa mục tiêu, những thứ cố tình không làm (Out-of-Scope), đơn vị chuẩn nội bộ, chính sách SemVer (v1.0.0) và Bảng JSON Schema dữ liệu duy nhất (kèm trường _schemaVersion: 1).
+  3. CHANGELOG.md: Khởi tạo nhật ký phiên bản chuẩn Keep a Changelog (bản [1.0.0] - Ngày khởi tạo).
+  4. .antigravityignore: Chặn các thư mục/file nặng (*.db, *.min.js, node_modules, __pycache__, .git, data/).
+  5. verify.sh (chmod +x): Script chạy 100% trong Sandbox giúp (a) kiểm tra cú pháp toàn bộ file code, (b) tự động quét vị trí dòng code của mọi hàm/thẻ HTML/CSS để sinh ra docs/CODEBASE_MAP.md tốn 0 token, (c) quét rò rỉ API Key/Secret và từ vựng pháp lý.
+  6. deploy.sh: Script rsync đẩy code lên Server VPS an toàn (tự động exclude .env, database thật, file nháp preview.html và tự động backup database trên server trước khi restart).
   ```
 
 ---
@@ -222,30 +232,76 @@ Khi bạn vừa nảy ra một ý tưởng mới hoặc một phân hệ lớn, 
 2. **Chuẩn hóa Đơn vị Nội bộ (Internal Canonical Units):** Mọi số tiền lưu trong bộ nhớ đều quy về `EUR/năm` (hoặc `USD` cho kịch bản Mỹ), tỷ lệ phần trăm lưu thống nhất (`4.0` nghĩa là `4%`). Chỉ khi hiển thị ra màn hình mới nhân tỷ giá.
 3. **Bảng Schema Dữ Liệu Duy Nhất (Single Source of Truth JSON Schema):** Liệt kê đầy đủ tên trường (`camelCase`), kiểu dữ liệu, giá trị mặc định của toàn bộ đối tượng dữ liệu (User, Plan, Asset, Health...).
 
-#### 2. Ba Quy Tắc "Nâng Cấp Schema Không Làm Hỏng Bản Cũ" (Zero-Data-Loss Schema Migration)
-1. **Luôn đánh số phiên bản dữ liệu (`_schemaVersion`):** Mọi đối tượng lưu trong `localStorage` hoặc JSON DB đều phải có trường `_schemaVersion: 1`, `2`, `3`...
-2. **Hàm chuyển đổi tự động (`migrateState(rawData)`):** Mỗi khi thêm hoặc đổi tên trường trong `PROJECT_BLUEPRINT.md`, bắt buộc viết thêm khối `if (data._schemaVersion < N)` trong `state.js` để tự động điền giá trị mặc định an toàn cho dữ liệu cũ của người dùng.
-3. **Nâng cấp bảng SQLite không mất dữ liệu (`Safe ALTER TABLE`):** Trong Backend (`auth.py` / `main.py`), khi thêm cột mới vào bảng đã tồn tại, luôn kiểm tra cột (`PRAGMA table_info(...)`) rồi chạy `ALTER TABLE ... ADD COLUMN ... DEFAULT ...`, tuyệt đối cấm dùng `DROP TABLE` trên môi trường thật.
+#### 2. Chiến Lược Quản Lý Versioning Dữ Liệu & Đường Ống Di Trú Tuần Tự (Zero-Data-Loss Schema Versioning & Sequential Migration Pipeline)
+
+Một trong những thảm họa lớn nhất khi phát triển app là **nâng cấp tính năng mới (`v2`, `v3`) làm vỡ nát dữ liệu cũ của người dùng** đang lưu trong `localStorage` hoặc cơ sở dữ liệu. Để đảm bảo ứng dụng đạt chuẩn thương mại bền vững qua nhiều năm tháng, hãy áp dụng quy chuẩn Versioning Dữ Liệu 4 lớp sau:
+
+1. **Định danh phiên bản dữ liệu bằng trường bắt buộc `_schemaVersion`:**
+   - Mọi đối tượng lưu trữ (`Plan`, `Patrimoine`, `Settings`) khi lưu vào `localStorage`, JSON export/backup hay SQLite đều bắt buộc phải có thuộc tính `_schemaVersion: 1`, `2`, `3`...
+   - Đây là "chứng minh thư" của gói dữ liệu, giúp code biết chính xác cấu trúc dữ liệu đang ở thế hệ nào.
+
+2. **Đường ống di trú tuần tự theo bậc thang (`Sequential Migration Chain`):**
+   - **Tuyệt đối KHÔNG viết rẽ nhánh nhảy cóc** (`if (v === 1) {...} else if (v === 2) {...}`), vì khi app lên `v5`, `v10` sẽ sinh ra hàng chục nhánh rẽ hỗn loạn, dễ bỏ sót biến.
+   - **Bắt buộc dùng chuỗi nâng cấp tuần tự theo từng nấc thang:**
+     ```javascript
+     function migratePlan(rawPlan) {
+       let plan = { ...rawPlan };
+       let v = plan._schemaVersion || 1;
+       
+       // Bước 1: Nâng từ v1 lên v2 (Ví dụ: Thêm quốc gia làm việc & Hôn nhân)
+       if (v < 2) {
+         plan.workCountry = plan.workCountry || 'FR';
+         plan.maritalStatus = plan.maritalStatus || 'single';
+         plan.taxParts = (plan.maritalStatus === 'married' ? 2.0 : 1.0);
+         v = 2;
+       }
+       // Bước 2: Nâng từ v2 lên v3 (Ví dụ: Thêm Lương hưu Đức & BHXH VN cho 2 người)
+       if (v < 3) {
+         plan.germanPensionDetails = plan.germanPensionDetails || {
+           spouse1: { grossAnnualSalary: 45000, yearsContributed: 35, claimAge: 67 },
+           spouse2: { grossAnnualSalary: 38000, yearsContributed: 35, claimAge: 67 }
+         };
+         v = 3;
+       }
+       plan._schemaVersion = v;
+       return ensurePlanDefaults(plan); // Bù đắp an toàn các giá trị biên
+     }
+     ```
+   - **Lợi ích vàng:** Dù người dùng không mở app suốt 2 năm hoặc nhập lại file backup từ ngày đầu tiên (`v1`), hệ thống vẫn tự động chạy tuần tự `v1 ➔ v2 ➔ v3`, nâng cấp trơn tru lên bản mới nhất mà **không mất 1 byte dữ liệu nào**!
+
+3. **Tương thích ngược & xuôi với File Sao Lưu Dự Phòng (`Backup & Restore Compatibility`):**
+   - Khi xuất file sao lưu JSON (`export.js`): Bắt buộc đính kèm `_schemaVersion: N` và `appVersion: "x.y.z"`.
+   - Khi người dùng bấm *"Nhập dữ liệu dự phòng"* (Import Restore): Đọc `_schemaVersion` của file tải lên, chạy qua pipeline `migratePlan()` để chuẩn hóa trước khi ghi đè vào `state.js`. Không bao giờ quăng lỗi `undefined` hay làm đơ giao diện.
+
+4. **Quản trị phiên bản SQLite Backend bằng `PRAGMA user_version` (Safe Migration):**
+   - SQLite có sẵn thanh ghi nội bộ siêu nhẹ: `PRAGMA user_version`.
+   - Khi Backend khởi động (`backend/database.py`), kiểm tra phiên bản hiện tại. Nếu `current_version < TARGET_DB_VERSION`:
+     - Chạy tuần tự các câu lệnh `ALTER TABLE ... ADD COLUMN ... DEFAULT ...` an toàn.
+     - Nâng số `PRAGMA user_version = TARGET_DB_VERSION`.
+     - **Tuyệt đối CẤM dùng `DROP TABLE` trên môi trường thật**.
+
+---
 
 #### 3. Các Câu Lệnh Prompt Hiệu Quả Ở Giai Đoạn 2 (Copy & Paste)
 
-- **Tình huống 2A — Khi khởi tạo dự án mới (Tạo mới `PROJECT_BLUEPRINT.md`):**
+- **Tình huống 2A — Khi khởi tạo dự án mới (Tạo mới `PROJECT_BLUEPRINT.md` kèm Schema Version 1):**
   ```text
   Dựa trên ý tưởng và khung giao diện sơ bộ vừa thống nhất ở Giai đoạn 1, hãy tạo file PROJECT_BLUEPRINT.md làm nguồn chân lý duy nhất (Single Source of Truth) cho dự án.
   Tuyệt đối KHOAN viết code tính năng lúc này. Hãy thiết kế đầy đủ 4 phần sau trong PROJECT_BLUEPRINT.md:
-  1. Nguyên tắc Kiến trúc & Phạm vi: Xác định rõ kiến trúc (ví dụ: Local-First 100% tính toán ở client + FastAPI/SQLite đồng bộ), và liệt kê rõ những thứ cố tình KHÔNG làm (Out-of-Scope) để tránh phình dự án.
+  1. Nguyên tắc Kiến trúc & Phạm vi: Xác định rõ kiến trúc (ví dụ: Local-First 100% tính toán ở client + FastAPI/SQLite đồng bộ), chính sách Semantic Versioning ứng dụng (SemVer v1.0.0), và liệt kê rõ những thứ cố tình KHÔNG làm (Out-of-Scope) để tránh phình dự án.
   2. Đơn vị Chuẩn Nội Bộ (Internal Canonical Units): Quy định thống nhất đơn vị lưu trữ trong bộ nhớ (ví dụ: tiền tệ luôn quy về EUR/năm, tỷ lệ % lưu dạng số thực 4.0 hay 0.04, ngày tháng theo chuẩn ISO) — chỉ khi hiển thị ra UI mới đổi tỷ giá/đơn vị.
-  3. Bảng JSON Schema Dữ Liệu Đóng Băng: Liệt kê chính xác tên biến (camelCase), kiểu dữ liệu, giá trị mặc định (default) và giới hạn min/max của mọi đối tượng dữ liệu, bắt buộc có trường _schemaVersion: 1.
+  3. Bảng JSON Schema Dữ Liệu Đóng Băng: Liệt kê chính xác tên biến (camelCase), kiểu dữ liệu, giá trị mặc định (default) và giới hạn min/max của mọi đối tượng dữ liệu, bắt buộc khóa cứng trường _schemaVersion: 1.
   4. Sơ đồ Luồng Dữ Liệu (Data Flow): Mô tả ngắn gọn dữ liệu đi từ Ô nhập UI -> State (localStorage) -> Core Engine -> Render Biểu đồ/Bảng như thế nào.
   ```
 
-- **Tình huống 2B — Khi thêm tính năng mới vào dự án đang chạy (Cập nhật Schema & Đảm bảo Tương thích Dữ liệu cũ):**
+- **Tình huống 2B — Khi thêm tính năng mới vào dự án đang chạy (Nâng cấp Schema Version & Viết Migration Pipeline):**
   ```text
-  Tôi chuẩn bị thêm tính năng [Tên tính năng mới, ví dụ: Mô phỏng Thuế Thừa Kế / Bảo hiểm nhân thọ].
+  Tôi chuẩn bị thêm tính năng [Tên tính năng mới, ví dụ: Mô phỏng Thuế Thừa Kế / Bảo hiểm nhân thọ / Mở rộng PPP Đa quốc gia].
   Khoan sửa code giao diện. Hãy đọc @PROJECT_BLUEPRINT.md hiện tại và thực hiện:
   1. Đề xuất các trường dữ liệu mới cần thêm vào Schema (tên biến tiếng Anh chuẩn camelCase, kiểu dữ liệu, đơn vị tính, giá trị mặc định an toàn) và kiểm tra không trùng lặp tên biến cũ.
-  2. Cập nhật trực tiếp các trường mới vào @PROJECT_BLUEPRINT.md và tăng _schemaVersion.
-  3. Khi triển khai vào state.js (và SQLite nếu có), đảm bảo tự động gán giá trị mặc định cho người dùng cũ chưa có trường này để không bao giờ xảy ra lỗi undefined hoặc mất dữ liệu.
+  2. Cập nhật trực tiếp các trường mới vào @PROJECT_BLUEPRINT.md và tăng _schemaVersion từ [N] lên [N+1].
+  3. Thiết kế pipeline nâng cấp tuần tự trong state.js: viết hàm di trú if (v < N+1) để tự động bù đắp giá trị mặc định an toàn cho người dùng cũ hoặc khi người dùng import file JSON backup từ phiên bản trước.
+  4. Nếu cần lưu thêm trên SQLite: đề xuất câu lệnh ALTER TABLE ADD COLUMN an toàn kèm DEFAULT, tuyệt đối không DROP TABLE.
   ```
 
 ---
@@ -271,7 +327,22 @@ Không bao giờ gom toàn bộ code vào 1 file `ui.js` hay `styles.css` dài g
 2. **Chống vỡ khung trên màn hình điện thoại (`375px` Viewport Rule):** Mọi lưới nhiều cột (`grid-template-columns`) phải tự thu về 1 cột dọc ở màn hình dưới `768px`; bảng nhiều cột bọc trong `overflow-x: auto`; dùng `max-width: 600px; width: 100%` thay vì chiều rộng cố định.
 3. **Bảo vệ ô nhập số liệu trước dữ liệu lạ (Input Sanitization & Clamping):** Luôn bọc `Number.isFinite(val) ? val : defaultVal` và giới hạn `Math.max(min, Math.min(max, val))` để người dùng để trống ô hoặc gõ số âm vô lý cũng không bao giờ sinh ra `NaN` hay `Infinity`.
 
-#### 4. Các Câu Lệnh Prompt Hiệu Quả Ở Giai Đoạn 3 (Copy & Paste)
+#### 4. Khử Ràng Buộc Chéo Giữa Các Tab UI (Cross-Tab Decoupling & Central State)
+Khi chia nhỏ giao diện thành các module Tab độc lập (`ui-tab1-streams.js`, `ui-tab2-health.js`, `ui-tab3-taxes.js`, `ui-modals.js`), nếu các Tab gọi trực tiếp biến hoặc hàm nội bộ của nhau sẽ dẫn đến "Spaghetti Code" và lỗi vỡ trang (`ReferenceError`) khi thứ tự tải script trong HTML thay đổi:
+- **Giao tiếp qua Single Source of Truth:** Mọi Tab con chỉ đọc trạng thái kế hoạch từ `getActivePlan()` trong Tầng 2 (`state.js`).
+- **Nhạc trưởng điều phối (`ui.js`):** Khi một Tab làm thay đổi dữ liệu (ví dụ: đổi quốc gia làm việc, đổi tình trạng hôn nhân từ Cá nhân sang Vợ chồng), Tab đó chỉ ghi dữ liệu vào `plan` và gọi hàm điều phối trung tâm của `ui.js` (hoặc Event Bus) để re-render đồng bộ toàn bộ các Tab liên quan, tuyệt đối không truy cập trực tiếp biến cục bộ của Tab khác.
+
+#### 5. Quy Hoạch Tham Số Địa Phương Tập Trung (Localized Profile Configuration)
+Mọi thông số mang tính địa phương (chi phí sinh hoạt PPP, chi phí y tế theo độ tuổi `healthCostBase`, chính sách hỗ trợ gia đình/CAF, biểu thuế lũy tiến) rất dễ bị hardcode rải rác nếu không có quy hoạch từ đầu:
+- **Bảng Hằng Số Tập Trung:** Toàn bộ dữ liệu quốc gia phải được quy hoạch trong một cấu hình duy nhất (ví dụ: `COUNTRY_PPP_PROFILES` trong `taxOptimizer.js`).
+- **Tra cứu nhất quán:** Mọi module UI (Tab 1 dòng tiền, Tab 2 sức khỏe, Tab 3 thuế) và Engine chỉ việc tra cứu theo `plan.workCountry` hoặc `plan.retireCityKey`, đảm bảo thay đổi hệ số ở một nơi là toàn bộ ứng dụng tự động phản ánh chính xác.
+
+#### 6. Nguyên Tắc Kỹ Thuật Trung Thực (Anti-Hallucination & Honest Fallback Principle)
+Khi ứng dụng mở rộng ra phạm vi quốc tế hoặc nhiều nghiệp vụ phức tạp, AI hoặc lập trình viên rất dễ mắc bẫy **"tự bịa công thức chung/generic phỏng đoán"** (ví dụ: lấy bừa 50% lương làm lương hưu cho mọi nước chưa có luật tự động):
+- **Tuyệt đối không đoán mò số liệu tài chính:** Trong ứng dụng tài chính cá nhân, y tế hay pháp lý, việc đoán mò sẽ làm sai lệch hoàn toàn kế hoạch cả đời của người dùng.
+- **Khối thông báo minh bạch (`#callout-...-unsupported`):** Khi người dùng chọn quốc gia chưa được lập trình mô hình hưu trí tự động, hệ thống ẩn toàn bộ các thẻ tự động và hiển thị một thông báo trang nhã, minh bạch: giải thích rõ hệ thống chưa hỗ trợ mô hình tự động cho nước này, và hướng dẫn người dùng tự ước tính độc lập rồi thêm qua nút `[+ Thêm Thu Nhập]`.
+
+#### 7. Các Câu Lệnh Prompt Hiệu Quả Ở Giai Đoạn 3 (Copy & Paste)
 
 - **Tình huống 3A — Khi thiết lập quy chuẩn cho dự án mới (Tạo `.agents/rules/GEMINI.md`):**
   ```text
@@ -384,11 +455,62 @@ Khi gặp một bug khó, nếu AI đoán mò sửa lần 1 không trúng, sửa
    2. Chạy ./verify_js.sh với biểu thức in ra các biến trung gian của hàm tính toán để kiểm chứng xem con số bị lệch ở tầng Engine hay tầng UI. Sau khi tìm ra đúng 100% thủ phạm thì mới đề xuất dòng cần sửa.
    ```
 
+#### 4. Kiểm Thử Tĩnh Tương Tác UI Bằng Mock DOM Trong Runner (UI Static Assertion 0-Token)
+Kiểm tra tương tác UI động (đổi dropdown thì thẻ nào ẩn/hiện, chọn độc thân thì ẩn bạn đời, kết hôn thì hiện 2 cột song song) **hoàn toàn có thể tự động hóa 100% bằng dòng lệnh** mà không cần mở trình duyệt:
+- **Mock DOM Siêu Nhẹ Trong Node.js:** Nhúng một mock object tối giản vào script test runner (`./verify_js.sh`):
+  ```javascript
+  const document = {
+    getElementById: (id) => ({
+      value: '', style: {}, classList: { add(){}, remove(){} },
+      addEventListener(){}, innerText: '', innerHTML: ''
+    }),
+    querySelector: () => null,
+    querySelectorAll: () => []
+  };
+  ```
+- **Kiểm Thử 40+ Trường Hợp Giao Diện Trong 0.25 Giây:**
+  - Nhóm 1: Tình trạng hôn nhân & Bố cục gia đình (Cá nhân vs Vợ chồng).
+  - Nhóm 2: Giới tính & Tuổi nghỉ hưu theo luật (Nam 62t, Nữ 60t).
+  - Nhóm 3: Quốc gia làm việc & Nơi nghỉ hưu (bật/tắt thẻ độc lập theo `workCountry` / `retireCountry`).
+  - Nhóm 4: Ràng buộc logic Popup & Ngân sách tự động điều chỉnh theo PPP.
+- **Hiệu quả:** Toàn bộ 42 bài test UI chạy xong trong **0.25 giây**, tốn **0 token browser**, đảm bảo giao diện vững chắc trước khi người dùng kịp mở trình duyệt.
+
+#### 5. Quy Trình Versioning Khi Hoàn Thành Task (Asset Cache-Busting, Git Commit & Rollback Safety Net)
+
+Mỗi khi thi công xong 1 Task, hãy thực hiện quy trình chốt Version 3 lớp để đảm bảo code sạch, trình duyệt nhận file mới ngay và có lưới an toàn khôi phục:
+
+1. **Lớp 1 — Asset Cache-Busting Versioning (`?v=...`):**
+   - **Vì sao bắt buộc:** Trình duyệt web luôn chủ động lưu bộ nhớ đệm (cache) cho các file tĩnh (`.css`, `.js`). Nếu bạn sửa code mà không tăng query version, người dùng hoặc tester mở web vẫn chạy trên file cache cũ trong máy, dẫn đến lỗi giao diện hoặc tính toán sai, khiến dev/AI lầm tưởng code vừa sửa bị hỏng!
+   - **Quy tắc thực hiện:** Mỗi khi sửa đổi bất kỳ file nào trong `frontend/css/` hoặc `frontend/js/`, bước cuối cùng của Task bắt buộc phải **tăng query version parameter trong `frontend/index.html`**:
+     ```html
+     <link rel="stylesheet" href="css/styles.css?v=20261019_v169">
+     <script src="js/engine.js?v=20261019_v169"></script>
+     <script src="js/ui-tab1-streams.js?v=20261019_v169"></script>
+     ```
+   - **Quy ước đặt tên version:** `?v=YYYYMMDD_vNNN` (ví dụ `20261019_v169` nghĩa là ngày 19/10/2026, bản build số 169). Chỉ sau khi tăng version và chạy `./verify_js.sh` báo `[OK]`, mới chuyển sang bước đóng dấu Git.
+
+2. **Lớp 2 — Git Commit Convention & Checkpoint An Toàn:**
+   - Chuẩn hóa tiền tố thông điệp commit để dễ tra cứu lịch sử:
+     - `checkpoint: [tên_task]` — Đóng dấu an toàn sau khi hoàn thành 1 task nhỏ trong kế hoạch.
+     - `feat: [tên_tính_năng]` — Hoàn thành một tính năng mới.
+     - `fix: [tên_lỗi]` — Sửa lỗi tính toán hoặc lỗi hiển thị giao diện.
+     - `refactor: [nội_dung]` — Tái cấu trúc, tách nhỏ file, tối ưu mã nguồn không đổi logic.
+     - `docs: [tên_tài_liệu]` — Cập nhật blueprint, cẩm nang quy trình hoặc codebase map.
+
+3. **Lớp 3 — Lưới An Toàn Rollback Trong 1 Giây:**
+   - Nếu commit vừa rồi gặp lỗi bất ngờ hoặc thử nghiệm không như ý, bạn có thể đưa mã nguồn quay về điểm an toàn trước đó ngay lập tức:
+     ```bash
+     # Hoàn tác đoạn code vừa sửa trong file
+     git checkout -- frontend/js/engine.js
+     # Hoặc quay lại commit checkpoint trước
+     git reset --hard HEAD~1
+     ```
+
 ---
 
 ### Giai Đoạn 6: Kiểm Duyệt Pháp Lý, Bảo Mật OWASP, Hoàn Thiện Thương Mại & Triển Khai (`./deploy.sh`)
 
-Sau khi hoàn thành toàn bộ các Task tính năng, trước và sau khi đưa ứng dụng lên Server VPS cho người dùng thực tế, hãy thực hiện trọn vẹn 4 bước khóa chốt dưới đây:
+Sau khi hoàn thành toàn bộ các Task tính năng, trước và sau khi đưa ứng dụng lên Server VPS cho người dùng thực tế, hãy thực hiện trọn vẹn 5 bước khóa chốt dưới đây:
 
 #### Bước 6.1 — Kiểm Tra Nhanh Giao Diện Bằng Mắt Thường & Checklist Hoàn Thiện Sản Phẩm Thương Mại (Product Polish)
 1. **Kiểm tra giao diện bằng mắt thường (Tốn 0 Token):** Tự mở `http://localhost:8000` trên máy, bấm thử tính năng mới ở cả **Dark Mode & Light Mode** (tiết kiệm 60.000 token so với `browser_subagent`). Gom các chỉnh sửa nhỏ vào 1 danh sách đánh số (Prompt Batching) để sửa 1 lần.
@@ -397,6 +519,46 @@ Sau khi hoàn thành toàn bộ các Task tính năng, trước và sau khi đư
    - **Trải nghiệm 10 giây đầu tiên (Onboarding & Default Demo Data):** Người dùng mới mở web thấy ngay dữ liệu mẫu sinh động hoặc *Quick Setup Wizard 4 bước*, không bao giờ đối mặt với màn hình trắng trơn.
    - **Sao lưu & Khôi phục hồ sơ cá nhân (`JSON Backup / Restore` trong `export.js`):** Cho phép tải file dự phòng `.json` và nhập lại bất cứ lúc nào ngay cả khi không đăng ký tài khoản.
    - **Cơ chế tự phục hồi trên Server (`Healthcheck` & `Auto-Restart`):** Backend có `GET /health` trả về `{"status": "ok"}` và dịch vụ VPS cấu hình `Restart=always`.
+
+---
+
+#### Bước 6.1B — Quản Lý Phiên Bản Ứng Dụng (SemVer), Hiển Thị UI Version Badge & Nhật Ký Phát Hành (`CHANGELOG.md`)
+
+Để vận hành ứng dụng chuyên nghiệp phục vụ hàng trăm ngàn người dùng, việc đánh số phiên bản phát hành và minh bạch hóa lịch sử là tiêu chuẩn bắt buộc:
+
+1. **Chuẩn Semantic Versioning (SemVer: `vMAJOR.MINOR.PATCH`):**
+   - **MAJOR (x.0.0):** Khi có thay đổi kiến trúc mang tính bước ngoặt, tái cấu trúc schema dữ liệu lớn có thể gây xung đột nếu không tương thích (Breaking Changes).
+   - **MINOR (0.x.0):** Khi phát hành phân hệ tính năng mới (ví dụ: Chế độ Vợ chồng song hành, Mô hình PPP Đa quốc gia, Thẩm định BĐS LMNP) nhưng vẫn giữ tương thích ngược 100%.
+   - **PATCH (0.0.x):** Khi sửa lỗi nhỏ (bug fixes), chỉnh sửa màu sắc CSS, bổ sung từ vựng dịch trong `i18n.js` hoặc tối ưu hiệu năng tính toán.
+
+2. **Huy Hiệu Phiên Bản Trực Quan Trên Giao Diện (UI Version Badge):**
+   - Đặt thẻ hiển thị phiên bản trang nhã ở chân trang (Footer) hoặc trong Hộp thoại Giới thiệu / Modal Thông tin:
+     ```html
+     <span class="version-badge">pyRetrait v2.4.0 • Build 20261019_v169</span>
+     ```
+   - **Ý nghĩa sống còn:**
+     - *Hỗ trợ gỡ lỗi người dùng (Bug Reporting):* Khi người dùng gặp sự cố và chụp ảnh màn hình gửi hỗ trợ, đội ngũ kỹ thuật nhìn thấy ngay phiên bản họ đang dùng. Loại bỏ hoàn toàn sự cố hiểu lầm do người dùng đang mở tab cũ chưa tải bản cập nhật mới.
+     - *Minh chứng tính mới:* Người dùng ngay lập tức biết họ đang được thụ hưởng bản cập nhật mới nhất với những cải tiến gì.
+
+3. **Duy Trì Nhật Ký Phiên Bản Minh Bạch (`CHANGELOG.md` chuẩn Keep a Changelog):**
+   - Mọi phiên bản phát hành đều được ghi lại trong `CHANGELOG.md` theo 5 mục chuẩn hóa:
+     - `Added`: Tính năng mới đưa vào hệ thống.
+     - `Changed`: Thay đổi trong chức năng hiện có.
+     - `Deprecated`: Tính năng sắp dừng hỗ trợ trong các bản tới.
+     - `Fixed`: Các lỗi đã được xử lý triệt để.
+     - `Security`: Nâng cấp bảo mật, vá lỗ hổng hoặc cập nhật thư viện an toàn.
+   - Giúp các phiên chat AI trong tương lai nắm bắt trọn vẹn lịch sử tiến hóa của phần mềm mà không cần đọc lại hàng ngàn dòng git log.
+
+4. **Gắn Thẻ Phát Hành Git Tag & Quy Trình Rollback 30 Giây Trên Server VPS:**
+   - Khi chuẩn bị upload bản phát hành ổn định lên Server VPS:
+     ```bash
+     git tag -a v2.4.0 -m "Release v2.4.0: Ho tro vo chong song hanh & PPP da quoc gia"
+     git push origin v2.4.0
+     ```
+   - **Quy trình Khôi phục Khẩn cấp (Emergency Rollback):** Nếu bản deploy mới trên VPS gặp lỗi bất ngờ:
+     1. Chạy `git checkout v2.3.0` để đưa mã nguồn về bản ổn định trước đó.
+     2. Nếu cấu trúc DB bị xung đột: lấy ngay file sao lưu SQLite tương ứng từ thư mục `backups/` mà `./deploy.sh` đã tự động lưu trước lúc deploy.
+     3. Khởi động lại dịch vụ bằng `sudo systemctl restart pyretrait` ➔ Hệ thống trở lại bình thường trong **30 giây**.
 
 ---
 
@@ -493,19 +655,22 @@ Sau khi đã upload lên Server và có đường link web thật, bạn **KHÔN
 
 | Giai đoạn / Tình huống | Câu lệnh mẫu tối ưu Chất lượng, Bảo mật, Pháp lý & Token nhất |
 | :--- | :--- |
-| **Giai đoạn 0. Khởi tạo dự án mới tinh từ con số 0 (Day-0 Bootstrap)** | *"Tôi bắt đầu dự án mới [Tên App] giải quyết bài toán [X] bằng [Tech Stack]. Khoan viết tính năng, hãy khởi tạo ngay **Bộ 5 File Xương Sống**: `.agents/rules/GEMINI.md`, `PROJECT_BLUEPRINT.md` (kèm Schema), `.antigravityignore`, `./verify.sh` (tự động sinh `docs/CODEBASE_MAP.md` tốn 0 token) và `deploy.sh`."* |
+| **Giai đoạn 0. Khởi tạo dự án mới tinh từ con số 0 (Day-0 Bootstrap & Khóa Versioning)** | *"Tôi bắt đầu dự án mới [Tên App] giải quyết bài toán [X] bằng [Tech Stack]. Khoan viết tính năng, hãy khởi tạo ngay **Bộ 5 File Xương Sống**: `.agents/rules/GEMINI.md`, `PROJECT_BLUEPRINT.md` (kèm Schema `_schemaVersion: 1`), `CHANGELOG.md` (SemVer v1.0.0), `.antigravityignore`, `./verify.sh` (tự động sinh `docs/CODEBASE_MAP.md` tốn 0 token) và `deploy.sh`."* |
 | **Giai đoạn 1A. Lên ý tưởng & Xem khung bố cục chữ (300 token)** | *"Tôi muốn làm tính năng [X]. Khoan sửa code. Hãy vẽ **khung bố cục ASCII Wireframe** (các cột, ô nhập, kết quả hiển thị) và chỉ ra 5 điểm thực tế dễ bị thiếu nhất để tôi hình dung."* |
 | **Giai đoạn 1B. Xem thử giao diện thật trên file nháp (1.500 token)** | *"Tạo 1 file giao diện nháp độc lập tại `frontend/preview.html` (nhúng sẵn `css/styles.css`, nút đổi Dark/Light Mode và số liệu mẫu) cho tính năng [X]. Không sửa các file chính và không mở `browser_subagent` — tôi sẽ tự mở `localhost:8000/preview.html` xem."* |
 | **Giai đoạn 1C. Dựng khung HTML tĩnh trên trang chính trước** | *"Tra `@docs/CODEBASE_MAP.md`, chỉ chèn khung HTML tĩnh kèm số mẫu của thẻ [X] vào `#tab-estate` trong `frontend/index.html` để tôi F5 xem bố cục. Khoan viết `engine.js`, `ui-*.js` và `i18n.js`."* |
-| **Giai đoạn 2. Chốt Kiến trúc, Đóng băng Schema & Migration (`PROJECT_BLUEPRINT.md`)** | *"Tôi chuẩn bị làm tính năng [X]. Khoan sửa code JS/HTML. Hãy đọc `@PROJECT_BLUEPRINT.md` và cập nhật bổ sung JSON Schema mới (tên biến camelCase, kiểu dữ liệu, đơn vị chuẩn nội bộ, giá trị mặc định an toàn cho dữ liệu cũ và `_schemaVersion`)."* |
+| **Giai đoạn 2. Chốt Kiến trúc, Đóng băng Schema & Migration Pipeline (`PROJECT_BLUEPRINT.md`)** | *"Tôi chuẩn bị làm tính năng [X]. Khoan sửa code JS/HTML. Hãy đọc `@PROJECT_BLUEPRINT.md`, cập nhật JSON Schema mới, tăng `_schemaVersion` từ [N] lên [N+1] và viết hàm di trú tuần tự trong `state.js` để dữ liệu cũ của người dùng hoặc file backup cũ luôn được tự động nâng cấp an toàn."* |
 | **Giai đoạn 3. Thiết lập Quy chuẩn UI/UX, Chia nhỏ File & Mobile (`.agents/rules/GEMINI.md`)** | *"Đọc `@.agents/rules/GEMINI.md` và `@PROJECT_BLUEPRINT.md`, quy hoạch rõ trách nhiệm file theo kiến trúc 3 tầng (Engine thuần túy / State / UI từng Tab tối đa 1.500 dòng), khóa quy chuẩn biến màu Dark/Light Mode, chống vỡ khung Mobile 375px và cấm tự bật `browser_subagent`."* |
-| **Giai đoạn 2+3 (Gộp). Chốt Schema & Quy chuẩn File trong 1 lượt** | *"Ý tưởng Giai đoạn 1 đã chốt. Hãy đồng thời: (1) Cập nhật `@PROJECT_BLUEPRINT.md` thêm JSON Schema dữ liệu mới kèm giá trị mặc định an toàn; (2) Cập nhật `@.agents/rules/GEMINI.md` phân bổ hàm vào đúng file 3 tầng và khóa quy chuẩn Dark/Light Mode. Khoan viết code."* |
+| **Giai đoạn 3 (Đa quốc gia). Quy hoạch Tham số Tập trung & Minh bạch Dữ liệu** | *"Khi mở rộng đa quốc gia [X], hãy tập trung cấu hình vào `COUNTRY_PPP_PROFILES` trong Tầng 1. Đối với các nước chưa có mô hình luật tự động, tuyệt đối không đoán mò công thức generic; hãy tạo khối `#callout-unsupported` hướng dẫn người dùng tự thêm qua `[+ Thêm Thu Nhập]`."* |
+| **Giai đoạn 2+3 (Gộp). Chốt Schema & Quy chuẩn File trong 1 lượt** | *"Ý tưởng Giai đoạn 1 đã chốt. Hãy đồng thời: (1) Cập nhật `@PROJECT_BLUEPRINT.md` thêm JSON Schema dữ liệu mới kèm `_schemaVersion` và migration pipeline an toàn; (2) Cập nhật `@.agents/rules/GEMINI.md` phân bổ hàm vào đúng file 3 tầng và khóa quy chuẩn Dark/Light Mode. Khoan viết code."* |
 | **Giai đoạn 4. Lập kế hoạch thực thi chia nhỏ Task (`docs/plans/`)** | *"Dựa trên `@PROJECT_BLUEPRINT.md` và `@docs/CODEBASE_MAP.md`, hãy lập kế hoạch vào `docs/plans/[ten_file].md` chia thành các Task độc lập (Engine trước, UI sau, kèm tương thích dữ liệu cũ Migration), ghi rõ tọa độ dòng code cần sửa. Chưa viết code."* |
 | **Giai đoạn 5A. Thi công từng Task trong kế hoạch** | *"Đọc `@docs/plans/[ten_file].md` và `@docs/CODEBASE_MAP.md`. Thực hiện duy nhất **Task 1**, kiểm tra bằng `./verify_js.sh`, đánh dấu `[x]` vào file plan rồi dừng lại."* |
 | **Giai đoạn 5B. Sửa nhanh nhiều điểm giao diện / CSS / chữ (Prompt Batching)** | *"Tra cứu `@docs/CODEBASE_MAP.md`, mở đúng khu vực trong `frontend/index.html` (hoặc `styles.css`) và sửa 3 điểm sau: 1... 2... 3... Sau đó chạy `./verify_js.sh`."* |
 | **Giai đoạn 5C. Kiểm tra lỗi tính toán khi thấy số liệu lạ** | *"Trong Tab X, khi tôi chỉnh biến A từ 0% lên 10% thì kết quả B nhảy từ X lên Y bất thường. Hãy tra `@docs/CODEBASE_MAP.md` để kiểm tra hàm tính trong `frontend/js/engine.js`, sửa lại và chạy `./verify_js.sh` với biểu thức kiểm chứng."* |
 | **Giai đoạn 5D. Thoát vòng lặp khi AI sửa 2 lần chưa hết lỗi (2-Strike Rule)** | *"Dừng sửa code! Hãy hoàn tác đoạn vừa sửa hỏng, liệt kê 3 giả thuyết nguyên nhân gốc rễ gây lỗi [X] và dùng `./verify_js.sh` in ra giá trị biến trung gian để tìm đúng 100% thủ phạm trước khi sửa lại."* |
+| **Giai đoạn 5E. Kiểm thử toàn diện 40+ kịch bản UI bằng Mock DOM & Tăng `?v=...`** | *"Chạy `./verify_js.sh` để test tự động toàn bộ 42 kịch bản UI, tăng query version parameter `?v=YYYYMMDD_vNNN` trong `index.html` cho các file CSS/JS vừa sửa, và đóng commit checkpoint."* |
 | **Giai đoạn 6A. Kiểm duyệt Pháp lý, Miễn trừ trách nhiệm & GDPR** | *"Thực hiện Kiểm duyệt Pháp lý & GDPR: kiểm tra từ vựng cam kết trái phép trong `i18n.js`, guardrail trong `geminiAdvisor.js`, sự hiện diện của Disclaimer (Tài chính/Thuế/Y tế) trên UI & bản in PDF, và kiểm tra ẩn danh hóa PII khi gọi AI."* |
-| **Giai đoạn 6B. Kiểm duyệt Bảo mật & Chống sập trước khi Upload** | *"Tôi chuẩn bị upload lên Server. Hãy chạy `./verify_js.sh`, rà soát các code mới thêm xem có nguy cơ XSS (thiếu `escapeHtml`), thiếu `NaN/Infinity` guard, lộ API Key hay quên tăng `?v=...` trong `index.html` không, rồi báo cáo trạng thái sẵn sàng deploy."* |
-| **Giai đoạn 6C. Test tấn công Bảo mật trực tiếp trên Link Web thật (200 token)** | *"Web thật đang chạy tại `http://144.217.95.231:8080`. Không mở `browser_subagent`, hãy chạy `./verify_js.sh --live http://144.217.95.231:8080` để bắn 7 bài test bảo mật thực tế và báo cáo kết quả."* |
+| **Giai đoạn 6B. Đóng dấu Release SemVer, Cập nhật UI Badge & CHANGELOG.md** | *"Chuẩn bị phát hành phiên bản mới [vX.Y.Z]: (1) Cập nhật huy hiệu UI Version Badge trong `index.html`; (2) Ghi chép các thay đổi (Added, Changed, Fixed) vào `CHANGELOG.md`; (3) Kiểm tra bảo mật và sẵn sàng gắn Git Tag `vX.Y.Z`."* |
+| **Giai đoạn 6C. Kiểm duyệt Bảo mật & Chống sập trước khi Upload** | *"Tôi chuẩn bị upload lên Server. Hãy chạy `./verify_js.sh`, rà soát các code mới thêm xem có nguy cơ XSS (thiếu `escapeHtml`), thiếu `NaN/Infinity` guard, lộ API Key hay quên tăng `?v=...` trong `index.html` không, rồi báo cáo trạng thái sẵn sàng deploy."* |
+| **Giai đoạn 6D. Test tấn công Bảo mật trực tiếp trên Link Web thật (200 token)** | *"Web thật đang chạy tại `http://144.217.95.231:8080`. Không mở `browser_subagent`, hãy chạy `./verify_js.sh --live http://144.217.95.231:8080` để bắn 7 bài test bảo mật thực tế và báo cáo kết quả."* |
 | **Khi phiên chat đã dài 10–12 lượt hoặc vừa rút ra kinh nghiệm mới** | Gõ `/compact` (nếu đang dở việc), gõ `/learn` (để AI nhớ vĩnh viễn quy tắc vừa dạy), hoặc bấm **`New Chat (+)`** (nếu đã xong việc). |

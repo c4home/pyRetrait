@@ -472,18 +472,23 @@ window.RetirementEngine = (function() {
    * 4. Chịu được biến cố lớn cuộc đời: Vượt qua cả 3 cú sốc (Bệnh tật, Khủng hoảng, Lạm phát) với Sàn tài sản ≥ 5 năm & Mức sống ≥ 80% (isBulletproof)
    * Và đảm bảo dòng tiền cơ sở không cạn kiệt (survived: true).
    */
-  function findOptimalRetirementAge(plan) {
+  function findOptimalRetirementAge(plan, baseFireAge = null) {
     if (!plan) return null;
     const currentAge = Number(plan.currentAge) || 29;
     const lifeExpectancy = Number(plan.lifeExpectancy) || 85;
-    const minSearchAge = currentAge;
+    // Bắt đầu quét từ tuổi chạm Nest Egg mục tiêu (nếu có) hoặc tuổi hiện tại
+    const minSearchAge = Math.max(currentAge, Number(baseFireAge) || currentAge);
     const maxSearchAge = Math.min(lifeExpectancy - 2, 75);
 
     const mcSim = (typeof window !== 'undefined' && window.MonteCarloSimulator) 
       ? window.MonteCarloSimulator 
       : (typeof MonteCarloSimulator !== 'undefined' ? MonteCarloSimulator : null);
 
-    let bestCandidate = null;
+    let optimalBulletproofAge = null; // Đạt MC >= 80% VÀ Bulletproof (vượt cả 3 cú sốc lớn)
+    let optimalSolidAge = null;       // Đạt MC >= 80% VÀ passedCount >= 2
+    let optimalBasicAge = null;       // Đạt MC >= 80% VÀ dòng tiền sống sót
+    let bestMcAge = null;
+    let maxMcRate = 0;
 
     for (let candAge = minSearchAge; candAge <= maxSearchAge; candAge++) {
       const candPlan = { ...plan, retirementAge: candAge };
@@ -528,34 +533,58 @@ window.RetirementEngine = (function() {
         continue;
       }
 
-      // Nấc 3: Kiểm tra Điều kiện 4 (Stress Resilience - 3 Worst-case Shocks: Sàn ≥ 5 năm & Mức sống ≥ 80%)
-      const candStress = evaluateStressResilience(candPlan);
-      if (!candStress || !candStress.isBulletproof) {
-        if (!bestCandidate && candStress && candStress.passedCount >= 2) {
-          bestCandidate = candAge;
-        }
-        continue;
-      }
-
-      // Nấc 4: Kiểm tra Điều kiện 3 (Monte Carlo simulation ≥ 80%)
+      // Nấc 3: Kiểm tra Điều kiện 3 (Mô phỏng Monte Carlo đạt tỷ lệ an toàn ≥ 80%)
+      let successRate = 0;
       if (mcSim && typeof mcSim.runSimulation === 'function') {
         try {
-          const mcRes = mcSim.runSimulation(candPlan, 300, 15.0);
-          const successRate = parseFloat(mcRes.successRate);
-          if (!isNaN(successRate) && successRate < 80.0) {
-            if (!bestCandidate) bestCandidate = candAge;
-            continue;
-          }
+          // Chạy 200 lượt giả lập nhanh để vừa đảm bảo độ tin cậy vừa tối ưu thời gian phản hồi
+          const mcRes = mcSim.runSimulation(candPlan, 200, 15.0);
+          successRate = parseFloat(mcRes.successRate) || 0;
         } catch (e) {
           console.warn("Lỗi tính Monte Carlo khi tìm tuổi tối ưu:", e);
         }
       }
 
-      // Đạt trọn vẹn tất cả 4 điều kiện!
-      return candAge;
+      if (successRate > maxMcRate) {
+        maxMcRate = successRate;
+        bestMcAge = candAge;
+      }
+
+      // Nếu tỷ lệ thành công Monte Carlo chưa đạt 80%, tuyệt đối KHÔNG coi đây là Tuổi Tối Ưu!
+      // Tiếp tục quét lên tuổi cao hơn để tích lũy thêm đệm vốn và rút ngắn khoảng cách chờ lương hưu.
+      if (successRate < 80.0) {
+        continue;
+      }
+
+      // Nấc 4: Kiểm tra Điều kiện 4 (Stress Resilience - Chống chịu 3 biến cố lớn)
+      const candStress = evaluateStressResilience(candPlan);
+      if (candStress && candStress.isBulletproof) {
+        // Đạt chuẩn cao nhất (Cả 4 điều kiện hoàn hảo: MC >= 80% & Vượt trọn vẹn cả 3 biến cố)
+        return candAge;
+      } else if (candStress && candStress.passedCount >= 2) {
+        if (!optimalSolidAge) optimalSolidAge = candAge;
+      } else {
+        if (!optimalBasicAge) optimalBasicAge = candAge;
+      }
+
+      // Nếu đã tìm thấy tuổi vững chắc (MC >= 80% và pass >= 2 biến cố), chỉ quét thêm tối đa 3 năm
+      // xem có chạm được mốc Bulletproof không. Nếu không, chốt optimalSolidAge.
+      if (optimalSolidAge && (candAge - optimalSolidAge >= 3)) {
+        return optimalSolidAge;
+      }
     }
 
-    return bestCandidate;
+    if (optimalBulletproofAge) return optimalBulletproofAge;
+    if (optimalSolidAge) return optimalSolidAge;
+    if (optimalBasicAge) return optimalBasicAge;
+
+    // Nếu không có tuổi nào đạt MC >= 80%, nhưng có tuổi tiệm cận rất sát (>= 75%)
+    if (maxMcRate >= 75.0 && bestMcAge) {
+      return bestMcAge;
+    }
+
+    // Nếu toàn bộ dải tuổi đều có tỷ lệ thành công thấp (< 75%), kế hoạch chưa thể coi là khả thi an toàn
+    return null;
   }
 
   // Calculate year-by-year cash flows and net worth trajectory
@@ -1089,26 +1118,46 @@ window.RetirementEngine = (function() {
 
         // Net deficit needed from portfolio after accounting for passive income
         const incomeAfterTax = Math.max(0, annualIncome - estimatedTax);
-        if (incomeAfterTax >= currentExpenses) {
-          // Passive income covers all living expenses! Surplus is reinvested into portfolio
-          const surplus = incomeAfterTax - currentExpenses;
-          portfolio = (portfolio + surplus) * (1.0 + returnRate);
-          netSavingsOrWithdrawal = surplus;
-          actualWithdrawal = 0;
-        } else {
-          // Passive income only partially covers expenses. Net deficit must come from portfolio
-          const deficit = currentExpenses - incomeAfterTax;
-          actualWithdrawal = isStrategyActive
-            ? Math.min(portfolio, Math.max(withdrawalAmount, deficit))
-            : Math.min(portfolio, deficit);
-          portfolio = Math.max(0, (portfolio - actualWithdrawal) * (1.0 + returnRate));
-          netSavingsOrWithdrawal = -actualWithdrawal;
+        const deficit = Math.max(0, currentExpenses - incomeAfterTax);
+
+        if (isStrategyActive) {
+          // Khi BẬT chiến lược rút tiền:
+          // Danh mục rút theo quy tắc chiến lược đã chọn (Bengen 4%, Guyton-Klinger, VPW, Fixed %)
+          // Nếu phát sinh thiếu hụt sinh hoạt (deficit) lớn hơn mức rút chiến lược, danh mục sẽ rút tối thiểu bằng deficit
+          const targetWithdrawal = Math.max(withdrawalAmount, deficit);
+          actualWithdrawal = Math.max(0, Math.min(portfolio, targetWithdrawal));
+
+          // Dòng tiền ròng tác động lên danh mục:
+          // Tiền vào: thặng dư thu nhập ngoài nếu có (Math.max(0, incomeAfterTax - currentExpenses))
+          // Tiền ra: actualWithdrawal
+          const externalSurplus = Math.max(0, incomeAfterTax - currentExpenses);
+          netSavingsOrWithdrawal = externalSurplus - actualWithdrawal;
+          portfolio = Math.max(0, (portfolio + netSavingsOrWithdrawal) * (1.0 + returnRate));
 
           // Tax-Efficient French Account Withdrawal Waterfall
-          if (frenchAccs && window.TaxOptimizer && window.TaxOptimizer.simulateWithdrawalWaterfall) {
+          if (frenchAccs && actualWithdrawal > 0 && window.TaxOptimizer && window.TaxOptimizer.simulateWithdrawalWaterfall) {
             const wf = window.TaxOptimizer.simulateWithdrawalWaterfall(frenchAccs, actualWithdrawal, true);
             frenchAccs = wf.remainingBalances;
             totalWaterfallTaxSaved += wf.taxSavedVsPFU;
+          }
+        } else {
+          // Khi TẮT chiến lược rút tiền: danh mục chỉ rút thuần túy bù đắp phần thiếu hụt sinh hoạt thực tế
+          if (incomeAfterTax >= currentExpenses) {
+            const surplus = incomeAfterTax - currentExpenses;
+            portfolio = (portfolio + surplus) * (1.0 + returnRate);
+            netSavingsOrWithdrawal = surplus;
+            actualWithdrawal = 0;
+          } else {
+            actualWithdrawal = Math.max(0, Math.min(portfolio, deficit));
+            portfolio = Math.max(0, (portfolio - actualWithdrawal) * (1.0 + returnRate));
+            netSavingsOrWithdrawal = -actualWithdrawal;
+
+            // Tax-Efficient French Account Withdrawal Waterfall
+            if (frenchAccs && actualWithdrawal > 0 && window.TaxOptimizer && window.TaxOptimizer.simulateWithdrawalWaterfall) {
+              const wf = window.TaxOptimizer.simulateWithdrawalWaterfall(frenchAccs, actualWithdrawal, true);
+              frenchAccs = wf.remainingBalances;
+              totalWaterfallTaxSaved += wf.taxSavedVsPFU;
+            }
           }
         }
       }
@@ -1205,11 +1254,7 @@ window.RetirementEngine = (function() {
     // Tính Tuổi Nghỉ Hưu Tối Ưu / Tuổi Gợi Ý (Đáp ứng trọn vẹn TẤT CẢ các điều kiện)
     let optimalFireAge = null;
     if (!overrideScenario && !skipStressResilience && !skipOptimalSearch) {
-      optimalFireAge = findOptimalRetirementAge(plan);
-    }
-
-    if (!optimalFireAge) {
-      optimalFireAge = fireAge;
+      optimalFireAge = findOptimalRetirementAge(plan, fireAge);
     }
 
     // Build comprehensive Life Milestones markers
@@ -1437,8 +1482,8 @@ window.RetirementEngine = (function() {
       lifeExpectancy,
       peakNetWorth,
       peakAge,
-      fireAge: fireAge || optimalFireAge,
-      optimalFireAge: optimalFireAge || fireAge,
+      fireAge: fireAge,
+      optimalFireAge: optimalFireAge,
       milestones,
       finalPortfolio,
       finalTotalNetWorth: timeline[timeline.length - 1].totalNetWorth,

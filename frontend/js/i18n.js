@@ -28,7 +28,7 @@
       "duplicate_plan": "Nhân bản",
       "delete_plan": "Xóa",
       "formula_guide": "Công thức",
-      "auth_login": "Đăng Nhập",
+      "auth_login": "Kết Nối",
       "auth_account": "Tài khoản",
       "auth_synced": "Đã đồng bộ đám mây",
       "auth_logout": "Đăng xuất",
@@ -64,6 +64,7 @@
       "kpi_estate_end": "Tài sản thừa kế dự kiến (85t)",
 
       // Column Headers
+      "section_plan_target": "Kế hoạch dành cho",
       "col1_income_header": "Các Luồng Thu Nhập",
       "col2_expense_header": "Các Luồng Chi Tiêu",
       "btn_add_income": "+ Thêm thu nhập",
@@ -75,6 +76,9 @@
       "placeholder_income_name": "Ví dụ: Lương hiện tại của bạn, Lương bạn đời, BĐS cho thuê, Cổ tức ETF...",
       "card_withdrawal_strategy": "Chiến Lược Rút Tiền Hưu Trí",
       "card_asset_allocation": "Danh mục đầu tư",
+      "card_inflation_domestic": "Lạm phát chi tiêu",
+      "card_inflation_crossborder": "Lạm phát 2 Chặng & Tỷ giá EUR/VND",
+      "lbl_current_savings": "Tài sản ròng đầu tư hiện có",
       "card_french_pension": "Lương hưu Pháp (Agirc-Arrco / CNAV)",
       "card_german_pension": "Lương hưu Đức (Gesetzliche Rentenversicherung)",
       "card_us_pension": "Lương hưu An sinh Mỹ (Social Security SSA)",
@@ -92,6 +96,8 @@
       "card_health_roadmap_title": "Lộ Trình Tầm Soát Y Tế Vàng Theo Mốc Tuổi",
 
       // Parameters
+      "unit_age": "tuổi",
+      "hint_toggle_gender": "Nhấp để đổi giới tính Nam / Nữ",
       "param_current_age": "Tuổi hiện tại",
       "param_birth_year": "Năm sinh",
       "param_retire_age": "Tuổi nghỉ hưu mục tiêu",
@@ -152,6 +158,7 @@
       "lbl_property_typology": "Loại phân hạng",
       "lbl_property_appreciation": "Tỷ lệ điều chỉnh tăng trưởng/năm (%)",
       "summary_optimal_age": "Tuổi tối ưu:",
+      "summary_not_feasible": "Chưa khả thi",
       "summary_target_nest_egg": "Tài sản mục tiêu",
       "status_solid": "Vững chắc",
       "status_suboptimal": "Chưa tối ưu",
@@ -182,7 +189,10 @@
       "intro_tag6": "BẤT ĐỘNG SẢN & THUẾ",
       "intro_btn_start": "Bắt Đầu Hoạch Định Ngay",
       "intro_footer_note": "Hoàn toàn miễn phí • Tính toán 100% trên trình duyệt của bạn • Dữ liệu bảo mật tuyệt đối",
-      "lbl_alloc_cash": "Tiền mặt / Thanh khoản chờ đầu tư (Tài khoản thanh toán, Cash)",
+      "lbl_alloc_stocks": "Cổ phiếu & Quỹ ETF",
+      "lbl_alloc_bonds": "Trái phiếu & Tiết kiệm",
+      "lbl_alloc_re": "Bất động sản & Vàng",
+      "lbl_alloc_cash": "Tiền mặt & Thanh khoản",
       "lbl_alloc_cash_short": "TM",
 
       // Gemini AI On-Demand & Warnings
@@ -267,7 +277,7 @@
       "duplicate_plan": "Duplicate",
       "delete_plan": "Delete",
       "formula_guide": "Formulas",
-      "auth_login": "Sign In",
+      "auth_login": "Connect",
       "auth_account": "Account",
       "auth_synced": "Cloud Synced",
       "auth_logout": "Sign Out",
@@ -303,6 +313,7 @@
       "kpi_estate_end": "Projected Estate (Age 85)",
 
       // Column Headers
+      "section_plan_target": "Plan for",
       "col1_income_header": "Income Streams",
       "col2_expense_header": "Expense Streams",
       "btn_add_income": "+ Add Income",
@@ -314,6 +325,9 @@
       "placeholder_income_name": "e.g. Your current salary, Spouse salary, Rental property, ETF dividends...",
       "card_withdrawal_strategy": "Retirement Withdrawal Strategy",
       "card_asset_allocation": "Investment Portfolio",
+      "card_inflation_domestic": "Expense Inflation",
+      "card_inflation_crossborder": "Dual-Stage Inflation & EUR/VND Forex",
+      "lbl_current_savings": "Current Investable Net Worth",
       "card_french_pension": "French Pension (Agirc-Arrco / CNAV)",
       "card_german_pension": "German Statutory Pension (Gesetzliche Rentenversicherung)",
       "card_us_pension": "US Social Security (SSA Retirement)",
@@ -331,6 +345,8 @@
       "card_health_roadmap_title": "Preventive Health Milestones Roadmap",
 
       // Parameters
+      "unit_age": "years old",
+      "hint_toggle_gender": "Click to toggle gender (Male / Female)",
       "param_current_age": "Current Age",
       "param_birth_year": "Birth Year",
       "param_retire_age": "Target Retirement Age",
@@ -391,6 +407,7 @@
       "lbl_property_typology": "Typology",
       "lbl_property_appreciation": "Annual Appreciation/Depreciation (%)",
       "summary_optimal_age": "Optimal Age:",
+      "summary_not_feasible": "Not yet feasible",
       "summary_target_nest_egg": "Target Nest Egg",
       "status_solid": "Solid",
       "status_suboptimal": "Suboptimal",
@@ -421,7 +438,10 @@
       "intro_tag6": "REAL ESTATE & TAXES",
       "intro_btn_start": "Get Started Now",
       "intro_footer_note": "100% Free • Runs locally in your browser • Absolute data privacy",
-      "lbl_alloc_cash": "Cash / Uninvested Liquidity (Checking account, Cash)",
+      "lbl_alloc_stocks": "Stocks & ETFs",
+      "lbl_alloc_bonds": "Bonds & Savings",
+      "lbl_alloc_re": "Real Estate & Gold",
+      "lbl_alloc_cash": "Cash & Liquidity",
       "lbl_alloc_cash_short": "Cash",
 
       // Gemini AI On-Demand & Warnings
@@ -542,6 +562,7 @@
       "kpi_estate_end": "Succession Prévue (85 ans)",
 
       // Column Headers
+      "section_plan_target": "Plan pour",
       "col1_income_header": "Flux de Revenus",
       "col2_expense_header": "Flux de Dépenses",
       "btn_add_income": "+ Ajouter un revenu",
@@ -553,6 +574,9 @@
       "placeholder_income_name": "Ex : Votre salaire actuel, Salaire conjoint, Immobilier locatif, Dividendes ETF...",
       "card_withdrawal_strategy": "Stratégie de Retrait Retraite",
       "card_asset_allocation": "Portefeuille d'Investissement",
+      "card_inflation_domestic": "Inflation des Dépenses",
+      "card_inflation_crossborder": "Inflation à 2 Étapes & Taux EUR/VND",
+      "lbl_current_savings": "Patrimoine Net d'Investissement Actuel",
       "card_french_pension": "Retraite Française (Agirc-Arrco / CNAV)",
       "card_german_pension": "Retraite Allemande (Gesetzliche Rentenversicherung)",
       "card_us_pension": "Sécurité Sociale Américaine (US Social Security SSA)",
@@ -570,6 +594,8 @@
       "card_health_roadmap_title": "Calendrier des Bilans de Santé Préventifs",
 
       // Parameters
+      "unit_age": "ans",
+      "hint_toggle_gender": "Cliquer pour changer le sexe (Homme / Femme)",
       "param_current_age": "Âge actuel",
       "param_birth_year": "Année de naissance",
       "param_retire_age": "Âge de départ en retraite",
@@ -630,6 +656,7 @@
       "lbl_property_typology": "Typologie",
       "lbl_property_appreciation": "Ajustement Plus-value Annuelle (%)",
       "summary_optimal_age": "Âge Optimal :",
+      "summary_not_feasible": "Pas encore réalisable",
       "summary_target_nest_egg": "Capital Cible",
       "status_solid": "Solide",
       "status_suboptimal": "Sous-optimal",
@@ -660,7 +687,10 @@
       "intro_tag6": "IMMOBILIER & FISCALITÉ",
       "intro_btn_start": "Commencer Dès Maintenant",
       "intro_footer_note": "100% Gratuit • Calculs locaux dans votre navigateur • Confidentialité absolue",
-      "lbl_alloc_cash": "Liquidités / Trésorerie non investie (Compte courant, Cash)",
+      "lbl_alloc_stocks": "Actions & ETF",
+      "lbl_alloc_bonds": "Obligations & Épargne",
+      "lbl_alloc_re": "Immobilier & Or",
+      "lbl_alloc_cash": "Liquidités & Trésorerie",
       "lbl_alloc_cash_short": "Liq",
 
       // Gemini AI On-Demand & Warnings

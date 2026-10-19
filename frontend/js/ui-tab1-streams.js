@@ -77,6 +77,16 @@
     savePlansToStorage(false);
   }
 
+  /**
+   * Định dạng nhãn Giới tính & Tuổi (VD: "Nam (32 tuổi)", "Nữ (29 tuổi)")
+   */
+  function formatGenderAgeText(gender, age) {
+    const isFemale = (gender === 'female');
+    const t = (k, fb) => (window.I18n ? window.I18n.t(k, fb) : fb);
+    const gLabel = isFemale ? t('gender_female', 'Nữ') : t('gender_male', 'Nam');
+    const ageUnit = t('unit_age', 'tuổi');
+    return `${gLabel} (${age} ${ageUnit})`;
+  }
 
   // -------------------------------------------------------------
   // Sự kiện tương tác của các Tham số, Luồng Thu/Chi & Chiến lược trên Tab 1
@@ -85,12 +95,29 @@
     // Live Parameter Bindings
     bindInput("inp-retire-age", "retirementAge", Number);
     bindInput("inp-life-expectancy", "lifeExpectancy", Number);
-    bindInput("inp-inflation", "inflationRate", Number);
+    bindInput("inp-inflation", "inflationRate", val => {
+      const n = Number(val) || 0;
+      const plan = getActivePlan();
+      plan.inflationRate = n;
+      if (plan.dualInflation) {
+        plan.dualInflation.inflationPre = n;
+        plan.dualInflation.inflationPost = n;
+      }
+      updateDualInflationUI(plan);
+      return n;
+    });
     bindInput("inp-current-savings", "currentSavings", val => {
-      if (typeof val === 'number') return isNaN(val) ? 0 : val;
-      const s = String(val).replace(/,/g, '').trim();
-      const n = parseFloat(s);
-      return isNaN(n) ? 0 : n;
+      let n = 0;
+      if (typeof val === 'number') n = isNaN(val) ? 0 : val;
+      else {
+        const s = String(val).replace(/,/g, '').trim();
+        n = parseFloat(s);
+        if (isNaN(n)) n = 0;
+      }
+      const plan = getActivePlan();
+      plan.currentSavings = n;
+      updateAssetAllocationUI(plan, false);
+      return n;
     });
     bindInput("inp-savings-rate", "savingsRate", Number);
 
@@ -117,7 +144,7 @@
             }
             if (inpCurrentAge) inpCurrentAge.value = calculatedAge;
             const lblCurrentAge = document.getElementById("lbl-current-age");
-            if (lblCurrentAge) lblCurrentAge.innerText = `${calculatedAge}t`;
+            if (lblCurrentAge) lblCurrentAge.innerText = formatGenderAgeText(plan.gender || 'male', calculatedAge);
             syncSavingsAndExpensesFromRate(plan);
             savePlansToStorage();
             updateAll();
@@ -166,7 +193,10 @@
             plan.spouseAge = calculatedAge;
             if (inpSpouseCurrentAge) inpSpouseCurrentAge.value = calculatedAge;
             const lblSpouseAge = document.getElementById("lbl-spouse-age");
-            if (lblSpouseAge) lblSpouseAge.innerText = `${calculatedAge}t`;
+            if (lblSpouseAge) {
+              const spouseGender = (plan.gender === 'female' ? 'male' : 'female');
+              lblSpouseAge.innerText = formatGenderAgeText(spouseGender, calculatedAge);
+            }
             savePlansToStorage();
             updateAll();
           }
@@ -185,12 +215,38 @@
             plan.spouseBirthYear = calculatedBirthYear;
             if (inpSpouseBirthYear) inpSpouseBirthYear.value = calculatedBirthYear;
             const lblSpouseAge = document.getElementById("lbl-spouse-age");
-            if (lblSpouseAge) lblSpouseAge.innerText = `${age}t`;
+            if (lblSpouseAge) {
+              const spouseGender = (plan.gender === 'female' ? 'male' : 'female');
+              lblSpouseAge.innerText = formatGenderAgeText(spouseGender, age);
+            }
             savePlansToStorage();
             updateAll();
           }
         });
       });
+    }
+
+    // Toggle nhanh giới tính khi nhấp vào badge tuổi / giới tính
+    const togglePlanGender = () => {
+      const plan = getActivePlan();
+      if (!plan) return;
+      plan.gender = (plan.gender === 'female') ? 'male' : 'female';
+      if (plan.bhxhVnDetails) {
+        if (plan.bhxhVnDetails.spouse1) plan.bhxhVnDetails.spouse1.gender = plan.gender;
+        if (plan.bhxhVnDetails.spouse2) plan.bhxhVnDetails.spouse2.gender = (plan.gender === 'female' ? 'male' : 'female');
+      }
+      savePlansToStorage();
+      updateAll();
+    };
+
+    const badgeCurrentAge = document.getElementById("hint-current-age-badge");
+    if (badgeCurrentAge) {
+      badgeCurrentAge.addEventListener("click", togglePlanGender);
+    }
+
+    const badgeSpouseAge = document.getElementById("hint-spouse-age-badge");
+    if (badgeSpouseAge) {
+      badgeSpouseAge.addEventListener("click", togglePlanGender);
     }
 
     const sliderSavingsRate = document.getElementById("inp-savings-rate");
@@ -222,7 +278,7 @@
       hintOptimalAge.addEventListener("click", () => {
         const plan = getActivePlan();
         const proj = window.RetirementEngine.runProjection(plan);
-        const optAge = proj.optimalFireAge || proj.fireAge;
+        const optAge = proj.optimalFireAge;
         if (optAge) {
           plan.retirementAge = optAge;
           syncSalaryStreamsWithRetireAge(plan);
@@ -473,7 +529,7 @@
 
 
     // Asset Allocation Sliders (Tự động cân đối tỷ lệ mượt mà, tổng không vượt quá 100%)
-    const allocSliderIds = ['inp-alloc-stocks', 'inp-alloc-bonds', 'inp-alloc-re', 'inp-alloc-cash'];
+    const allocSliderIds = ['inp-alloc-stocks', 'inp-alloc-bonds', 'inp-alloc-cash'];
     allocSliderIds.forEach(id => {
       const el = document.getElementById(id);
       if (el) {
@@ -484,7 +540,7 @@
 
             const plan = getActivePlan();
             if (!plan.assetAllocation) {
-              plan.assetAllocation = { stocks: 60, bonds: 20, realEstate: 20, cash: 0 };
+              plan.assetAllocation = { stocks: 80, bonds: 20, realEstate: 0, cash: 0 };
             }
 
             // Tính tổng các slider khác
@@ -499,7 +555,7 @@
             // Nếu tổng vượt quá 100%, tự động giảm các slider khác một cách thông minh
             if (newVal + otherSum > 100) {
               let excess = (newVal + otherSum) - 100;
-              // Thứ tự ưu tiên giảm: Stocks -> Cash -> RealEstate -> Bonds (hoặc các slider khác có giá trị > 0)
+              // Thứ tự ưu tiên giảm: Stocks -> Cash -> Bonds
               const otherSliders = allocSliderIds
                 .filter(oId => oId !== id)
                 .map(oId => document.getElementById(oId))
@@ -520,16 +576,15 @@
               }
             }
 
-            // Cập nhật trực tiếp vào data model plan.assetAllocation
+            // Cập nhật trực tiếp vào data model plan.assetAllocation (BĐS quản lý riêng ở thẻ Doanh thu BDS)
             const stocksEl = document.getElementById("inp-alloc-stocks");
             const bondsEl = document.getElementById("inp-alloc-bonds");
-            const reEl = document.getElementById("inp-alloc-re");
             const cashEl = document.getElementById("inp-alloc-cash");
 
             plan.assetAllocation = {
-              stocks: stocksEl ? Number(stocksEl.value) : 60,
+              stocks: stocksEl ? Number(stocksEl.value) : 80,
               bonds: bondsEl ? Number(bondsEl.value) : 20,
-              realEstate: reEl ? Number(reEl.value) : 20,
+              realEstate: 0,
               cash: cashEl ? Number(cashEl.value) : 0
             };
 
@@ -573,13 +628,13 @@
         showConfirmDialog({
           icon: "",
           title: "Xác nhận đặt lại Danh mục đầu tư",
-          message: `Bạn có muốn đặt lại tỷ lệ danh mục đầu tư về chuẩn <strong>60% Cổ phiếu, 20% Trái phiếu, 20% BĐS, 0% Tiền mặt</strong>?`,
+          message: `Bạn có muốn đặt lại tỷ lệ danh mục đầu tư về chuẩn <strong>80% Cổ phiếu, 20% Trái phiếu, 0% Tiền mặt</strong>?`,
           confirmText: "Đặt lại tỷ lệ",
           onConfirm: () => {
-            plan.assetAllocation = { stocks: 60, bonds: 20, realEstate: 20, cash: 0 };
-            setVal("inp-alloc-stocks", 60);
+            plan.assetAllocation = { stocks: 80, bonds: 20, realEstate: 0, cash: 0 };
+            setVal("inp-alloc-stocks", 80);
             setVal("inp-alloc-bonds", 20);
-            setVal("inp-alloc-re", 20);
+            if (document.getElementById("inp-alloc-re")) setVal("inp-alloc-re", 0);
             setVal("inp-alloc-cash", 0);
             savePlansToStorage();
             updateAssetAllocationUI(plan);
@@ -724,6 +779,8 @@
 
     // Đặt thẻ Danh mục đầu tư lên trên thẻ Doanh thu BDS
     ensureAssetAllocationCardPosition();
+    // Đặt thẻ Lạm phát nằm ngay dưới thẻ Chi tiêu hưu trí
+    ensureDualInflationCardPosition();
   }
 
   /**
@@ -737,38 +794,44 @@
     }
   }
 
+  /**
+   * Đảm bảo vị trí thẻ Lạm phát (#card-dual-inflation-stream) luôn nằm ngay dưới thẻ Chi tiêu/tháng khi về hưu (#card-retire-expense-stream)
+   */
+  function ensureDualInflationCardPosition() {
+    const cardRetire = document.getElementById("card-retire-expense-stream");
+    const cardDualInf = document.getElementById("card-dual-inflation-stream");
+    if (cardRetire && cardDualInf && cardRetire.nextElementSibling !== cardDualInf && cardRetire.parentNode) {
+      cardRetire.parentNode.insertBefore(cardDualInf, cardRetire.nextSibling);
+    }
+  }
+
   function updateAssetAllocationUI(p, fromInputs = false) {
     if (!p) p = getActivePlan();
     const stocksEl = document.getElementById("inp-alloc-stocks");
     const bondsEl = document.getElementById("inp-alloc-bonds");
-    const reEl = document.getElementById("inp-alloc-re");
     const cashEl = document.getElementById("inp-alloc-cash");
 
-    let stocks, bonds, re, cash;
+    let stocks, bonds, cash;
     if (fromInputs) {
-      stocks = (stocksEl && stocksEl.value !== "") ? Number(stocksEl.value) : (p.assetAllocation?.stocks ?? 60);
+      stocks = (stocksEl && stocksEl.value !== "") ? Number(stocksEl.value) : (p.assetAllocation?.stocks ?? 80);
       bonds = (bondsEl && bondsEl.value !== "") ? Number(bondsEl.value) : (p.assetAllocation?.bonds ?? 20);
-      re = (reEl && reEl.value !== "") ? Number(reEl.value) : (p.assetAllocation?.realEstate ?? 20);
       cash = (cashEl && cashEl.value !== "") ? Number(cashEl.value) : (p.assetAllocation?.cash ?? 0);
-      p.assetAllocation = { stocks, bonds, realEstate: re, cash };
+      p.assetAllocation = { stocks, bonds, realEstate: 0, cash };
     } else {
       if (!p.assetAllocation) {
-        p.assetAllocation = { stocks: 60, bonds: 20, realEstate: 20, cash: 0 };
+        p.assetAllocation = { stocks: 80, bonds: 20, realEstate: 0, cash: 0 };
       }
-      stocks = p.assetAllocation.stocks !== undefined ? Number(p.assetAllocation.stocks) : 60;
+      stocks = p.assetAllocation.stocks !== undefined ? Number(p.assetAllocation.stocks) : 80;
       bonds = p.assetAllocation.bonds !== undefined ? Number(p.assetAllocation.bonds) : 20;
-      re = p.assetAllocation.realEstate !== undefined ? Number(p.assetAllocation.realEstate) : 20;
       cash = p.assetAllocation.cash !== undefined ? Number(p.assetAllocation.cash) : 0;
 
       if (stocksEl && Number(stocksEl.value) !== stocks) stocksEl.value = stocks;
       if (bondsEl && Number(bondsEl.value) !== bonds) bondsEl.value = bonds;
-      if (reEl && Number(reEl.value) !== re) reEl.value = re;
       if (cashEl && Number(cashEl.value) !== cash) cashEl.value = cash;
     }
 
     const lblStocks = document.getElementById("lbl-alloc-stocks");
     const lblBonds = document.getElementById("lbl-alloc-bonds");
-    const lblRE = document.getElementById("lbl-alloc-re");
     const lblCash = document.getElementById("lbl-alloc-cash");
     const badgeWeighted = document.getElementById("badge-weighted-return");
     const lblWeightedCalc = document.getElementById("lbl-weighted-calc");
@@ -780,28 +843,25 @@
 
     const stocksAmt = Math.round(totalSavings * (stocks / 100));
     const bondsAmt = Math.round(totalSavings * (bonds / 100));
-    const reAmt = Math.round(totalSavings * (re / 100));
     const cashAmt = Math.round(totalSavings * (cash / 100));
 
     const stocksAmtFormatted = window.RetirementEngine.formatCurrency(stocksAmt, cur);
     const bondsAmtFormatted = window.RetirementEngine.formatCurrency(bondsAmt, cur);
-    const reAmtFormatted = window.RetirementEngine.formatCurrency(reAmt, cur);
     const cashAmtFormatted = window.RetirementEngine.formatCurrency(cashAmt, cur);
 
     if (lblStocks) lblStocks.innerText = `${stocks}% • ${stocksAmtFormatted} (9.5%/năm)`;
     if (lblBonds) lblBonds.innerText = `${bonds}% • ${bondsAmtFormatted} (3.5%/năm)`;
-    if (lblRE) lblRE.innerText = `${re}% • ${reAmtFormatted} (6.5%/năm)`;
     if (lblCash) lblCash.innerText = `${cash}% • ${cashAmtFormatted} (1.5%/năm)`;
 
-    const totalPct = Math.min(100, Math.max(0, stocks + bonds + re + cash));
+    const totalPct = Math.min(100, Math.max(0, stocks + bonds + cash));
     const unallocatedPct = Math.max(0, 100 - totalPct);
     const unallocatedAmt = Math.round(totalSavings * (unallocatedPct / 100));
     const unallocatedAmtFormatted = window.RetirementEngine.formatCurrency(unallocatedAmt, cur);
 
     const returns = p.assetReturns || { stocks: 9.5, bonds: 3.5, realEstate: 6.5, cash: 1.5 };
-    const weighted = window.RetirementEngine.calculateWeightedReturn({ stocks, bonds, realEstate: re, cash }, returns, 0.3);
+    const weighted = window.RetirementEngine.calculateWeightedReturn({ stocks, bonds, realEstate: 0, cash }, returns, 0.3);
 
-    const activeClassesCount = [stocks, bonds, re, cash].filter(v => v > 0).length;
+    const activeClassesCount = [stocks, bonds, cash].filter(v => v > 0).length;
     const bonusRate = activeClassesCount >= 2 ? (0.3 * (totalPct / 100)) : 0;
 
     let allocStatusNotice = "";
@@ -816,7 +876,6 @@
       let formulaParts = [];
       if (stocks > 0) formulaParts.push(`(${stocks}% × 9.5%)`);
       if (bonds > 0) formulaParts.push(`(${bonds}% × 3.5%)`);
-      if (re > 0) formulaParts.push(`(${re}% × 6.5%)`);
       if (cash > 0) formulaParts.push(`(${cash}% × 1.5%)`);
       if (unallocatedPct > 0) formulaParts.push(`(${unallocatedPct}% chưa đầu tư × 0%)`);
       if (formulaParts.length === 0) formulaParts.push(`(100% chưa đầu tư × 0%)`);
@@ -838,7 +897,6 @@
       let ratioItems = [];
       if (stocks > 0) ratioItems.push(`${stocks}% CP`);
       if (bonds > 0) ratioItems.push(`${bonds}% TP`);
-      if (re > 0) ratioItems.push(`${re}% BĐS`);
       if (cash > 0) ratioItems.push(`${cash}% TM`);
       if (unallocatedPct > 0) ratioItems.push(`${unallocatedPct}% Nhàn rỗi`);
       if (ratioItems.length === 0) ratioItems.push(`100% Chưa đầu tư`);
@@ -855,7 +913,7 @@
       cardEl.style.opacity = p.enableAssetAllocation === false ? "0.55" : "1";
     }
 
-    p.assetAllocation = { stocks, bonds, realEstate: re, cash };
+    p.assetAllocation = { stocks, bonds, realEstate: 0, cash };
     p.investmentReturnPre = weighted;
     p.investmentReturnPost = weighted;
     setVal("inp-return-pre", weighted);
@@ -864,77 +922,110 @@
 
   function updateDualInflationUI(p) {
     if (!p) p = getActivePlan();
+    if (!p) return;
+
+    const isDomestic = (p.retireMode === 'domestic' || (p.workCountry && p.retireCountry && p.workCountry === p.retireCountry));
     const chk = document.getElementById("chk-dual-inflation-enabled");
-    const pre = Number(document.getElementById("inp-inflation-pre")?.value) || 2.2;
-    const post = Number(document.getElementById("inp-inflation-post")?.value) || 4.0;
-    const baseForex = Number(document.getElementById("inp-forex-base")?.value) || 27500;
-    const drift = Number(document.getElementById("inp-forex-drift")?.value) || 1.2;
-
-    const lblForex = document.getElementById("lbl-forex-future");
-    const curAge = p.currentAge || 29;
-    const yearsTo60 = Math.max(0, 60 - curAge);
-    const forex60 = Math.round(baseForex * Math.pow(1.0 + (drift / 100), yearsTo60));
-
-    if (lblForex) {
-      lblForex.innerText = `~${forex60.toLocaleString("vi-VN")} ₫/€`;
-    }
-
-    const isEnabled = chk ? chk.checked : (p.dualInflation?.enabled !== false);
     const cardEl = document.getElementById("card-dual-inflation-stream");
+    const lblTitle = document.getElementById("lbl-inflation-card-title");
+    const boxDomestic = document.getElementById("box-domestic-inflation");
+    const boxCrossBorder = document.getElementById("box-crossborder-inflation");
+    const boxTiming = document.getElementById("box-inflation-card-timing");
     const lblRates = document.getElementById("lbl-inflation-card-rates");
     const lblForexCard = document.getElementById("lbl-inflation-card-forex");
     const lblFuture = document.getElementById("lbl-inflation-card-future");
     const badgeStatus = document.getElementById("badge-dual-inflation-status");
 
-    if (lblRates) {
-      lblRates.innerText = `Pháp ${pre}% • VN ${post}%`;
-    }
-    if (lblForexCard) {
-      lblForexCard.innerText = `Tỷ giá gốc: ${baseForex.toLocaleString("vi-VN")} ₫/€ • Trượt giá: +${drift}%/năm`;
-    }
-    if (lblFuture) {
-      lblFuture.innerText = `Ở 60t: ~${forex60.toLocaleString("vi-VN")} ₫/€`;
-    }
-    if (badgeStatus) {
-      badgeStatus.innerText = isEnabled ? "PPP Model" : "Đã tắt";
-      badgeStatus.style.background = isEnabled ? "rgba(244, 63, 94, 0.12)" : "rgba(100, 116, 139, 0.15)";
-      badgeStatus.style.color = isEnabled ? "#fb7185" : "#94a3b8";
-      badgeStatus.style.borderColor = isEnabled ? "rgba(244, 63, 94, 0.25)" : "var(--border-subtle)";
-    }
-    if (cardEl) {
-      cardEl.style.opacity = isEnabled ? "1" : "0.55";
-    }
-
-    // Tự động làm mờ và hiển thị chú thích cho ô Lạm phát bình quân (%)
-    const inpInflation = document.getElementById("inp-inflation");
-    const badgeDualActive = document.getElementById("badge-dual-inflation-active");
-    const hintDualActive = document.getElementById("hint-dual-inflation-active");
-
-    if (inpInflation) {
-      if (isEnabled) {
-        inpInflation.disabled = true;
-        inpInflation.style.opacity = "0.6";
-        inpInflation.style.cursor = "not-allowed";
-        const hintText = window.I18n ? window.I18n.t("hint_dual_inflation_active", "Đang áp dụng mô hình Lạm phát 2 chặng bên dưới") : "Đang áp dụng mô hình Lạm phát 2 chặng bên dưới";
-        inpInflation.title = hintText;
-        if (badgeDualActive) badgeDualActive.style.display = "inline-flex";
-        if (hintDualActive) hintDualActive.style.display = "block";
-      } else {
-        inpInflation.disabled = false;
-        inpInflation.style.opacity = "1";
-        inpInflation.style.cursor = "text";
-        inpInflation.removeAttribute("title");
-        if (badgeDualActive) badgeDualActive.style.display = "none";
-        if (hintDualActive) hintDualActive.style.display = "none";
+    if (isDomestic) {
+      // 1. Chế độ Lạm phát Nội địa (1 Quốc gia)
+      if (lblTitle) {
+        lblTitle.innerText = window.I18n ? window.I18n.t("card_inflation_domestic", "Lạm phát chi tiêu") : "Lạm phát chi tiêu";
       }
+      if (boxDomestic) boxDomestic.style.display = "block";
+      if (boxCrossBorder) boxCrossBorder.style.display = "none";
+      if (boxTiming) boxTiming.style.display = "none";
+
+      const infRate = (p.inflationRate !== undefined && p.inflationRate !== null) ? Number(p.inflationRate) : (p.workCountry === 'VN' ? 4.0 : 2.0);
+      const inpInf = document.getElementById("inp-inflation");
+      if (inpInf && Number(inpInf.value) !== infRate) {
+        inpInf.value = infRate;
+      }
+
+      if (lblRates) {
+        lblRates.innerText = `Lạm phát dự phóng: ${infRate}%/năm`;
+      }
+      if (lblForexCard) {
+        lblForexCard.innerText = `Áp dụng cho toàn bộ chi tiêu sinh hoạt`;
+      }
+      if (badgeStatus) {
+        badgeStatus.innerText = `Nội địa • ${infRate}%`;
+        badgeStatus.style.background = "rgba(16, 185, 129, 0.12)";
+        badgeStatus.style.color = "#10b981";
+        badgeStatus.style.borderColor = "rgba(16, 185, 129, 0.25)";
+      }
+      if (cardEl) {
+        cardEl.style.opacity = "1";
+      }
+
+      p.inflationRate = infRate;
+      if (!p.dualInflation) p.dualInflation = {};
+      p.dualInflation.enabled = false;
+      p.dualInflation.inflationPre = infRate;
+      p.dualInflation.inflationPost = infRate;
+    } else {
+      // 2. Chế độ Lạm phát 2 Chặng & Tỷ Giá (Xuyên Biên Giới)
+      if (lblTitle) {
+        lblTitle.innerText = window.I18n ? window.I18n.t("card_inflation_crossborder", "Lạm phát 2 Chặng & Tỷ giá EUR/VND") : "Lạm phát 2 Chặng & Tỷ giá EUR/VND";
+      }
+      if (boxDomestic) boxDomestic.style.display = "none";
+      if (boxCrossBorder) boxCrossBorder.style.display = "block";
+      if (boxTiming) boxTiming.style.display = "flex";
+
+      const pre = Number(document.getElementById("inp-inflation-pre")?.value) || (p.dualInflation?.inflationPre ?? 2.2);
+      const post = Number(document.getElementById("inp-inflation-post")?.value) || (p.dualInflation?.inflationPost ?? 4.0);
+      const baseForex = Number(document.getElementById("inp-forex-base")?.value) || (p.dualInflation?.eurVndInitialRate ?? 27500);
+      const drift = Number(document.getElementById("inp-forex-drift")?.value) || (p.dualInflation?.eurVndAnnualDrift ?? 1.2);
+
+      const lblForex = document.getElementById("lbl-forex-future");
+      const curAge = p.currentAge || 29;
+      const yearsTo60 = Math.max(0, 60 - curAge);
+      const forex60 = Math.round(baseForex * Math.pow(1.0 + (drift / 100), yearsTo60));
+
+      if (lblForex) {
+        lblForex.innerText = `~${forex60.toLocaleString("vi-VN")} ₫/€`;
+      }
+
+      const isEnabled = chk ? chk.checked : (p.dualInflation?.enabled !== false);
+
+      if (lblRates) {
+        lblRates.innerText = `Pháp ${pre}% • VN ${post}%`;
+      }
+      if (lblForexCard) {
+        lblForexCard.innerText = `Tỷ giá gốc: ${baseForex.toLocaleString("vi-VN")} ₫/€ • Trượt giá: +${drift}%/năm`;
+      }
+      if (lblFuture) {
+        lblFuture.innerText = `Ở 60t: ~${forex60.toLocaleString("vi-VN")} ₫/€`;
+      }
+      if (badgeStatus) {
+        badgeStatus.innerText = isEnabled ? "PPP Model" : "Đã tắt";
+        badgeStatus.style.background = isEnabled ? "rgba(244, 63, 94, 0.12)" : "rgba(100, 116, 139, 0.15)";
+        badgeStatus.style.color = isEnabled ? "#fb7185" : "#94a3b8";
+        badgeStatus.style.borderColor = isEnabled ? "rgba(244, 63, 94, 0.25)" : "var(--border-subtle)";
+      }
+      if (cardEl) {
+        cardEl.style.opacity = isEnabled ? "1" : "0.55";
+      }
+
+      if (!p.dualInflation) p.dualInflation = {};
+      p.dualInflation.enabled = isEnabled;
+      p.dualInflation.inflationPre = pre;
+      p.dualInflation.inflationPost = post;
+      p.dualInflation.eurVndInitialRate = baseForex;
+      p.dualInflation.eurVndAnnualDrift = drift;
     }
 
-    if (!p.dualInflation) p.dualInflation = {};
-    p.dualInflation.enabled = isEnabled;
-    p.dualInflation.inflationPre = pre;
-    p.dualInflation.inflationPost = post;
-    p.dualInflation.eurVndInitialRate = baseForex;
-    p.dualInflation.eurVndAnnualDrift = drift;
+    // Đảm bảo thẻ Lạm phát luôn nằm ngay dưới thẻ Chi tiêu/tháng khi về hưu
+    ensureDualInflationCardPosition();
   }
 
   function updateRetirementLocationUI(loc) {
@@ -1645,11 +1736,12 @@
     const cardDualInf = document.getElementById("card-dual-inflation-stream");
     const locRadios = document.getElementById("retire-location-radios");
     if (cardDualInf) {
-      cardDualInf.style.display = isDomestic ? "none" : "";
+      cardDualInf.style.display = ""; // Luôn hiển thị thẻ lạm phát trong Cột Chi Tiêu
     }
     if (locRadios) {
       locRadios.style.display = isDomestic ? "none" : "";
     }
+    updateDualInflationUI(plan);
 
     // 1. Nhóm Thẻ Đặc thù theo Nơi làm việc & Nơi nghỉ hưu:
     // - Đi làm ở đâu thì hiện thẻ lương hưu của nơi đó.
@@ -2745,7 +2837,8 @@
     renderExpensePeriodsSummary,
     renderExpenseStreamsList,
     updateWithdrawalStrategyCards,
-    renderWithdrawalComparison
+    renderWithdrawalComparison,
+    formatGenderAgeText
   };
 
   window.Tab1StreamsUI = Tab1StreamsExports;

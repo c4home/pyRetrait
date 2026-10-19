@@ -28,7 +28,7 @@
   <script src="js/icons-bundle.js?v=20261018_v1"></script>
 
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=20261019_v165">
+  <link rel="stylesheet" href="css/styles.css?v=20261019_v169">
 </head>
 
 <body>
@@ -75,9 +75,8 @@
 
       <!-- User Account Widget -->
       <div class="dropdown-menu-wrapper user-account-wrapper">
-        <button id="auth-btn-trigger" class="btn btn-sm"
-          style="border: 1px solid rgba(99, 102, 241, 0.45); background: rgba(99, 102, 241, 0.12); color: #c7d2fe; display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.75rem; border-radius: 6px; font-weight: 600; cursor: pointer;">
-          <span id="auth-btn-label" data-i18n="auth_login">Đăng Nhập</span>
+        <button id="auth-btn-trigger" class="btn btn-sm">
+          <span id="auth-btn-label" data-i18n="auth_login">Kết Nối</span>
         </button>
         <div class="dropdown-content" id="user-dropdown" style="right: 0; min-width: 200px; padding: 0.25rem 0;">
           <div style="padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.82rem;">
@@ -291,7 +290,7 @@
           <!-- Left: Controls & Parameters Input Form -->
           <div class="panel-controls">
             <div class="card">
-              <h3 class="card-title"> Thông số Cơ bản & Dòng tiền</h3>
+              <h3 class="card-title" data-i18n="section_plan_target">Kế hoạch dành cho</h3>
 
               <!-- Section Thông số Cơ bản cốt lõi chung một border -->
               <div class="baseline-params-card" id="baseline-params-card">
@@ -303,8 +302,9 @@
                       <div class="field-header"
                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
                         <label for="inp-birth-year" style="margin-bottom: 0;">Năm sinh Bạn</label>
-                        <span class="badge-header-hint" id="hint-current-age-badge" title="Tuổi hiện tại của Bạn">
-                          <span>Tuổi:</span> <strong id="lbl-current-age">32t</strong>
+                        <span class="badge-header-hint clickable" id="hint-current-age-badge"
+                          title="Nhấp để đổi giới tính Nam / Nữ" data-i18n-title="hint_toggle_gender">
+                          <strong id="lbl-current-age">Nam (32 tuổi)</strong>
                         </span>
                       </div>
                       <input type="number" id="inp-birth-year" min="1940" max="2025" value="1994" class="form-input"
@@ -317,8 +317,9 @@
                       <div class="field-header"
                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
                         <label for="inp-spouse-birth-year" style="margin-bottom: 0;">Năm sinh Bạn đời</label>
-                        <span class="badge-header-hint" id="hint-spouse-age-badge" title="Tuổi hiện tại của Bạn đời">
-                          <span>Tuổi:</span> <strong id="lbl-spouse-age">29t</strong>
+                        <span class="badge-header-hint clickable" id="hint-spouse-age-badge"
+                          title="Nhấp để đổi giới tính Nam / Nữ" data-i18n-title="hint_toggle_gender">
+                          <strong id="lbl-spouse-age">Nữ (29 tuổi)</strong>
                         </span>
                       </div>
                       <input type="number" id="inp-spouse-birth-year" min="1940" max="2025" value="1997" class="form-input"
@@ -348,35 +349,6 @@
                       <label for="inp-life-expectancy" style="margin-bottom: 0;">Kỳ vọng tuổi thọ</label>
                     </div>
                     <input type="number" id="inp-life-expectancy" min="50" max="110" value="85" class="form-input">
-                  </div>
-
-                  <!-- 4. Tài sản ròng đầu tư hiện có -->
-                  <div class="form-group" style="margin-bottom: 0;">
-                    <div class="field-header"
-                      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-                      <label for="inp-current-savings" style="margin-bottom: 0;">Tài sản ròng đầu tư hiện có</label>
-                    </div>
-                    <div class="input-with-unit">
-                      <input type="number" id="inp-current-savings" value="10000" step="1000" class="form-input">
-                      <span class="unit-badge" id="unit-savings">€</span>
-                    </div>
-                  </div>
-
-                  <!-- 5. Lạm phát bình quân (%) -->
-                  <div class="form-group" style="margin-bottom: 0;" id="form-group-inflation">
-                    <div class="field-header"
-                      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-                      <label for="inp-inflation" style="margin-bottom: 0;">Lạm phát bình quân (%)</label>
-                      <span class="badge-header-hint" id="badge-dual-inflation-active"
-                        style="display: none; font-size: 0.68rem; color: var(--primary); font-weight: 600;"
-                        data-i18n="badge_dual_inflation_active">2 Chặng</span>
-                    </div>
-                    <input type="number" id="inp-inflation" step="0.1" min="0" max="20" value="4.0" class="form-input">
-                    <div class="field-hint" id="hint-dual-inflation-active"
-                      style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.35rem; line-height: 1.35; display: none;"
-                      data-i18n="hint_dual_inflation_active">
-                      Đang áp dụng mô hình Lạm phát 2 chặng bên dưới
-                    </div>
                   </div>
                 </div>
               </div>
@@ -428,30 +400,40 @@
                       </div>
                     </div>
 
-                    <div class="income-item-body"
-                      style="display: flex; justify-content: space-between; align-items: center;">
-                      <span class="income-age-range" id="lbl-alloc-card-ratio"
-                        style="font-weight: 600; color: var(--text-main); font-size: 0.82rem;">60% CP • 20% TP • 20%
-                        BĐS</span>
-                      <span class="income-growth-badge" id="lbl-alloc-card-bonus">+0.3% Tái cân bằng</span>
+                    <div class="income-item-body" style="display: flex; flex-direction: column; align-items: stretch; gap: 0.35rem;">
+                      <!-- Hàng 1: Vốn Đầu Tư Hiện Có của Danh Mục -->
+                      <div class="allocation-capital-row">
+                        <label for="inp-current-savings" style="font-size: 0.78rem; font-weight: 600; margin: 0; color: var(--text-main);" data-i18n="lbl_current_savings">Tài sản ròng đầu tư hiện có</label>
+                        <div class="input-with-unit" style="max-width: 145px;">
+                          <input type="number" id="inp-current-savings" value="10000" step="1000" class="form-input" style="padding: 0.3rem 0.5rem; font-size: 0.82rem; font-weight: 600; text-align: right;">
+                          <span class="unit-badge" id="unit-savings" style="font-size: 0.75rem;">€</span>
+                        </div>
+                      </div>
+
+                      <!-- Hàng 2: Nằm ở DƯỚI Tài sản ròng đầu tư hiện có -->
+                      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <span class="income-age-range" id="lbl-alloc-card-ratio"
+                          style="font-weight: 600; color: var(--text-main); font-size: 0.82rem;">80% CP • 20% TP</span>
+                        <span class="income-growth-badge" id="lbl-alloc-card-bonus">+0.3% Tái cân bằng</span>
+                      </div>
                     </div>
 
                     <!-- Khu vực Cấu Hình Chi Tiết Sliders & Công Thức Tái Cân Bằng -->
                     <div class="allocation-config-box" id="allocation-inputs-body">
                       <div class="form-group" style="margin-bottom: 0.55rem;">
                         <div class="field-header">
-                          <label for="inp-alloc-stocks" style="font-size: 0.76rem; font-weight: 600;">Cổ phiếu / ETF
-                            Quốc tế (PEA, CW8, S&P 500)</label>
-                          <span class="field-badge font-mono" id="lbl-alloc-stocks">60% (9.5%/năm)</span>
+                          <label for="inp-alloc-stocks" style="font-size: 0.76rem; font-weight: 600;"
+                            data-i18n="lbl_alloc_stocks">Cổ phiếu & Quỹ ETF</label>
+                          <span class="field-badge font-mono" id="lbl-alloc-stocks">80% (9.5%/năm)</span>
                         </div>
-                        <input type="range" id="inp-alloc-stocks" min="0" max="100" step="5" value="60"
+                        <input type="range" id="inp-alloc-stocks" min="0" max="100" step="5" value="80"
                           class="form-range">
                       </div>
 
                       <div class="form-group" style="margin-bottom: 0.55rem;">
                         <div class="field-header">
-                          <label for="inp-alloc-bonds" style="font-size: 0.76rem; font-weight: 600;">Trái phiếu / Tiền
-                            gửi an toàn (Livret A, LDDS, Tiết kiệm)</label>
+                          <label for="inp-alloc-bonds" style="font-size: 0.76rem; font-weight: 600;"
+                            data-i18n="lbl_alloc_bonds">Trái phiếu & Tiết kiệm</label>
                           <span class="field-badge font-mono" id="lbl-alloc-bonds">20% (3.5%/năm)</span>
                         </div>
                         <input type="range" id="inp-alloc-bonds" min="0" max="100" step="5" value="20"
@@ -460,18 +442,8 @@
 
                       <div class="form-group" style="margin-bottom: 0.55rem;">
                         <div class="field-header">
-                          <label for="inp-alloc-re" style="font-size: 0.76rem; font-weight: 600;">Bất động sản & Vàng
-                            (BĐS Việt Nam / SCPI)</label>
-                          <span class="field-badge font-mono" id="lbl-alloc-re">20% (6.5%/năm)</span>
-                        </div>
-                        <input type="range" id="inp-alloc-re" min="0" max="100" step="5" value="20" class="form-range">
-                      </div>
-
-                      <div class="form-group" style="margin-bottom: 0.55rem;">
-                        <div class="field-header">
                           <label for="inp-alloc-cash" style="font-size: 0.76rem; font-weight: 600;"
-                            data-i18n="lbl_alloc_cash">Tiền mặt / Thanh khoản chờ đầu tư (Tài khoản thanh toán,
-                            Cash)</label>
+                            data-i18n="lbl_alloc_cash">Tiền mặt & Thanh khoản</label>
                           <span class="field-badge font-mono" id="lbl-alloc-cash">0% (1.5%/năm)</span>
                         </div>
                         <input type="range" id="inp-alloc-cash" min="0" max="100" step="5" value="0" class="form-range">
@@ -479,17 +451,16 @@
 
                       <div class="input-hint" id="hint-asset-allocation"
                         style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">
-                        Lợi nhuận theo trọng số: <strong id="lbl-weighted-calc">8.0%/năm</strong> (đã gồm +0.3% thưởng
-                        kỷ luật tái cân bằng).
+                        Lãi suất chung: <strong id="lbl-weighted-calc">8.6%/năm</strong> (đã gồm +0.3% thưởng kỷ luật tái cân bằng).
                       </div>
 
                       <!-- Công thức Lợi Nhuận Trọng Số Danh Mục -->
                       <div class="formula-inline-box formula-success"
                         style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
-                        <div class="formula-tag">Quy Chuẩn Phân Bổ & Lợi Nhuận Sinh Lời Danh Mục</div>
+                        <div class="formula-tag">Quy Chuẩn Phân Bổ & Lãi Suất Chung</div>
                         <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                          <code>• Quy tắc 100%: Tổng 4 cột không được vượt quá 100%, nhưng không bắt buộc phải đầy đủ 100%. Phần vốn chưa phân bổ được coi là tiền nhàn rỗi (lợi nhuận 0%/năm).</code>
-                          <code>• R_danh_mục = (% Cổ phiếu × 9.5%) + (% Trái phiếu × 3.5%) + (% BĐS × 6.5%) + (% Tiền mặt × 1.5%) + (% Chưa đầu tư × 0%) + Thưởng tái cân bằng</code>
+                          <code>• Quy tắc 100%: Tổng các lớp tài sản không vượt quá 100%. Phần vốn chưa phân bổ được coi là tiền nhàn rỗi (lợi nhuận 0%/năm).</code>
+                          <code>• Lãi suất chung = (% Cổ phiếu × 9.5%) + (% Trái phiếu × 3.5%) + (% Tiền mặt × 1.5%) + (% Chưa đầu tư × 0%) + Thưởng tái cân bằng</code>
                           <code>• Vốn đầu tư & Tiết kiệm: Cả tài sản hiện có và tiền tiết kiệm mới hàng năm đều được phân bổ sinh lời theo đúng tỷ lệ danh mục này.</code>
                         </div>
                       </div>
@@ -1527,6 +1498,107 @@
                     </div>
                   </div>
 
+                  <!-- Thẻ Lạm Phát (Tự động thích ứng: Lạm phát Nội địa hoặc Lạm phát 2 Chặng & Tỷ Giá) đặt trực tiếp dưới Thẻ Chi Tiêu/tháng khi về hưu -->
+                  <div class="expense-item-inflation" id="card-dual-inflation-stream">
+                    <div class="expense-item-header">
+                      <div class="expense-item-name" style="display: flex; align-items: center; gap: 0.45rem;">
+                        <input type="checkbox" id="chk-dual-inflation-enabled" checked
+                          style="accent-color: #f43f5e; width: 15px; height: 15px; cursor: pointer;">
+                        <span id="lbl-inflation-card-title">Lạm phát 2 Chặng & Tỷ giá EUR/VND</span>
+                      </div>
+                      <div class="income-item-actions">
+                        <span class="field-badge font-mono" id="badge-dual-inflation-status"
+                          style="background: rgba(244, 63, 94, 0.12); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.25); font-size: 0.68rem; padding: 1px 6px;">PPP
+                          Model</span>
+                        <button type="button" class="income-item-btn" id="btn-edit-dual-inflation"
+                          title="Cấu hình chi tiết lạm phát">Sửa</button>
+                        <button type="button" class="income-item-btn income-item-del" id="btn-del-dual-inflation"
+                          title="Bật/Tắt mô hình lạm phát">Xóa</button>
+                      </div>
+                    </div>
+
+                    <div class="expense-item-body">
+                      <div class="income-item-amounts">
+                        <span class="inflation-card-rates" id="lbl-inflation-card-rates">Pháp 2.2% • VN 4.0%</span>
+                        <span class="expense-amount-annual" id="lbl-inflation-card-forex">Tỷ giá gốc: 27.500 ₫/€ • Trượt
+                          giá: +1.2%/năm</span>
+                      </div>
+                      <div class="expense-item-timing" id="box-inflation-card-timing"
+                        style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem;">
+                        <span class="income-age-range" id="lbl-inflation-card-future">Ở 60t: ~39.800 ₫/€</span>
+                        <span class="inflation-growth-badge" id="lbl-inflation-card-badge">Sức mua EUR +45%</span>
+                      </div>
+                    </div>
+
+                    <!-- Khu vực Cấu Hình Chi Tiết Lạm Phát -->
+                    <div class="inflation-config-box" id="dual-inflation-inputs-body">
+                      <!-- Khối 1: Lạm phát Nội địa (khi ở 1 quốc gia) -->
+                      <div id="box-domestic-inflation" style="display: none; margin-bottom: 0.35rem;">
+                        <div class="form-group" style="margin-bottom: 0.45rem;">
+                          <label for="inp-inflation" style="font-size: 0.76rem; font-weight: 600;">Lạm phát bình quân (%/năm)</label>
+                          <input type="number" id="inp-inflation" step="0.1" min="0" max="20" value="4.0" class="form-input"
+                            style="padding: 0.35rem 0.6rem; font-size: 0.82rem;">
+                        </div>
+                        <div class="input-hint" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">
+                          Mức tăng chi phí sinh hoạt hàng năm áp dụng cho toàn bộ giai đoạn trước và sau nghỉ hưu theo rổ chỉ số giá tiêu dùng nội địa.
+                        </div>
+                      </div>
+
+                      <!-- Khối 2: Lạm phát 2 Chặng & Tỷ Giá (khi ở 2 quốc gia xuyên biên giới) -->
+                      <div id="box-crossborder-inflation">
+                        <div class="form-row">
+                          <div class="form-group col-6" style="margin-bottom: 0.45rem;">
+                            <label for="inp-inflation-pre" style="font-size: 0.76rem; font-weight: 600;">Lạm phát Pháp
+                              (Tích lũy %)</label>
+                            <input type="number" id="inp-inflation-pre" step="0.1" value="2.2" class="form-input"
+                              style="padding: 0.35rem 0.6rem; font-size: 0.82rem;">
+                          </div>
+                          <div class="form-group col-6" style="margin-bottom: 0.45rem;">
+                            <label for="inp-inflation-post" style="font-size: 0.76rem; font-weight: 600;">Lạm phát VN (Hưu
+                              trí %)</label>
+                            <input type="number" id="inp-inflation-post" step="0.1" value="4.0" class="form-input"
+                              style="padding: 0.35rem 0.6rem; font-size: 0.82rem;">
+                          </div>
+                        </div>
+
+                        <div class="form-row">
+                          <div class="form-group col-6" style="margin-bottom: 0.45rem;">
+                            <label for="inp-forex-base" style="font-size: 0.76rem; font-weight: 600;">Tỷ giá ban đầu
+                              (₫/€)</label>
+                            <input type="number" id="inp-forex-base" value="27500" step="100" class="form-input"
+                              style="padding: 0.35rem 0.6rem; font-size: 0.82rem;">
+                          </div>
+                          <div class="form-group col-6" style="margin-bottom: 0.45rem;">
+                            <label for="inp-forex-drift" style="font-size: 0.76rem; font-weight: 600;">Trượt giá EUR/VND
+                              (%/năm)</label>
+                            <input type="number" id="inp-forex-drift" step="0.1" value="1.2" class="form-input"
+                              style="padding: 0.35rem 0.6rem; font-size: 0.82rem;">
+                          </div>
+                        </div>
+
+                        <div class="input-hint" id="hint-forex-projection"
+                          style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">
+                          Dự báo tỷ giá ở tuổi 60: <strong id="lbl-forex-future" style="color: #fb7185;">~39,800
+                            ₫/€</strong> • Sức mua EUR tăng ~45% tại VN.
+                        </div>
+
+                        <!-- Công thức Lạm Phát 2 Chặng & Trượt Giá Tỷ Giá -->
+                        <div class="formula-inline-box formula-danger"
+                          style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
+                          <div class="formula-tag">Công thức Lạm Phát 2 Chặng & Trượt Giá Tỷ Giá</div>
+                          <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
+                            <code>• Giai đoạn Pháp (tích lũy): Chi_phí(t) = Chi_phí₀ × (1 + i_Pháp)^t</code>
+                            <code>• Giai đoạn VN (hưu trí): Chi_phí(t) = Chi_phí_hưu × (1 + i_VN)^(t - Tuổi_hưu)</code>
+                            <code>• Tỷ giá EUR/VND(t) = Tỷ giá ban đầu × (1 + Trượt_giá)^t</code>
+                            <span style="font-size: 0.71rem; color: var(--text-muted); margin-top: 0.2rem;"><em>Hiệu ứng
+                                Fisher & PPP (Purchasing Power Parity):</em> Chênh lệch lạm phát giữa VN (~4.0%) và Pháp
+                              (~2.2%) được bù trừ qua mức tăng giá trị của EUR theo thời gian.</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <!-- Thẻ Kế Hoạch Con Cái & Gia Đình đặt trực tiếp trong Cột Chi Tiêu & Nợ Vay -->
                   <div class="expense-item-family" id="card-children-family-stream">
                     <div class="expense-item-header">
@@ -1765,91 +1837,7 @@
                     </div>
                   </div>
 
-                  <!-- Thẻ Lạm Phát 2 Chặng & Tỷ Giá EUR/VND đặt trực tiếp trong Cột Chi Tiêu -->
-                  <div class="expense-item-inflation" id="card-dual-inflation-stream">
-                    <div class="expense-item-header">
-                      <div class="expense-item-name" style="display: flex; align-items: center; gap: 0.45rem;">
-                        <input type="checkbox" id="chk-dual-inflation-enabled" checked
-                          style="accent-color: #f43f5e; width: 15px; height: 15px; cursor: pointer;">
-                        <span>Lạm phát 2 Chặng & Tỷ giá EUR/VND</span>
-                      </div>
-                      <div class="income-item-actions">
-                        <span class="field-badge font-mono" id="badge-dual-inflation-status"
-                          style="background: rgba(244, 63, 94, 0.12); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.25); font-size: 0.68rem; padding: 1px 6px;">PPP
-                          Model</span>
-                        <button type="button" class="income-item-btn" id="btn-edit-dual-inflation"
-                          title="Cấu hình chi tiết lạm phát 2 chặng & tỷ giá">Sửa</button>
-                        <button type="button" class="income-item-btn income-item-del" id="btn-del-dual-inflation"
-                          title="Bật/Tắt mô hình lạm phát 2 chặng">Xóa</button>
-                      </div>
-                    </div>
 
-                    <div class="expense-item-body">
-                      <div class="income-item-amounts">
-                        <span class="inflation-card-rates" id="lbl-inflation-card-rates">Pháp 2.2% • VN 4.0%</span>
-                        <span class="expense-amount-annual" id="lbl-inflation-card-forex">Tỷ giá gốc: 27.500 ₫/€ • Trượt
-                          giá: +1.2%/năm</span>
-                      </div>
-                      <div class="expense-item-timing"
-                        style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem;">
-                        <span class="income-age-range" id="lbl-inflation-card-future">Ở 60t: ~39.800 ₫/€</span>
-                        <span class="inflation-growth-badge" id="lbl-inflation-card-badge">Sức mua EUR +45%</span>
-                      </div>
-                    </div>
-
-                    <!-- Khu vực Cấu Hình Chi Tiết Lạm Phát 2 Chặng & Tỷ Giá -->
-                    <div class="inflation-config-box" id="dual-inflation-inputs-body">
-                      <div class="form-row">
-                        <div class="form-group col-6" style="margin-bottom: 0.45rem;">
-                          <label for="inp-inflation-pre" style="font-size: 0.76rem; font-weight: 600;">Lạm phát Pháp
-                            (Tích lũy %)</label>
-                          <input type="number" id="inp-inflation-pre" step="0.1" value="2.2" class="form-input"
-                            style="padding: 0.35rem 0.6rem; font-size: 0.82rem;">
-                        </div>
-                        <div class="form-group col-6" style="margin-bottom: 0.45rem;">
-                          <label for="inp-inflation-post" style="font-size: 0.76rem; font-weight: 600;">Lạm phát VN (Hưu
-                            trí %)</label>
-                          <input type="number" id="inp-inflation-post" step="0.1" value="4.0" class="form-input"
-                            style="padding: 0.35rem 0.6rem; font-size: 0.82rem;">
-                        </div>
-                      </div>
-
-                      <div class="form-row">
-                        <div class="form-group col-6" style="margin-bottom: 0.45rem;">
-                          <label for="inp-forex-base" style="font-size: 0.76rem; font-weight: 600;">Tỷ giá ban đầu
-                            (₫/€)</label>
-                          <input type="number" id="inp-forex-base" value="27500" step="100" class="form-input"
-                            style="padding: 0.35rem 0.6rem; font-size: 0.82rem;">
-                        </div>
-                        <div class="form-group col-6" style="margin-bottom: 0.45rem;">
-                          <label for="inp-forex-drift" style="font-size: 0.76rem; font-weight: 600;">Trượt giá EUR/VND
-                            (%/năm)</label>
-                          <input type="number" id="inp-forex-drift" step="0.1" value="1.2" class="form-input"
-                            style="padding: 0.35rem 0.6rem; font-size: 0.82rem;">
-                        </div>
-                      </div>
-
-                      <div class="input-hint" id="hint-forex-projection"
-                        style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">
-                        Dự báo tỷ giá ở tuổi 60: <strong id="lbl-forex-future" style="color: #fb7185;">~39,800
-                          ₫/€</strong> • Sức mua EUR tăng ~45% tại VN.
-                      </div>
-
-                      <!-- Công thức Lạm Phát 2 Chặng & Trượt Giá Tỷ Giá -->
-                      <div class="formula-inline-box formula-danger"
-                        style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
-                        <div class="formula-tag">Công thức Lạm Phát 2 Chặng & Trượt Giá Tỷ Giá</div>
-                        <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                          <code>• Giai đoạn Pháp (tích lũy): Chi_phí(t) = Chi_phí₀ × (1 + i_Pháp)^t</code>
-                          <code>• Giai đoạn VN (hưu trí): Chi_phí(t) = Chi_phí_hưu × (1 + i_VN)^(t - Tuổi_hưu)</code>
-                          <code>• Tỷ giá EUR/VND(t) = Tỷ giá ban đầu × (1 + Trượt_giá)^t</code>
-                          <span style="font-size: 0.71rem; color: var(--text-muted); margin-top: 0.2rem;"><em>Hiệu ứng
-                              Fisher & PPP (Purchasing Power Parity):</em> Chênh lệch lạm phát giữa VN (~4.0%) và Pháp
-                            (~2.2%) được bù trừ qua mức tăng giá trị của EUR theo thời gian.</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
 
                   <div class="expense-list" id="expense-streams-container"
                     style="display: flex; flex-direction: column; gap: 0.6rem;">
@@ -4812,17 +4800,17 @@
             luật tái cân bằng:
           </p>
           <div class="formula-code-box" style="border-left: 3px solid var(--primary); color: #38bdf8;">
-            R_danh_mục = (% Cổ phiếu × 9.5%) + (% Trái phiếu × 3.5%) + (% BĐS × 6.5%) + 0.3% (Thưởng tái cân bằng)
+            Lãi suất chung = (% Cổ phiếu × 9.5%) + (% Trái phiếu × 3.5%) + 0.3% (Thưởng tái cân bằng)
           </div>
           <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.5;">
-            • <strong>Ví dụ cụ thể (60 / 20 / 20):</strong><br>
-            R = (60% × 9.5%) + (20% × 3.5%) + (20% × 6.5%) + 0.3% = 5.7% + 0.7% + 1.3% + 0.3% =
-            <strong>8.0%/năm</strong>.<br>
+            • <strong>Ví dụ cụ thể (80 / 20):</strong><br>
+            R = (80% × 9.5%) + (20% × 3.5%) + 0.3% = 7.6% + 0.7% + 0.3% =
+            <strong>8.6%/năm</strong>.<br>
             • <strong>Tại sao có +0.3% Thưởng tái cân bằng?</strong> Theo các nghiên cứu tài chính (Vanguard, David
             Swensen), việc định kỳ bán bớt tài sản tăng giá (chốt lời) và mua thêm tài sản đang giảm giá (mua rẻ) để giữ
             nguyên tỷ lệ mục tiêu giúp tăng thêm 0.3% – 0.5%/năm lợi nhuận so với nắm giữ thụ động.<br>
             • <strong>Cách tính số tiền từng lớp:</strong> Số tiền = Tổng tài sản ròng hiện có × % phân bổ (Ví dụ:
-            €10,000 × 60% = €6,000).
+            €10,000 × 80% = €8,000).
           </div>
         </div>
 
@@ -5337,9 +5325,9 @@
   </div>
 
   <!-- Application Logic Modules -->
-  <script src="js/i18n.js?v=20261019_v165"></script>
+  <script src="js/i18n.js?v=20261019_v174"></script>
   <script src="js/state.js?v=20261019_v165"></script>
-  <script src="js/engine.js?v=20261019_v165"></script>
+  <script src="js/engine.js?v=20261019_v172"></script>
   <script src="js/taxOptimizer.js?v=20261019_v165"></script>
   <script src="js/monteCarlo.js?v=20261019_v165"></script>
   <script src="js/scenarios.js?v=20261016_v103"></script>
@@ -5349,11 +5337,11 @@
   <script src="js/auth.js?v=20261018_v157"></script>
   <!-- Tầng 3: Giao diện tách theo từng Tab độc lập + Modals + Nhạc trưởng điều phối -->
   <script src="js/ui-modals.js?v=20261019_v165"></script>
-  <script src="js/ui-tab1-charts.js?v=20261019_v165"></script>
-  <script src="js/ui-tab1-streams.js?v=20261019_v165"></script>
+  <script src="js/ui-tab1-charts.js?v=20261019_v172"></script>
+  <script src="js/ui-tab1-streams.js?v=20261019_v174"></script>
   <script src="js/ui-tab2-health.js?v=20261019_v165"></script>
   <script src="js/ui-tab3-taxes.js?v=20261019_v165"></script>
-  <script src="js/ui.js?v=20261019_v165"></script>
+  <script src="js/ui.js?v=20261019_v174"></script>
 </body>
 
 </html>

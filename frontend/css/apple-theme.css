@@ -1,0 +1,516 @@
+/* ==========================================================================
+   pyRetrait — Apple Human Interface Guidelines (HIG) Theme Layer
+   Áp dụng các quy chuẩn thiết kế Apple:
+   1. SF Pro Typography & Dynamic Scale
+   2. Liquid Vibrancy & Frosted Glassmorphism (backdrop-filter)
+   3. Squircle Continuous Corners (12px, 16px, 18px, 22px)
+   4. Apple Spring Physics & Micro-Interactions (cubic-bezier)
+   5. Apple Semantic Color Palette (System Blue, Green, Orange, Purple, Red)
+   6. Apple Segmented Controls & Range Sliders
+   ========================================================================== */
+
+:root {
+  /* Apple Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif !important;
+  --font-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif !important;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace !important;
+
+  /* Apple Dark Palette (Default) */
+  --bg-app: #000000 !important; /* Pure Apple OLED Black */
+  --bg-sidebar: rgba(28, 28, 30, 0.75) !important;
+  --bg-card: rgba(28, 28, 30, 0.68) !important;
+  --bg-card-hover: rgba(44, 44, 46, 0.78) !important;
+  --bg-input: rgba(44, 44, 46, 0.6) !important;
+  --bg-accent-subtle: rgba(41, 151, 255, 0.12) !important;
+
+  --border-subtle: rgba(255, 255, 255, 0.12) !important;
+  --border-strong: rgba(255, 255, 255, 0.22) !important;
+  --border-focus: #2997ff !important;
+
+  --text-main: #f5f5f7 !important;
+  --text-muted: #86868b !important;
+  --text-faint: #6e6e73 !important;
+
+  /* Apple System Colors */
+  --primary: #2997ff !important; /* SF Blue */
+  --primary-hover: #147ce5 !important;
+  --primary-glow: rgba(41, 151, 255, 0.35) !important;
+
+  --accent-blue: #2997ff !important;
+  --accent-cyan: #64d2ff !important;
+  --accent-purple: #bf5af2 !important;
+  --accent-amber: #ff9f0a !important;
+  --accent-rose: #ff453a !important;
+  --accent-indigo: #5e5ce6 !important;
+
+  --success: #30d158 !important; /* SF Green */
+  --warning: #ff9f0a !important; /* SF Orange */
+  --danger: #ff453a !important;  /* SF Red */
+
+  /* Apple Squircles */
+  --radius-sm: 8px !important;
+  --radius-md: 12px !important;
+  --radius-lg: 18px !important;
+  --radius-xl: 22px !important;
+
+  /* Apple Shadows & Spring Physics */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55) !important;
+  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.35) !important;
+  --shadow-float: 0 20px 50px rgba(0, 0, 0, 0.6) !important;
+
+  --spring-easing: cubic-bezier(0.25, 1, 0.5, 1);
+  --spring-fast: 0.18s cubic-bezier(0.25, 1, 0.5, 1);
+  --spring-bounce: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-theme="light"] {
+  /* Apple Light Palette */
+  --bg-app: #f5f5f7 !important; /* Classic Apple Canvas Light Grey */
+  --bg-sidebar: rgba(255, 255, 255, 0.82) !important;
+  --bg-card: rgba(255, 255, 255, 0.88) !important;
+  --bg-card-hover: rgba(245, 245, 247, 0.96) !important;
+  --bg-input: rgba(240, 240, 244, 0.85) !important;
+  --bg-accent-subtle: rgba(0, 113, 227, 0.08) !important;
+
+  --border-subtle: rgba(0, 0, 0, 0.08) !important;
+  --border-strong: rgba(0, 0, 0, 0.16) !important;
+  --border-focus: #0071e3 !important;
+
+  --text-main: #1d1d1f !important;
+  --text-muted: #6e6e73 !important;
+  --text-faint: #86868b !important;
+
+  --primary: #0071e3 !important;
+  --primary-hover: #0077ed !important;
+  --primary-glow: rgba(0, 113, 227, 0.25) !important;
+
+  --accent-blue: #0071e3 !important;
+  --accent-cyan: #007aff !important;
+  --accent-purple: #af52de !important;
+  --accent-amber: #f56300 !important;
+  --accent-rose: #ff3b30 !important;
+
+  --success: #28cd41 !important;
+  --warning: #f56300 !important;
+  --danger: #ff3b30 !important;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.08) !important;
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+  --shadow-float: 0 16px 40px rgba(0, 0, 0, 0.09) !important;
+}
+
+/* -------------------------------------------------------------
+   GLOBAL SMOOTHING & AMBIENT BACKDROP
+   ------------------------------------------------------------- */
+body {
+  font-family: var(--font-sans) !important;
+  letter-spacing: -0.012em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ambient Subtle Lighting */
+body::before {
+  content: "";
+  position: fixed;
+  top: -15%;
+  left: 30%;
+  width: 50vw;
+  height: 40vh;
+  background: radial-gradient(circle, rgba(41, 151, 255, 0.09) 0%, rgba(191, 90, 242, 0.04) 50%, transparent 70%);
+  filter: blur(90px);
+  z-index: 0;
+  pointer-events: none;
+}
+[data-theme="light"] body::before {
+  background: radial-gradient(circle, rgba(0, 113, 227, 0.06) 0%, rgba(175, 82, 222, 0.03) 50%, transparent 70%);
+}
+
+/* -------------------------------------------------------------
+   HEADER & TOP NAVIGATION (TRANSLUCENT FROSTED GLASS)
+   ------------------------------------------------------------- */
+.top-nav {
+  background: var(--bg-sidebar) !important;
+  backdrop-filter: blur(24px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.brand-name {
+  font-family: var(--font-heading) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+  background: linear-gradient(135deg, #2997ff 0%, #af52de 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+.plan-dropdown {
+  background: var(--bg-input) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--text-main) !important;
+  font-family: inherit !important;
+  font-weight: 500 !important;
+  transition: all var(--spring-fast) !important;
+}
+.plan-dropdown:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px var(--primary-glow) !important;
+  outline: none;
+}
+
+/* -------------------------------------------------------------
+   SIDEBAR (VIBRANCY & SQUIRCLE PILLS)
+   ------------------------------------------------------------- */
+.sidebar {
+  background: var(--bg-sidebar) !important;
+  backdrop-filter: blur(24px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+  border-right: 1px solid var(--border-subtle) !important;
+}
+
+.nav-item {
+  border-radius: var(--radius-md) !important;
+  margin: 4px 8px !important;
+  padding: 10px 14px !important;
+  transition: all var(--spring-fast) !important;
+}
+
+.nav-item:hover {
+  background: var(--bg-card-hover) !important;
+  transform: translateX(2px);
+}
+
+.nav-item.active {
+  background: var(--bg-card-hover) !important;
+  border: 1px solid var(--border-subtle) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.nav-item.active .nav-label {
+  color: var(--primary) !important;
+  font-weight: 600 !important;
+}
+
+.sidebar-summary-card {
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+/* -------------------------------------------------------------
+   BUTTONS (APPLE SPRING PHYSICS & PILL / SQUIRCLE AESTHETICS)
+   ------------------------------------------------------------- */
+.btn {
+  font-family: var(--font-sans) !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em !important;
+  border-radius: 10px !important;
+  transition: transform 0.16s var(--spring-easing),
+              background-color 0.16s ease,
+              border-color 0.16s ease,
+              box-shadow 0.16s ease !important;
+  user-select: none !important;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: scale(0.97) !important;
+}
+
+.btn-primary {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 14px var(--primary-glow) !important;
+  font-weight: 600 !important;
+}
+.btn-primary:hover {
+  background: var(--primary-hover) !important;
+  box-shadow: 0 6px 20px var(--primary-glow) !important;
+}
+
+.btn-secondary {
+  background: var(--bg-input) !important;
+  border: 1px solid var(--border-subtle) !important;
+  color: var(--text-main) !important;
+}
+.btn-secondary:hover {
+  background: var(--bg-card-hover) !important;
+  border-color: var(--border-strong) !important;
+}
+
+.btn-ghost {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+}
+.btn-ghost:hover {
+  background: var(--bg-card-hover) !important;
+  color: var(--text-main) !important;
+}
+
+.btn-icon {
+  border-radius: 9999px !important;
+  background: var(--bg-input) !important;
+  border: 1px solid var(--border-subtle) !important;
+  transition: all var(--spring-fast) !important;
+}
+.btn-icon:hover {
+  background: var(--bg-card-hover) !important;
+  transform: scale(1.05);
+}
+.btn-icon:active {
+  transform: scale(0.95);
+}
+
+/* Apple Segmented Controls: Currency Toggle */
+.currency-toggle {
+  background: var(--bg-input) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: 9999px !important;
+  padding: 2px !important;
+  display: inline-flex !important;
+  gap: 2px !important;
+}
+
+.currency-btn {
+  border: none !important;
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  border-radius: 9999px !important;
+  padding: 4px 10px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  transition: all var(--spring-fast) !important;
+  cursor: pointer !important;
+}
+
+.currency-btn:hover {
+  color: var(--text-main) !important;
+}
+
+.currency-btn.active {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 6px var(--primary-glow) !important;
+}
+
+/* -------------------------------------------------------------
+   KPI GRID & CARDS (APPLE SQUIRCLE GLASSMORPHISM)
+   ------------------------------------------------------------- */
+.kpi-card {
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-card) !important;
+  padding: 20px 22px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transition: transform var(--spring-fast),
+              box-shadow var(--spring-fast),
+              border-color var(--spring-fast) !important;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-float) !important;
+  border-color: var(--border-strong) !important;
+}
+
+.kpi-title {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: var(--text-muted) !important;
+  letter-spacing: -0.01em !important;
+}
+
+.kpi-value {
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+  color: var(--text-main) !important;
+  margin: 6px 0 !important;
+}
+
+/* -------------------------------------------------------------
+   TAB 1 HERO BANNER
+   ------------------------------------------------------------- */
+.tab-hero-banner {
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-card) !important;
+  padding: 26px 30px !important;
+}
+
+.tab-hero-title {
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+}
+
+.tab-hero-sub {
+  color: var(--text-muted) !important;
+  font-size: 14.5px !important;
+  line-height: 1.55 !important;
+}
+
+.tab-hero-qa-item {
+  background: var(--bg-input) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 16px 18px !important;
+  transition: all var(--spring-fast) !important;
+}
+
+.tab-hero-qa-item:hover {
+  border-color: var(--primary) !important;
+  transform: translateY(-1px);
+}
+
+.tab-hero-q {
+  font-weight: 600 !important;
+  color: var(--primary) !important;
+  font-size: 13.5px !important;
+}
+
+/* -------------------------------------------------------------
+   SECTIONS & PANELS (.card, .baseline-params-card, etc.)
+   ------------------------------------------------------------- */
+.card {
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+.card-title {
+  font-size: 17px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+  color: var(--text-main) !important;
+}
+
+.baseline-params-card {
+  background: var(--bg-input) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 18px !important;
+}
+
+/* -------------------------------------------------------------
+   APPLE INPUTS & RANGE SLIDERS
+   ------------------------------------------------------------- */
+.form-input, .input-with-unit input {
+  background: var(--bg-input) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--text-main) !important;
+  font-family: inherit !important;
+  font-weight: 500 !important;
+  padding: 8px 12px !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.form-input:focus, .input-with-unit input:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px var(--primary-glow) !important;
+  outline: none !important;
+}
+
+/* Apple Range Sliders with Physical Knob */
+input[type="range"], .form-range {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 100% !important;
+  height: 6px !important;
+  background: var(--border-subtle) !important;
+  border-radius: 9999px !important;
+  outline: none !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease !important;
+}
+
+input[type="range"]::-webkit-slider-thumb, .form-range::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.08) !important;
+  cursor: grab !important;
+  transition: transform var(--spring-fast) !important;
+}
+
+input[type="range"]:active::-webkit-slider-thumb, .form-range:active::-webkit-slider-thumb {
+  transform: scale(1.18) !important;
+  cursor: grabbing !important;
+}
+
+/* -------------------------------------------------------------
+   GRAPHS & CHART CONTAINERS
+   ------------------------------------------------------------- */
+.chart-container, .chart-card, #projectionChart, #monteCarloChart, #cashFlowChart {
+  border-radius: var(--radius-md) !important;
+}
+
+.chart-card {
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-card) !important;
+  padding: 22px !important;
+}
+
+/* -------------------------------------------------------------
+   BADGES, TAGS & CALLOUTS (APPLE SYSTEM PASTEL TINTS)
+   ------------------------------------------------------------- */
+.badge-header-hint, .field-badge, .income-growth-badge {
+  border-radius: 9999px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 3px 8px !important;
+  letter-spacing: -0.01em !important;
+}
+
+.formula-inline-box {
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--border-subtle) !important;
+}
+
+/* Modals with Apple Liquid Frosted Glass */
+.modal-overlay, .modal-backdrop {
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+}
+
+.modal-content, .modal-box {
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(30px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(200%) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-float) !important;
+}

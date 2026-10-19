@@ -509,21 +509,86 @@ samp {
   position: relative;
 }
 
-#auth-btn-trigger.btn-user-logged {
-  background: rgba(16, 185, 129, 0.12) !important;
-  border-color: rgba(16, 185, 129, 0.35) !important;
-  color: #34d399 !important;
+#auth-btn-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  transition: all var(--transition-fast, 0.2s ease);
 }
 
 #auth-btn-trigger:hover {
-  filter: brightness(1.15);
+  background: linear-gradient(135deg, #059669, #047857);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+#auth-btn-trigger.btn-user-logged {
+  background: linear-gradient(135deg, #059669, #047857) !important;
+  border-color: rgba(52, 211, 153, 0.5) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3) !important;
+}
+
+#auth-btn-trigger.btn-user-logged:hover {
+  background: linear-gradient(135deg, #047857, #065f46) !important;
+  border-color: rgba(52, 211, 153, 0.8) !important;
+  color: #ffffff !important;
 }
 
 #auth-tab-btn-login.active,
 #auth-tab-btn-register.active {
-  background: rgba(255, 255, 255, 0.08) !important;
-  color: #fff !important;
-  border-color: rgba(99, 102, 241, 0.4) !important;
+  background: rgba(16, 185, 129, 0.2) !important;
+  color: #ffffff !important;
+  border-color: rgba(16, 185, 129, 0.5) !important;
+}
+
+/* Light mode styling for Auth */
+[data-theme="light"] #auth-btn-trigger {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: #059669;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+}
+
+[data-theme="light"] #auth-btn-trigger:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  border-color: #047857;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+}
+
+[data-theme="light"] #auth-btn-trigger.btn-user-logged {
+  background: linear-gradient(135deg, #059669, #047857) !important;
+  border-color: #047857 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25) !important;
+}
+
+[data-theme="light"] #auth-btn-trigger.btn-user-logged:hover {
+  background: linear-gradient(135deg, #047857, #065f46) !important;
+  border-color: #065f46 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] #auth-tab-btn-login,
+[data-theme="light"] #auth-tab-btn-register {
+  color: var(--text-muted);
+}
+
+[data-theme="light"] #auth-tab-btn-login.active,
+[data-theme="light"] #auth-tab-btn-register.active {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  border-color: #10b981 !important;
 }
 
 /* ==========================================================================
@@ -2156,22 +2221,35 @@ samp {
 
 .baseline-params-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.85rem;
   align-items: flex-start;
 }
 
-@media (max-width: 1100px) {
-  .baseline-params-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 680px) {
+@media (max-width: 768px) {
   .baseline-params-grid {
     grid-template-columns: 1fr;
   }
 }
+
+.income-item-allocation .income-item-body {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+}
+
+.allocation-capital-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 0;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px dashed var(--border-subtle);
+}
+
+
 
 /* Live Cashflow Balance Box */
 .cashflow-balance-card {

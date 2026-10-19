@@ -316,8 +316,9 @@ console.log("\n--- NHÓM 3: QUỐC GIA & CHẾ ĐỘ NGHỈ HƯU (FR / VN / CROS
   
   window.Tab1StreamsUI.applyProfileVisibilityRules(plan);
   
-  const cardDualInf = getOrCreateElement('card-dual-inflation-stream');
-  assert(cardDualInf.style.display === 'none', "Test 5.1: Ẩn thẻ lạm phát kép EUR/VND khi nghỉ hưu nội địa Pháp");
+  const boxCrossBorder = getOrCreateElement('box-crossborder-inflation');
+  const boxDomestic = getOrCreateElement('box-domestic-inflation');
+  assert(boxCrossBorder.style.display === 'none' && boxDomestic.style.display === 'block', "Test 5.1: Ẩn lạm phát kép xuyên biên giới, bật lạm phát nội địa khi ở Pháp");
   
   const cardLmnp = getOrCreateElement('card-lmnp-income-stream');
   assert(cardLmnp.style.display === '', "Test 5.2: Hiển thị thẻ BĐS LMNP Pháp");

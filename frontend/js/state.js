@@ -447,7 +447,7 @@
           ],
           spendingPhases: { enabled: true, gogoAge: 55, gogoFactor: 1.15, slowgoAge: 70, slowgoFactor: 0.90, nogoFactor: 0.80 },
           healthcare: { enabled: true },
-          assetAllocation: { stocks: 60, bonds: 20, realEstate: 20, cash: 0 }
+          assetAllocation: { stocks: 80, bonds: 20, realEstate: 0, cash: 0 }
         }
       }
     };

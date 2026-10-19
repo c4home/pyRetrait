@@ -140,11 +140,11 @@ const Auth = (function() {
         label.setAttribute("data-i18n", "auth_login");
         label.textContent = (window.I18n && typeof window.I18n.t === "function") 
           ? window.I18n.t("auth_login") 
-          : "Đăng Nhập";
+          : "Kết Nối";
       }
       if (icon) icon.textContent = "";
       btn.classList.remove("btn-user-logged");
-      btn.title = "Đăng nhập để đồng bộ kế hoạch lên đám mây";
+      btn.title = "Kết nối để đồng bộ kế hoạch lên đám mây";
       if (dropdown) dropdown.classList.remove("show");
     }
   }

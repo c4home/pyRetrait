@@ -1258,9 +1258,16 @@
                 const currSym = state.currency;
                 const formattedAnnual = window.RetirementEngine.formatCurrency(valAnnual, currSym, false);
                 const formattedMonthly = window.RetirementEngine.formatCurrency(valMonthly, currSym, false);
+                const idx = item.dataIndex;
+                const p = proj.timeline[idx];
                 let name = 'Thu nhập ngoài';
                 if (item.datasetIndex === 1) name = 'Chi tiêu sinh hoạt';
-                else if (item.datasetIndex === 2) name = `Rút vốn (${stratName})`;
+                else if (item.datasetIndex === 2) {
+                  name = `Rút vốn (${stratName})`;
+                  if (valAnnual === 0 && p && p.isRetired && (p.portfolioEnd || 0) <= 0) {
+                    return ` ${name}: ${formattedAnnual}/năm (Quỹ đầu tư cạn vốn 0€)`;
+                  }
+                }
                 return ` ${name}: ${formattedAnnual}/năm (${formattedMonthly}/tháng)`;
               },
               afterBody: (items) => {
@@ -1298,6 +1305,10 @@
                     lines.push(` Cân đối chi tiêu: Đảm bảo 100% (Dư ${sign}${diffFormatted}/năm)`);
                   } else {
                     lines.push(` Cân đối chi tiêu: Thiếu hụt -${diffFormatted}/năm`);
+                  }
+
+                  if (isStrategyActive && withdrawal === 0 && (p.portfolioEnd || 0) <= 0) {
+                    lines.push(` ⚠️ Quỹ đầu tư cạn kiệt (0€) do nghỉ hưu sớm thiếu thanh khoản`);
                   }
                 }
 
@@ -1428,9 +1439,9 @@
     }
     if (statusEl) {
       const proj = window.RetirementEngine.runProjection(plan);
-      const optAge = proj.optimalFireAge || proj.fireAge;
+      const optAge = proj.optimalFireAge;
       const userRetireAge = Number(plan.retirementAge) || 42;
-      const isOptimalReached = optAge ? (userRetireAge >= optAge) : true;
+      const isOptimalReached = optAge ? (userRetireAge >= optAge) : false;
       const sRate = parseFloat(res.successRate);
       const t = (k, fb) => (window.I18n ? window.I18n.t(k, fb) : fb);
 

@@ -69,11 +69,12 @@ pyRetrait/
 ├── frontend/
 │   ├── index.html                    # Khung giao diện chính (4 Tabs + Modals)
 │   ├── css/styles.css                # Hệ thống biến CSS Dual-Theme & Layout
+│   │   └── apple-theme.css           # Bổ sung kiểu dáng Apple Design & Human Interface Guidelines (nếu kích hoạt)
 │   └── js/
 │       ├── state.js                  # Quản lý State tập trung (AppState), LocalStorage, Cloud Sync & Event Bus
 │       ├── engine.js                 # Lõi tính toán dòng tiền, rút vốn, Stress Test, Optimal Age
 │       ├── monteCarlo.js             # Mô phỏng 1,000 kịch bản (Mulberry32 Seed = 42)
-│       ├── taxOptimizer.js           # Thuế Pháp/Mỹ/VN, Lương hưu Décote, Thác rút tiền
+│       ├── taxOptimizer.js           # Thuế Pháp/Mỹ/VN, Lương hưu Pháp/BHXH VN/Đức/Mỹ, Thác rút tiền
 │       ├── patrimoine.js             # Quản lý BĐS LMNP Pháp, Điểm hòa vốn & Đội xe Turo
 │       ├── scenarios.js              # Kịch bản What-If
 │       ├── geminiAdvisor.js          # Tích hợp & Cache Data-Fingerprint cho Gemini AI
@@ -88,6 +89,8 @@ pyRetrait/
 │       ├── community-seed.js         # 6 Kịch bản thực chiến offline chuẩn mực
 │       ├── community.js              # Tầng 3 UI (Tab 4): Chợ Kịch bản Cộng đồng, Smart Forking, Filter & Upvote
 │       └── ui.js                     # Tầng 3 UI: Nhạc trưởng điều phối trung tâm (initApp, switchTab, updateAll, Tiền tệ, Theme)
+├── tests/
+│   └── test_plan_creation_ui.js      # Bộ kiểm thử tự động 42 tiêu chí logic & UI cho quy trình tạo kế hoạch mới
 └── backend/
     ├── main.py                       # FastAPI Endpoints (/api/auth, /api/plans, /api/patrimoine, /api/community, /api/ai)
     ├── auth.py                       # Xử lý SQLite thuần, PBKDF2-SHA256 & JWT
@@ -187,6 +190,30 @@ Dưới đây là cấu trúc JSON chuẩn của một đối tượng kế ho�
       "claimAge": 60
     }
   },
+  "germanPensionDetails": {
+    "spouse1": {
+      "grossAnnualSalary": 45000,
+      "yearsContributed": 35,
+      "claimAge": 67
+    },
+    "spouse2": {
+      "grossAnnualSalary": 38000,
+      "yearsContributed": 35,
+      "claimAge": 67
+    }
+  },
+  "usPensionDetails": {
+    "spouse1": {
+      "grossAnnualSalary": 65000,
+      "yearsWorked": 35,
+      "claimAge": 67
+    },
+    "spouse2": {
+      "grossAnnualSalary": 55000,
+      "yearsWorked": 35,
+      "claimAge": 67
+    }
+  },
   "enableSeniorCare": true,
   "seniorCareAge": 78,
   "seniorCareMonthly": 1000,
@@ -231,6 +258,16 @@ Dưới đây là cấu trúc JSON chuẩn của một đối tượng kế ho�
     "estimatedBioAge": 27.5,
     "estimatedHealthspan": 78
   },
+  "healthProfiles": {
+    "primary": {
+      "habits": [true, true, true, false, true],
+      "biomarkers": { "rhr": "good", "bp": "optimal", "whtr": "optimal", "strength": "high" }
+    },
+    "spouse": {
+      "habits": [true, true, true, false, true],
+      "biomarkers": { "rhr": "good", "bp": "optimal", "whtr": "optimal", "strength": "high" }
+    }
+  },
   "incomes": [],
   "expenses": [],
   "milestones": [],
@@ -251,12 +288,15 @@ Dưới đây là cấu trúc JSON chuẩn của một đối tượng kế ho�
 | `workCountry` | `string` | ISO-2 (`'FR'`, `'VN'`, `'US'`, `'DE'`) | `'FR'` | Quốc gia làm việc tích lũy chính. Quyết định chế độ thuế và nguồn lương hưu mặc định. |
 | `workCity` | `string` | Tên mã định danh | `'fr_paris'` | Thành phố / khu vực làm việc (ảnh hưởng mức chi phí sinh hoạt trước hưu). |
 | `retireMode` | `string` | enum: `'domestic'`, `'relocate'`, `'hybrid'` | `'relocate'` | Chế độ hưu trí: `'domestic'` (trong nước), `'relocate'` (chuyển quốc gia), `'hybrid'` (song hành 2 nơi). |
-| `retireCountry` | `string` | ISO-2 (`'VN'`, `'FR'`, `'TH'`) | `'VN'` | Quốc gia nghỉ hưu dự kiến. Quyết định rổ chi phí PPP và tỷ lệ lạm phát chặng sau. |
+| `retireCountry` | `string` | ISO-2 (`'VN'`, `'FR'`, `'TH'`, `'US'`, `'DE'`) | `'VN'` | Quốc gia nghỉ hưu dự kiến. Quyết định rổ chi phí PPP và tỷ lệ lạm phát chặng sau. |
 | `retireCity` | `string` | Tên mã định danh | `'vn_hcm_hn'` | Thành phố / vùng nghỉ hưu (ví dụ: `'vn_hcm_hn'`, `'vn_coastal'`). |
 | `monthlyMortgagePaidOff` | `number` | EUR / tháng | `0` | Khoản nợ mua nhà dự kiến tất toán trước khi nghỉ hưu, dùng để trừ khỏi chi phí hưu trí khi đối chiếu dòng tiền. |
 | `benchmarkSpendingStandard`| `string` | enum: `'fr_insee'`, `'user_defined'` | `'fr_insee'` | Nguồn dữ liệu mức sống chuẩn đối chiếu (INSEE Pháp, Eurostat, hoặc người dùng tự nhập). |
 | `frenchPensionDetails` | `object` | JSON lồng | Xem bên dưới | Chi tiết lương hưu Pháp cho 2 vợ chồng (`spouse1` và `spouse2`). Fallback: lấy từ `socialSecurityAnnual` và `socialSecurityAge`. |
 | `bhxhVnDetails` | `object` | JSON lồng | Xem bên dưới | Chi tiết BHXH VN cho 2 vợ chồng (`spouse1` và `spouse2`). Fallback: lấy từ `bhxhVnIncome`, `bhxhVnYears`, `bhxhVnRetireAge`. |
+| `germanPensionDetails` | `object` | JSON lồng | Xem bên dưới | Chi tiết lương hưu Đức (Gesetzliche Rentenversicherung - DRV) cho 2 vợ chồng (`grossAnnualSalary`, `yearsContributed`, `claimAge`). |
+| `usPensionDetails` | `object` | JSON lồng | Xem bên dưới | Chi tiết trợ cấp hưu trí Mỹ (Social Security Administration - SSA) cho 2 vợ chồng (`grossAnnualSalary`, `yearsWorked`, `claimAge`). |
+| `healthProfiles` | `object` | JSON lồng | Xem bên dưới | Chỉ số sức khỏe & thói quen sinh học độc lập cho cả Bạn (`primary`) và Bạn đời (`spouse`). |
 
 - **Cơ chế Fallback an toàn trong `state.js`**:
   Khi nạp kế hoạch cũ (`loadPlan` hoặc `migratePlan`):
@@ -312,12 +352,22 @@ Cấu trúc bản ghi lưu trữ trên SQLite backend và đóng gói trong [`fr
 
 - **Phase 1 — Foundation & Core Engine (Đã hoàn thành)**: Khung giao diện Dual-Theme, mô phỏng dòng tiền cơ sở, 4 chiến lược rút tiền, biểu đồ Chart.js, đa ngôn ngữ `i18n.js` và lưu trữ đám mây SQLite.
 - **Phase 2 — Franco-Viet Ecosystem & Patrimoine (Đã hoàn thành)**: Tích hợp BĐS LMNP Pháp, đội xe Turo, lương hưu Pháp Décote, BHXH tự nguyện Việt Nam, mô hình con cái CAF và Tab Sức khỏe & Y tế dự phòng.
-- **Phase 3 — Đồng Bộ Sức Khỏe – Tài Chính & Chuẩn Hóa Toán Học (Đang triển khai — xem [`docs/plans/upgrade_health_finance_model.md`](file:///Users/canhhung/Documents/pyRetrait/docs/plans/upgrade_health_finance_model.md))**:
+- **Phase 3 — Đồng Bộ Sức Khỏe – Tài Chính & Chuẩn Hóa Toán Học (Đã hoàn thành)**:
   - Khớp nối trực tiếp `estimatedHealthspan` từ Tab Sức khỏe vào `engine.js` (tự động điều chỉnh tuổi kích hoạt chăm sóc tuổi già và các chặng chi tiêu Go-Go/Slow-Go/No-Go).
   - Đồng bộ 100% dòng tiền chi tiết giữa `monteCarlo.js` và `engine.js`.
   - Chuẩn hóa công thức lạm phát 2 chặng EUR/VND, thuế hộ gia đình Pháp (`Quotient Familial`), tái đầu tư thặng dư rút vốn và lãi kép cho các tài khoản Pháp (`frenchAccounts`).
-- **Phase 4 — Chợ Kịch Bản Cộng Đồng (Community Marketplace) & Hiệu Ứng Mạng Lưới (Network Moat — xem [`docs/plans/community_marketplace_plan.md`](file:///Users/canhhung/Documents/pyRetrait/docs/plans/community_marketplace_plan.md))**:
+- **Phase 4 — Chợ Kịch Bản Cộng Đồng (Community Marketplace) & Hiệu Ứng Mạng Lưới (Đã hoàn thành)**:
   - Bổ sung **Tab 4: Cộng đồng** trên giao diện chính, hiển thị thư viện kịch bản đa dạng với các bộ lọc thông minh (độ tuổi, địa điểm hồi hương, phong cách sống).
   - Đóng gói 6 kịch bản thực chiến kinh điển (Offline Seed Data) đảm bảo trải nghiệm tức thì ngay cả khi offline.
   - Cơ chế **Smart Forking (Nhân bản thông minh)**: Tự động điều chỉnh quy mô tài sản theo % tương ứng với tình hình thực tế của người dùng mới.
   - Tích hợp xuất bản ẩn danh với Chế độ bảo vệ tài chính kép (Nickname + Chuẩn hóa %) và bình chọn cộng đồng (Upvote/Fork counter) lưu trữ trên SQLite backend.
+- **Phase 5 — Phân Hệ Vợ Chồng & Hưu Trí PPP Đa Quốc Gia (Đã hoàn thành)**:
+  - Mở rộng hỗ trợ cấu trúc Cá nhân (`single`) và Vợ Chồng / Cặp Đôi (`married`) với dòng tiền song hành độc lập (bạn & bạn đời).
+  - Tích hợp 4 hệ thống lương hưu quốc tế: Lương hưu Pháp (CNAV/Agirc-Arrco), BHXH Việt Nam (Luật 2024 theo giới tính Nam 62t, Nữ 60t), Lương hưu Đức (DRV), Trợ cấp an sinh Mỹ (SSA).
+  - Hệ thống dữ liệu PPP Đa Quốc Gia (`COUNTRY_PPP_PROFILES`) với hệ số chi phí sống, lạm phát chuẩn và tự động tính toán chi tiêu hưu trí thực tế từ thu nhập ròng trừ tiết kiệm và nợ nhà đã trả.
+  - Tách biệt Tài sản thanh khoản (Liquid Networth - Cổ phiếu, Trái phiếu, Tiền mặt) khỏi Bất động sản / Tài sản cố định để đánh giá sức chịu đựng thực tế trước các cú sốc dòng tiền.
+  - Bộ kiểm thử tự động 42 tiêu chí logic & UI cho quy trình tạo kế hoạch mới (`tests/test_plan_creation_ui.js`).
+- **Phase 6 — Tối Ưu Giao Diện Tinh Tế & Apple Human Interface Guidelines (Đang triển khai)**:
+  - Hoàn thiện trải nghiệm thẩm mỹ cao cấp với cảm hứng từ Apple Design (typography Inter sắc nét, padding/spacing hài hòa, micro-interactions, modal bóng mờ thanh thoát).
+  - Kiểm toán độ tương phản chuẩn WCAG AA trên cả Light Mode và Dark Mode, chống chữ mờ/bạc màu trên nền sáng.
+  - Tiếp tục tinh giản thuật ngữ chuyên ngành (Plain Language) hướng tới 100,000+ người dùng phổ thông.
