@@ -56,6 +56,441 @@ window.TaxOptimizer = (function() {
     'custom': { countryCode: 'CUSTOM', label: 'Tùy chỉnh cá nhân', countryLabel: 'Khác', flag: '🌐', ppp: 1.00, inflation: 0.025, healthCostBase: 150 }
   };
 
+  // Chính sách Phúc Lợi Con Cái & Ưu Đãi Thuế Gia Đình Đa Quốc Gia
+  const COUNTRY_FAMILY_POLICIES = {
+    'FR': {
+      vi: {
+        badgeText: 'CAF + Giảm thuế IR',
+        hintHtml: 'Được bù đắp bởi <strong>Trợ cấp CAF Pháp</strong> (~148 €/tháng cho 2 con, ~338 € cho 3 con) và <strong>Giảm thuế Quotient Familial</strong> (tối đa ~3.518 €/năm).',
+        formulaTag: 'Cơ Chế Chi Phí Con Cái & Quyền Lợi Pháp (CAF & IR)',
+        taxRule: '• Ưu đãi Quotient Familial: Thêm 0.5 part/bé (bé 1 & 2) và 1.0 part/bé (từ bé thứ 3) giúp giảm thuế IR',
+        uniDesc: 'Khi con vào đại học, các căn hộ BĐS LMNP đã hết nợ vay sẽ sản sinh dòng tiền ròng thụ động tự động trang trải chi phí học vấn của con.'
+      },
+      en: {
+        badgeText: 'CAF + Tax Reduction',
+        hintHtml: 'Offset by <strong>French CAF Allowances</strong> (~€148/mo for 2 kids, ~€338 for 3 kids) and <strong>Quotient Familial tax relief</strong> (up to ~€3,518/yr).',
+        formulaTag: 'Child Expenses & French Family Benefits (CAF & IR)',
+        taxRule: '• Quotient Familial: +0.5 fiscal part per child (kids 1 & 2) and +1.0 part from 3rd child to reduce income tax',
+        uniDesc: 'When children enter university, mortgage-free rental properties produce passive net cashflow to cover their higher education costs.'
+      },
+      fr: {
+        badgeText: 'CAF + Quotient Familial IR',
+        hintHtml: 'Compensé par les <strong>Allocations familiales CAF</strong> (~148 €/mois pour 2 enfants, ~338 € pour 3 enfants) et le <strong>Quotient Familial</strong> (gain max ~3 518 €/an).',
+        formulaTag: 'Mécanisme Dépenses Enfants & Avantages Fiscaux Français',
+        taxRule: '• Quotient Familial: +0.5 part fiscale par enfant (1er et 2e) et +1.0 part dès le 3e enfant pour réduire l\'IR',
+        uniDesc: 'À l\'entrée à l\'université, les biens immobiliers LMNP désendettés génèrent des revenus locatifs nets pour financer les études des enfants.'
+      }
+    },
+    'VN': {
+      vi: {
+        badgeText: 'Giảm trừ gia cảnh TNCN',
+        hintHtml: 'Được hỗ trợ bởi <strong>Giảm trừ gia cảnh người phụ thuộc</strong> (4,4 triệu ₫/tháng/con khi tính thuế TNCN) và <strong>Bảo hiểm y tế học sinh</strong> được Nhà nước trợ giá.',
+        formulaTag: 'Cơ Chế Chi Phí Con Cái & Ưu Đãi Thuế TNCN Việt Nam',
+        taxRule: '• Ưu đãi Thuế TNCN: Giảm trừ gia cảnh 4,4 triệu VNĐ/tháng/người phụ thuộc (dưới 18 tuổi hoặc đang học ĐH)',
+        uniDesc: 'Khi con vào đại học, dòng tiền từ BĐS cho thuê, lợi nhuận đầu tư cổ tức hoặc quỹ giáo dục tích lũy sẽ tự động trang trải học phí và chi phí sinh hoạt.'
+      },
+      en: {
+        badgeText: 'Dependent Tax Deduction',
+        hintHtml: 'Supported by <strong>Personal Income Tax dependent deduction</strong> (4.4M VND/mo/child) and subsidized student public healthcare.',
+        formulaTag: 'Child Expenses & Vietnam Personal Income Tax Relief',
+        taxRule: '• Vietnam PIT Relief: Dependent deduction of 4.4M VND/month/child (under 18 or in university)',
+        uniDesc: 'When children enter university, cash flow from rental real estate, dividend investments, or education savings automatically funds tuition and living costs.'
+      },
+      fr: {
+        badgeText: 'Déduction Personne à Charge (IR VN)',
+        hintHtml: 'Soutenu par la <strong>Déduction pour personnes à charge</strong> (4,4 M VND/mois/enfant pour l\'impôt sur le revenu) và l\'assurance santé étudiante subventionnée.',
+        formulaTag: 'Mécanisme Dépenses Enfants & Déductions Fiscales Vietnam',
+        taxRule: '• Déduction fiscale VN: 4,4 millions VND/mois par enfant à charge (moins de 18 ans ou étudiant)',
+        uniDesc: 'À l\'université, les flux de trésorerie locatifs, dividendes ou épargne éducation financent sereinement les frais de scolarité.'
+      }
+    },
+    'US': {
+      vi: {
+        badgeText: 'Child Tax Credit (CTC)',
+        hintHtml: 'Được bù đắp bởi <strong>Child Tax Credit (CTC)</strong> lên tới $2,000/con/năm (hoàn thuế lên tới $1,700) và miễn thuế tăng trưởng từ <strong>Quỹ Giáo Dục 529 Plan</strong>.',
+        formulaTag: 'Cơ Chế Chi Phí Con Cái & Tín Thuế Mỹ (CTC & 529 Plan)',
+        taxRule: '• Ưu đãi Thuế Mỹ: Tín thuế CTC $2,000/bé/năm và miễn 100% thuế vốn từ Quỹ Tiết Kiệm Giáo Dục 529',
+        uniDesc: 'Khi con vào đại học, dòng tiền tích lũy từ Quỹ 529 Plan kết hợp tài sản đầu tư sinh lời sẽ tự động trang trải toàn bộ học phí và sinh hoạt phí.'
+      },
+      en: {
+        badgeText: 'Child Tax Credit (CTC)',
+        hintHtml: 'Offset by the <strong>Child Tax Credit (CTC)</strong> up to $2,000/child/year (refundable up to $1,700) and tax-free growth with <strong>529 College Plans</strong>.',
+        formulaTag: 'Child Expenses & US Tax Credits (CTC & 529 Plan)',
+        taxRule: '• US Tax Benefit: $2,000/child annual Child Tax Credit + 100% tax-free capital growth in 529 College Plans',
+        uniDesc: 'When children reach college, 529 plan savings and dividend/rental cashflows automatically cover tuition, housing, and campus living.'
+      },
+      fr: {
+        badgeText: 'Child Tax Credit (CTC US)',
+        hintHtml: 'Compensé par le <strong>Child Tax Credit (CTC)</strong> jusqu\'à 2 000 $/enfant/an (remboursable à 1 700 $) et l\'exonération fiscale des <strong>Plans 529</strong>.',
+        formulaTag: 'Mécanisme Dépenses Enfants & Crédit d\'Impôt USA',
+        taxRule: '• Avantage fiscal US: Crédit d\'impôt CTC 2 000 $/an par enfant + croissance défiscalisée via Plan 529',
+        uniDesc: 'À l\'entrée à l\'université, le plan d\'épargne études 529 et les investissements rémunérateurs financent l\'intégralité des études et du logement.'
+      }
+    },
+    'DE': {
+      vi: {
+        badgeText: 'Kindergeld (~250 €/tháng)',
+        hintHtml: 'Được chi trả <strong>Trợ cấp Kindergeld</strong> (~250 €/tháng/con) và chế độ <strong>Miễn 100% học phí đại học công lập</strong> tại Đức.',
+        formulaTag: 'Cơ Chế Chi Phí Con Cái & An Sinh Đức (Kindergeld)',
+        taxRule: '• Ưu đãi Đức: Trợ cấp Kindergeld 250 €/tháng/con (hoặc khấu trừ thuế gia đình Kinderfreibetrag ~6.384 €/năm nếu lợi hơn)',
+        uniDesc: 'Đại học công lập tại Đức được miễn học phí, danh mục tài sản tích lũy chỉ cần hỗ trợ tiền sinh hoạt và nhà ở của con.'
+      },
+      en: {
+        badgeText: 'Kindergeld (~€250/mo)',
+        hintHtml: 'Supported by <strong>Kindergeld child benefit</strong> (~€250/mo/child) and <strong>Tuition-free public universities</strong> across Germany.',
+        formulaTag: 'Child Expenses & German Family Welfare (Kindergeld)',
+        taxRule: '• German Benefit: Direct Kindergeld allowance €250/mo/child (or Kinderfreibetrag tax deduction ~€6,384/yr)',
+        uniDesc: 'Tuition at German public universities is completely free; investment cashflows simply cover student housing and living expenses.'
+      },
+      fr: {
+        badgeText: 'Kindergeld (~250 €/mois)',
+        hintHtml: 'Soutenu par l\'allocation <strong>Kindergeld</strong> (~250 €/mois/enfant) et la <strong>Gratuité des universités publiques</strong> en Allemagne.',
+        formulaTag: 'Mécanisme Dépenses Enfants & Prestations Allemandes',
+        taxRule: '• Avantage Allemagne: Allocation Kindergeld de 250 €/mois/enfant (ou déduction Kinderfreibetrag ~6 384 €/an)',
+        uniDesc: 'Les universités publiques allemandes étant sans frais de scolarité, les revenus passifs couvrent simplement le logement et le coût de la vie.'
+      }
+    },
+    'BE': {
+      vi: {
+        badgeText: 'Allocations Familiales',
+        hintHtml: 'Được chi trả <strong>Trợ cấp con cái (Groeipakket / Allocations)</strong> từ ~180 € - 220 €/tháng/bé và học phí đại học công lập rất thấp.',
+        formulaTag: 'Cơ Chế Chi Phí Con Cái & An Sinh Bỉ',
+        taxRule: '• Ưu đãi Bỉ: Tăng mức thu nhập miễn thuế cơ bản cho mỗi con phụ thuộc (Quotité exemptée)',
+        uniDesc: 'Khi con vào đại học, mức học phí công lập ưu đãi cùng dòng tiền từ tài sản tích lũy sẽ giúp giảm thiểu tối đa áp lực tài chính.'
+      },
+      en: {
+        badgeText: 'Family Allowances (Belgium)',
+        hintHtml: 'Supported by <strong>Child benefits (Groeipakket / Allocations)</strong> ~€180-220/mo/child and subsidized public university fees.',
+        formulaTag: 'Child Expenses & Belgian Family Welfare',
+        taxRule: '• Belgian Tax Relief: Increased tax-exempt basic quota (Quotité exemptée) per dependent child',
+        uniDesc: 'When children attend university, highly subsidized public tuition paired with portfolio cashflows ensures seamless financing.'
+      },
+      fr: {
+        badgeText: 'Allocations Familiales (BE)',
+        hintHtml: 'Soutenu par les <strong>Allocations familiales / Groeipakket</strong> ~180 à 220 €/mois/enfant et des frais universitaires publics très réduits.',
+        formulaTag: 'Mécanisme Dépenses Enfants & Prestations Belges',
+        taxRule: '• Avantage Belgique: Majoration de la quotité de revenu exemptée d\'impôt par enfant à charge',
+        uniDesc: 'À l\'université, les droits d\'inscription modérés combinés aux rentes d\'actifs garantissent une couverture totale des dépenses.'
+      }
+    },
+    'CH': {
+      vi: {
+        badgeText: 'Familienzulagen (Trợ cấp con)',
+        hintHtml: 'Được hỗ trợ bởi <strong>Trợ cấp gia đình (Familienzulagen)</strong> tối thiểu 200 - 250 CHF/tháng/bé và giảm trừ thuế thu nhập.',
+        formulaTag: 'Cơ Chế Chi Phí Con Cái & Phúc Lợi Thụy Sĩ',
+        taxRule: '• Ưu đãi Thụy Sĩ: Khấu trừ thuế người phụ thuộc từ 6.700 CHF đến 10.000 CHF/bé/năm tùy bang',
+        uniDesc: 'Khi con vào đại học, các quỹ đầu tư tích lũy và dòng tiền thụ động sẽ trang trải chi phí sinh hoạt và học tập của con.'
+      },
+      en: {
+        badgeText: 'Familienzulagen (Swiss Benefit)',
+        hintHtml: 'Supported by <strong>Family allowances (Familienzulagen)</strong> min 200-250 CHF/mo/child and cantonal child tax deductions.',
+        formulaTag: 'Child Expenses & Swiss Family Welfare',
+        taxRule: '• Swiss Tax Relief: Child tax deduction between 6,700 and 10,000 CHF/yr depending on canton',
+        uniDesc: 'When children enter university, disciplined investment reserves and passive cashflow easily support high living standards.'
+      },
+      fr: {
+        badgeText: 'Allocations Familiales (CH)',
+        hintHtml: 'Soutenu par les <strong>Allocations familiales (Familienzulagen)</strong> min 200 à 250 CHF/mois/enfant et des déductions fiscales cantonales.',
+        formulaTag: 'Mécanisme Dépenses Enfants & Allocations Suisses',
+        taxRule: '• Déduction Suisse: Déduction fiscale pour enfant de 6 700 à 10 000 CHF/an selon le canton',
+        uniDesc: 'À l\'université, les placements financiers et flux passifs assurent le financement fluide des études et du coût de la vie.'
+      }
+    },
+    'UK': {
+      vi: {
+        badgeText: 'Child Benefit (~£102/tháng)',
+        hintHtml: 'Được hỗ trợ bởi <strong>Child Benefit</strong> (~£25.60/tuần cho con đầu, £16.95 cho con tiếp theo) và tài khoản miễn thuế <strong>Junior ISA</strong>.',
+        formulaTag: 'Cơ Chế Chi Phí Con Cái & An Sinh Vương Quốc Anh',
+        taxRule: '• Ưu đãi Anh: Tích lũy miễn thuế đầu tư qua Junior ISA (lên tới £9,000/năm/bé)',
+        uniDesc: 'Khi con vào đại học, tài khoản Junior ISA cùng hệ thống vay ưu đãi sinh viên Student Finance sẽ bảo đảm nguồn tài chính học vấn.'
+      },
+      en: {
+        badgeText: 'Child Benefit (~£102/mo)',
+        hintHtml: 'Supported by <strong>Child Benefit</strong> (£25.60/wk for first child, £16.95 for others) and tax-free <strong>Junior ISA</strong> investing.',
+        formulaTag: 'Child Expenses & UK Family Welfare',
+        taxRule: '• UK Benefit: Tax-exempt investment compounding in Junior ISA accounts (up to £9,000/yr)',
+        uniDesc: 'When children reach university, accumulated Junior ISA portfolios and government student loans provide complete coverage.'
+      },
+      fr: {
+        badgeText: 'Child Benefit UK',
+        hintHtml: 'Soutenu par l\'allocation <strong>Child Benefit</strong> (~£102/mois) et l\'enveloppe d\'investissement défiscalisée <strong>Junior ISA</strong>.',
+        formulaTag: 'Mécanisme Dépenses Enfants & Aides UK',
+        taxRule: '• Avantage UK: Compte d\'investissement Junior ISA exonéré d\'impôt (jusqu\'à £9 000/an)',
+        uniDesc: 'À l\'université, le portefeuille Junior ISA et les facilités de prêts étudiants garantissent une couverture sereine des frais.'
+      }
+    },
+    'CA': {
+      vi: {
+        badgeText: 'Canada Child Benefit (CCB)',
+        hintHtml: 'Được chi trả <strong>Canada Child Benefit (CCB)</strong> miễn thuế lên tới ~7.400 CAD/năm/bé và tiền thưởng từ <strong>Quỹ RESP</strong>.',
+        formulaTag: 'Cơ Chế Chi Phí Con Cái & Phúc Lợi Canada (CCB & RESP)',
+        taxRule: '• Ưu đãi Canada: Trợ cấp giáo dục CESG của chính phủ hỗ trợ thêm 20% tiền gửi vào quỹ RESP',
+        uniDesc: 'Khi con vào đại học, Quỹ tiết kiệm giáo dục RESP kết hợp trợ cấp chính phủ CESG sẽ tự động trang trải chi phí học tập của con.'
+      },
+      en: {
+        badgeText: 'Canada Child Benefit (CCB)',
+        hintHtml: 'Funded by the tax-free <strong>Canada Child Benefit (CCB)</strong> up to ~CAD 7,400/yr/child and <strong>RESP education grants</strong>.',
+        formulaTag: 'Child Expenses & Canadian Family Welfare (CCB & RESP)',
+        taxRule: '• Canada Benefit: CESG government education grant adds 20% match to RESP university savings',
+        uniDesc: 'When children enter university, Registered Education Savings Plans (RESP) and CESG government grants cover tuition and campus fees.'
+      },
+      fr: {
+        badgeText: 'Allocation Canadienne pour Enfants',
+        hintHtml: 'Financé par l\'<strong>Allocation canadienne pour enfants (ACE / CCB)</strong> jusqu\'à ~7 400 CAD/an et la subvention <strong>REEE / CESG</strong>.',
+        formulaTag: 'Mécanisme Dépenses Enfants & Aides Canada (ACE & REEE)',
+        taxRule: '• Avantage Canada: Subvention gouvernementale SCEE ajoutant 20% aux cotisations dans un REEE',
+        uniDesc: 'À l\'université, le Régime enregistré d\'épargne-études (REEE) et les subventions publiques couvrent l\'ensemble des frais de scolarité.'
+      }
+    },
+    'AU': {
+      vi: {
+        badgeText: 'Family Tax Benefit (FTB)',
+        hintHtml: 'Được hỗ trợ bởi <strong>Family Tax Benefit (Part A & B)</strong> và chính sách tài trợ học phí đại học qua chương trình vay <strong>HECS-HELP</strong>.',
+        formulaTag: 'Cơ Chế Chi Phí Con Cái & An Sinh Úc (FTB & HECS)',
+        taxRule: '• Ưu đãi Úc: Trợ cấp nuôi con Family Tax Benefit và chương trình học phí đại học trả sau HECS-HELP',
+        uniDesc: 'Khi con vào đại học, dòng tiền từ danh mục đầu tư tích lũy sẽ hỗ trợ chi phí ăn ở, còn học phí được hỗ trợ bởi HECS-HELP.'
+      },
+      en: {
+        badgeText: 'Family Tax Benefit (FTB)',
+        hintHtml: 'Supported by <strong>Family Tax Benefit (Part A & B)</strong> and deferred higher education tuition loans via <strong>HECS-HELP</strong>.',
+        formulaTag: 'Child Expenses & Australian Family Welfare (FTB & HECS)',
+        taxRule: '• Australia Benefit: Means-tested Family Tax Benefit + income-contingent HECS-HELP student loans',
+        uniDesc: 'When children attend university, investment cashflows handle living costs while HECS-HELP defers tuition payments.'
+      },
+      fr: {
+        badgeText: 'Family Tax Benefit (Australie)',
+        hintHtml: 'Soutenu par la prestation <strong>Family Tax Benefit</strong> et le report des frais de scolarité via le prêt d\'État <strong>HECS-HELP</strong>.',
+        formulaTag: 'Mécanisme Dépenses Enfants & Aides Australie',
+        taxRule: '• Avantage Australie: Prestation FTB et mécanisme gouvernemental d\'emprunt étudiant HECS-HELP',
+        uniDesc: 'À l\'université, les revenus d\'actifs couvrent le train de vie tandis que HECS-HELP prend en charge les frais universitaires.'
+      }
+    },
+    'JP': {
+      vi: {
+        badgeText: 'Jido Teate (Trợ cấp trẻ em JP)',
+        hintHtml: 'Được hỗ trợ bởi <strong>Trợ cấp trẻ em (Jido Teate)</strong> từ 10.000 - 15.000 ¥/tháng/bé và chương trình đầu tư miễn thuế cho con <strong>Junior NISA</strong>.',
+        formulaTag: 'Cơ Chế Chi Phí Con Cái & Trợ Cấp Nhật Bản (Jido Teate)',
+        taxRule: '• Ưu đãi Nhật Bản: Miễn giảm viện phí khám chữa bệnh cho trẻ em và trợ cấp nuôi dạy con hàng tháng',
+        uniDesc: 'Khi con vào đại học, nguồn vốn từ tài khoản tiết kiệm đầu tư miễn thuế và bảo hiểm học đường sẽ tự động trang trải chi phí đại học.'
+      },
+      en: {
+        badgeText: 'Jido Teate (Child Allowance JP)',
+        hintHtml: 'Supported by <strong>Jido Teate child allowance</strong> (10k-15k JPY/mo/child) and tax-exempt junior investing accounts.',
+        formulaTag: 'Child Expenses & Japanese Welfare (Jido Teate)',
+        taxRule: '• Japan Benefit: Subsidized medical care for minors and monthly government childcare stipend',
+        uniDesc: 'When children attend university, dedicated education savings and passive asset yields ensure comfortable coverage.'
+      },
+      fr: {
+        badgeText: 'Jido Teate (Allocations Japon)',
+        hintHtml: 'Soutenu par l\'allocation <strong>Jido Teate</strong> (10 000 à 15 000 ¥/mois/enfant) et les soins pédiatriques gratuits ou très subventionnés.',
+        formulaTag: 'Mécanisme Dépenses Enfants & Aides Japonaises',
+        taxRule: '• Avantage Japon: Prise en charge des soins médicaux infantiles et allocation mensuelle par enfant',
+        uniDesc: 'À l\'université, l\'épargne accumulée et les rendements passifs couvrent sereinement les frais de scolarité.'
+      }
+    },
+    'OTHER': {
+      vi: {
+        badgeText: 'Trợ cấp & Ưu đãi thuế',
+        hintHtml: 'Được hỗ trợ bởi <strong>Khấu trừ người phụ thuộc</strong> và các chính sách an sinh phúc lợi gia đình theo quy định nước sở tại.',
+        formulaTag: 'Cơ Chế Chi Phí Con Cái & Ưu Đãi Sở Tại',
+        taxRule: '• Ưu đãi Thuế: Giảm trừ thu nhập chịu thuế cho người phụ thuộc theo quy định tài phán sở tại',
+        uniDesc: 'Khi con vào đại học, danh mục đầu tư tích lũy và dòng tiền thụ động từ tài sản sẽ tự động trang trải chi phí học vấn của con.'
+      },
+      en: {
+        badgeText: 'Family Benefits & Tax Relief',
+        hintHtml: 'Supported by <strong>Dependent deductions</strong> and family social welfare policies according to local residency regulations.',
+        formulaTag: 'Child Lifecycle Expenses & Local Family Welfare',
+        taxRule: '• Local Tax Relief: Taxable income deductions or credits for dependent children per jurisdiction laws',
+        uniDesc: 'When children enter university, disciplined investment portfolios and passive asset income automatically fund tuition and living costs.'
+      },
+      fr: {
+        badgeText: 'Prestations & Avantages Fiscaux',
+        hintHtml: 'Soutenu par les <strong>Déductions pour personnes à charge</strong> et les programmes de protection familiale selon la législation locale.',
+        formulaTag: 'Mécanisme Dépenses Enfants & Avantages Locaux',
+        taxRule: '• Avantage Fiscal Local: Déduction sur le revenu imposable ou crédit d\'impôt pour enfants à charge selon le pays',
+        uniDesc: 'À l\'université, un portefeuille d\'investissement diversifié et des flux passifs assurent le financement autonome des études.'
+      }
+    }
+  };
+
+  /**
+   * Tra cứu chính sách phúc lợi & ưu đãi thuế con cái đa quốc gia
+   * @param {string} countryCode - Mã quốc gia 2 ký tự (FR, VN, US, DE, BE, CH, UK, CA, AU, JP, ...)
+   * @param {number} kidsCount - Số lượng con
+   * @param {string} currency - Tiền tệ hiển thị
+   * @param {string} lang - Ngôn ngữ hiển thị ('vi', 'en', 'fr')
+   * @returns {Object} Chính sách gồm badgeText, hintHtml, formulaTag, taxRule, uniDesc
+   */
+  function getFamilyPolicyByCountry(countryCode, kidsCount = 2, currency = 'EUR', lang = 'vi') {
+    const cCode = String(countryCode || '').trim().toUpperCase();
+    const l = (lang === 'en' || lang === 'fr') ? lang : 'vi';
+
+    let targetKey = 'OTHER';
+    if (COUNTRY_FAMILY_POLICIES[cCode]) {
+      targetKey = cCode;
+    } else if (['PT', 'ES', 'IT', 'GR'].includes(cCode)) {
+      targetKey = 'BE';
+    } else if (['KR', 'TW', 'SG', 'TH', 'MY', 'CN'].includes(cCode)) {
+      targetKey = 'VN';
+    }
+
+    const policyGroup = COUNTRY_FAMILY_POLICIES[targetKey] || COUNTRY_FAMILY_POLICIES['OTHER'];
+    const p = policyGroup[l] || policyGroup['vi'];
+
+    return {
+      countryCode: targetKey,
+      badgeText: p.badgeText,
+      hintHtml: p.hintHtml,
+      formulaTag: p.formulaTag,
+      taxRule: p.taxRule,
+      uniDesc: p.uniDesc
+    };
+  }
+
+  // Chính sách Thuế & Dòng Tiền Cho Thuê BĐS Đa Quốc Gia
+  const COUNTRY_REAL_ESTATE_POLICIES = {
+    'VN': {
+      vi: {
+        toggleText: 'Xem cơ chế thuế BĐS & dòng tiền cho thuê VN',
+        tagText: 'Cơ Chế Thuế Cho Thuê BĐS Việt Nam (Thuế Khoán 10%)',
+        rule1: '• Ngưỡng miễn thuế: Doanh thu cho thuê BĐS cá nhân dưới 100 triệu VNĐ/năm được miễn hoàn toàn thuế GTGT và thuế TNCN.',
+        rule2: '• Thuế suất cho thuê: Doanh thu trên 100 triệu VNĐ/năm chịu thuế khoán 10% (5% thuế GTGT + 5% thuế TNCN) trên tổng doanh thu.',
+        rule3: '• Dòng tiền ròng tự động tích hợp vào thu nhập FIRE, các khoản trả góp ngân hàng tự động đồng bộ vào cột Chi Tiêu & Nợ Vay.'
+      },
+      en: {
+        toggleText: 'View Vietnam rental property tax & cashflow rules',
+        tagText: 'Vietnam Rental Property Tax Regime (10% Flat Rate)',
+        rule1: '• Tax Exemption Threshold: Individual rental revenue below 100M VND/year is 100% exempt from VAT and Personal Income Tax.',
+        rule2: '• Rental Tax Rate: Revenue exceeding 100M VND/year is subject to 10% total flat tax (5% VAT + 5% PIT) on gross revenue.',
+        rule3: '• Net rental yields integrate into FIRE income, mortgage installments sync into Expenses & Debt column.'
+      },
+      fr: {
+        toggleText: 'Voir fiscalité locative & cashflow immobilier Vietnam',
+        tagText: 'Régime Fiscal Immobilier Locatif Vietnam (Forfait 10%)',
+        rule1: '• Seuil d\'exonération: Revenus locatifs inférieurs à 100M VND/an totalement exonérés de TVA et d\'IR.',
+        rule2: '• Taux d\'imposition: Au-delà de 100M VND/an, imposition forfaitaire de 10% (5% TVA + 5% IR) sur les recettes brutes.',
+        rule3: '• Le cashflow net locatif alimente le revenu FIRE, les remboursements d\'emprunt sont intégrés dans les Dépenses & Dettes.'
+      }
+    },
+    'FR': {
+      vi: {
+        toggleText: 'Xem cơ chế thuế LMNP & khấu hao Pháp',
+        tagText: 'Cơ chế Thuế LMNP Réel Pháp (Miễn thuế IR 10-15 năm)',
+        rule1: '• LMNP (Loueur en Meublé Non Professionnel): Khấu hao tài sản (Amortissement 85% giá nhà trong 25-30 năm) + Trừ chi phí lãi vay, bảo hiểm, phí quản lý.',
+        rule2: '• Tiền thuê thực nhận không chịu thuế thu nhập cá nhân (IR = 0 €) trong suốt 10-15 năm đầu vận hành.',
+        rule3: '• Dòng tiền thuê tự động tích hợp vào thu nhập FIRE, các khoản nợ vay tự động đồng bộ vào cột Chi Tiêu & Nợ Vay.'
+      },
+      en: {
+        toggleText: 'View French LMNP tax & depreciation rules',
+        tagText: 'French LMNP Réel Tax Regime (Tax-Free 10-15 Years)',
+        rule1: '• LMNP (Furnished Rental): Component depreciation (85% property value over 25-30 yrs) + mortgage interest and expense deductions.',
+        rule2: '• Net rental income is virtually tax-free (IR = €0) during the first 10-15 years of operation.',
+        rule3: '• Rental cashflows feed directly into FIRE income, mortgages automatically sync into Expenses & Debt.'
+      },
+      fr: {
+        toggleText: 'Voir fiscalité LMNP & mécanisme d\'amortissement',
+        tagText: 'Cơ chế Thuế LMNP Réel Pháp (Miễn thuế IR 10-15 năm)',
+        rule1: '• LMNP (Loueur en Meublé Non Professionnel): Amortissement comptable (85% du bien sur 25-30 ans) + déduction des intérêts et charges.',
+        rule2: '• Loyers nets d\'impôt (IR = 0 €) pendant les 10 à 15 premières années d\'exploitation.',
+        rule3: '• Les flux locatifs alimentent la rente FIRE, les mensualités de crédit sont synchronisées dans Dépenses & Dettes.'
+      }
+    },
+    'US': {
+      vi: {
+        toggleText: 'Xem cơ chế thuế BĐS & khấu hao Mỹ (Schedule E)',
+        tagText: 'Cơ Chế Thuế Cho Thuê BĐS Mỹ (Khấu Hao 27.5 Năm)',
+        rule1: '• Khấu hao tài sản (Depreciation): Khấu hao công trình nhà ở 27.5 năm giúp tạo khoản chi phí giảm trừ thuế đáng kể.',
+        rule2: '• Khấu trừ chi phí: Lãi vay mua nhà, thuế tài sản địa phương (Property Tax), bảo hiểm và bảo trì được trừ vào doanh thu.',
+        rule3: '• Dòng tiền thuê ròng tự động tích hợp vào thu nhập FIRE, các khoản vay thế chấp đồng bộ vào cột Chi Tiêu & Nợ Vay.'
+      },
+      en: {
+        toggleText: 'View US rental property tax & depreciation rules',
+        tagText: 'US Rental Property Tax Regime (27.5-Year Depreciation)',
+        rule1: '• Residential Depreciation: 27.5-year straight-line depreciation shields substantial rental income from federal taxation.',
+        rule2: '• Expense Deductions: Mortgage interest, local property taxes, insurance, repairs, and management fees deduct from revenue.',
+        rule3: '• Net cashflow integrates into FIRE passive income, mortgages sync into Expenses & Debt.'
+      },
+      fr: {
+        toggleText: 'Voir fiscalité locative & amortissement USA',
+        tagText: 'Régime Fiscal Immobilier USA (Amortissement 27,5 Ans)',
+        rule1: '• Amortissement résidentiel: Amortissement linéaire sur 27,5 ans réduisant fortement la base imposable.',
+        rule2: '• Déductions: Intérêts d\'emprunt, taxe foncière locale, assurances et travaux déductibles des loyers bruts.',
+        rule3: '• Les revenus nets alimentent la rente FIRE, les emprunts hypothécaires s\'intègrent aux Dépenses & Dettes.'
+      }
+    },
+    'DE': {
+      vi: {
+        toggleText: 'Xem cơ chế thuế BĐS & khấu hao Đức (AfA)',
+        tagText: 'Cơ Chế Thuế Cho Thuê BĐS Đức (Khấu Hao AfA 2-3%)',
+        rule1: '• Khấu hao AfA (Absetzung für Abnutzung): Khấu hao 2% - 3%/năm giá trị công trình + trừ chi phí lãi vay và chi phí vận hành.',
+        rule2: '• Thu nhập cho thuê ròng sau khấu trừ được cộng vào thu nhập chịu thuế lũy tiến theo luật Đức.',
+        rule3: '• Dòng tiền thuê tự động tích hợp vào thu nhập FIRE, các khoản nợ vay tự động đồng bộ vào cột Chi Tiêu & Nợ Vay.'
+      },
+      en: {
+        toggleText: 'View German rental property tax & AfA rules',
+        tagText: 'German Rental Property Tax Regime (AfA 2-3% Depreciation)',
+        rule1: '• Building Depreciation (AfA): 2% to 3% annual straight-line depreciation plus mortgage interest and maintenance expense write-offs.',
+        rule2: '• Net positive rental income after deductions is taxed at the individual\'s progressive personal income tax rate.',
+        rule3: '• Net cashflow feeds into FIRE income, bank financing syncs into Expenses & Debt.'
+      },
+      fr: {
+        toggleText: 'Voir fiscalité locative & amortissement AfA Allemagne',
+        tagText: 'Régime Fiscal Immobilier Allemagne (Amortissement AfA 2-3%)',
+        rule1: '• Amortissement AfA: Dépréciation linéaire de 2% à 3%/an du bâti + déduction des intérêts et charges d\'exploitation.',
+        rule2: '• Le revenu locatif net imposable après charges est soumis au barème progressif de l\'impôt sur le revenu allemand.',
+        rule3: '• Les rentes nettes s\'intègrent au FIRE, les échéances de prêt sont synchronisées dans Dépenses & Dettes.'
+      }
+    },
+    'OTHER': {
+      vi: {
+        toggleText: 'Xem cơ chế thuế BĐS & dòng tiền cho thuê sở tại',
+        tagText: 'Cơ Chế Thuế Cho Thuê BĐS & Dòng Tiền Thụ Động',
+        rule1: '• Doanh thu cho thuê định kỳ trừ các khoản khấu trừ hợp lệ (khấu hao, lãi vay, bảo hiểm, quản lý) theo luật nước sở tại.',
+        rule2: '• Thu nhập ròng cho thuê là nguồn thu nhập thụ động bền vững bảo vệ danh mục đầu tư trước lạm phát.',
+        rule3: '• Dòng tiền thuê tự động tích hợp vào thu nhập FIRE, các khoản nợ vay tự động đồng bộ vào cột Chi Tiêu & Nợ Vay.'
+      },
+      en: {
+        toggleText: 'View rental property tax & passive cashflow rules',
+        tagText: 'Rental Property Tax & Passive Cashflow Mechanism',
+        rule1: '• Gross rental receipts offset by eligible deductions (depreciation, mortgage interest, insurance, management) per local tax code.',
+        rule2: '• Net rental proceeds represent an inflation-hedged passive cashflow pillar for financial independence.',
+        rule3: '• Rental cashflows feed directly into FIRE income, mortgages automatically sync into Expenses & Debt.'
+      },
+      fr: {
+        toggleText: 'Voir fiscalité locative & flux de trésorerie',
+        tagText: 'Fiscalité Immobilière Locative & Revenus Passifs',
+        rule1: '• Recettes locatives brutes diminuées des charges admises (amortissements, intérêts, assurances, gestion) selon le droit local.',
+        rule2: '• Les revenus locatifs nets constituent un socle passif résistant à l\'inflation pour l\'indépendance financière.',
+        rule3: '• Les flux locatifs alimentent la rente FIRE, les mensualités d\'emprunt sont intégrées dans Dépenses & Dettes.'
+      }
+    }
+  };
+
+  /**
+   * Tra cứu cơ chế thuế BĐS cho thuê đa quốc gia
+   * @param {string} countryCode - Mã quốc gia 2 ký tự (FR, VN, US, DE, ...)
+   * @param {string} lang - Ngôn ngữ ('vi', 'en', 'fr')
+   * @returns {Object} Chính sách gồm toggleText, tagText, rule1, rule2, rule3
+   */
+  function getRealEstatePolicyByCountry(countryCode, lang = 'vi') {
+    const cCode = String(countryCode || '').trim().toUpperCase();
+    const l = (lang === 'en' || lang === 'fr') ? lang : 'vi';
+
+    let targetKey = 'OTHER';
+    if (COUNTRY_REAL_ESTATE_POLICIES[cCode]) {
+      targetKey = cCode;
+    } else if (['BE', 'CH', 'UK', 'CA', 'AU'].includes(cCode)) {
+      targetKey = 'US';
+    } else if (['PT', 'ES', 'IT'].includes(cCode)) {
+      targetKey = 'FR';
+    } else if (['TH', 'MY', 'SG', 'CN', 'JP', 'KR', 'TW'].includes(cCode)) {
+      targetKey = 'VN';
+    }
+
+    const group = COUNTRY_REAL_ESTATE_POLICIES[targetKey] || COUNTRY_REAL_ESTATE_POLICIES['OTHER'];
+    return group[l] || group['vi'];
+  }
+
   // International / Vietnam progressive or flat rates
   const VN_TAX_BRACKETS = [
     { cap: 60_000_000, rate: 0.05 },
@@ -1357,6 +1792,10 @@ window.TaxOptimizer = (function() {
   return {
     BASE_RETIRE_BASKET_EUR,
     COUNTRY_PPP_PROFILES,
+    COUNTRY_FAMILY_POLICIES,
+    getFamilyPolicyByCountry,
+    COUNTRY_REAL_ESTATE_POLICIES,
+    getRealEstatePolicyByCountry,
     calculateProgressiveTax,
     calculateTaxDetailed,
     calculateRetireBudgetFromCashflow,

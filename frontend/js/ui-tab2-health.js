@@ -1210,11 +1210,63 @@
 
     if (lblAnnual) {
       if (isEnabled && count > 0) {
-        lblAnnual.innerText = `≈ ${window.RetirementEngine.formatCurrency(annualAmt, state.currency)}/năm • ${count} con (${kidCostMonthly} €/tháng 0–18t, ${kidUniMonthly} € ĐH)`;
+        const formattedCost = (window.RetirementEngine && window.RetirementEngine.formatCurrency)
+          ? window.RetirementEngine.formatCurrency(kidCostMonthly, state.currency)
+          : `${kidCostMonthly} €`;
+        const formattedUni = (window.RetirementEngine && window.RetirementEngine.formatCurrency)
+          ? window.RetirementEngine.formatCurrency(kidUniMonthly, state.currency)
+          : `${kidUniMonthly} €`;
+        lblAnnual.innerText = `≈ ${window.RetirementEngine.formatCurrency(annualAmt, state.currency)}/năm • ${count} con (${formattedCost}/tháng 0–18t, ${formattedUni} ĐH)`;
       } else if (!isEnabled) {
         lblAnnual.innerText = "Kế hoạch con cái đang tạm tắt";
       } else {
         lblAnnual.innerText = "Chưa có dự kiến con cái";
+      }
+    }
+
+    // Dynamic Multi-Country Family Policy update
+    const workCountry = p.workCountry || (p.retireCountry === 'VN' ? 'VN' : 'FR');
+    const curLang = (window.I18n && window.I18n.currentLang) || 'vi';
+    const curSymbol = (window.RetirementEngine && window.RetirementEngine.getCurrencySymbol)
+      ? window.RetirementEngine.getCurrencySymbol(state.currency || p.currency || 'EUR')
+      : '€';
+
+    // Update Currency symbols in field labels
+    document.querySelectorAll('.kid-cost-cur-sym').forEach(el => { el.innerText = curSymbol; });
+    document.querySelectorAll('.kid-uni-cur-sym').forEach(el => { el.innerText = curSymbol; });
+
+    // Retrieve country family policy
+    const policy = (window.TaxOptimizer && window.TaxOptimizer.getFamilyPolicyByCountry)
+      ? window.TaxOptimizer.getFamilyPolicyByCountry(workCountry, count, state.currency, curLang)
+      : null;
+
+    if (policy) {
+      // 1. Badge on card
+      const lblBadge = document.getElementById("lbl-family-stream-badge");
+      if (lblBadge) {
+        lblBadge.innerText = policy.badgeText;
+      }
+
+      // 2. Hint text under form inputs
+      const hintFamily = document.getElementById("hint-stream-family");
+      if (hintFamily) {
+        hintFamily.innerHTML = policy.hintHtml;
+      }
+
+      // 3. Formula accordion details
+      const tagFormula = document.getElementById("lbl-formula-children-tag");
+      if (tagFormula) {
+        tagFormula.innerText = policy.formulaTag;
+      }
+
+      const taxRuleEl = document.getElementById("lbl-formula-children-tax-rule");
+      if (taxRuleEl) {
+        taxRuleEl.innerText = policy.taxRule;
+      }
+
+      const uniDescEl = document.getElementById("lbl-formula-children-uni-desc");
+      if (uniDescEl) {
+        uniDescEl.innerText = policy.uniDesc;
       }
     }
 
@@ -1664,7 +1716,7 @@
           tag: "tag-strategy",
           title: "Tối ưu Tài khoản PEA (Plan d'Épargne en Actions - Trần 150k€)",
           text: `Tận dụng tối đa hạn mức PEA 150,000 € vào các quỹ ETF tích lũy toàn cầu (MSCI World CW8 / S&P 500). Theo luật thuế Pháp từ 2012, khi chuyển cư trú thuế về Việt Nam, bạn vẫn ĐƯỢC PHÉP GIỮ NGUYÊN tài khoản PEA tại ngân hàng/broker Pháp (BoursoBank, Fortuneo) mà không bị ép đóng tài khoản!`,
-          action: "Xem tab Tối ưu Thuế →",
+          action: "Xem tab Lời khuyên →",
           targetTab: "tab-taxes"
         },
         {
@@ -1678,7 +1730,7 @@
           tag: "tag-critical",
           title: "Hiệp định Tránh Đánh thuế Hai lần (France-Vietnam Tax Treaty)",
           text: `Khi về Việt Nam sinh sống trên 183 ngày/năm, bạn trở thành cư dân thuế Việt Nam. Nhờ Hiệp định Tránh đánh thuế 2 lần (Convention Fiscale 1992), bạn không bị Pháp đánh thuế kép trên các khoản thu nhập đầu tư quốc tế.`,
-          action: "Xem tab Tối ưu Thuế →",
+          action: "Xem tab Lời khuyên →",
           targetTab: "tab-taxes"
         }
       ];

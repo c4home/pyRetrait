@@ -9655,3 +9655,155 @@ details.formula-accordion .formula-inline-box {
   font-weight: 600;
   margin-right: 0.25rem;
 }
+
+/* =========================================================================
+   TAB 3: LỜI KHUYÊN & CÔNG CỤ TÀI CHÍNH THEO QUỐC GIA (SMART TIPS HUB)
+   ========================================================================= */
+.country-filter-bar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 1rem 0 1.25rem 0;
+  padding: 0.4rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.country-filter-chip {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all var(--transition-fast, 0.2s ease);
+}
+
+.country-filter-chip:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-main);
+  border-color: var(--border-strong);
+}
+
+.country-filter-chip.active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .country-filter-bar {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .country-filter-chip {
+  background: #ffffff;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .country-filter-chip:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+[data-theme="light"] .country-filter-chip.active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
+/* Light mode contrast for advisor tags */
+[data-theme="light"] .tag-critical {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+[data-theme="light"] .tag-opportunity {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+[data-theme="light"] .tag-strategy {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+[data-theme="light"] .tag-growth {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.section-anchor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.section-anchor-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Section bọc có border cho toàn bộ Công Cụ Tài Chính Theo Quốc Gia */
+.country-tools-section-wrapper {
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.country-tools-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.country-tools-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.country-tools-section-wrapper > .card {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  box-shadow: none;
+}
+
+[data-theme="light"] .country-tools-section-wrapper {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .country-tools-section-wrapper > .card {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}

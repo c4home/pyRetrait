@@ -28,7 +28,7 @@
   <script src="js/icons-bundle.js?v=20261018_v1"></script>
 
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=20261020_v186">
+  <link rel="stylesheet" href="css/styles.css?v=20261020_v194">
 </head>
 
 <body>
@@ -136,8 +136,8 @@
         </button>
         <button class="nav-item" data-tab="tab-taxes">
           <div class="nav-text">
-            <span class="nav-label" data-i18n="nav_tax">Tối ưu Thuế</span>
-            <span class="nav-sub" data-i18n="nav_tax_sub">Làm sao giữ lại tối đa tiền sau thuế?</span>
+            <span class="nav-label" data-i18n="nav_tax">Lời Khuyên</span>
+            <span class="nav-sub" data-i18n="nav_tax_sub">Tiêu dùng bền vững & Công cụ tài chính</span>
           </div>
         </button>
       </nav>
@@ -168,52 +168,47 @@
           <span class="metric-label">Tỷ lệ thành công:</span>
           <span class="metric-value text-success" id="summary-success-prob">94.8%</span>
         </div>
-        <details class="formula-accordion">
-          <summary class="formula-toggle-btn">
-            <span data-i18n="lbl_view_formula_fire">Xem tiêu chuẩn & công thức tính tự do tài chính</span>
-            <span class="formula-toggle-arrow">▾</span>
-          </summary>
-          <div class="formula-inline-box formula-success"
-            style="margin-top: 0.35rem; font-size: 0.72rem; padding: 0.5rem 0.6rem; border-radius: var(--radius-md);">
-            <div class="formula-tag" style="margin-bottom: 0.35rem; font-size: 0.72rem; font-weight: 700;">
-              Tiêu Chuẩn Tự Do Tài Chính
+        <!-- Tiêu Chuẩn Tự Do Tài Chính (Luôn hiển thị trực tiếp không cần nút) -->
+        <div class="formula-inline-box formula-success"
+          style="margin-top: 0.5rem; font-size: 0.72rem; padding: 0.5rem 0.6rem; border-radius: var(--radius-md);">
+          <div class="formula-tag" style="margin-bottom: 0.35rem; font-size: 0.72rem; font-weight: 700;">
+            Tiêu Chuẩn Tự Do Tài Chính
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.35rem; line-height: 1.45;">
+            <!-- Trụ Cột 1 -->
+            <div>
+              <span style="color: var(--text-main); font-weight: 600;">1. Vốn trước khi về hưu:</span>
+              <div style="color: var(--text-muted); font-size: 0.68rem; margin-top: 0.08rem; line-height: 1.4;">
+                • Tài sản thanh khoản (trừ BĐS) ≥ 25–30 lần khoản thiếu.<br>
+                • <em>Khoản thiếu = Chi tiêu hưu − Thu nhập hưu</em>
+              </div>
+              <div
+                style="color: var(--text-muted); font-size: 0.67rem; border-top: 1px dashed var(--border-subtle); padding-top: 0.25rem; margin-top: 0.15rem; line-height: 1.4;">
+                - <strong>Hưu ≤ 30 năm:</strong> Cần gấp <strong>25 lần</strong><br>
+                - <strong>Hưu 30–35 năm:</strong> Cần gấp <strong>28 lần</strong><br>
+                - <strong>Hưu &gt; 35 năm:</strong> Cần gấp <strong>30 lần</strong>
+              </div>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 0.35rem; line-height: 1.45;">
-              <!-- Trụ Cột 1 -->
-              <div>
-                <span style="color: var(--text-main); font-weight: 600;">1. Vốn trước khi về hưu:</span>
-                <div style="color: var(--text-muted); font-size: 0.68rem; margin-top: 0.08rem; line-height: 1.4;">
-                  • Tài sản thanh khoản (trừ BĐS) ≥ 25–30 lần khoản thiếu.<br>
-                  • <em>Khoản thiếu = Chi tiêu hưu − Thu nhập hưu</em>
-                </div>
-                <div
-                  style="color: var(--text-muted); font-size: 0.67rem; border-top: 1px dashed var(--border-subtle); padding-top: 0.25rem; margin-top: 0.15rem; line-height: 1.4;">
-                  - <strong>Hưu ≤ 30 năm:</strong> Cần gấp <strong>25 lần</strong><br>
-                  - <strong>Hưu 30–35 năm:</strong> Cần gấp <strong>28 lần</strong><br>
-                  - <strong>Hưu &gt; 35 năm:</strong> Cần gấp <strong>30 lần</strong>
-                </div>
-              </div>
 
-              <!-- Trụ Cột 2 -->
-              <div>
-                <span style="color: var(--text-main); font-weight: 600;">2. Chịu được biến động thị trường:</span>
-                <div style="color: var(--text-muted); font-size: 0.68rem; margin-top: 0.08rem;">
-                  • Mô phỏng 1,000 kịch bản ngẫu nhiên đạt tỷ lệ thành công ≥ 80%.
-                </div>
+            <!-- Trụ Cột 2 -->
+            <div>
+              <span style="color: var(--text-main); font-weight: 600;">2. Chịu được biến động thị trường:</span>
+              <div style="color: var(--text-muted); font-size: 0.68rem; margin-top: 0.08rem;">
+                • Mô phỏng 1,000 kịch bản ngẫu nhiên đạt tỷ lệ thành công ≥ 80%.
               </div>
+            </div>
 
-              <!-- Trụ Cột 3 -->
-              <div>
-                <span style="color: var(--text-main); font-weight: 600;">3. Chịu được biến cố bệnh tật, khủng hoảng:</span>
-                <div id="sidebar-stress-status"
-                  style="color: var(--text-muted); font-size: 0.67rem; margin-top: 0.08rem; line-height: 1.45;">
-                  • Tài sản thanh khoản tại mọi thời điểm luôn <strong>≥ 5 năm khoản tiền thiếu</strong><br>
-                  • Chi tiêu thực tế luôn giữ vững <strong>≥ 80%</strong> kế hoạch ban đầu (không bị bóp nghẹt chi tiêu thiết yếu)
-                </div>
+            <!-- Trụ Cột 3 -->
+            <div>
+              <span style="color: var(--text-main); font-weight: 600;">3. Chịu được biến cố bệnh tật, khủng hoảng:</span>
+              <div id="sidebar-stress-status"
+                style="color: var(--text-muted); font-size: 0.67rem; margin-top: 0.08rem; line-height: 1.45;">
+                • Tài sản thanh khoản tại mọi thời điểm luôn <strong>≥ 5 năm khoản tiền thiếu</strong><br>
+                • Chi tiêu thực tế luôn giữ vững <strong>≥ 80%</strong> kế hoạch ban đầu (không bị bóp nghẹt chi tiêu thiết yếu)
               </div>
             </div>
           </div>
-        </details>
+        </div>
 
       </div>
     </aside>
@@ -485,14 +480,7 @@
                       </div>
                       <div class="income-item-actions">
                         <span class="field-badge font-mono" id="badge-lmnp-status"
-                          style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.68rem; padding: 1px 6px;">0
-                          căn LMNP</span>
-                        <button type="button" class="income-item-btn" id="btn-add-lmnp-quick"
-                          title="Thêm nhanh căn hộ mới">+ Thêm căn</button>
-                        <button type="button" class="income-item-btn" id="btn-edit-lmnp-stream"
-                          title="Xem và chỉnh sửa danh sách căn hộ">Sửa</button>
-                        <button type="button" class="income-item-btn income-item-del" id="btn-del-lmnp-stream"
-                          title="Tắt / Bật nguồn thu BĐS">Tắt</button>
+                          style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.68rem; padding: 1px 6px;">0 căn</span>
                       </div>
                     </div>
 
@@ -529,6 +517,7 @@
                         </div>
                       </div>
 
+
                       <!-- Danh sách căn hộ LMNP kèm nút Sửa & Xóa trực tiếp -->
                       <div id="lmnp-apartments-container"
                         style="display: flex; flex-direction: column; gap: 0.45rem; margin-bottom: 0.65rem;">
@@ -541,19 +530,19 @@
                         + Thêm Căn Hộ Cho Thuê Mới
                       </button>
 
-                      <!-- Công thức & Cơ chế LMNP Réel Pháp -->
-                      <details class="formula-accordion">
+                      <!-- Công thức & Cơ chế BĐS Cho Thuê Đa Quốc Gia -->
+                      <details class="formula-accordion" id="formula-accordion-lmnp">
                         <summary class="formula-toggle-btn">
-            <span data-i18n="lbl_view_formula_lmnp">Xem cơ chế thuế LMNP & khấu hao Pháp</span>
+                          <span data-i18n="lbl_view_formula_lmnp" id="lbl-formula-toggle-lmnp">Xem cơ chế thuế LMNP & khấu hao Pháp</span>
                           <span class="formula-toggle-arrow">▾</span>
                         </summary>
                         <div class="formula-inline-box formula-success"
                           style="margin: 0.25rem 0 0 0; font-size: 0.72rem; padding: 0;">
-                          <div class="formula-tag">Cơ chế Thuế LMNP Réel Pháp (Miễn thuế IR 10-15 năm)</div>
+                          <div class="formula-tag" id="lbl-formula-lmnp-tag">Cơ chế Thuế LMNP Réel Pháp (Miễn thuế IR 10-15 năm)</div>
                           <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                            <code>• LMNP (Loueur en Meublé Non Professionnel): Khấu hao tài sản (Amortissement 85% giá nhà trong 25-30 năm) + Trừ chi phí lãi vay, bảo hiểm, phí quản lý.</code>
-                            <code>• Tiền thuê thực nhận không chịu thuế thu nhập cá nhân (IR = 0 €) trong suốt 10-15 năm đầu vận hành.</code>
-                            <code>• Dòng tiền thuê tự động tích hợp vào thu nhập FIRE, các khoản nợ vay tự động đồng bộ vào cột Chi Tiêu & Nợ Vay.</code>
+                            <code id="lbl-formula-lmnp-rule-1">• LMNP (Loueur en Meublé Non Professionnel): Khấu hao tài sản (Amortissement 85% giá nhà trong 25-30 năm) + Trừ chi phí lãi vay, bảo hiểm, phí quản lý.</code>
+                            <code id="lbl-formula-lmnp-rule-2">• Tiền thuê thực nhận không chịu thuế thu nhập cá nhân (IR = 0 €) trong suốt 10-15 năm đầu vận hành.</code>
+                            <code id="lbl-formula-lmnp-rule-3">• Dòng tiền thuê tự động tích hợp vào thu nhập FIRE, các khoản nợ vay tự động đồng bộ vào cột Chi Tiêu & Nợ Vay.</code>
                           </div>
                         </div>
                       </details>
@@ -598,7 +587,7 @@
                         <div class="spouse-col-card">
                           <div class="spouse-col-header">
                             <span class="spouse-col-title">Bạn</span>
-                            <span class="spouse-col-badge">76 / 172 quý</span>
+                            <span class="spouse-col-badge" id="lbl-french-spouse1-quarters">76 / 172 quý</span>
                           </div>
                           <div class="form-row">
                             <div class="form-group col-6" style="margin-bottom: 0.35rem;">
@@ -620,11 +609,11 @@
                           <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.15rem; background: var(--bg-app); padding: 0.35rem 0.45rem; border-radius: 4px; border: 1px solid var(--border-subtle);">
                             <div style="display: flex; justify-content: space-between;">
                               <span>Décote (&lt;67t):</span>
-                              <strong class="text-danger">-25%</strong>
+                              <strong class="text-danger" id="lbl-french-spouse1-decote">-25%</strong>
                             </div>
                             <div style="display: flex; justify-content: space-between;">
                               <span>Hưu nhận:</span>
-                              <strong class="text-success">~497 €/tháng (~5.965 €/n)</strong>
+                              <strong class="text-success" id="lbl-french-spouse1-effective">~497 €/tháng (~5.965 €/n)</strong>
                             </div>
                           </div>
                         </div>
@@ -633,7 +622,7 @@
                         <div class="spouse-col-card">
                           <div class="spouse-col-header">
                             <span class="spouse-col-title">Bạn đời</span>
-                            <span class="spouse-col-badge">72 / 172 quý</span>
+                            <span class="spouse-col-badge" id="lbl-french-spouse2-quarters">72 / 172 quý</span>
                           </div>
                           <div class="form-row">
                             <div class="form-group col-6" style="margin-bottom: 0.35rem;">
@@ -655,11 +644,11 @@
                           <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.15rem; background: var(--bg-app); padding: 0.35rem 0.45rem; border-radius: 4px; border: 1px solid var(--border-subtle);">
                             <div style="display: flex; justify-content: space-between;">
                               <span>Décote (&lt;67t):</span>
-                              <strong class="text-danger">-25%</strong>
+                              <strong class="text-danger" id="lbl-french-spouse2-decote">-25%</strong>
                             </div>
                             <div style="display: flex; justify-content: space-between;">
                               <span>Hưu nhận:</span>
-                              <strong class="text-success">~418 €/tháng (~5.015 €/n)</strong>
+                              <strong class="text-success" id="lbl-french-spouse2-effective">~418 €/tháng (~5.015 €/n)</strong>
                             </div>
                           </div>
                         </div>
@@ -2183,22 +2172,6 @@
                             </div>
                           </div>
                         </div>
-
-                        <!-- Nguồn gốc dữ liệu & Công thức tính (Kéo giãn theo chiều ngang cả 2 cột) -->
-                        <details class="formula-accordion" style="grid-column: 1 / -1; margin-top: 0.35rem;">
-                          <summary class="formula-toggle-btn">
-            <span data-i18n="lbl_view_formula_ppp">Xem nguồn dữ liệu & công thức đối chiếu PPP</span>
-                            <span class="formula-toggle-arrow">▾</span>
-                          </summary>
-                          <div class="formula-inline-box formula-info" style="font-size: 0.68rem; padding: 0.35rem 0.55rem; border-radius: 4px;">
-                            <div class="formula-tag" style="font-size: 0.65rem; margin-bottom: 0.15rem;">Nguồn dữ liệu &amp; Công thức đối chiếu</div>
-                            <div style="display: flex; flex-direction: column; gap: 0.12rem; line-height: 1.35;">
-                              <code>• Công thức 3 mốc = Mức sống chuẩn tại Pháp × Hệ số quy mô gia đình (1.0 cá nhân / 1.6 cặp đôi) × Hệ số PPP điểm đến</code>
-                              <code>• Mức sống chuẩn tại Pháp: Cơ bản 1.600 €/tháng • Thoải mái 2.400 €/tháng • Thịnh vượng 4.000 €/tháng</code>
-                              <code>• Nguồn dữ liệu: Tổng hợp từ khảo sát mức sống hộ gia đình OECD, INSEE (Pháp) &amp; VHLSS (Việt Nam)</code>
-                            </div>
-                          </div>
-                        </details>
                       </div>
 
                       <!-- [ TẦNG 3: MÔ HÌNH CHI TIÊU 3 GIAI ĐOẠN (THANH 3 CỘT NGANG MINI) ] -->
@@ -2256,6 +2229,24 @@
                             </div>
                           </div>
                         </div>
+                      </div>
+
+                      <!-- [ TẦNG 4: NGUỒN GỐC DỮ LIỆU & CÔNG THỨC ĐỐI CHIẾU PPP (NẰM DƯỚI SECTION 3 GIAI ĐOẠN) ] -->
+                      <div id="container-retire-ppp-formula" style="margin-top: 0.55rem; border-top: 1px dashed var(--border-subtle); padding-top: 0.45rem;">
+                        <details class="formula-accordion">
+                          <summary class="formula-toggle-btn">
+                            <span data-i18n="lbl_view_formula_ppp">Xem nguồn dữ liệu & công thức đối chiếu PPP</span>
+                            <span class="formula-toggle-arrow">▾</span>
+                          </summary>
+                          <div class="formula-inline-box formula-info" id="content-retire-ppp-formula" style="font-size: 0.68rem; padding: 0.35rem 0.55rem; border-radius: 4px;">
+                            <div class="formula-tag" style="font-size: 0.65rem; margin-bottom: 0.15rem;">Nguồn dữ liệu &amp; Công thức đối chiếu</div>
+                            <div style="display: flex; flex-direction: column; gap: 0.12rem; line-height: 1.35;">
+                              <code>• Công thức 3 mốc = Mức sống chuẩn tại Pháp × Hệ số quy mô gia đình (1.0 cá nhân / 1.6 cặp đôi) × Hệ số PPP điểm đến</code>
+                              <code>• Mức sống chuẩn tại Pháp: Cơ bản 1.600 €/tháng • Thoải mái 2.400 €/tháng • Thịnh vượng 4.000 €/tháng</code>
+                              <code>• Nguồn dữ liệu: Tổng hợp từ khảo sát mức sống hộ gia đình OECD, INSEE (Pháp) &amp; VHLSS (Việt Nam)</code>
+                            </div>
+                          </div>
+                        </details>
                       </div>
                     </div>
                   </div>
@@ -2450,16 +2441,20 @@
 
                       <div class="form-row">
                         <div class="form-group col-6" style="margin-bottom: 0.45rem;">
-                          <label for="inp-stream-kid-cost-monthly" style="font-size: 0.76rem; font-weight: 600;">Nuôi
-                            con (€/tháng/bé)</label>
+                          <label for="inp-stream-kid-cost-monthly" id="lbl-stream-kid-cost-title" style="font-size: 0.76rem; font-weight: 600;">
+                            <span data-i18n="lbl_kid_cost_title">Nuôi con</span> (<span class="kid-cost-cur-sym">€</span>/tháng/bé)
+                          </label>
                           <input type="number" id="inp-stream-kid-cost-monthly" value="350" step="50" class="form-input"
+                            data-i18n-title="lbl_kid_cost_hint"
                             title="Chi phí ăn uống, trường học, sinh hoạt 0 - 18 tuổi"
                             style="padding: 0.35rem 0.6rem; font-size: 0.82rem;">
                         </div>
                         <div class="form-group col-6" style="margin-bottom: 0.45rem;">
-                          <label for="inp-stream-kid-uni-monthly" style="font-size: 0.76rem; font-weight: 600;">Đại học
-                            (€/tháng/bé)</label>
+                          <label for="inp-stream-kid-uni-monthly" id="lbl-stream-kid-uni-title" style="font-size: 0.76rem; font-weight: 600;">
+                            <span data-i18n="lbl_kid_uni_title">Đại học</span> (<span class="kid-uni-cur-sym">€</span>/tháng/bé)
+                          </label>
                           <input type="number" id="inp-stream-kid-uni-monthly" value="900" step="50" class="form-input"
+                            data-i18n-title="lbl_kid_uni_hint"
                             title="Học phí & tiền thuê nhà sinh viên 18 - 23 tuổi"
                             style="padding: 0.35rem 0.6rem; font-size: 0.82rem;">
                         </div>
@@ -2467,26 +2462,23 @@
 
                       <div class="input-hint" id="hint-stream-family"
                         style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">
-                        Được bù đắp bởi <strong>Trợ cấp CAF Pháp</strong> (~148 €/tháng cho 2 con) và <strong>Giảm thuế
-                          Quotient Familial</strong> (tối đa ~3.518 €/năm).
+                        Được bù đắp bởi <strong>Trợ cấp CAF Pháp</strong> (~148 €/tháng cho 2 con) và <strong>Giảm thuế Quotient Familial</strong> (tối đa ~3.518 €/năm).
                       </div>
 
                       <!-- Công thức Kế Hoạch Con Cái -->
                       <details class="formula-accordion">
                         <summary class="formula-toggle-btn">
-            <span data-i18n="lbl_view_formula_children">Xem cơ chế tính chi phí con cái & trợ cấp CAF</span>
+                          <span data-i18n="lbl_view_formula_children" id="lbl-formula-toggle-children">Xem cơ chế chi phí con cái & ưu đãi gia đình</span>
                           <span class="formula-toggle-arrow">▾</span>
                         </summary>
                         <div class="formula-inline-box formula-danger"
                           style="margin: 0.25rem 0 0 0; font-size: 0.72rem; padding: 0;">
-                          <div class="formula-tag">Cơ Chế Chi Phí Con Cái & Quyền Lợi Pháp</div>
+                          <div class="formula-tag" id="lbl-formula-children-tag">Cơ Chế Chi Phí Con Cái & Quyền Lợi Gia Đình</div>
                           <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                            <code>• Chi phí 0–18t = Số bé (0 ≤ tuổi &lt; 18) × Nuôi con hàng tháng × 12</code>
-                            <code>• Chi phí ĐH 18–23t = Số bé (18 ≤ tuổi ≤ 23) × Đơn giá Đại học × 12</code>
-                            <code>• Ưu đãi Quotient Familial: Thêm 0.5 part/bé (bé 1 &amp; 2) và 1.0 part/bé (từ bé thứ 3) giúp giảm thuế IR</code>
-                            <span style="font-size: 0.71rem; color: var(--text-muted); margin-top: 0.2rem;">Khi con vào
-                              đại học, các căn hộ BĐS LMNP đã hết nợ vay sẽ sản sinh dòng tiền ròng thụ động tự động trang
-                              trải chi phí học vấn của con.</span>
+                            <code id="lbl-formula-children-rule-018">• Chi phí 0–18t = Số bé (0 ≤ tuổi &lt; 18) × Nuôi con hàng tháng × 12</code>
+                            <code id="lbl-formula-children-rule-uni">• Chi phí ĐH 18–23t = Số bé (18 ≤ tuổi ≤ 23) × Đơn giá Đại học × 12</code>
+                            <code id="lbl-formula-children-tax-rule">• Ưu đãi Quotient Familial: Thêm 0.5 part/bé (bé 1 &amp; 2) và 1.0 part/bé (từ bé thứ 3) giúp giảm thuế IR</code>
+                            <span id="lbl-formula-children-uni-desc" style="font-size: 0.71rem; color: var(--text-muted); margin-top: 0.2rem;">Khi con vào đại học, các căn hộ BĐS LMNP đã hết nợ vay sẽ sản sinh dòng tiền ròng thụ động tự động trang trải chi phí học vấn của con.</span>
                           </div>
                         </div>
                       </details>
@@ -2775,151 +2767,193 @@
 
       <!-- TAB 2: TAX OPTIMIZATION -->
       <section class="tab-pane" id="tab-taxes">
-        <!-- Banner Triết Lý & Câu Hỏi Cốt Lõi: Tối Ưu Hóa Thuế -->
+        <!-- Banner Triết Lý & Câu Hỏi Cốt Lõi: Lời Khuyên Tài Chính & Công Cụ Tối Ưu -->
         <div class="tab-hero-banner">
           <div class="tab-hero-header">
             <div class="tab-hero-title">
-              Tối Ưu Hóa Nghĩa Vụ Thuế & Bảo Toàn Tài Sản Ròng
+              Cẩm Nang Lời Khuyên Tài Chính & Công Cụ Tối Ưu Hóa
             </div>
             <p class="tab-hero-sub">
-              Thuế là khoản chi phí lớn nhất trong suốt cuộc đời. Tối ưu hóa cấu trúc dòng tiền hưu trí giúp bạn hợp
-              pháp giữ lại tối đa tài sản ròng sau thuế.
+              Chi tiêu bền vững, làm chủ tâm lý tiêu dùng và tận dụng trọn vẹn các công cụ tài chính ưu đãi theo từng quốc gia để giữ lại tối đa tài sản ròng.
             </p>
           </div>
           <div class="tab-hero-qa-grid">
             <div class="tab-hero-qa-item">
-              <span class="tab-hero-q">Hưởng lợi thế nào từ Hiệp định thuế Pháp ⇄ Việt Nam (DTA)?</span>
-              <p class="tab-hero-a">Xác định quy chế cư trú thuế, cơ chế khấu trừ thuế nguồn và quyền đánh thuế song
-                phương để tránh bị thu trùng thuế.</p>
+              <span class="tab-hero-q">Làm sao cắt giảm chi phí mà chất lượng sống vẫn nâng cao?</span>
+              <p class="tab-hero-a">Áp dụng kinh tế tuần hoàn: Mua xe lướt 2–4 năm, ưu tiên đồ cũ chất lượng, quy tắc trì hoãn 72 giờ và định giá món đồ theo giờ công lao động.</p>
             </div>
             <div class="tab-hero-qa-item">
-              <span class="tab-hero-q">Nên rút tiền từ tài khoản nào trước để tối ưu thuế?</span>
-              <p class="tab-hero-a">Thiết lập thứ tự ưu tiên rút vốn thông minh: tài khoản miễn thuế lãi (PEA), bảo hiểm
-                nhân thọ (Assurance-Vie) hay lương hưu.</p>
+              <span class="tab-hero-q">Tận dụng công cụ tài chính nào để giữ trọn tài sản sau thuế?</span>
+              <p class="tab-hero-a">Mỗi quốc gia có đặc quyền riêng: Pháp (PEA, Assurance-Vie), Mỹ (401k, Roth IRA, HSA), Việt Nam (Quỹ ETF, BĐS dòng tiền, Tiết kiệm ngân hàng).</p>
             </div>
             <div class="tab-hero-qa-item">
-              <span class="tab-hero-q">Làm sao giảm thuế suất thực tế (Taux effectif) xuống thấp nhất?</span>
-              <p class="tab-hero-a">Tận dụng mức giảm trừ 10% frais pro, lấp đầy các bậc thuế biên thấp và tối ưu hóa
-                chuyển đổi tài sản (PFU 30%).</p>
+              <span class="tab-hero-q">Bảo vệ thành quả hưu trí và chuyển giao di sản thế nào?</span>
+              <p class="tab-hero-a">Xây quỹ khẩn cấp 3–6 tháng, đệm tiền mặt chống suy thoái chuỗi năm đầu, và lập kế hoạch cho tặng/di chúc quốc tế từ sớm.</p>
             </div>
           </div>
         </div>
 
         <div class="panel-layout">
           <div class="panel-visualization">
-            <!-- French Account Tracking & Withdrawal Waterfall -->
-            <div class="card" id="card-french-accounts">
+            <!-- SECTION 1: LỜI KHUYÊN TIÊU DÙNG THÔNG MINH & BỀN VỮNG (CHUNG CHO MỌI QUỐC GIA) -->
+            <div class="card" id="card-sustainable-spending">
               <div class="chart-header">
                 <div>
-                  <h3 class="card-title">Tách bạch Tài khoản Đầu tư & Thứ tự Rút tiền Tối ưu Thuế (Waterfall)</h3>
-                  <p class="chart-desc">Thứ tự ưu tiên rút tiền thông minh giữa PEA, Assurance-Vie và Livret A giúp tối
-                    đa hóa số tiền miễn thuế trọn đời.</p>
-                </div>
-                <div class="field-badge text-success" id="badge-waterfall-saved" style="font-weight: 700;">Tiết kiệm:
-                  €18.4k thuế</div>
-              </div>
-
-              <!-- Account Balance Cards Grid -->
-              <div class="waterfall-accounts-grid">
-                <div class="account-card">
-                  <div class="account-header">
-                    <span class="account-name">PEA (Cổ phiếu EU/World)</span>
-                    <span class="account-status badge-success">> 5 năm (0% Thuế IR)</span>
-                  </div>
-                  <div style="margin-top: 0.4rem;">
-                    <label for="inp-acc-pea"
-                      style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Số dư
-                      tài khoản:</label>
-                    <input type="number" id="inp-acc-pea" class="form-input font-mono"
-                      style="padding: 0.35rem 0.5rem; font-size: 0.95rem; font-weight: 700;" value="35000" step="1000">
-                  </div>
-                  <div class="account-desc" style="margin-top: 0.4rem;">Miễn hoàn toàn 12.8% thuế thu nhập. Miễn phí xã
-                    hội CSG khi cư trú tại VN theo hiệp định.</div>
-                </div>
-
-                <div class="account-card">
-                  <div class="account-header">
-                    <span class="account-name">Assurance-Vie (Hợp đồng đa quỹ)</span>
-                    <span class="account-status badge-success">> 8 năm (Miễn €4.6k/năm)</span>
-                  </div>
-                  <div style="margin-top: 0.4rem;">
-                    <label for="inp-acc-av"
-                      style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Số dư
-                      tài khoản:</label>
-                    <input type="number" id="inp-acc-av" class="form-input font-mono"
-                      style="padding: 0.35rem 0.5rem; font-size: 0.95rem; font-weight: 700;" value="10000" step="1000">
-                  </div>
-                  <div class="account-desc" style="margin-top: 0.4rem;">Miễn thuế trên lợi nhuận lên đến 4,600 €/năm
-                    (độc thân) hoặc 9,200 €/năm (cặp đôi).</div>
-                </div>
-
-                <div class="account-card">
-                  <div class="account-header">
-                    <span class="account-name">Livret A / LDDS / Tiền gửi</span>
-                    <span class="account-status badge-info">100% Miễn thuế</span>
-                  </div>
-                  <div style="margin-top: 0.4rem;">
-                    <label for="inp-acc-livreta"
-                      style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Số dư
-                      tài khoản:</label>
-                    <input type="number" id="inp-acc-livreta" class="form-input font-mono"
-                      style="padding: 0.35rem 0.5rem; font-size: 0.95rem; font-weight: 700;" value="5000" step="1000">
-                  </div>
-                  <div class="account-desc" style="margin-top: 0.4rem;">Thanh khoản tức thì, bảo toàn vốn 100%, rút tiền
-                    không chịu bất kỳ sắc thuế nào.</div>
-                </div>
-              </div>
-
-              <!-- Waterfall Step by Step Visualization -->
-              <div class="waterfall-flow-steps">
-                <div class="flow-step">
-                  <span class="step-num">Tầng 1</span>
-                  <div class="step-content">
-                    <div class="step-title">Tiền mặt & Livret A</div>
-                    <div class="step-desc">Rút trước để giải phóng thanh khoản, 0% thuế.</div>
-                  </div>
-                  <span class="step-badge">Ưu tiên 1</span>
-                </div>
-                <div class="flow-arrow"></div>
-                <div class="flow-step">
-                  <span class="step-num">Tầng 2</span>
-                  <div class="step-content">
-                    <div class="step-title">Assurance-Vie (>8 năm)</div>
-                    <div class="step-desc">Rút đều đặn tối đa hạn mức miễn thuế 4,600 € lãi/năm.</div>
-                  </div>
-                  <span class="step-badge">Ưu tiên 2</span>
-                </div>
-                <div class="flow-arrow"></div>
-                <div class="flow-step">
-                  <span class="step-num">Tầng 3</span>
-                  <div class="step-content">
-                    <div class="step-title">PEA (>5 năm)</div>
-                    <div class="step-desc">Rút phần lớn từ ETF tăng trưởng, miễn 100% thuế IR.</div>
-                  </div>
-                  <span class="step-badge">Ưu tiên 3</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Cẩm Nang Danh Mục Tài Khoản Đầu Tư Quốc Tế (Dành cho US, Đức & Toàn Cầu) -->
-            <div class="card" id="card-global-accounts-guide" style="display: none; margin-top: 1.25rem;">
-              <div class="chart-header">
-                <div>
-                  <h3 class="card-title" id="lbl-global-accounts-title">Chiến Lược Tài Khoản Đầu Tư & Tối Ưu Thuế Quốc Tế</h3>
-                  <p class="chart-desc" id="lbl-global-accounts-desc">Tận dụng hạn mức miễn thuế lãi vốn, tài khoản hưu trí ưu đãi và ETF tích lũy (Accumulating) toàn cầu.</p>
+                  <h3 class="card-title">Thói Quen Tiêu Dùng Bền Vững & Quản Lý Tiền Bạc (Chung Cho Mọi Quốc Gia)</h3>
+                  <p class="chart-desc">Đúc kết từ khoa học tài chính hành vi, kênh Two Cents và cộng đồng FIRE giúp bạn bảo vệ ví tiền, giảm phát thải và sống an nhàn.</p>
                 </div>
                 <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center;">
-                  <span class="field-badge text-success" id="badge-global-tax-highlight">Ưu Đãi Thuế Sở Tại</span>
-                  <span class="field-badge" style="color: var(--accent-blue); background: rgba(59, 130, 246, 0.12);">Tài Khoản Quốc Tế</span>
+                  <span class="field-badge text-success">Kinh Tế Tuần Hoàn</span>
+                  <span class="field-badge" style="color: var(--accent-blue); background: rgba(59, 130, 246, 0.12);">Giảm Phát Thải</span>
+                  <span class="field-badge" style="color: var(--accent-purple); background: rgba(139, 92, 246, 0.12);">Tâm Lý Học Hành Vi</span>
                 </div>
               </div>
-              <div class="advisor-grid" id="global-accounts-grid">
-                <!-- Nội dung động cập nhật bởi JS -->
+
+              <div class="advisor-grid" id="sustainable-spending-grid">
+                <!-- 1. Xe lướt & Quy tắc 20/4/10 -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-critical">Tiêu dùng lớn • Khấu hao</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">XE LƯỚT 2–4 NĂM</span>
+                  </div>
+                  <h4 class="advisor-card-title">Nói Không Với Mua Xe Mới — Xe Lướt Giúp Giữ Lại 50% Giá Trị</h4>
+                  <p class="advisor-card-text">
+                    Xe mới xuất xưởng mất từ <strong>30% đến 40% giá trị</strong> chỉ trong 2–3 năm đầu và gần <strong>50% sau 5 năm</strong>. Mua xe lướt (2–4 năm tuổi) giúp chủ trước gánh trọn vẹn khoản mất giá nặng nề nhất, trong khi khung gầm máy móc vẫn còn rất mới và bền bỉ.
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Quy tắc 20/4/10:</strong> Trả trước tối thiểu <strong>20%</strong>, vay trả góp không quá <strong>4 năm</strong> (48 tháng), và tổng chi phí nuôi xe (trả góp + bảo hiểm + xăng dầu + bảo dưỡng) tuyệt đối <strong>không vượt quá 10%</strong> thu nhập hàng tháng.
+                  </div>
+                </div>
+
+                <!-- 2. Mua đồ cũ & Giảm phát thải -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-opportunity">Bền vững • Môi trường</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">SECOND-HAND FIRST</span>
+                  </div>
+                  <h4 class="advisor-card-title">Ưu Tiên Đồ Cũ Chất Lượng Cao — Tiết Kiệm Ví Tiền & Giảm Phát Thải</h4>
+                  <p class="advisor-card-text">
+                    Nội thất gỗ thịt, thiết bị điện tử lướt, dụng cụ sửa chữa, nhạc cụ, sách vở và trang phục cao cấp đã qua sử dụng thường có giá <strong>rẻ hơn 40% – 70%</strong> so với mua mới tại cửa hàng.
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Kinh tế tuần hoàn:</strong> Mỗi món đồ được tái sử dụng giúp kéo dài vòng đời sản phẩm, giảm trực tiếp rác thải và lượng khí thải carbon phát sinh trong chuỗi sản xuất công nghiệp mới. Tiết kiệm tiền bạc đi đôi với trách nhiệm môi trường.
+                  </div>
+                </div>
+
+                <!-- 3. Quy tắc Trì hoãn 72 giờ -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-strategy">Tâm lý chi tiêu</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">72-HOUR RULE</span>
+                  </div>
+                  <h4 class="advisor-card-title">Quy Tắc Chờ 72 Giờ — Cắt Đứt Cơn Hưng Phấn Dopamine Tức Thời</h4>
+                  <p class="advisor-card-text">
+                    Khi bắt gặp một món đồ không nằm trong danh mục chi tiêu thiết yếu mà bạn rất muốn mua, hãy đưa vào danh sách chờ và <strong>đợi đúng 3 ngày (72 giờ)</strong> trước khi quyết định quẹt thẻ.
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Hiệu quả thực tế:</strong> Cơn hưng phấn dopamine nhất thời sẽ tự động hạ nhiệt sau 72 giờ. Hơn <strong>70% trường hợp</strong>, bạn sẽ nhận ra mình không thực sự cần món đồ đó, loại bỏ triệt để các khoản mua sắm bốc đồng gây hối tiếc.
+                  </div>
+                </div>
+
+                <!-- 4. Định giá bằng Giờ công lao động -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-growth">Tư duy tài chính</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">TIME VS MONEY</span>
+                  </div>
+                  <h4 class="advisor-card-title">Đo Lường Bằng Giờ Công Lao Động — Giá Thực Của Món Đồ Là Gì?</h4>
+                  <p class="advisor-card-text">
+                    Thay vì nhìn giá niêm yết của chiếc điện thoại 25 triệu hay đôi giày 4 triệu bằng tiền mặt, hãy lấy số tiền đó <strong>chia cho mức thu nhập 1 giờ làm việc thực tế</strong> của bạn.
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Câu hỏi thức tỉnh:</strong> Tự hỏi: <em>"Món đồ này có thực sự xứng đáng để mình phải đánh đổi bằng 80 giờ (2 tuần ngồi cày cuốc ở văn phòng) hay không?"</em>. Cách nhìn này giúp bạn trân trọng mồ hôi công sức và ngừng chi tiêu phung phí.
+                  </div>
+                </div>
+
+                <!-- 5. Tránh bẫy House Poor & Quy tắc 5% -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-critical">Bất động sản</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">HOUSE POOR TRAP</span>
+                  </div>
+                  <h4 class="advisor-card-title">Tránh Bẫy "Nghèo Vì Ôm Nhà To" — Thuê Nhà Không Phải Ném Tiền</h4>
+                  <p class="advisor-card-text">
+                    Mua nhà đi kèm nhiều chi phí chìm: lãi vay ngân hàng, bảo hiểm, phí quản lý, bảo dưỡng chống thấm/sửa mái (~1%/năm). Nếu tiền trả nhà chiếm trên <strong>35% thu nhập</strong>, bạn sẽ bị cạn kiệt dòng tiền để tích lũy tài sản.
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Quy tắc 5% (Ben Felix):</strong> Nếu chi phí thuê nhà một năm rẻ hơn 5% giá trị căn nhà, việc đi thuê và mang số vốn chênh lệch đi đầu tư sinh lời đều đặn có thể đem lại khối tài sản ròng lớn hơn và cuộc sống tự do hơn nhiều.
+                  </div>
+                </div>
+
+                <!-- 6. Tự trả lương trước & Chống Lifestyle Creep -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-opportunity">Dòng tiền tự động</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">PAY YOURSELF FIRST</span>
+                  </div>
+                  <h4 class="advisor-card-title">Tự Trả Lương Cho Mình Trước & Chặn Bẫy Tăng Mức Sống (Lifestyle Creep)</h4>
+                  <p class="advisor-card-text">
+                    Không bao giờ chờ cuối tháng còn dư bao nhiêu mới tiết kiệm. Hãy cài lệnh tự động: Vào ngày nhận lương, hệ thống tự động trích <strong>15% – 20%</strong> chuyển thẳng vào quỹ đầu tư/tiết kiệm trước; bạn chỉ chi tiêu trong số còn lại.
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Quy tắc tăng lương 50/50:</strong> Khi được thăng chức, tăng lương hoặc thưởng, hãy dành ít nhất <strong>50% số tiền tăng thêm</strong> để rót vào đầu tư, chỉ nâng mức chi tiêu tối đa 50% còn lại.
+                  </div>
+                </div>
+
+                <!-- 7. Rà soát thuê bao & Nấu ăn tại nhà -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-strategy">Thói quen hàng ngày</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">MICRO-LEAKS AUDIT</span>
+                  </div>
+                  <h4 class="advisor-card-title">Dọn Rác Thuê Bao Định Kỳ (Subscription Audit) & Nấu Ăn Tại Nhà</h4>
+                  <p class="advisor-card-text">
+                    Những khoản phí nhỏ lẻ tự động trừ hàng tháng (app, cloud, kênh truyền hình, thẻ gym không tập) tích tụ thành hàng chục triệu thất thoát mỗi năm mà bạn không hề hay biết.
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Hành động:</strong> Mỗi 6 tháng in sao kê tài khoản ngân hàng để hủy mọi dịch vụ không dùng thường xuyên. Tự nấu ăn và chuẩn bị bữa ăn (Meal Prep) vừa tiết kiệm hàng chục triệu/năm, vừa kiểm soát dinh dưỡng lành mạnh để sống thọ.
+                  </div>
+                </div>
+
+                <!-- 8. Quỹ khẩn cấp 3-6 tháng -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-critical">Quản trị rủi ro</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">EMERGENCY SHIELD</span>
+                  </div>
+                  <h4 class="advisor-card-title">Quỹ Khẩn Cấp 3–6 Tháng — Tấm Khiên Sinh Mệnh Trước Mọi Biến Cố</h4>
+                  <p class="advisor-card-text">
+                    Giữ số tiền đủ trang trải <strong>3 đến 6 tháng chi phí sinh hoạt thiết yếu</strong> trong tài khoản thanh toán hoặc sổ tiết kiệm ngắn hạn có tính thanh khoản cao.
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Mục tiêu:</strong> Quỹ khẩn cấp không phải để kiếm lời, mà là tấm khiên giúp bạn <strong>không bao giờ phải bán tháo cổ phiếu ở đáy khủng hoảng</strong> hoặc vay nợ lãi cao khi bất ngờ mất việc hay gặp sự cố y tế.
+                  </div>
+                </div>
               </div>
             </div>
 
+            <!-- SECTION 2: CÔNG CỤ TÀI CHÍNH & TỐI ƯU HÓA THEO HỒ SƠ QUỐC GIA -->
+            <section class="country-tools-section-wrapper" id="section-country-tools-wrapper">
+              <div class="country-tools-header">
+                <div>
+                  <h3 class="country-tools-title">Công Cụ Tài Chính & Chiến Lược Đầu Tư Theo Quốc Gia</h3>
+                  <p class="chart-desc" id="lbl-country-tools-desc" style="margin: 0.25rem 0 0.5rem 0; font-size: 0.8rem; color: var(--text-muted);">
+                    Công cụ tài chính tối ưu riêng cho hồ sơ kế hoạch hưu trí của bạn.
+                  </p>
+                </div>
+                <div>
+                  <span id="badge-country-profile-mode" class="field-badge text-success">Đang khớp hồ sơ kế hoạch</span>
+                </div>
+              </div>
+
+              <!-- Country Selector Filter Bar (Chỉ có 2 button Pháp và Việt Nam) -->
+              <div class="country-filter-bar" id="country-tools-filter-bar">
+                <button type="button" class="country-filter-chip active" data-country-filter="FR">🇫🇷 Nước Pháp</button>
+                <button type="button" class="country-filter-chip" data-country-filter="VN">🇻🇳 Việt Nam</button>
+              </div>
+
             <!-- PEA Masterclass & Strategic Tips (Native pyRetrait Design System) -->
-            <div class="card" id="card-pea-masterclass" style="margin-top: 1.25rem;">
+            <div class="card" id="card-pea-masterclass" data-country-block="FR" style="margin-top: 1.25rem;">
               <div class="chart-header">
                 <div>
                   <h3 class="card-title">Cẩm Nang Chiến Lược & 6 Mẹo Vàng Đầu Tư PEA (Plan d'Épargne en Actions)</h3>
@@ -3091,7 +3125,7 @@
             </div>
 
             <!-- Assurance-Vie Masterclass & Strategic Tips (Native pyRetrait Design System) -->
-            <div class="card" id="card-assurance-vie-masterclass" style="margin-top: 1.25rem;">
+            <div class="card" id="card-assurance-vie-masterclass" data-country-block="FR" style="margin-top: 1.25rem;">
               <div class="chart-header">
                 <div>
                   <h3 class="card-title">Cẩm Nang Chiến Lược & 6 Mẹo Vàng Assurance-Vie (Bảo Hiểm Nhân Thọ Đầu Tư)</h3>
@@ -3266,7 +3300,7 @@
             </div>
 
             <!-- Livret A, LEP & LDDS Masterclass & Strategic Tips (Native pyRetrait Design System) -->
-            <div class="card" id="card-livret-masterclass" style="margin-top: 1.25rem;">
+            <div class="card" id="card-livret-masterclass" data-country-block="FR" style="margin-top: 1.25rem;">
               <div class="chart-header">
                 <div>
                   <h3 class="card-title">Cẩm Nang Tiết Kiệm & 6 Mẹo Vàng Épargne Réglementée (LEP, Livret A & LDDS)</h3>
@@ -3443,7 +3477,7 @@
             </div>
 
             <!-- Estate, Gift & Inheritance Tax Optimization Masterclass (Native pyRetrait Design System) -->
-            <div class="card" id="card-estate-inheritance-masterclass" style="margin-top: 1.25rem;">
+            <div class="card" id="card-estate-inheritance-masterclass" data-country-block="FR" style="margin-top: 1.25rem;">
               <div class="chart-header">
                 <div>
                   <h3 class="card-title">Kế Hoạch Thừa Kế & 4 Chiến Lược Tối Ưu Thuế Chuyển Giao Di Sản (Pháp – Việt)</h3>
@@ -3535,6 +3569,285 @@
                 </div>
               </div>
             </div>
+
+            <!-- CẨM NANG CÔNG CỤ TÀI CHÍNH VIỆT NAM -->
+            <div class="card" id="card-vietnam-tools" data-country-block="VN" style="margin-top: 1.25rem;">
+              <div class="chart-header">
+                <div>
+                  <h3 class="card-title">Cẩm Nang Chiến Lược & 4 Công Cụ Tích Sản Độc Quyền Tại Việt Nam</h3>
+                  <p class="chart-desc">Tận dụng nền kinh tế tăng trưởng nhanh, chính sách ưu đãi thuế lãi tiền gửi và thị trường vốn tiềm năng để xây dựng dòng tiền hưu trí độc lập.</p>
+                </div>
+                <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center;">
+                  <span class="field-badge text-success">0% Thuế Lãi Tiết Kiệm</span>
+                  <span class="field-badge" style="color: var(--accent-blue); background: rgba(59, 130, 246, 0.12);">Thuế Bán 0.1% ETF</span>
+                  <span class="field-badge" style="color: var(--accent-amber); background: rgba(245, 158, 11, 0.12);">BĐS Dòng Tiền</span>
+                </div>
+              </div>
+
+              <div class="advisor-grid">
+                <!-- Mẹo VN 1: Quỹ mở & ETF -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-strategy">Tích sản dài hạn • Cổ phiếu</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">ETF & QUỸ MỞ</span>
+                  </div>
+                  <h4 class="advisor-card-title">Tích Sản Thụ Động Qua Quỹ Mở & ETF Chỉ Số (VN30, Diamond, FinLead)</h4>
+                  <p class="advisor-card-text">
+                    Thay vì lướt sóng trading đau đầu và rủi ro thua lỗ, hãy đầu tư định kỳ hàng tháng (DCA) vào các chứng chỉ quỹ mở uy tín (Dragon Capital, VinaCapital, SSIAM) hoặc các quỹ ETF mô phỏng chỉ số (E1VFVN30, FUEVFVND Diamond).
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Ưu đãi thuế vượt trội:</strong> Việt Nam chỉ thu <strong>0.1% thuế chuyển nhượng</strong> trên tổng giá trị bán chứng khoán, <em>hoàn toàn không đánh thuế lũy tiến trên lợi nhuận thặng dư vốn (Capital Gains Tax 20%–30%)</em> như các quốc gia phát triển!
+                  </div>
+                </div>
+
+                <!-- Mẹo VN 2: Tiết kiệm ngân hàng -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-opportunity">Thanh khoản • Đệm an toàn</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">BANK DEPOSITS</span>
+                  </div>
+                  <h4 class="advisor-card-title">Tiền Gửi Tiết Kiệm Ngân Hàng — 0% Thuế Thu Nhập Cá Nhân</h4>
+                  <p class="advisor-card-text">
+                    Tại Việt Nam, toàn bộ tiền lãi từ các khoản tiền gửi tiết kiệm tại các tổ chức tín dụng được <strong>miễn 100% thuế thu nhập cá nhân (TNCN)</strong> theo luật thuế hiện hành.
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Ứng dụng cho FIRE:</strong> Sử dụng các sổ tiết kiệm kỳ hạn 6–12 tháng tại các ngân hàng thương mại uy tín làm <strong>quỹ khẩn cấp 3–6 tháng</strong> và đệm tiền mặt sinh hoạt 1–2 năm đầu hưu trí để không bao giờ bị áp lực bán tháo tài sản khi thị trường chứng khoán biến động.
+                  </div>
+                </div>
+
+                <!-- Mẹo VN 3: BĐS dòng tiền -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-critical">Dòng tiền đều • Cho thuê</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">RENTAL CASH FLOW</span>
+                  </div>
+                  <h4 class="advisor-card-title">Bất Động Sản Dòng Tiền & Căn Hộ Cho Thuê Pháp Lý Chuẩn</h4>
+                  <p class="advisor-card-text">
+                    Bất động sản dòng tiền (căn hộ dịch vụ, nhà phố mặt ngõ trung tâm, hoặc chung cư cho thuê phân khúc phổ thông) mang lại tỷ suất dòng tiền <strong>3.5% – 5%/năm</strong> cộng với tiềm năng giữ giá trị đất trước lạm phát dài hạn.
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Nguyên tắc vàng:</strong> Chỉ chọn tài sản có <strong>sổ hồng sẵn sàng</strong>, vị trí gần trường đại học hoặc khu văn phòng đông đúc để đảm bảo tỷ lệ lấp đầy trên 90%. Tránh mua đất nền đầu cơ không tạo ra dòng tiền khai thác trong giai đoạn chuẩn bị nghỉ hưu.
+                  </div>
+                </div>
+
+                <!-- Mẹo VN 4: BHYT & Sức khỏe -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-growth">Bảo vệ tài sản • Y tế</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">BHYT & PRIVATE CARE</span>
+                  </div>
+                  <h4 class="advisor-card-title">Bảo Hiểm Y Tế Toàn Dân & Thẻ Chăm Sóc Sức Khỏe Cao Cấp</h4>
+                  <p class="advisor-card-text">
+                    Bảo hiểm Y tế (BHYT) của Nhà nước là "phao cứu sinh" có mức phí chỉ khoảng 1–1.5 triệu VNĐ/năm nhưng chi trả tới 80% – 100% các chi phí điều trị lớn, phẫu thuật và thuốc men đắt đỏ tại các bệnh viện công đầu ngành (Bạch Mai, Chợ Rẫy, Việt Đức).
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Lá chắn kép:</strong> Mua <strong>BHYT tự nguyện</strong> làm nền tảng cốt lõi, kết hợp thêm <strong>Thẻ sức khỏe phi nhân thọ nội ngoại trú</strong> (phí 5–15 triệu/năm) để được bảo lãnh viện phí tại các bệnh viện tư quốc tế khi cần chăm sóc tiện nghi.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CẨM NANG CÔNG CỤ TÀI CHÍNH HOA KỲ -->
+            <div class="card" id="card-us-tools" data-country-block="US" style="margin-top: 1.25rem;">
+              <div class="chart-header">
+                <div>
+                  <h3 class="card-title">Cẩm Nang Chiến Lược & 4 Công Cụ Tích Sản Độc Quyền Tại Hoa Kỳ (US)</h3>
+                  <p class="chart-desc">Thứ tự ưu tiên dòng tiền kinh điển theo chuẩn IRS Code: 401(k) Match -> Max HSA -> Max Roth IRA -> Taxable Brokerage Index Funds.</p>
+                </div>
+                <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center;">
+                  <span class="field-badge text-success">IRS Code 2024</span>
+                  <span class="field-badge" style="color: var(--accent-blue); background: rgba(59, 130, 246, 0.12);">Roth IRA 0% Thuế</span>
+                  <span class="field-badge" style="color: var(--accent-purple); background: rgba(139, 92, 246, 0.12);">HSA Triple Tax</span>
+                </div>
+              </div>
+
+              <div class="advisor-grid">
+                <!-- Mẹo US 1: 401k Match -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-critical">Ưu tiên 1 • Tiền miễn phí</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">401(K) MATCH</span>
+                  </div>
+                  <h4 class="advisor-card-title">401(k) / 403(b) Employer Match — 100% Lợi Nhuận Tức Thì</h4>
+                  <p class="advisor-card-text">
+                    Luôn nạp đủ tỷ lệ lương để nhận trọn vẹn tiền đóng đối ứng từ công ty (Employer Match). Nếu công ty match 1:1 cho 5% lương, bạn ngay lập tức nhân đôi số tiền đầu tư (sinh lời 100% tại nguồn) và được giảm trừ thu nhập chịu thuế trước (Pre-tax).
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Hành động:</strong> Không bao giờ bỏ lỡ khoản tiền đối ứng này — đây là "tiền miễn phí" có mức sinh lời vô đối trên thị trường tài chính.
+                  </div>
+                </div>
+
+                <!-- Mẹo US 2: HSA -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-opportunity">Ưu tiên 2 • Miễn thuế 3 lần</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">TRIPLE TAX ADVANTAGE</span>
+                  </div>
+                  <h4 class="advisor-card-title">HSA (Health Savings Account) — Tài Khoản Ưu Đãi Thuế Tuyệt Đối</h4>
+                  <p class="advisor-card-text">
+                    Khi tham gia gói bảo hiểm HDHP, bạn được mở tài khoản HSA với đặc quyền <strong>miễn thuế 3 lần</strong>: Miễn thuế thu nhập khi nộp tiền vào, miễn thuế hoàn toàn khi tiền sinh lời trong các quỹ chỉ số, và miễn 100% thuế khi rút tiền chi trả chi phí y tế.
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Chiến thuật FIRE:</strong> Tự chi trả viện phí bằng tiền mặt và lưu giữ hóa đơn. Giữ nguyên tiền trong HSA đầu tư cổ phiếu trong 20–30 năm; sau tuổi 65, HSA có thể rút tiền chi tiêu cho bất kỳ mục đích nào giống hệt Traditional IRA.
+                  </div>
+                </div>
+
+                <!-- Mẹo US 3: Roth IRA -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-strategy">Ưu tiên 3 • 0% Thuế trọn đời</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">ROTH IRA & BACKDOOR</span>
+                  </div>
+                  <h4 class="advisor-card-title">Roth IRA ($7.000/Năm) & Kỹ Thuật Backdoor Roth</h4>
+                  <p class="advisor-card-text">
+                    Nạp tiền sau thuế vào Roth IRA. Toàn bộ lãi vốn và cổ tức tăng trưởng trong suốt cuộc đời được <strong>miễn thuế vĩnh viễn</strong> khi rút sau tuổi 59½. Phần vốn gốc (contributions) có thể rút ra bất kỳ lúc nào mà không bị phạt hay đóng thuế.
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Thu nhập cao vẫn làm được:</strong> Nếu thu nhập vượt ngưỡng quy định của IRS, bạn vẫn có thể thực hiện <strong>Backdoor Roth IRA</strong> (nạp tiền vào Traditional IRA không khấu trừ rồi chuyển đổi sang Roth) hoàn toàn hợp pháp.
+                  </div>
+                </div>
+
+                <!-- Mẹo US 4: Low cost index funds -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-growth">Chi phí siêu rẻ • Sức mạnh thị trường</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">LOW-COST INDEX</span>
+                  </div>
+                  <h4 class="advisor-card-title">Quỹ Chỉ Số Toàn Thị Trường & S&P 500 (Vanguard VOO, VTI, Fidelity)</h4>
+                  <p class="advisor-card-text">
+                    Chi phí quản lý (Expense Ratio) của các quỹ như VOO hay VTI chỉ vỏn vẹn <strong>0.03%/năm</strong> (tiết kiệm 30 lần so với quỹ chủ động 1.0%). Lãi kép được bảo toàn gần như 100% qua hàng chục năm.
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Nguyên lý Bogleheads:</strong> Mua toàn bộ thị trường, tái đầu tư cổ tức và giữ vững qua mọi cơn bão khủng hoảng kinh tế là con đường làm giàu chắc chắn nhất tại Mỹ.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CẨM NANG CÔNG CỤ TÀI CHÍNH NƯỚC ĐỨC -->
+            <div class="card" id="card-germany-tools" data-country-block="DE" style="margin-top: 1.25rem;">
+              <div class="chart-header">
+                <div>
+                  <h3 class="card-title">Cẩm Nang Chiến Lược & 3 Mẹo Tối Ưu Thuế Đầu Tư Tại Đức (Germany)</h3>
+                  <p class="chart-desc">Tận dụng hạn mức miễn thuế lãi vốn Sparer-Pauschbetrag, cơ chế Vorabpauschale và nồi bù trừ lỗ tại CHLB Đức.</p>
+                </div>
+                <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center;">
+                  <span class="field-badge text-success">1.000€ Sparer-Pauschbetrag</span>
+                  <span class="field-badge" style="color: var(--accent-blue); background: rgba(59, 130, 246, 0.12);">Thesaurierend ETF</span>
+                  <span class="field-badge" style="color: var(--accent-purple); background: rgba(139, 92, 246, 0.12);">Abgeltungsteuer 25%</span>
+                </div>
+              </div>
+
+              <div class="advisor-grid">
+                <!-- Mẹo DE 1 -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-critical">Miễn thuế vốn • Hàng năm</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">FREISTELLUNGSAUFTRAG</span>
+                  </div>
+                  <h4 class="advisor-card-title">Sparer-Pauschbetrag — 1.000 €/Người (2.000 €/Vợ Chồng) Miễn Thuế</h4>
+                  <p class="advisor-card-text">
+                    Nộp lệnh <strong>Freistellungsauftrag</strong> trực tuyến cho ngân hàng hoặc sàn môi giới (Trade Republic, Scalable Capital, ING, DKB) để kích hoạt hạn mức miễn thuế lãi vốn 1.000 €/năm (hoặc 2.000 € cho cặp vợ chồng).
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Hành động:</strong> Nếu có nhiều tài khoản, bạn có thể phân chia hạn mức này linh hoạt giữa các ngân hàng để tránh bị khấu trừ tự động 25% Abgeltungsteuer + Soli.
+                  </div>
+                </div>
+
+                <!-- Mẹo DE 2 -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-opportunity">ETF tích lũy • Tái đầu tư</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">VORABPAUSCHALE</span>
+                  </div>
+                  <h4 class="advisor-card-title">Thesaurierend (Accumulating) UCITS ETF & Cơ Chế Vorabpauschale</h4>
+                  <p class="advisor-card-text">
+                    Sử dụng các quỹ ETF tích lũy (ví dụ VWCE, FWRA, SPYI) để cổ tức tự động tái đầu tư. Nắm vững cơ chế thuế ước tính trước <strong>Vorabpauschale</strong> theo lãi suất cơ bản của Bundesbank (Basiszins) để chuẩn bị một khoản tiền mặt nhỏ trong tài khoản vào đầu tháng 1 hàng năm.
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Teilfreistellung 30%:</strong> Các quỹ ETF cổ phiếu nắm giữ trên 51% cổ phiếu được tự động <strong>miễn thuế 30% lợi nhuận</strong> (chỉ đánh thuế trên 70% số tiền lãi).
+                  </div>
+                </div>
+
+                <!-- Mẹo DE 3 -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-strategy">Khấu trừ thuế • Bù trừ</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">VERLUSTTOPF</span>
+                  </div>
+                  <h4 class="advisor-card-title">Verlustverrechnungstopf — Nồi Bù Trừ Lỗ Vô Thời Hạn</h4>
+                  <p class="advisor-card-text">
+                    Các khoản lỗ bán cổ phiếu được tự động lưu trong 'nồi bù trừ lỗ' (Verlusttopf) của sàn giao dịch để cấn trừ vào các khoản lãi phát sinh trong tương lai vô thời hạn mà không bao giờ bị mất đi qua các năm tài chính.
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Lưu ý:</strong> Khi chuyển sàn giao dịch, hãy yêu cầu cấp giấy chứng nhận bù trừ lỗ (Verlustbescheinigung) trước ngày 15/12 để nộp vào tờ khai thuế cá nhân (Steuererklärung).
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CẨM NANG CÔNG CỤ TÀI CHÍNH QUỐC TẾ TOÀN CẦU -->
+            <div class="card" id="card-international-tools" data-country-block="INTL" style="margin-top: 1.25rem;">
+              <div class="chart-header">
+                <div>
+                  <h3 class="card-title">Cẩm Nang Chiến Lược Đầu Tư Quốc Tế Cho Người Du Mục & Nghỉ Hưu Toàn Cầu</h3>
+                  <p class="chart-desc">Sử dụng sàn giao dịch quốc tế uy tín, đầu tư ETF Ireland (UCITS) để tránh thuế thừa kế Mỹ và tối ưu dòng tiền rút xuyên biên giới.</p>
+                </div>
+                <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center;">
+                  <span class="field-badge text-success">Tránh Thuế Thừa Kế US 40%</span>
+                  <span class="field-badge" style="color: var(--accent-blue); background: rgba(59, 130, 246, 0.12);">ETF UCITS Ireland</span>
+                  <span class="field-badge" style="color: var(--accent-purple); background: rgba(139, 92, 246, 0.12);">IBKR Đa Tiền Tệ</span>
+                </div>
+              </div>
+
+              <div class="advisor-grid">
+                <!-- Mẹo INTL 1: Ireland UCITS ETF -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-critical">Chiến lược 01 • Tránh thuế Mỹ</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">IRELAND DOMICILED</span>
+                  </div>
+                  <h4 class="advisor-card-title">Đầu Tư ETF Domiciled Tại Ireland (IE / UCITS)</h4>
+                  <p class="advisor-card-text">
+                    Nếu bạn không phải công dân Mỹ (Non-US Resident), đầu tư trực tiếp vào cổ phiếu Mỹ niêm yết tại Mỹ sẽ khiến bạn đối mặt với <strong>Thuế thừa kế Hoa Kỳ (US Estate Tax) lên tới 40%</strong> đối với tài sản vượt quá $60.000 khi qua đời!
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Giải pháp chuẩn quốc tế:</strong> Luôn mua các quỹ ETF đăng ký tại <strong>Ireland (mã bắt đầu bằng IE...)</strong> như VUAA, CSPX (S&P 500) hoặc VWRA (All-World). Bạn được <strong>0% thuế thừa kế Mỹ</strong> và thuế withholding tax cổ tức Mỹ giảm từ 30% xuống còn 15% nhờ hiệp định thuế song phương Mỹ – Ireland.
+                  </div>
+                </div>
+
+                <!-- Mẹo INTL 2: Interactive Brokers -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-opportunity">Chiến lược 02 • Môi giới toàn cầu</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">IBKR MULTI-CURRENCY</span>
+                  </div>
+                  <h4 class="advisor-card-title">Interactive Brokers (IBKR) — Nền Tảng Tài Khoản Đa Tiền Tệ Hàng Đầu</h4>
+                  <p class="advisor-card-text">
+                    IBKR là sàn môi giới uy tín hàng đầu thế giới được niêm yết trên sàn Nasdaq, cho phép cư dân tại hơn 200 quốc gia (bao gồm Việt Nam, Pháp, Đức, Singapore...) mở tài khoản đầu tư chứng khoán toàn cầu.
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Ưu điểm vượt trội:</strong> Giữ và hoán đổi trực tiếp hàng chục loại tiền tệ (EUR, USD, SGD, GBP, VND) với tỷ giá thị trường thực tế (spot rate, phí đổi chỉ ~$2), phí mua bán ETF siêu rẻ chỉ từ 1$–2$, tiếp cận trực tiếp sàn London (LSE), Euronext và New York.
+                  </div>
+                </div>
+
+                <!-- Mẹo INTL 3: Dòng tiền rút quốc tế -->
+                <div class="advisor-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="advisor-card-tag tag-strategy">Chiến lược 03 • Rút tiền hưu trí</span>
+                    <span style="font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono);">CROSS-BORDER CASH</span>
+                  </div>
+                  <h4 class="advisor-card-title">Tối Ưu Chuyển Tiền & Dòng Tiền Rút Hưu Trí Xuyên Biên Giới</h4>
+                  <p class="advisor-card-text">
+                    Khi nghỉ hưu ở một quốc gia khác với nơi tích lũy tài sản (ví dụ kiếm tiền tại châu Âu nhưng về sống tại Việt Nam), hãy sử dụng thẻ thanh toán quốc tế đa tiền tệ (Wise, Revolut, hoặc tài khoản ngân hàng quốc tế) để rút tiền mặt sinh hoạt.
+                  </p>
+                  <div class="pea-callout-box">
+                    <strong>Tránh phí ẩn:</strong> Rút theo từng món vừa đủ cho 3–6 tháng chi tiêu để giảm thiểu số lần chuyển đổi ngoại tệ và tránh bị các ngân hàng truyền thống thu phí chuyển khoản quốc tế SWIFT đắt đỏ.
+                  </div>
+                </div>
+              </div>
+            </div>
+            </section>
           </div>
         </div>
       </section>
@@ -5248,182 +5561,93 @@
     </div>
   </div>
 
-  <!-- Modal for Adding / Editing Apartment (pyLocation) -->
+  <!-- Modal for Adding / Editing Apartment (pyLocation / Universal Real Estate) -->
   <div class="modal-overlay" id="apartment-modal" style="display: none;">
     <div class="modal-card modal-xl" style="max-width: 960px; width: 94%; max-height: 92vh;">
       <div class="modal-header">
-        <h3 id="apartment-modal-title">Thêm / Chỉnh Sửa Căn Hộ LMNP</h3>
+        <h3 id="apartment-modal-title">Thêm / Chỉnh Sửa Bất Động Sản Cho Thuê</h3>
         <button class="modal-close" id="btn-close-apt-modal"></button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="inp-apt-original-name" value="">
-        <div class="form-row">
-          <div class="form-group col-5">
-            <label for="inp-apt-name" data-i18n="lbl_property_name">Tên BĐS (Định danh)</label>
-            <input type="text" id="inp-apt-name" class="form-input" placeholder="Ví dụ: Borderouge 79 000">
-          </div>
-          <div class="form-group col-4">
-            <label for="inp-apt-category" data-i18n="lbl_property_category">Hình thức BĐS</label>
-            <select id="inp-apt-category" class="form-input">
-              <option value="apartment" selected data-i18n="opt_property_apartment">Căn hộ chung cư (Copropriété)
-              </option>
-              <option value="house" data-i18n="opt_property_house">Nhà mặt đất (Maison individuelle)</option>
-            </select>
-          </div>
-          <div class="form-group col-3">
-            <label for="inp-apt-typology" data-i18n="lbl_property_typology">Loại phân hạng</label>
-            <select id="inp-apt-typology" class="form-input">
-              <option value="Studio / T1">Studio / T1</option>
-              <option value="T2 (2 pièces)" selected>T2 (2 pièces)</option>
-              <option value="T3 (3 pièces)">T3 (3 pièces)</option>
-              <option value="T4+">T4+</option>
-              <option value="Maison / Villa">Maison / Villa</option>
-            </select>
-          </div>
-        </div>
+        <!-- Giữ hidden các trường legacy để code tính toán không bị lỗi null -->
+        <input type="hidden" id="inp-apt-typology" value="T2 (2 pièces)">
+        <input type="hidden" id="inp-apt-dpe" value="C">
+        <input type="hidden" id="inp-apt-surface" value="35">
 
-        <div class="form-row">
-          <div class="form-group col-8">
-            <label for="inp-apt-address">Địa chỉ / Vị trí</label>
-            <input type="text" id="inp-apt-address" class="form-input" placeholder="Toulouse, France">
+        <!-- TẦNG 1: THÔNG TIN & ĐỊNH GIÁ BẤT ĐỘNG SẢN (GOM CHUNG 1 SECTION BORDER) -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 0.85rem;">
+          <!-- Hàng 1: Tên BĐS & Hình thức BĐS -->
+          <div class="form-row" style="margin-bottom: 0.65rem;">
+            <div class="form-group col-6" style="margin-bottom: 0;">
+              <label for="inp-apt-name" data-i18n="lbl_property_name">Tên BĐS (Định danh)</label>
+              <input type="text" id="inp-apt-name" class="form-input" placeholder="Ví dụ: Căn hộ Vinhomes / Borderouge Toulouse">
+            </div>
+            <div class="form-group col-6" style="margin-bottom: 0;">
+              <label for="inp-apt-category" data-i18n="lbl_property_category">Hình thức BĐS</label>
+              <select id="inp-apt-category" class="form-input">
+                <option value="apartment" selected data-i18n="opt_property_apartment">Căn hộ chung cư</option>
+                <option value="house" data-i18n="opt_property_house">Nhà mặt đất</option>
+              </select>
+            </div>
+            <input type="hidden" id="inp-apt-address" value="">
           </div>
-          <div class="form-group col-2">
-            <label for="inp-apt-surface">Diện tích (m²)</label>
-            <input type="number" id="inp-apt-surface" class="form-input" value="35">
-          </div>
-          <div class="form-group col-2">
-            <label for="inp-apt-dpe">DPE</label>
-            <select id="inp-apt-dpe" class="form-input">
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C" selected>C</option>
-              <option value="D">D</option>
-              <option value="E">E</option>
-              <option value="F">F</option>
-            </select>
-          </div>
-        </div>
 
-        <h5 style="margin: 0.75rem 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; color: var(--primary);">
-          Giá mua & Thời gian bắt đầu</h5>
-        <div class="form-row">
-          <div class="form-group col-3">
-            <label for="inp-apt-start-year"> Năm bắt đầu mua</label>
-            <input type="number" id="inp-apt-start-year" class="form-input" value="2023" min="1990" max="2050">
+          <!-- Hàng 2: Thời gian sở hữu & khai thác (3 cột) -->
+          <div class="form-row" style="margin-bottom: 0.75rem;">
+            <div class="form-group col-4" style="margin-bottom: 0;">
+              <label for="inp-apt-start-year" style="color: var(--text-main);">Năm sở hữu / mua</label>
+              <input type="number" id="inp-apt-start-year" class="form-input" value="2024" min="1990" max="2060" style="color: var(--text-main);">
+            </div>
+            <div class="form-group col-4" style="margin-bottom: 0;">
+              <label for="inp-apt-rent-start-year" style="color: var(--text-main);">Năm bắt đầu thu tiền</label>
+              <input type="number" id="inp-apt-rent-start-year" class="form-input" value="2024" min="1990" max="2060" title="Năm bắt đầu cho thuê thu tiền (nếu mua để ở trước)" style="color: var(--text-main);">
+            </div>
+            <div class="form-group col-4" style="margin-bottom: 0;">
+              <label for="inp-apt-end-age" style="color: var(--text-main);">Thu tiền đến / Bán BĐS</label>
+              <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <input type="number" id="inp-apt-end-age" class="form-input" value="85" min="20" max="100" style="color: var(--text-main); text-align: center;">
+                <span style="font-size: 0.8rem; color: var(--text-main); white-space: nowrap;">tuổi</span>
+              </div>
+            </div>
           </div>
-          <div class="form-group col-3">
-            <label for="inp-apt-price">Giá mua net (€)</label>
-            <input type="number" id="inp-apt-price" class="form-input" value="90000" step="1000">
-          </div>
-          <div class="form-group col-3">
-            <label for="inp-apt-notary">Phí công chứng (€) <small
-                style="color: var(--primary); font-size: 0.72rem; font-weight: 600;">(Tự động ~7.5%)</small></label>
-            <input type="number" id="inp-apt-notary" class="form-input" value="6750"
-              title="Tự động tính theo tỷ lệ công chứng chuẩn 7.5% tại Pháp">
-          </div>
-          <div class="form-group col-3">
-            <label for="inp-apt-furniture">Nội thất (€)</label>
-            <input type="number" id="inp-apt-furniture" class="form-input" value="2000">
-          </div>
-        </div>
 
-        <div class="form-row" style="margin-top: 0.5rem;">
-          <div class="form-group col-6">
-            <label for="inp-apt-appreciation" data-i18n="lbl_property_appreciation">Tỷ lệ điều chỉnh tăng trưởng/năm
-              (%)</label>
-            <input type="number" id="inp-apt-appreciation" class="form-input" value="0.0" step="0.1"
-              title="Nhà mặt đất mặc định +2.5%/năm; Căn hộ mặc định 0.0% kèm mô hình khấu hao xác nhà sau 30 năm">
-          </div>
-          <div class="form-group col-6" style="display: flex; align-items: flex-end;">
-            <div id="lbl-formula-badge"
-              style="font-size: 0.75rem; color: var(--text-muted); padding: 0.5rem 0.75rem; background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: 6px; width: 100%;">
-              Mô hình áp dụng: <strong id="lbl-formula-name" style="color: var(--primary);">Khấu hao căn hộ sau 30
-                năm</strong>
+          <!-- Đường kẻ phân cách nét đứt nhẹ nhàng -->
+          <div style="border-top: 1px dashed var(--border-subtle); margin-bottom: 0.75rem;"></div>
+
+          <!-- Hàng 3: Giá mua & Tăng trưởng -->
+          <div class="form-row" style="margin-bottom: 0;">
+            <div class="form-group col-6" style="margin-bottom: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                <label for="inp-apt-price" style="margin-bottom: 0;">Giá mua net (€)</label>
+                <span style="font-size: 0.72rem; color: var(--text-muted);">
+                  Tất toán: <strong id="lbl-apt-payoff-year" style="color: #0284c7;">Năm 2044 (20 năm)</strong>
+                </span>
+              </div>
+              <input type="number" id="inp-apt-price" class="form-input" value="95000" step="1000">
+            </div>
+            <div class="form-group col-6" style="margin-bottom: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                <label for="inp-apt-appreciation" data-i18n="lbl_property_appreciation" style="margin-bottom: 0;">Điều chỉnh tăng trưởng (%)</label>
+                <span id="lbl-formula-badge" style="font-size: 0.72rem;">
+                  <strong id="lbl-formula-name" style="color: var(--primary);">Khấu hao căn hộ sau 30 năm</strong>
+                </span>
+              </div>
+              <input type="number" id="inp-apt-appreciation" class="form-input" value="0.0" step="0.1">
             </div>
           </div>
         </div>
 
-        <!-- Formula display box for real estate valuation -->
-        <details class="formula-accordion" style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
-          <summary class="formula-toggle-btn">
-            <span data-i18n="lbl_view_formula_property">Xem công thức định giá BĐS & khấu hao</span>
-            <span class="formula-toggle-arrow">▾</span>
-          </summary>
-          <div class="formula-inline-box" id="box-property-formula" style="margin-top: 0.35rem;">
-            <div class="formula-tag" id="tag-property-formula">Công thức Định giá Căn Hộ Chung Cư (Khấu hao sau 30 năm)
-            </div>
-            <div id="desc-property-formula" style="font-size: 0.78rem; line-height: 1.45; color: var(--text-muted);">
-              • <strong>Phần Đất (20%):</strong> Tăng trưởng ổn định dài hạn (+2.0%/năm theo thị trường).<br>
-              • <strong>Phần Xác nhà (80%):</strong> Khấu hao công trình giảm dần theo tuổi thọ 30 năm (chạm sàn 10% ở năm
-              thứ 30).<br>
-              • <strong>Tổng giá trị(t) = Đất(t) + Xác nhà(t)</strong> (Khắc phục việc BĐS chung cư tăng ảo vô tận, phản
-              ánh đúng hao mòn sau 30 năm).
-            </div>
-          </div>
-        </details>
-
-        <h5 style="margin: 0.75rem 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; color: var(--primary);">
-          Gói vay thế chấp ngân hàng Pháp</h5>
-        <div class="form-row">
-          <div class="form-group col-3">
-            <label for="inp-apt-down-payment">Vốn tự có (€)</label>
-            <input type="number" id="inp-apt-down-payment" class="form-input" value="8000">
-          </div>
-          <div class="form-group col-3">
-            <label for="inp-apt-duration">Thời hạn (năm)</label>
-            <input type="number" id="inp-apt-duration" class="form-input" value="20">
-          </div>
-          <div class="form-group col-3">
-            <label for="inp-apt-rate">Lãi suất (%)</label>
-            <input type="number" id="inp-apt-rate" class="form-input" value="3.6" step="0.1">
-          </div>
-          <div class="form-group col-3">
-            <label for="inp-apt-ins-rate">Bảo hiểm vay (%)</label>
-            <input type="number" id="inp-apt-ins-rate" class="form-input" value="0.3" step="0.05">
-          </div>
-        </div>
-
-        <!-- Live summary of project cost, loan and net cashflow -->
-        <div id="apt-live-summary"
-          style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; padding: 0.65rem 0.85rem; margin-top: 0.75rem; font-size: 0.82rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-          <div> <strong>Tổng dự án:</strong> <span id="lbl-apt-total-project"
-              style="color: var(--primary); font-weight: 700;">97,125 €</span></div>
-          <div> <strong>Số tiền vay:</strong> <span id="lbl-apt-loan-amount"
-              style="color: #38bdf8; font-weight: 700;">89,125 €</span></div>
-          <div> <strong>Vốn tự có:</strong> <span id="lbl-apt-down-payment"
-              style="color: #f59e0b; font-weight: 700;">8,000 €</span></div>
-          <div> <strong>Dòng tiền Ròng:</strong> <span id="lbl-apt-net-cashflow"
-              style="color: #10b981; font-weight: 700;">+45 €/tháng</span> <span
-              style="font-size: 0.72rem; color: var(--text-muted);">(sau trừ Trả nợ & Phí vận hành)</span></div>
-        </div>
-
-        <!-- Inline Formula: Realistic Real Estate Economics -->
-        <details class="formula-accordion" style="margin-top: 0.65rem;">
-          <summary class="formula-toggle-btn">
-            <span data-i18n="lbl_view_formula_net_cashflow">Xem công thức dòng tiền ròng BĐS thực tế</span>
-            <span class="formula-toggle-arrow">▾</span>
-          </summary>
-          <div class="formula-inline-box" style="margin-top: 0.35rem;">
-            <div class="formula-tag"> Công thức Dòng Tiền Ròng BĐS Thực Tế (Cashflow Net)</div>
-            <code>• Tiền thuê thực nhận = Tiền thuê niêm yết × (1 - Tỷ lệ phòng trống Vacance %)</code><br>
-            <code>• Chi phí vận hành = (Phí Coop + Thuế TF + Bảo hiểm PNO + Bảo trì)/12 + Phí quản lý agency</code><br>
-            <code>• Dòng tiền Ròng = Tiền thuê thực nhận - Trả nợ Crédit ngân hàng - Chi phí vận hành</code>
-          </div>
-        </details>
-
-        <!-- Section 1 & 2: Doanh Thu & Chi Phí Vận Hành Side-by-Side -->
+        <!-- 4. DOANH THU & CHI PHÍ VẬN HÀNH (GOM GỌN) -->
         <div class="apt-financial-split">
-          <!-- Section 1: Doanh Thu Cho Thuê (Revenues) -->
-          <div
-            style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 10px; padding: 0.85rem 1rem; display: flex; flex-direction: column;">
+          <!-- Cột 1: Doanh Thu Cho Thuê -->
+          <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 10px; padding: 0.85rem 1rem; display: flex; flex-direction: column;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
-              <h5
-                style="margin: 0; font-size: 0.85rem; text-transform: uppercase; color: #10b981; font-weight: 700; display: flex; align-items: center; gap: 0.4rem;">
-                Doanh Thu Cho Thuê (Revenues Locatifs)
+              <h5 style="margin: 0; font-size: 0.85rem; text-transform: uppercase; color: #10b981; font-weight: 700;">
+                Doanh Thu Cho Thuê
               </h5>
-              <span id="badge-apt-effective-rent"
-                style="font-size: 0.78rem; font-weight: 700; color: #34d399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.2rem 0.55rem; border-radius: 6px;">
-                Thực thu: 618 €/tháng
+              <span id="lbl-apt-header-rent" class="font-mono" style="font-size: 0.82rem; font-weight: 700; color: #10b981;">
+                +618 €/tháng
               </span>
             </div>
             <div class="form-row">
@@ -5434,81 +5658,90 @@
             </div>
             <div class="form-row">
               <div class="form-group col-12">
-                <label for="inp-apt-vacance">Dự phòng phòng trống Vacance (%)</label>
-                <input type="number" id="inp-apt-vacance" min="0" max="25" step="0.5" value="5.0" class="form-input"
-                  placeholder="5.0%">
+                <label for="inp-apt-vacance">Dự phòng phòng trống Vacancy (%)</label>
+                <input type="number" id="inp-apt-vacance" min="0" max="25" step="0.5" value="5.0" class="form-input" placeholder="5.0%">
               </div>
             </div>
-            <div
-              style="margin-top: auto; font-size: 0.74rem; color: var(--text-muted); background: rgba(255,255,255,0.02); border: 1px dashed rgba(16, 185, 129, 0.2); padding: 0.55rem 0.75rem; border-radius: 6px;">
-              Tiền thuê thực nhận tính sau khi khấu trừ tỷ lệ trống phòng (Vacance locative).
+            <div style="margin-top: auto; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.5rem 0.75rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.76rem; font-weight: 600; color: var(--text-muted);">Dòng tiền Ròng:</span>
+                <span id="lbl-apt-net-cashflow" style="font-size: 0.92rem; font-weight: 700; color: #10b981;">+45 €/tháng</span>
+              </div>
+              <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.2rem;">
+                Tiền thuê thực thu sau khi trừ phòng trống và chi phí vận hành &amp; trả nợ.
+              </div>
             </div>
           </div>
 
-          <!-- Section 2: Chi Phí Vận Hành Thực Tế & Nợ Vay (Expenses & Crédit) -->
-          <div
-            style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 10px; padding: 0.85rem 1rem; display: flex; flex-direction: column;">
+          <!-- Cột 2: Chi Phí Vận Hành (Gom Gọn Trực Quan) -->
+          <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 10px; padding: 0.85rem 1rem; display: flex; flex-direction: column;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
-              <h5
-                style="margin: 0; font-size: 0.85rem; text-transform: uppercase; color: #f87171; font-weight: 700; display: flex; align-items: center; gap: 0.4rem;">
-                Chi Phí Vận Hành & Trả Nợ Crédit
+              <h5 style="margin: 0; font-size: 0.85rem; text-transform: uppercase; color: #f87171; font-weight: 700;">
+                Chi Phí Vận Hành Hàng Tháng
               </h5>
-              <span id="badge-apt-total-expenses"
-                style="font-size: 0.78rem; font-weight: 700; color: #f87171; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.2rem 0.55rem; border-radius: 6px;">
-                Tổng chi: ~573 €/tháng
+              <span id="lbl-apt-header-expenses" class="font-mono" style="font-size: 0.82rem; font-weight: 700; color: #f87171;">
+                -573 €/tháng
               </span>
             </div>
 
-            <!-- Row 1: Trả nợ Crédit ngân hàng & Phí Agency (Styled identical to other inputs) -->
-            <div class="form-row">
-              <div class="form-group col-6">
-                <label for="inp-apt-monthly-credit">Trả nợ Crédit ngân hàng (€/tháng)</label>
-                <input type="number" id="inp-apt-monthly-credit" class="form-input" value="490" step="1"
-                  placeholder="Ví dụ: 645">
+            <!-- Chi tiết chi phí hành chính (Luôn mở trực quan) -->
+            <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.5rem 0.65rem; margin-top: 0.35rem;">
+              <div style="font-size: 0.72rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.35rem;">
+                Chi tiết chi phí hành chính &amp; vận hành:
               </div>
-              <div class="form-group col-6">
-                <label for="inp-apt-mgmt-pct">Phí quản lý Agency (%)</label>
-                <input type="number" id="inp-apt-mgmt-pct" class="form-input" value="0.0" min="0" max="25" step="0.5"
-                  placeholder="0% (Tự quản lý)">
+              <!-- Hàng 1: Trả nợ ngân hàng & Thời hạn vay (để tính tất toán nợ) -->
+              <div class="form-row" style="margin-bottom: 0.35rem;">
+                <div class="form-group col-6" style="margin-bottom: 0.25rem;">
+                  <label for="inp-apt-monthly-credit" style="font-size: 0.72rem; font-weight: 600;">Trả nợ ngân hàng (€/tháng)</label>
+                  <input type="number" id="inp-apt-monthly-credit" class="form-input" value="490" step="5" placeholder="Nhập số tiền trả nợ/tháng" style="padding: 3px 6px; font-size: 0.75rem;">
+                </div>
+                <div class="form-group col-6" style="margin-bottom: 0.25rem;">
+                  <label for="inp-apt-duration" style="font-size: 0.72rem; font-weight: 600;">Thời hạn vay (năm)</label>
+                  <input type="number" id="inp-apt-duration" class="form-input" value="20" min="1" max="40" style="padding: 3px 6px; font-size: 0.75rem;" title="Thời hạn vay tính từ năm mua để xác định thời điểm tất toán">
+                </div>
+              </div>
+              <!-- Hàng 2: Phí quản lý tòa nhà & Thuế tài sản -->
+              <div class="form-row" style="margin-bottom: 0.35rem;">
+                <div class="form-group col-6" style="margin-bottom: 0.25rem;">
+                  <label for="inp-apt-coop" style="font-size: 0.72rem;">Phí quản lý tòa nhà (€/năm)</label>
+                  <input type="number" id="inp-apt-coop" class="form-input" value="600" step="50" style="padding: 3px 6px; font-size: 0.75rem;">
+                </div>
+                <div class="form-group col-6" style="margin-bottom: 0.25rem;">
+                  <label for="inp-apt-tf" style="font-size: 0.72rem;">Thuế tài sản (€/năm)</label>
+                  <input type="number" id="inp-apt-tf" class="form-input" value="500" step="50" style="padding: 3px 6px; font-size: 0.75rem;">
+                </div>
+              </div>
+              <!-- Hàng 3: Bảo hiểm PNO & Bảo trì -->
+              <div class="form-row" style="margin-bottom: 0.35rem;">
+                <div class="form-group col-6" style="margin-bottom: 0.25rem;">
+                  <label for="inp-apt-pno" style="font-size: 0.72rem;">Bảo hiểm PNO (€/năm)</label>
+                  <input type="number" id="inp-apt-pno" class="form-input" value="120" step="10" style="padding: 3px 6px; font-size: 0.75rem;">
+                </div>
+                <div class="form-group col-6" style="margin-bottom: 0.25rem;">
+                  <label for="inp-apt-maintenance" style="font-size: 0.72rem;">Bảo trì (€/năm)</label>
+                  <input type="number" id="inp-apt-maintenance" class="form-input" value="200" step="50" style="padding: 3px 6px; font-size: 0.75rem;">
+                </div>
+              </div>
+              <!-- Hàng 4: Phí Agency -->
+              <div class="form-row" style="margin-bottom: 0;">
+                <div class="form-group col-6" style="margin-bottom: 0;">
+                  <label for="inp-apt-mgmt-pct" style="font-size: 0.72rem;">Phí Agency (%)</label>
+                  <input type="number" id="inp-apt-mgmt-pct" class="form-input" value="0.0" step="0.5" style="padding: 3px 6px; font-size: 0.75rem;">
+                </div>
               </div>
             </div>
 
-            <!-- Row 2: TF & Coop -->
-            <div class="form-row">
-              <div class="form-group col-6">
-                <label for="inp-apt-tf">Thuế tài sản TF (€/năm)</label>
-                <input type="number" id="inp-apt-tf" class="form-input" value="800" step="50">
-              </div>
-              <div class="form-group col-6">
-                <label for="inp-apt-coop">Phí quản lý tòa nhà Coop (€/năm)</label>
-                <input type="number" id="inp-apt-coop" class="form-input" value="900" step="50">
-              </div>
-            </div>
-
-            <!-- Row 3: PNO & Bảo trì -->
-            <div class="form-row">
-              <div class="form-group col-6">
-                <label for="inp-apt-pno">Bảo hiểm chủ nhà PNO (€/năm)</label>
-                <input type="number" id="inp-apt-pno" class="form-input" value="150" step="10">
-              </div>
-              <div class="form-group col-6">
-                <label for="inp-apt-maintenance">Bảo trì / Sửa chữa (€/năm)</label>
-                <input type="number" id="inp-apt-maintenance" class="form-input" value="300" step="50">
-              </div>
-            </div>
-
-            <div
-              style="margin-top: auto; font-size: 0.74rem; color: var(--text-muted); background: rgba(255,255,255,0.02); border: 1px dashed rgba(239, 68, 68, 0.2); padding: 0.5rem 0.75rem; border-radius: 6px;">
-              Chi phí vận hành, bảo trì & trả nợ được khấu trừ khi tính thuế LMNP Réel.
+            <div style="margin-top: auto; font-size: 0.74rem; color: var(--text-muted); background: var(--bg-card); border: 1px dashed rgba(239, 68, 68, 0.2); padding: 0.5rem 0.75rem; border-radius: 6px;">
+              Chi phí vận hành và tiền trả nợ sẽ tự động khấu trừ khỏi tiền thuê. Hết thời hạn vay, dòng tiền sẽ tự động tăng do tất toán nợ.
             </div>
           </div>
         </div>
       </div>
       <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-top: 1rem;">
-        <button type="button" class="btn btn-outline" id="btn-delete-apt-modal" style="color: #f43f5e; border-color: rgba(244, 63, 94, 0.4); display: none; font-size: 0.85rem; padding: 0.45rem 0.85rem; cursor: pointer;">🗑️ Xóa Căn Hộ</button>
+        <button type="button" class="btn btn-outline" id="btn-delete-apt-modal" style="color: #f43f5e; border-color: rgba(244, 63, 94, 0.4); display: none; font-size: 0.85rem; padding: 0.45rem 0.85rem; cursor: pointer;">🗑️ Xóa BĐS</button>
         <div style="display: flex; gap: 0.5rem; margin-left: auto;">
           <button class="btn btn-ghost" id="btn-cancel-apt-modal">Hủy bỏ</button>
-          <button class="btn btn-primary" id="btn-save-apt-modal">Lưu Căn Hộ</button>
+          <button class="btn btn-primary" id="btn-save-apt-modal">Lưu Bất Động Sản</button>
         </div>
       </div>
     </div>
@@ -6152,23 +6385,23 @@
   </div>
 
   <!-- Application Logic Modules -->
-  <script src="js/i18n.js?v=20261020_v185"></script>
+  <script src="js/i18n.js?v=20261020_v194"></script>
   <script src="js/state.js?v=20261019_v179"></script>
-  <script src="js/engine.js?v=20261020_v183"></script>
-  <script src="js/taxOptimizer.js?v=20261019_v166"></script>
+  <script src="js/engine.js?v=20261020_v185"></script>
+  <script src="js/taxOptimizer.js?v=20261020_v201"></script>
   <script src="js/monteCarlo.js?v=20261019_v165"></script>
   <script src="js/scenarios.js?v=20261016_v103"></script>
   <script src="js/geminiAdvisor.js?v=20261016_v107"></script>
-  <script src="js/patrimoine.js?v=20261018_v160"></script>
+  <script src="js/patrimoine.js?v=20261020_v202"></script>
   <script src="js/export.js?v=20261013_v2"></script>
   <script src="js/auth.js?v=20261018_v157"></script>
   <!-- Tầng 3: Giao diện tách theo từng Tab độc lập + Modals + Nhạc trưởng điều phối -->
   <script src="js/ui-modals.js?v=20261019_v178"></script>
   <script src="js/ui-tab1-charts.js?v=20261020_v177"></script>
-  <script src="js/ui-tab1-streams.js?v=20261020_v187"></script>
-  <script src="js/ui-tab2-health.js?v=20261019_v165"></script>
-  <script src="js/ui-tab3-taxes.js?v=20261019_v166"></script>
-  <script src="js/ui.js?v=20261019_v179"></script>
+  <script src="js/ui-tab1-streams.js?v=20261020_v196"></script>
+  <script src="js/ui-tab2-health.js?v=20261020_v195"></script>
+  <script src="js/ui-tab3-taxes.js?v=20261020_v200"></script>
+  <script src="js/ui.js?v=20261020_v197"></script>
 </body>
 
 </html>

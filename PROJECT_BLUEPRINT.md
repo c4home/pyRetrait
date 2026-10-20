@@ -124,12 +124,10 @@ Dưới đây là cấu trúc JSON chuẩn của một đối tượng kế ho�
   "retireCountry": "VN",
   "retireCity": "vn_hcm_hn",
   "monthlyMortgagePaidOff": 0,
-  "benchmarkSpendingStandard": "fr_insee",
   "currentSavings": 10000,
   "annualSavings": 13500,
   "annualExpenses": 21240,
   "retirementExpenses": 12960,
-  "retireLocation": "vietnam",
   "inflationRate": 4.0,
   "dualInflation": {
     "enabled": true,
@@ -190,6 +188,7 @@ Dưới đây là cấu trúc JSON chuẩn của một đối tượng kế ho�
       "claimAge": 60
     }
   },
+  "enableGermanPension": true,
   "germanPensionDetails": {
     "spouse1": {
       "grossAnnualSalary": 45000,
@@ -202,6 +201,7 @@ Dưới đây là cấu trúc JSON chuẩn của một đối tượng kế ho�
       "claimAge": 67
     }
   },
+  "enableUsPension": true,
   "usPensionDetails": {
     "spouse1": {
       "grossAnnualSalary": 65000,
@@ -212,6 +212,75 @@ Dưới đây là cấu trúc JSON chuẩn của một đối tượng kế ho�
       "grossAnnualSalary": 55000,
       "yearsWorked": 35,
       "claimAge": 67
+    }
+  },
+  "enableJapanPension": true,
+  "japanPensionDetails": {
+    "spouse1": {
+      "grossAnnualSalary": 4500000,
+      "yearsContributed": 25,
+      "claimAge": 65
+    },
+    "spouse2": {
+      "grossAnnualSalary": 3500000,
+      "yearsContributed": 20,
+      "claimAge": 65
+    }
+  },
+  "enableCanadaPension": true,
+  "canadaPensionDetails": {
+    "spouse1": {
+      "grossAnnualSalary": 65000,
+      "yearsContributed": 30,
+      "yearsResident": 30,
+      "claimAge": 65
+    },
+    "spouse2": {
+      "grossAnnualSalary": 50000,
+      "yearsContributed": 25,
+      "yearsResident": 25,
+      "claimAge": 65
+    }
+  },
+  "enableAustraliaPension": true,
+  "australiaPensionDetails": {
+    "spouse1": {
+      "grossAnnualSalary": 85000,
+      "yearsWorked": 25,
+      "superBalance": 250000,
+      "claimAge": 67
+    },
+    "spouse2": {
+      "grossAnnualSalary": 65000,
+      "yearsWorked": 20,
+      "superBalance": 180000,
+      "claimAge": 67
+    }
+  },
+  "enableKoreaPension": true,
+  "koreaPensionDetails": {
+    "spouse1": {
+      "grossMonthlySalary": 3500000,
+      "yearsContributed": 20,
+      "claimAge": 65
+    },
+    "spouse2": {
+      "grossMonthlySalary": 2800000,
+      "yearsContributed": 15,
+      "claimAge": 65
+    }
+  },
+  "enableTaiwanPension": true,
+  "taiwanPensionDetails": {
+    "spouse1": {
+      "insuredMonthlySalary": 45800,
+      "yearsContributed": 20,
+      "claimAge": 65
+    },
+    "spouse2": {
+      "insuredMonthlySalary": 36000,
+      "yearsContributed": 15,
+      "claimAge": 65
     }
   },
   "enableSeniorCare": true,
@@ -240,23 +309,6 @@ Dưới đây là cấu trúc JSON chuẩn của một đối tượng kế ho�
     "avCostBasis": 8000,
     "livretABalance": 5000,
     "ctoBalance": 0
-  },
-  "healthProfile": {
-    "rhr": "good",
-    "bp": "optimal",
-    "whtr": "optimal",
-    "strength": "high",
-    "habits": {
-      "exercise": true,
-      "sleep": true,
-      "diet": true,
-      "checkup": true,
-      "social": true
-    },
-    "smokingStatus": "never",
-    "workStressLevel": "moderate",
-    "estimatedBioAge": 27.5,
-    "estimatedHealthspan": 78
   },
   "healthProfiles": {
     "primary": {
@@ -291,11 +343,15 @@ Dưới đây là cấu trúc JSON chuẩn của một đối tượng kế ho�
 | `retireCountry` | `string` | ISO-2 (`'VN'`, `'FR'`, `'TH'`, `'US'`, `'DE'`) | `'VN'` | Quốc gia nghỉ hưu dự kiến. Quyết định rổ chi phí PPP và tỷ lệ lạm phát chặng sau. |
 | `retireCity` | `string` | Tên mã định danh | `'vn_hcm_hn'` | Thành phố / vùng nghỉ hưu (ví dụ: `'vn_hcm_hn'`, `'vn_coastal'`). |
 | `monthlyMortgagePaidOff` | `number` | EUR / tháng | `0` | Khoản nợ mua nhà dự kiến tất toán trước khi nghỉ hưu, dùng để trừ khỏi chi phí hưu trí khi đối chiếu dòng tiền. |
-| `benchmarkSpendingStandard`| `string` | enum: `'fr_insee'`, `'user_defined'` | `'fr_insee'` | Nguồn dữ liệu mức sống chuẩn đối chiếu (INSEE Pháp, Eurostat, hoặc người dùng tự nhập). |
 | `frenchPensionDetails` | `object` | JSON lồng | Xem bên dưới | Chi tiết lương hưu Pháp cho 2 vợ chồng (`spouse1` và `spouse2`). Fallback: lấy từ `socialSecurityAnnual` và `socialSecurityAge`. |
 | `bhxhVnDetails` | `object` | JSON lồng | Xem bên dưới | Chi tiết BHXH VN cho 2 vợ chồng (`spouse1` và `spouse2`). Fallback: lấy từ `bhxhVnIncome`, `bhxhVnYears`, `bhxhVnRetireAge`. |
 | `germanPensionDetails` | `object` | JSON lồng | Xem bên dưới | Chi tiết lương hưu Đức (Gesetzliche Rentenversicherung - DRV) cho 2 vợ chồng (`grossAnnualSalary`, `yearsContributed`, `claimAge`). |
-| `usPensionDetails` | `object` | JSON lồng | Xem bên dưới | Chi tiết trợ cấp hưu trí Mỹ (Social Security Administration - SSA) cho 2 vợ chồng (`grossAnnualSalary`, `yearsWorked`, `claimAge`). |
+| `usPensionDetails` | `object` | JSON lồng | Xem bên dưới | Chi tiết trợ cấp an sinh Mỹ (Social Security Administration - SSA) cho 2 vợ chồng (`grossAnnualSalary`, `yearsWorked`, `claimAge`). |
+| `japanPensionDetails` | `object` | JSON lồng | Xem bên dưới | Chi tiết lương hưu Nhật Bản (Nenkin Kosei/Kokumin) cho 2 vợ chồng (`grossAnnualSalary`, `yearsContributed`, `claimAge`). |
+| `canadaPensionDetails` | `object` | JSON lồng | Xem bên dưới | Chi tiết lương hưu Canada (CPP & OAS) cho 2 vợ chồng (`grossAnnualSalary`, `yearsContributed`, `yearsResident`, `claimAge`). |
+| `australiaPensionDetails` | `object` | JSON lồng | Xem bên dưới | Chi tiết lương hưu Úc (Superannuation & Age Pension) cho 2 vợ chồng (`grossAnnualSalary`, `yearsWorked`, `superBalance`, `claimAge`). |
+| `koreaPensionDetails` | `object` | JSON lồng | Xem bên dưới | Chi tiết lương hưu Quốc gia Hàn Quốc (NPS) cho 2 vợ chồng (`grossMonthlySalary`, `yearsContributed`, `claimAge`). |
+| `taiwanPensionDetails` | `object` | JSON lồng | Xem bên dưới | Chi tiết lương hưu Đài Loan (Bảo hiểm Lao động & Quỹ hưu trí) cho 2 vợ chồng (`insuredMonthlySalary`, `yearsContributed`, `claimAge`). |
 | `healthProfiles` | `object` | JSON lồng | Xem bên dưới | Chỉ số sức khỏe & thói quen sinh học độc lập cho cả Bạn (`primary`) và Bạn đời (`spouse`). |
 
 - **Cơ chế Fallback an toàn trong `state.js`**:
@@ -346,6 +402,19 @@ Cấu trúc bản ghi lưu trữ trên SQLite backend và đóng gói trong [`fr
 }
 ```
 
+### 4.5. Bảng Kiểm Toán Biến Số & Input Giao Diện (Input Audit & Dead Variables Register)
+
+Kiểm toán tĩnh định kỳ (Static Code Audit) giữa giao diện HTML (`index.html`), tầng State (`state.js`) và tầng tính toán (`engine.js`, `taxOptimizer.js`):
+
+| Nhóm | Tên Element / Biến | Vị trí xuất hiện | Tình trạng hiện tại | Hướng xử lý kiến trúc |
+|---|---|---|---|---|
+| **Lương Hưu Pháp 2 Cột** (Đã kết nối 2 chiều hoàn chỉnh) | `inp-pension-spouse1-start`<br>`inp-pension-spouse1-age`<br>`inp-pension-spouse1-base`<br>`inp-pension-spouse2-start`<br>`inp-pension-spouse2-age`<br>`inp-pension-spouse2-base` | `frontend/index.html` dòng 595–641 (Khu vực Cấu hình chi tiết lương hưu Pháp 2 cột song song `#french-inputs-body` ở Tab 1) | **Đã kết nối 2 chiều hoàn chỉnh** trong `ui-tab3-taxes.js` (`updatePensionDecoteUI` và `bindTab3Events`). Cho phép người dùng chỉnh độc lập tuổi đi làm, tuổi nhận hưu và lương chuẩn cho cả Bạn & Bạn đời, cập nhật tức thì số quý, Décote và dòng tiền toàn đời. | Đã hoàn thành. |
+| **Checkbox Lương Hưu Quốc Tế** (Đã kích hoạt phản hồi tức thì) | `chk-enable-japan-pension`<br>`chk-enable-canada-pension`<br>`chk-enable-australia-pension`<br>`chk-enable-korea-pension`<br>`chk-enable-taiwan-pension` | `frontend/index.html` (Thẻ lương hưu quốc tế Tab 1 & Tab 3) | **Đã gắn listener `change` trực tiếp**, cập nhật `plan.enable[Country]Pension`, đồng bộ hiển thị và tính toán lại dòng tiền tức thì trong `engine.js` (không phân biệt quốc gia làm việc hiện tại). | Đã hoàn thành. |
+| **Cosmetic Checkbox** (Chỉ đổi CSS, không lưu State) | `chk-enable-estate-legacy` | `frontend/index.html` dòng 3438, `ui-tab2-health.js` dòng 990 | Chỉ đổi opacity của card `card-estate-legacy-combined`, không lưu trạng thái vào `plan` và không ảnh hưởng tới `targetLegacy`. | Giữ nguyên nếu chỉ là hiệu ứng toggle trực quan, hoặc gán vào `plan.enableEstateLegacy` nếu người dùng muốn bật/tắt di sản mục tiêu. |
+| **Static Checklists** (Checklist tĩnh không lưu trữ) | `chk-cross-vitale`<br>`chk-cross-cfe`<br>`chk-cross-ordonnance`<br>`chk-cross-espace`<br>`chk-cross-tiers` | `frontend/index.html` (Thẻ Y tế xuyên biên giới Tab 2) | Checklist tĩnh hỗ trợ ghi nhớ thủ tục hành chính, không có listener và không lưu vào `state.js`. | Giữ nguyên dưới dạng checklist hướng dẫn hoặc lưu vào `localStorage` nếu muốn nhớ trạng thái hoàn thành của người dùng. |
+| **Derived / Display Input** (Chỉ hiển thị, không lưu) | `wz-cur-age` | `frontend/index.html`, `ui-modals.js` | Hiển thị tuổi tự động tính từ Năm sinh (`curYear - bYear`). Wizard chỉ đọc `wz-birth-year` để lưu vào plan. | Chuyển thành nhãn `<span>` hoặc giữ `<input readonly>` để người dùng dễ quan sát. |
+| **Dead Schema Fields** (Trường cũ đã bị thay thế hoặc bỏ) | `benchmarkSpendingStandard`<br>`retireLocation`<br>`healthProfile` (số ít) | Đã từng có trong Blueprint cũ | `benchmarkSpendingStandard` đã được thay bằng bảng `COUNTRY_PPP_PROFILES`; `retireLocation` đã được thay bằng `retireCountry` + `retireCity` + `retireMode`; `healthProfile` đơn thể đã chuyển thành `healthProfiles` đa nhân. | Đã chính thức loại bỏ khỏi JSON Schema chuẩn tại mục 4.1. |
+
 ---
 
 ## 5. Lộ Trình Triển Khai & Nâng Cấp Theo Giai Đoạn (Milestones)
@@ -361,11 +430,21 @@ Cấu trúc bản ghi lưu trữ trên SQLite backend và đóng gói trong [`fr
   - Đóng gói 6 kịch bản thực chiến kinh điển (Offline Seed Data) đảm bảo trải nghiệm tức thì ngay cả khi offline.
   - Cơ chế **Smart Forking (Nhân bản thông minh)**: Tự động điều chỉnh quy mô tài sản theo % tương ứng với tình hình thực tế của người dùng mới.
   - Tích hợp xuất bản ẩn danh với Chế độ bảo vệ tài chính kép (Nickname + Chuẩn hóa %) và bình chọn cộng đồng (Upvote/Fork counter) lưu trữ trên SQLite backend.
-- **Phase 5 — Phân Hệ Vợ Chồng & Hưu Trí PPP Đa Quốc Gia (Đã hoàn thành)**:
+- **Phase 5 — Phân Hệ Vợ Chồng, PPP Đa Quốc Gia & 9 Hệ Thống Lương Hưu Toàn Cầu (Đã hoàn thành)**:
   - Mở rộng hỗ trợ cấu trúc Cá nhân (`single`) và Vợ Chồng / Cặp Đôi (`married`) với dòng tiền song hành độc lập (bạn & bạn đời).
-  - Tích hợp 4 hệ thống lương hưu quốc tế: Lương hưu Pháp (CNAV/Agirc-Arrco), BHXH Việt Nam (Luật 2024 theo giới tính Nam 62t, Nữ 60t), Lương hưu Đức (DRV), Trợ cấp an sinh Mỹ (SSA).
+  - Tích hợp **9 hệ thống an sinh xã hội & lương hưu quốc tế** vào `engine.js` và `taxOptimizer.js`:
+    1. Pháp: CNAV & Agirc-Arrco (172 quý, phạt décote -1.25%/quý thiếu, xóa phạt tuổi 67).
+    2. Việt Nam: BHXH tự nguyện / bắt buộc (Luật BHXH 2024: Nam 62t/20n, Nữ 60t/15n).
+    3. Đức: DRV (Gesetzliche Rentenversicherung).
+    4. Mỹ: SSA (Social Security Administration).
+    5. Nhật Bản: Nenkin Kosei & Kokumin Nenkin.
+    6. Canada: CPP (Canada Pension Plan) & OAS (Old Age Security).
+    7. Úc: Superannuation & Age Pension.
+    8. Hàn Quốc: NPS (National Pension Service).
+    9. Đài Loan: Bảo hiểm Lao động & Quỹ hưu trí cá nhân.
   - Hệ thống dữ liệu PPP Đa Quốc Gia (`COUNTRY_PPP_PROFILES`) với hệ số chi phí sống, lạm phát chuẩn và tự động tính toán chi tiêu hưu trí thực tế từ thu nhập ròng trừ tiết kiệm và nợ nhà đã trả.
   - Tách biệt Tài sản thanh khoản (Liquid Networth - Cổ phiếu, Trái phiếu, Tiền mặt) khỏi Bất động sản / Tài sản cố định để đánh giá sức chịu đựng thực tế trước các cú sốc dòng tiền.
+  - **Mô hình định giá BĐS chuẩn hóa**: Phân tách rõ ràng giữa **Nhà mặt đất** (tăng giá đều theo đất) và **Căn hộ chung cư** (khấu hao 80% giá trị xác nhà theo chu kỳ 30 năm).
   - Bộ kiểm thử tự động 42 tiêu chí logic & UI cho quy trình tạo kế hoạch mới (`tests/test_plan_creation_ui.js`).
 - **Phase 6 — Tối Ưu Giao Diện Tinh Tế & Apple Human Interface Guidelines (Đang triển khai)**:
   - Hoàn thiện trải nghiệm thẩm mỹ cao cấp với cảm hứng từ Apple Design (typography Inter sắc nét, padding/spacing hài hòa, micro-interactions, modal bóng mờ thanh thoát).

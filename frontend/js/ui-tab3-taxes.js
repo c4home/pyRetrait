@@ -89,8 +89,54 @@
             const plan = getActivePlan();
             plan.startWorkAge = parseVal("inp-start-work-age", 24);
             plan.socialSecurityAge = parseVal("inp-pension-age", 64);
+            if (plan.frenchPensionDetails && plan.frenchPensionDetails.spouse1) {
+              plan.frenchPensionDetails.spouse1.startWorkAge = plan.startWorkAge;
+              plan.frenchPensionDetails.spouse1.claimAge = plan.socialSecurityAge;
+            }
             updatePensionDecoteUI(plan);
             savePlansToStorage();
+            updateAll();
+          });
+        });
+      }
+    });
+
+    // French Pension 2 cột Bạn & Bạn đời tại Tab 1 (inp-pension-spouse1/2-*)
+    ['inp-pension-spouse1-start', 'inp-pension-spouse1-age', 'inp-pension-spouse1-base',
+     'inp-pension-spouse2-start', 'inp-pension-spouse2-age', 'inp-pension-spouse2-base'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        ['input', 'change'].forEach(evt => {
+          el.addEventListener(evt, () => {
+            const plan = getActivePlan();
+            if (!plan.frenchPensionDetails) {
+              plan.frenchPensionDetails = { spouse1: {}, spouse2: {} };
+            }
+            if (!plan.frenchPensionDetails.spouse1) plan.frenchPensionDetails.spouse1 = {};
+            if (!plan.frenchPensionDetails.spouse2) plan.frenchPensionDetails.spouse2 = {};
+
+            const s1Start = Number(document.getElementById("inp-pension-spouse1-start")?.value) || 24;
+            const s1Age = Number(document.getElementById("inp-pension-spouse1-age")?.value) || 64;
+            const s1Base = Number(document.getElementById("inp-pension-spouse1-base")?.value) || 18000;
+            const s2Start = Number(document.getElementById("inp-pension-spouse2-start")?.value) || 25;
+            const s2Age = Number(document.getElementById("inp-pension-spouse2-age")?.value) || 64;
+            const s2Base = Number(document.getElementById("inp-pension-spouse2-base")?.value) || 16000;
+
+            plan.frenchPensionDetails.spouse1.startWorkAge = s1Start;
+            plan.frenchPensionDetails.spouse1.claimAge = s1Age;
+            plan.frenchPensionDetails.spouse1.targetAnnualPension = s1Base;
+            plan.frenchPensionDetails.spouse2.startWorkAge = s2Start;
+            plan.frenchPensionDetails.spouse2.claimAge = s2Age;
+            plan.frenchPensionDetails.spouse2.targetAnnualPension = s2Base;
+
+            plan.startWorkAge = s1Start;
+            plan.socialSecurityAge = s1Age;
+            plan.socialSecurityAnnual = s1Base;
+
+            savePlansToStorage();
+            updatePensionDecoteUI(plan);
+            if (typeof renderIncomeStreamsList === 'function') renderIncomeStreamsList();
+            if (typeof updateCashflowBalanceUI === 'function') updateCashflowBalanceUI(plan);
             updateAll();
           });
         });
@@ -104,6 +150,9 @@
           const plan = getActivePlan();
           plan.pensionBaseAuto = false;
           plan.socialSecurityAnnual = parseVal("inp-pension-base-annual", 18000);
+          if (plan.frenchPensionDetails && plan.frenchPensionDetails.spouse1) {
+            plan.frenchPensionDetails.spouse1.targetAnnualPension = plan.socialSecurityAnnual;
+          }
           syncPensionBaseAuto(plan, false);
           savePlansToStorage();
           updatePensionDecoteUI(plan);
@@ -603,20 +652,31 @@
       }
     ];
 
-    newPensionConfigs.forEach(cfg => {
-      // Checkbox
-      const chk = document.getElementById(`chk-enable-${cfg.key}-pension`);
+    // Sự kiện tường minh cho 5 Checkbox kích hoạt lương hưu quốc tế (JP, CA, AU, KR, TW)
+    const intlPensionCheckboxes = [
+      { id: 'chk-enable-japan-pension', prop: 'enableJapanPension', updateFn: updateJapanPensionUI },
+      { id: 'chk-enable-canada-pension', prop: 'enableCanadaPension', updateFn: updateCanadaPensionUI },
+      { id: 'chk-enable-australia-pension', prop: 'enableAustraliaPension', updateFn: updateAustraliaPensionUI },
+      { id: 'chk-enable-korea-pension', prop: 'enableKoreaPension', updateFn: updateKoreaPensionUI },
+      { id: 'chk-enable-taiwan-pension', prop: 'enableTaiwanPension', updateFn: updateTaiwanPensionUI }
+    ];
+
+    intlPensionCheckboxes.forEach(item => {
+      const chk = document.getElementById(item.id);
       if (chk) {
         chk.addEventListener("change", () => {
           const plan = getActivePlan();
-          plan[cfg.planProp] = chk.checked;
+          plan[item.prop] = chk.checked;
           savePlansToStorage();
-          cfg.updateFn(plan);
+          if (typeof item.updateFn === 'function') item.updateFn(plan);
           if (typeof renderIncomeStreamsList === 'function') renderIncomeStreamsList();
           if (typeof updateCashflowBalanceUI === 'function') updateCashflowBalanceUI(plan);
           updateAll();
         });
       }
+    });
+
+    newPensionConfigs.forEach(cfg => {
 
       // Edit Button
       const btnEdit = document.getElementById(`btn-edit-${cfg.key}-pension`);
@@ -835,6 +895,7 @@
     document.querySelectorAll(".btn-goto-pea").forEach(btn => {
       btn.addEventListener("click", () => {
         switchTab("tab-taxes");
+        applyCountryToolsFilter("FR");
         setTimeout(() => {
           const card = document.getElementById("card-pea-masterclass");
           if (card) {
@@ -843,27 +904,112 @@
         }, 100);
       });
     });
+
+    renderCountryFilterBar(getActivePlan());
+  }
+
+  const COUNTRY_METADATA = {
+    FR: { name: "Nước Pháp", flag: "🇫🇷", workRole: "Nơi làm việc & đóng thuế", retireRole: "Nơi cư trú hưu trí" },
+    VN: { name: "Việt Nam", flag: "🇻🇳", workRole: "Nơi làm việc & kinh doanh", retireRole: "Nơi nghỉ dưỡng hưu trí" },
+    US: { name: "Hoa Kỳ", flag: "🇺🇸", workRole: "Nơi làm việc (IRS)", retireRole: "Nơi cư trú hưu trí" },
+    DE: { name: "Nước Đức", flag: "🇩🇪", workRole: "Nơi làm việc (Depot)", retireRole: "Nơi cư trú hưu trí" },
+    INTL: { name: "Quốc Tế", flag: "🌐", workRole: "Đầu tư xuyên biên giới", retireRole: "Công dân toàn cầu" }
+  };
+
+  function getPlanActiveCountries(plan) {
+    if (!plan) return ['FR'];
+    const isDomestic = (plan.retireMode === 'domestic' || (plan.workCountry && plan.retireCountry && plan.workCountry === plan.retireCountry) || (plan.workCity && plan.retireCity && plan.workCity === plan.retireCity));
+    const workC = plan.workCountry || 'FR';
+    const retireC = plan.retireCountry || (plan.retirementLocation === 'vietnam' ? 'VN' : (plan.retirementLocation === 'france' ? 'FR' : workC));
+
+    const normalize = c => ['FR', 'VN', 'US', 'DE'].includes(c) ? c : 'INTL';
+    const wNorm = normalize(workC);
+    const rNorm = normalize(retireC);
+
+    if (isDomestic || wNorm === rNorm) {
+      return [wNorm];
+    }
+    return [wNorm, rNorm];
+  }
+
+  let activeCountryFilter = null;
+
+  function renderCountryFilterBar(plan) {
+    const container = document.getElementById("country-tools-filter-bar");
+    if (!container) return;
+
+    const countries = getPlanActiveCountries(plan);
+    const descEl = document.getElementById("lbl-country-tools-desc");
+    const badgeEl = document.getElementById("badge-country-profile-mode");
+
+    let html = '';
+
+    if (countries.length === 1) {
+      const c = countries[0];
+      const info = COUNTRY_METADATA[c] || { name: c, flag: "🌍" };
+      if (descEl) {
+        descEl.innerText = `Hồ sơ kế hoạch: Cư trú & làm việc tại ${info.flag} ${info.name}. Các công cụ và tài khoản ưu đãi thuế:`;
+      }
+      if (badgeEl) {
+        badgeEl.innerText = `Hồ sơ ${info.flag} ${info.name}`;
+      }
+
+      html = `
+        <button type="button" class="country-filter-chip active" data-country-filter="${c}">${info.flag} ${info.name}</button>
+      `;
+    } else {
+      const c1 = countries[0];
+      const c2 = countries[1];
+      const info1 = COUNTRY_METADATA[c1] || { name: c1, flag: "🌍" };
+      const info2 = COUNTRY_METADATA[c2] || { name: c2, flag: "🌍" };
+
+      if (descEl) {
+        descEl.innerText = `Hồ sơ kế hoạch: Làm việc tại ${info1.flag} ${info1.name} & Nghỉ hưu tại ${info2.flag} ${info2.name}. Chọn quốc gia để xem công cụ tài chính:`;
+      }
+      if (badgeEl) {
+        badgeEl.innerText = `Hồ sơ Song Phương (${info1.flag} + ${info2.flag})`;
+      }
+
+      html = `
+        <button type="button" class="country-filter-chip" data-country-filter="${c1}">${info1.flag} ${info1.name}</button>
+        <button type="button" class="country-filter-chip" data-country-filter="${c2}">${info2.flag} ${info2.name}</button>
+      `;
+    }
+
+    container.innerHTML = html;
+
+    container.querySelectorAll(".country-filter-chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        const filterVal = chip.getAttribute("data-country-filter");
+        activeCountryFilter = filterVal;
+        applyCountryToolsFilter(filterVal, plan);
+      });
+    });
+
+    const defaultFilter = countries[0];
+    const chosenFilter = (activeCountryFilter && countries.includes(activeCountryFilter)) ? activeCountryFilter : defaultFilter;
+    applyCountryToolsFilter(chosenFilter, plan);
+  }
+
+  function applyCountryToolsFilter(filter, plan) {
+    activeCountryFilter = filter;
+    const container = document.getElementById("country-tools-filter-bar");
+    if (container) {
+      container.querySelectorAll(".country-filter-chip").forEach(c => {
+        c.classList.toggle("active", c.getAttribute("data-country-filter") === filter);
+      });
+    }
+
+    const blocks = document.querySelectorAll("[data-country-block]");
+    blocks.forEach(block => {
+      const bCountry = block.getAttribute("data-country-block");
+      block.style.display = (bCountry === filter) ? "block" : "none";
+    });
   }
 
   function updateTaxRegimeUI(regime) {
     const plan = getActivePlan();
-    const workC = plan?.workCountry || 'FR';
-    const isFrance = (workC === 'FR');
-
-    const frAccountsCard = document.getElementById("card-french-accounts");
-    const peaCard = document.getElementById("card-pea-masterclass");
-    const avCard = document.getElementById("card-assurance-vie-masterclass");
-    const livretCard = document.getElementById("card-livret-masterclass");
-    const globalAccountsCard = document.getElementById("card-global-accounts-guide");
-
-    if (frAccountsCard) frAccountsCard.style.display = isFrance ? "block" : "none";
-    if (peaCard) peaCard.style.display = isFrance ? "block" : "none";
-    if (avCard) avCard.style.display = isFrance ? "block" : "none";
-    if (livretCard) livretCard.style.display = isFrance ? "block" : "none";
-    if (globalAccountsCard) {
-      globalAccountsCard.style.display = isFrance ? "none" : "block";
-      renderGlobalAccountsContent(plan, workC);
-    }
+    renderCountryFilterBar(plan);
 
     // Visual display of family taxParts (Quotient Familial)
     const isSingle = (plan?.maritalStatus !== 'married');
@@ -1035,45 +1181,155 @@
 
   function updatePensionDecoteUI(p) {
     if (!p) p = getActivePlan();
-    const startWork = parseVal("inp-start-work-age", Number(p?.startWorkAge) || 24);
-    const pensionAge = parseVal("inp-pension-age", Number(p?.socialSecurityAge) || 64);
     const retireAge = parseVal("inp-retire-age", Number(p?.retirementAge) || 42);
-    const baseAnnual = parseVal("inp-pension-base-annual", Number(p?.socialSecurityAnnual) || 18000);
+    const isMarried = (p?.maritalStatus === 'married');
 
-    let effectivePension = 0;
-    let quarters = 0;
-    let targetQuarters = 172;
-    let missing = 0;
-    let decotePenalty = 0;
-    let prorata = 0;
-    let yearsWorked = Math.max(0, Math.min(retireAge, pensionAge) - startWork);
+    // Khởi tạo an toàn frenchPensionDetails nếu chưa có
+    if (!p.frenchPensionDetails) {
+      p.frenchPensionDetails = {
+        spouse1: {
+          startWorkAge: Number(p?.startWorkAge) || 24,
+          claimAge: Number(p?.socialSecurityAge) || 64,
+          targetAnnualPension: Number(p?.socialSecurityAnnual) || 18000
+        },
+        spouse2: {
+          startWorkAge: 25,
+          claimAge: 64,
+          targetAnnualPension: 16000
+        }
+      };
+    }
+    if (!p.frenchPensionDetails.spouse1) p.frenchPensionDetails.spouse1 = {};
+    if (!p.frenchPensionDetails.spouse2) p.frenchPensionDetails.spouse2 = {};
 
+    const sp1 = p.frenchPensionDetails.spouse1;
+    const sp2 = p.frenchPensionDetails.spouse2;
+
+    const s1Start = Number(sp1.startWorkAge) || Number(p?.startWorkAge) || 24;
+    const s1Claim = Number(sp1.claimAge) || Number(p?.socialSecurityAge) || 64;
+    const s1Base = Number(sp1.targetAnnualPension) || Number(p?.socialSecurityAnnual) || 18000;
+
+    const s2Start = Number(sp2.startWorkAge) || 25;
+    const s2Claim = Number(sp2.claimAge) || 64;
+    const s2Base = Number(sp2.targetAnnualPension) || 16000;
+
+    // 1. Đồng bộ giá trị vào 6 ô input tại Tab 1
+    const inpS1Start = document.getElementById("inp-pension-spouse1-start");
+    const inpS1Age = document.getElementById("inp-pension-spouse1-age");
+    const inpS1Base = document.getElementById("inp-pension-spouse1-base");
+    const inpS2Start = document.getElementById("inp-pension-spouse2-start");
+    const inpS2Age = document.getElementById("inp-pension-spouse2-age");
+    const inpS2Base = document.getElementById("inp-pension-spouse2-base");
+
+    if (inpS1Start && Number(inpS1Start.value) !== s1Start) inpS1Start.value = s1Start;
+    if (inpS1Age && Number(inpS1Age.value) !== s1Claim) inpS1Age.value = s1Claim;
+    if (inpS1Base && Number(inpS1Base.value) !== s1Base) inpS1Base.value = s1Base;
+    if (inpS2Start && Number(inpS2Start.value) !== s2Start) inpS2Start.value = s2Start;
+    if (inpS2Age && Number(inpS2Age.value) !== s2Claim) inpS2Age.value = s2Claim;
+    if (inpS2Base && Number(inpS2Base.value) !== s2Base) inpS2Base.value = s2Base;
+
+    // Đồng bộ các input đơn lẻ tại Tab 3 (nếu có trên DOM)
+    const inpStartWorkTab3 = document.getElementById("inp-start-work-age");
+    const inpPensionAgeTab3 = document.getElementById("inp-pension-age");
+    const inpPensionBaseTab3 = document.getElementById("inp-pension-base-annual");
+    if (inpStartWorkTab3 && Number(inpStartWorkTab3.value) !== s1Start) inpStartWorkTab3.value = s1Start;
+    if (inpPensionAgeTab3 && Number(inpPensionAgeTab3.value) !== s1Claim) inpPensionAgeTab3.value = s1Claim;
+    if (inpPensionBaseTab3 && Number(inpPensionBaseTab3.value) !== s1Base) inpPensionBaseTab3.value = s1Base;
+
+    // 2. Tính toán lương hưu chi tiết cho Bạn (Spouse 1)
+    let p1Res = { trimestresAcquis: 0, trimestresRequis: 172, totalAnnualPension: 0, monthlyPension: 0, yearsWorked: 0 };
     if (window.TaxOptimizer && window.TaxOptimizer.calculateFrenchPension) {
-      if (p?.maritalStatus === 'married' && p?.frenchPensionDetails) {
-        const fpRes = window.TaxOptimizer.calculateFrenchPension(p.frenchPensionDetails);
-        effectivePension = fpRes.totalAnnualPension;
-        const sp1 = fpRes.spouse1 || {};
-        quarters = sp1.trimestresAcquis || (yearsWorked * 4);
-        targetQuarters = sp1.trimestresRequis || 172;
-        yearsWorked = sp1.yearsWorked || yearsWorked;
-      } else {
-        const fpRes = window.TaxOptimizer.calculateFrenchPension(baseAnnual, startWork, Math.min(retireAge, pensionAge), pensionAge);
-        effectivePension = fpRes.totalAnnualPension;
-        quarters = fpRes.trimestresAcquis;
-        targetQuarters = fpRes.trimestresRequis;
-        yearsWorked = fpRes.yearsWorked;
-      }
-      missing = Math.max(0, targetQuarters - quarters);
-      prorata = Math.min(1.0, quarters / targetQuarters);
-      decotePenalty = (pensionAge < 67 && missing > 0) ? Math.min(20, missing) * 0.0125 : 0;
+      p1Res = window.TaxOptimizer.calculateFrenchPension(s1Base, s1Start, Math.min(retireAge, s1Claim), s1Claim);
     } else {
-      quarters = yearsWorked * 4;
-      missing = Math.max(0, targetQuarters - quarters);
-      prorata = Math.min(1.0, quarters / targetQuarters);
-      decotePenalty = (pensionAge < 67 && missing > 0) ? Math.min(20, missing) * 0.0125 : 0;
-      effectivePension = Math.round(baseAnnual * prorata * (1.0 - decotePenalty));
+      const yw = Math.max(0, Math.min(retireAge, s1Claim) - s1Start);
+      const q = yw * 4;
+      const tq = 172;
+      const m = Math.max(0, tq - q);
+      const dec = (s1Claim < 67 && m > 0) ? Math.min(20, m) * 0.0125 : 0;
+      const pro = Math.min(1.0, q / tq);
+      const ann = Math.round(s1Base * pro * (1.0 - dec));
+      p1Res = { trimestresAcquis: q, trimestresRequis: tq, totalAnnualPension: ann, monthlyPension: Math.round(ann / 12), yearsWorked: yw };
     }
 
+    const q1 = p1Res.trimestresAcquis || 0;
+    const targetQ1 = p1Res.trimestresRequis || 172;
+    const missingQ1 = Math.max(0, targetQ1 - q1);
+    const decotePenalty1 = (s1Claim < 67 && missingQ1 > 0) ? Math.min(20, missingQ1) * 0.0125 : 0;
+    const p1Annual = p1Res.totalAnnualPension || 0;
+    const p1Monthly = p1Res.monthlyPension || Math.round(p1Annual / 12);
+
+    // 3. Tính toán lương hưu chi tiết cho Bạn đời (Spouse 2)
+    let p2Res = { trimestresAcquis: 0, trimestresRequis: 172, totalAnnualPension: 0, monthlyPension: 0, yearsWorked: 0 };
+    if (window.TaxOptimizer && window.TaxOptimizer.calculateFrenchPension) {
+      p2Res = window.TaxOptimizer.calculateFrenchPension(s2Base, s2Start, Math.min(retireAge, s2Claim), s2Claim);
+    } else {
+      const yw2 = Math.max(0, Math.min(retireAge, s2Claim) - s2Start);
+      const q2 = yw2 * 4;
+      const tq2 = 172;
+      const m2 = Math.max(0, tq2 - q2);
+      const dec2 = (s2Claim < 67 && m2 > 0) ? Math.min(20, m2) * 0.0125 : 0;
+      const pro2 = Math.min(1.0, q2 / tq2);
+      const ann2 = Math.round(s2Base * pro2 * (1.0 - dec2));
+      p2Res = { trimestresAcquis: q2, trimestresRequis: tq2, totalAnnualPension: ann2, monthlyPension: Math.round(ann2 / 12), yearsWorked: yw2 };
+    }
+
+    const q2 = p2Res.trimestresAcquis || 0;
+    const targetQ2 = p2Res.trimestresRequis || 172;
+    const missingQ2 = Math.max(0, targetQ2 - q2);
+    const decotePenalty2 = (s2Claim < 67 && missingQ2 > 0) ? Math.min(20, missingQ2) * 0.0125 : 0;
+    const p2Annual = p2Res.totalAnnualPension || 0;
+    const p2Monthly = p2Res.monthlyPension || Math.round(p2Annual / 12);
+
+    // Tổng hợp kết quả
+    const effectivePension = p1Annual + (isMarried ? p2Annual : 0);
+    const effectiveMonthly = p1Monthly + (isMarried ? p2Monthly : 0);
+    const cur = p?.currency || (state && state.currency) || (window.AppState && window.AppState.getCurrency && window.AppState.getCurrency()) || 'EUR';
+
+    // 4. Cập nhật thẻ Bạn (Cột 1 Tab 1)
+    const lblSpouse1Quarters = document.getElementById("lbl-french-spouse1-quarters");
+    const lblSpouse1Decote = document.getElementById("lbl-french-spouse1-decote");
+    const lblSpouse1Effective = document.getElementById("lbl-french-spouse1-effective");
+
+    if (lblSpouse1Quarters) {
+      lblSpouse1Quarters.innerText = `${q1} / ${targetQ1} quý`;
+      lblSpouse1Quarters.style.color = q1 >= targetQ1 ? "var(--primary)" : "";
+    }
+    if (lblSpouse1Decote) {
+      if (decotePenalty1 > 0) {
+        lblSpouse1Decote.innerText = `-${(decotePenalty1 * 100).toFixed(1)}%`;
+        lblSpouse1Decote.className = "text-danger";
+      } else {
+        lblSpouse1Decote.innerText = "0% (Taux Plein)";
+        lblSpouse1Decote.className = "text-success";
+      }
+    }
+    if (lblSpouse1Effective) {
+      lblSpouse1Effective.innerText = `~${window.RetirementEngine.formatCurrency(p1Monthly, cur)}/tháng (~${window.RetirementEngine.formatCurrency(p1Annual, cur)}/n)`;
+    }
+
+    // 5. Cập nhật thẻ Bạn đời (Cột 2 Tab 1)
+    const lblSpouse2Quarters = document.getElementById("lbl-french-spouse2-quarters");
+    const lblSpouse2Decote = document.getElementById("lbl-french-spouse2-decote");
+    const lblSpouse2Effective = document.getElementById("lbl-french-spouse2-effective");
+
+    if (lblSpouse2Quarters) {
+      lblSpouse2Quarters.innerText = `${q2} / ${targetQ2} quý`;
+      lblSpouse2Quarters.style.color = q2 >= targetQ2 ? "var(--primary)" : "";
+    }
+    if (lblSpouse2Decote) {
+      if (decotePenalty2 > 0) {
+        lblSpouse2Decote.innerText = `-${(decotePenalty2 * 100).toFixed(1)}%`;
+        lblSpouse2Decote.className = "text-danger";
+      } else {
+        lblSpouse2Decote.innerText = "0% (Taux Plein)";
+        lblSpouse2Decote.className = "text-success";
+      }
+    }
+    if (lblSpouse2Effective) {
+      lblSpouse2Effective.innerText = `~${window.RetirementEngine.formatCurrency(p2Monthly, cur)}/tháng (~${window.RetirementEngine.formatCurrency(p2Annual, cur)}/n)`;
+    }
+
+    // 6. Cập nhật các phần tử chung của thẻ Lương hưu Pháp
     const lblQuarters = document.getElementById("lbl-pension-quarters");
     const lblDecote = document.getElementById("lbl-pension-decote");
     const lblEffective = document.getElementById("lbl-pension-effective");
@@ -1094,13 +1350,13 @@
     }
 
     if (lblQuarters) {
-      lblQuarters.innerText = `${quarters} / 172 quý (${yearsWorked} năm đóng)`;
+      lblQuarters.innerText = `${q1} / ${targetQ1} quý (${p1Res.yearsWorked || 0} năm đóng)`;
       lblQuarters.className = "font-mono font-semibold";
-      lblQuarters.style.color = quarters >= 172 ? "var(--primary)" : "var(--text-main)";
+      lblQuarters.style.color = q1 >= targetQ1 ? "var(--primary)" : "var(--text-main)";
     }
     if (lblDecote) {
-      if (decotePenalty > 0) {
-        lblDecote.innerText = `-${(decotePenalty * 100).toFixed(1)}% (${missing} quý thiếu)`;
+      if (decotePenalty1 > 0) {
+        lblDecote.innerText = `-${(decotePenalty1 * 100).toFixed(1)}% (${missingQ1} quý thiếu)`;
         lblDecote.className = "font-mono text-danger";
       } else {
         lblDecote.innerText = "0% (Đủ điều kiện Taux Plein)";
@@ -1108,29 +1364,33 @@
       }
     }
     if (lblEffective) {
-      lblEffective.innerText = `~${window.RetirementEngine.formatCurrency(effectivePension, state.currency)}/năm (~${window.RetirementEngine.formatCurrency(Math.round(effectivePension / 12), state.currency)}/tháng)`;
+      lblEffective.innerText = `~${window.RetirementEngine.formatCurrency(effectivePension, cur)}/năm (~${window.RetirementEngine.formatCurrency(effectiveMonthly, cur)}/tháng)`;
     }
     if (badgeStatus) {
-      badgeStatus.innerText = quarters >= 172 ? "Taux Plein" : `${quarters}/172q (${Math.round(prorata * 100)}%)`;
+      badgeStatus.innerText = isMarried
+        ? `2 Người (${q1 >= targetQ1 && q2 >= targetQ2 ? 'Taux Plein' : '172 Quý'})`
+        : (q1 >= targetQ1 ? "Taux Plein" : `${q1}/${targetQ1}q`);
       badgeStatus.style.color = "";
     }
 
     if (cardMonthly) {
       cardMonthly.style.color = "";
       if (isFrenchEnabled) {
-        cardMonthly.innerHTML = `${window.RetirementEngine.formatCurrency(Math.round(effectivePension / 12), state.currency)}<small>/tháng</small>`;
+        cardMonthly.innerHTML = `${window.RetirementEngine.formatCurrency(effectiveMonthly, cur)}<small>/tháng</small>`;
       } else {
         cardMonthly.innerHTML = `<span style="color: var(--text-faint);">0<small>/tháng</small></span>`;
       }
     }
     if (cardAnnual) {
-      cardAnnual.innerText = isFrenchEnabled ? `≈ ${window.RetirementEngine.formatCurrency(effectivePension, state.currency)}/năm` : "Chưa kích hoạt lương hưu Pháp";
+      cardAnnual.innerText = isFrenchEnabled
+        ? `≈ ${window.RetirementEngine.formatCurrency(effectivePension, cur)}/năm`
+        : "Chưa kích hoạt lương hưu Pháp";
     }
     if (cardAgeRange) {
-      cardAgeRange.innerText = `${pensionAge} - ${Number(p?.lifeExpectancy) || 85} tuổi`;
+      cardAgeRange.innerText = isMarried ? `${s1Claim}t / ${s2Claim}t - ${Number(p?.lifeExpectancy) || 85} tuổi` : `${s1Claim} - ${Number(p?.lifeExpectancy) || 85} tuổi`;
     }
     if (cardGrowth) {
-      cardGrowth.innerText = decotePenalty > 0 ? `Décote -${(decotePenalty * 100).toFixed(1)}%` : "Taux Plein (0%)";
+      cardGrowth.innerText = decotePenalty1 > 0 ? `Décote -${(decotePenalty1 * 100).toFixed(1)}%` : "Taux Plein (0%)";
     }
     if (cardContainer) {
       cardContainer.style.opacity = isFrenchEnabled ? "1" : "0.75";
@@ -2135,35 +2395,60 @@
     const retireAge = Number(p.retirementAge) || 42;
     if (!Array.isArray(p.incomes)) p.incomes = [];
 
-    // LMNP rental income: since expenses now include total outlays (loan + operating charges),
-    // income takes the full effective rent so net cashflow remains perfectly accurate.
-    const reIdx = p.incomes.findIndex(inc => (inc.name || '').includes('LMNP') || (inc.name || '').includes('BĐS Cho thuê') || (inc.name || '').includes('Doanh thu'));
-    if ((summary.total_properties || 0) > 0) {
-      const totalEffectiveRent = (data.apartments || []).reduce((acc, a) => {
-        const rent = Number(a.effective_monthly_rent) || (Number(a.monthly_rent) * (1 - (Number(a.vacancy_pct) || 0) / 100.0)) || 0;
-        return acc + rent;
-      }, 0);
-      const annualRent = totalEffectiveRent > 0 ? totalEffectiveRent * 12 : (summary.total_annual_post_loan_cashflow || 0);
-      const cashflow = (p.lmnpEnabled !== false) ? round(annualRent) : 0;
-      if (reIdx >= 0) {
-        // Update rental income amount while preserving user-configured startAge, endAge and growth
-        p.incomes[reIdx].name = 'Doanh thu BDS';
-        p.incomes[reIdx].amount = cashflow;
-        if (p.incomes[reIdx].startAge === undefined || p.incomes[reIdx].startAge === null) p.incomes[reIdx].startAge = curAge;
-        if (p.incomes[reIdx].endAge === undefined || p.incomes[reIdx].endAge === null) p.incomes[reIdx].endAge = 85;
-        if (p.incomes[reIdx].growth === undefined || p.incomes[reIdx].growth === null) p.incomes[reIdx].growth = 1.5;
-        p.incomes[reIdx].taxable = false;
+    // Dọn các luồng thu nhập BĐS cũ để tránh trùng lặp
+    p.incomes = (p.incomes || []).filter(inc => !/lmnp|doanh thu bđs|doanh thu bds/i.test(inc.name || ''));
+
+    const apts = Array.isArray(data.apartments) ? data.apartments : [];
+    if (apts.length > 0 && p.lmnpEnabled !== false) {
+      const curYear = new Date().getFullYear();
+      const bYear = Number(p.birthYear) || (curYear - curAge);
+
+      if (apts.length === 1) {
+        // Chỉ 1 căn: Tạo luồng Doanh thu BDS với đúng năm bắt đầu thu tiền và tuổi kết thúc của căn đó
+        const a = apts[0];
+        const effRent = Number(a.effective_monthly_rent) || (Number(a.monthly_rent) * (1 - (Number(a.vacancy_pct !== undefined ? a.vacancy_pct : 5.0) / 100.0))) || 0;
+        const annualRent = effRent * 12;
+        const startYr = Number(a.start_year) || curYear;
+        const rentStartYr = Number(a.rent_start_year) || Number(a.raw?.rent_start_year) || startYr;
+        const aptStartAge = Math.max(18, rentStartYr - bYear);
+        const aptEndAge = Number(a.end_age) || Number(a.raw?.end_age) || 85;
+
+        p.incomes.push({
+          name: 'Doanh thu BDS',
+          amount: round(annualRent),
+          startAge: aptStartAge,
+          endAge: aptEndAge,
+          growth: 1.5,
+          taxable: false,
+          isRealEstate: true
+        });
       } else {
-        p.incomes.push({ name: 'Doanh thu BDS', amount: cashflow, startAge: curAge, endAge: 85, growth: 1.5, taxable: false });
+        // Nhiều căn: Mỗi căn hộ có Giai đoạn thu tiền BĐS hoàn toàn riêng biệt!
+        apts.forEach((a, idx) => {
+          const effRent = Number(a.effective_monthly_rent) || (Number(a.monthly_rent) * (1 - (Number(a.vacancy_pct !== undefined ? a.vacancy_pct : 5.0) / 100.0))) || 0;
+          const annualRent = effRent * 12;
+          const startYr = Number(a.start_year) || curYear;
+          const rentStartYr = Number(a.rent_start_year) || Number(a.raw?.rent_start_year) || startYr;
+          const aptStartAge = Math.max(18, rentStartYr - bYear);
+          const aptEndAge = Number(a.end_age) || Number(a.raw?.end_age) || 85;
+          const aptName = a.name || `BĐS ${idx + 1}`;
+
+          p.incomes.push({
+            name: `Doanh thu BDS: ${aptName}`,
+            amount: round(annualRent),
+            startAge: aptStartAge,
+            endAge: aptEndAge,
+            growth: 1.5,
+            taxable: false,
+            isRealEstate: true
+          });
+        });
       }
-    } else if (reIdx >= 0) {
-      p.incomes.splice(reIdx, 1);
     }
 
     // Turo đã được quản lý trực tiếp như một nguồn thu nhập thông thường (không cần đồng bộ riêng)
 
     // Synchronize Apartment Purchase Milestones from Patrimoine into plan.milestones
-    const apts = Array.isArray(data.apartments) ? data.apartments : [];
     if (!Array.isArray(p.milestones)) p.milestones = [];
     // Luôn dọn sạch các mốc mua căn hộ cũ của patrimoine trước
     p.milestones = p.milestones.filter(m => m.source !== 'patrimoine' && m.id !== 'ms_home');
@@ -2235,98 +2520,107 @@
   }
 
   function updateLmnpUI(p) {
-    if (!p) p = getActivePlan();
-    const isEnabled = p.lmnpEnabled !== false;
-    const chk = document.getElementById("chk-enable-lmnp-stream");
-    if (chk) chk.checked = isEnabled;
+    try {
+      if (!p) p = (typeof getActivePlan === "function" ? getActivePlan() : null);
+      if (!p) return;
+      const isEnabled = p.lmnpEnabled !== false;
+      const chk = document.getElementById("chk-enable-lmnp-stream");
+      if (chk) chk.checked = isEnabled;
 
-    const pData = state.patrimoineData || (window.patrimoineData) || null;
-    let apts = [];
-    if (pData && Array.isArray(pData.apartments)) {
-      apts = pData.apartments;
-    } else if (!pData && window.PatrimoineApp && typeof window.PatrimoineApp.computeFullPatrimoine === "function") {
-      // Chỉ đọc từ guest storage khi pData chưa từng được khởi tạo
-      try {
-        const guest = JSON.parse(localStorage.getItem("pyRetrait_guest_patrimoine_v2") || "{}");
-        if (guest && guest.apartments && Object.keys(guest.apartments).length > 0) {
-          const comp = window.PatrimoineApp.computeFullPatrimoine(guest.apartments, guest.turo, guest.wealth);
-          if (comp && Array.isArray(comp.apartments)) apts = comp.apartments;
+      const pData = (state && state.patrimoineData) || (window.patrimoineData) || null;
+      let apts = [];
+      if (pData && Array.isArray(pData.apartments)) {
+        apts = pData.apartments;
+      } else if (!pData && window.PatrimoineApp && typeof window.PatrimoineApp.computeFullPatrimoine === "function") {
+        // Chỉ đọc từ guest storage khi pData chưa từng được khởi tạo
+        try {
+          const guest = JSON.parse(localStorage.getItem("pyRetrait_guest_patrimoine_v2") || "{}");
+          if (guest && guest.apartments && Object.keys(guest.apartments).length > 0) {
+            const comp = window.PatrimoineApp.computeFullPatrimoine(guest.apartments, guest.turo, guest.wealth);
+            if (comp && Array.isArray(comp.apartments)) apts = comp.apartments;
+          }
+        } catch (e) {
+          console.warn("Lỗi đọc dữ liệu căn hộ:", e);
         }
-      } catch (e) {
-        console.warn("Lỗi đọc dữ liệu căn hộ:", e);
       }
-    }
 
-    const cur = p.currency || state.currency || 'EUR';
-    const fmt = (v) => window.RetirementEngine.formatCurrency(v, cur);
-    const f = eurToPlanFactor(p);
+      const cur = p.currency || (state && state.currency) || 'EUR';
+      const fmt = (v) => window.RetirementEngine.formatCurrency(v, cur);
+      const f = eurToPlanFactor(p);
+      const curAge = Number(p.currentAge) || 29;
 
-    const badgeStatus = document.getElementById("badge-lmnp-status");
-    const btnDel = document.getElementById("btn-del-lmnp-stream");
-    const cardContainer = document.getElementById("card-lmnp-income-stream");
-    const bodyEl = document.getElementById("lmnp-inputs-body");
+      const badgeStatus = document.getElementById("badge-lmnp-status");
+      const btnDel = document.getElementById("btn-del-lmnp-stream");
+      const cardContainer = document.getElementById("card-lmnp-income-stream");
+      const bodyEl = document.getElementById("lmnp-inputs-body");
 
-    if (badgeStatus) {
-      if (isEnabled) {
-        badgeStatus.innerText = apts.length > 0 ? `${apts.length} căn LMNP` : "0 căn hộ";
-        badgeStatus.style.background = "rgba(16, 185, 129, 0.15)";
-        badgeStatus.style.color = "#34d399";
-        badgeStatus.style.borderColor = "rgba(16, 185, 129, 0.3)";
-      } else {
-        badgeStatus.innerText = "Đã tạm tắt";
-        badgeStatus.style.background = "rgba(148, 163, 184, 0.1)";
-        badgeStatus.style.color = "var(--text-faint)";
-        badgeStatus.style.borderColor = "var(--border-subtle)";
+      if (badgeStatus) {
+        if (isEnabled) {
+          badgeStatus.innerText = apts.length > 0 ? `${apts.length} căn` : "0 căn";
+          badgeStatus.style.background = "rgba(16, 185, 129, 0.15)";
+          badgeStatus.style.color = "#34d399";
+          badgeStatus.style.borderColor = "rgba(16, 185, 129, 0.3)";
+        } else {
+          badgeStatus.innerText = "Đã tạm tắt";
+          badgeStatus.style.background = "rgba(148, 163, 184, 0.1)";
+          badgeStatus.style.color = "var(--text-faint)";
+          badgeStatus.style.borderColor = "var(--border-subtle)";
+        }
       }
-    }
 
-    if (btnDel) {
-      btnDel.innerText = isEnabled ? "Tắt" : "Bật";
-      btnDel.className = isEnabled ? "income-item-btn income-item-del" : "income-item-btn";
-    }
-
-    if (cardContainer) {
-      cardContainer.style.opacity = isEnabled ? "1" : "0.75";
-    }
-    if (bodyEl) {
-      bodyEl.style.opacity = isEnabled ? "1" : "0.5";
-      bodyEl.style.pointerEvents = isEnabled ? "auto" : "none";
-    }
-
-    // Amounts calculation
-    const lmnpStream = (p.incomes || []).find(inc => /lmnp|doanh thu bđs|doanh thu bds/i.test(inc.name || ''));
-    const totalEffectiveRentEur = apts.reduce((acc, a) => {
-      const eff = Number(a.effective_monthly_rent) || (Number(a.monthly_rent) * (1 - (Number(a.vacancy_pct !== undefined ? a.vacancy_pct : 5.0) / 100.0))) || 0;
-      return acc + eff;
-    }, 0);
-    const totalAnnualRentEur = totalEffectiveRentEur * 12;
-    const annualRent = apts.length === 0 ? 0 : (lmnpStream ? Number(lmnpStream.amount) : Math.round(totalAnnualRentEur * f));
-    const monthlyRent = Math.round(annualRent / 12);
-
-    const lblMonthly = document.getElementById("lbl-lmnp-card-monthly");
-    const lblAnnual = document.getElementById("lbl-lmnp-card-annual");
-    const lblAgeRange = document.getElementById("lbl-lmnp-card-age-range");
-    const lblGrowth = document.getElementById("lbl-lmnp-card-growth");
-
-    if (lblMonthly) {
-      if (isEnabled && apts.length > 0) {
-        lblMonthly.innerHTML = `${fmt(monthlyRent)}<small>/tháng</small>`;
-      } else {
-        lblMonthly.innerHTML = `<span style="color: var(--text-faint);">0<small>/tháng</small></span>`;
+      if (btnDel) {
+        btnDel.innerText = isEnabled ? "Tắt" : "Bật";
+        btnDel.className = isEnabled ? "income-item-btn income-item-del" : "income-item-btn";
       }
-    }
-    if (lblAnnual) {
-      lblAnnual.innerText = isEnabled ? (apts.length > 0 ? `≈ ${fmt(annualRent)}/năm` : "Chưa có căn hộ cho thuê nào") : "Đã tạm tắt nguồn thu BĐS";
-    }
-    if (lblAgeRange) {
-      const startAge = lmnpStream?.startAge !== undefined ? lmnpStream.startAge : (p.currentAge || 29);
-      const endAge = lmnpStream?.endAge !== undefined ? lmnpStream.endAge : 85;
-      lblAgeRange.innerText = `${startAge} - ${endAge} tuổi`;
-    }
-    if (lblGrowth) {
-      const gr = lmnpStream?.growth !== undefined ? lmnpStream.growth : 1.5;
-      lblGrowth.innerText = `+${gr}%/năm`;
-    }
+
+      if (cardContainer) {
+        cardContainer.style.opacity = isEnabled ? "1" : "0.75";
+      }
+      if (bodyEl) {
+        bodyEl.style.opacity = isEnabled ? "1" : "0.5";
+        bodyEl.style.pointerEvents = isEnabled ? "auto" : "none";
+      }
+
+      // Amounts calculation (tính toán cho cả trường hợp 1 căn hay nhiều căn)
+      const lmnpStreams = (p.incomes || []).filter(inc => /lmnp|doanh thu bđs|doanh thu bds/i.test(inc.name || ''));
+      const totalEffectiveRentEur = apts.reduce((acc, a) => {
+        const eff = Number(a.effective_monthly_rent) || (Number(a.monthly_rent) * (1 - (Number(a.vacancy_pct !== undefined ? a.vacancy_pct : 5.0) / 100.0))) || 0;
+        return acc + eff;
+      }, 0);
+      const totalAnnualRentEur = totalEffectiveRentEur * 12;
+      const annualRent = apts.length === 0 ? 0 : (lmnpStreams.length > 0 ? lmnpStreams.reduce((acc, s) => acc + (Number(s.amount) || 0), 0) : Math.round(totalAnnualRentEur * f));
+      const monthlyRent = Math.round(annualRent / 12);
+
+      const lblMonthly = document.getElementById("lbl-lmnp-card-monthly");
+      const lblAnnual = document.getElementById("lbl-lmnp-card-annual");
+      const lblAgeRange = document.getElementById("lbl-lmnp-card-age-range");
+      const lblGrowth = document.getElementById("lbl-lmnp-card-growth");
+
+      if (lblMonthly) {
+        if (isEnabled && apts.length > 0) {
+          lblMonthly.innerHTML = `${fmt(monthlyRent)}<small>/tháng</small>`;
+        } else {
+          lblMonthly.innerHTML = `<span style="color: var(--text-faint);">0<small>/tháng</small></span>`;
+        }
+      }
+      if (lblAnnual) {
+        lblAnnual.innerText = isEnabled ? (apts.length > 0 ? `≈ ${fmt(annualRent)}/năm` : "Chưa có căn hộ cho thuê nào") : "Đã tạm tắt nguồn thu BĐS";
+      }
+
+      // Tính dải tuổi bao quát (nếu nhiều căn thì lấy min startAge và max endAge)
+      const minStartAge = lmnpStreams.length > 0 ? Math.min(...lmnpStreams.map(s => Number(s.startAge) || curAge)) : (p.currentAge || 29);
+      const maxEndAge = lmnpStreams.length > 0 ? Math.max(...lmnpStreams.map(s => Number(s.endAge) || 85)) : 85;
+
+      if (lblAgeRange) {
+        lblAgeRange.innerText = `${minStartAge} - ${maxEndAge} tuổi`;
+      }
+
+
+      if (lblGrowth) {
+        const firstStream = lmnpStreams[0];
+        const gr = (firstStream && firstStream.growth !== undefined) ? firstStream.growth : 1.5;
+        lblGrowth.innerText = `+${gr}%/năm`;
+      }
 
     // Mini KPIs inside drawer
     const totalPropValEur = apts.reduce((acc, a) => acc + (Number(a.property_price) || 0), 0);
@@ -2362,21 +2656,26 @@
           const loanPmt = Math.round(loanPmtEur * f);
           const netCf = Math.round(netCfEur * f);
 
+          const catLabel = apt.property_category === 'house' ? 'Nhà mặt đất' : 'Chung cư';
+          const endAgeApt = apt.end_age || apt.raw?.end_age || 85;
+
           return `
             <div class="lmnp-apt-row" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.55rem 0.75rem; display: flex; flex-direction: column; gap: 0.35rem;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-                  <strong style="color: var(--text-main); font-size: 0.82rem;">${apt.name}</strong>
-                  <span style="font-size: 0.68rem; padding: 1px 5px; border-radius: 4px; background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.25); font-weight: 500;">
-                    ${apt.typology || 'T2'} • ${apt.surface || 0}m²
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; min-width: 0;">
+                  <strong style="color: var(--text-main); font-size: 0.82rem; line-height: 1.2;">${apt.name}</strong>
+                  <span style="font-size: 0.68rem; height: 20px; padding: 0 6px; border-radius: 4px; background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.25); font-weight: 500; display: inline-flex; align-items: center; line-height: 1;">
+                    ${catLabel}
                   </span>
-                  <span style="font-size: 0.68rem; padding: 1px 5px; border-radius: 4px; background: rgba(148, 163, 184, 0.12); color: var(--text-muted); border: 1px solid var(--border-subtle);">
-                    DPE ${apt.dpe_rating || 'C'} • Mua ${apt.start_year || 2023}
+                  <span style="font-size: 0.68rem; height: 20px; padding: 0 6px; border-radius: 4px; background: rgba(148, 163, 184, 0.12); color: var(--text-muted); border: 1px solid var(--border-subtle); display: inline-flex; align-items: center; line-height: 1;">
+                    ${(apt.rent_start_year && apt.rent_start_year > (apt.start_year || 2024))
+                      ? `Mua ${apt.start_year || 2024} • Thu tiền ${apt.rent_start_year} → ${endAgeApt}t`
+                      : `Mua ${apt.start_year || 2024} • Đến ${endAgeApt} tuổi`}
                   </span>
                 </div>
-                <div style="display: flex; gap: 0.35rem;">
-                  <button type="button" class="btn btn-xs btn-outline btn-edit-sub-apt" data-name="${encodeURIComponent(apt.name)}" style="font-size: 0.72rem; padding: 2px 8px; color: #10b981; border-color: rgba(16, 185, 129, 0.4); cursor: pointer;" title="Chỉnh sửa mọi thông số căn hộ này">Sửa</button>
-                  <button type="button" class="btn btn-xs btn-outline btn-del-sub-apt" data-name="${encodeURIComponent(apt.name)}" style="font-size: 0.72rem; padding: 2px 8px; color: #f43f5e; border-color: rgba(244, 63, 94, 0.4); cursor: pointer;" title="Xóa căn hộ này">Xóa</button>
+                <div class="income-item-actions" style="display: flex; align-items: center; gap: 0.35rem; flex-shrink: 0;">
+                  <button type="button" class="income-item-btn btn-edit-sub-apt" data-name="${encodeURIComponent(apt.name)}" style="font-size: 0.72rem; height: 20px; padding: 0 8px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;" title="Chỉnh sửa thông số BĐS này">Sửa</button>
+                  <button type="button" class="income-item-btn income-item-del btn-del-sub-apt" data-name="${encodeURIComponent(apt.name)}" style="font-size: 0.72rem; height: 20px; padding: 0 8px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;" title="Xóa BĐS này">Xóa</button>
                 </div>
               </div>
 
@@ -2411,6 +2710,35 @@
           });
         });
       }
+    }
+
+    // Dynamic Multi-Country Real Estate Tax Policy
+    const workCountry = p.workCountry || (p.retireCountry === 'VN' ? 'VN' : 'FR');
+    const aptCountry = (apts.length > 0 && apts[0].country) ? apts[0].country : workCountry;
+    const curLang = (window.I18n && window.I18n.currentLang) || 'vi';
+
+    const rePolicy = (window.TaxOptimizer && window.TaxOptimizer.getRealEstatePolicyByCountry)
+      ? window.TaxOptimizer.getRealEstatePolicyByCountry(aptCountry, curLang)
+      : null;
+
+    if (rePolicy) {
+      const toggleSpan = document.getElementById("lbl-formula-toggle-lmnp");
+      if (toggleSpan) toggleSpan.innerText = rePolicy.toggleText;
+
+      const tagEl = document.getElementById("lbl-formula-lmnp-tag");
+      if (tagEl) tagEl.innerText = rePolicy.tagText;
+
+      const r1 = document.getElementById("lbl-formula-lmnp-rule-1");
+      if (r1) r1.innerText = rePolicy.rule1;
+
+      const r2 = document.getElementById("lbl-formula-lmnp-rule-2");
+      if (r2) r2.innerText = rePolicy.rule2;
+
+      const r3 = document.getElementById("lbl-formula-lmnp-rule-3");
+      if (r3) r3.innerText = rePolicy.rule3;
+    }
+    } catch (err) {
+      console.error("Lỗi updateLmnpUI:", err);
     }
   }
 
@@ -2707,23 +3035,8 @@
       }
     }
 
-    // 2. Render French Accounts Inputs & Waterfall Savings
-    setVal("inp-acc-pea", plan.frenchAccounts?.peaBalance ?? 35000);
-    setVal("inp-acc-av", plan.frenchAccounts?.assuranceVieBalance ?? 10000);
-    setVal("inp-acc-livreta", plan.frenchAccounts?.livretABalance ?? 5000);
-
-    const waterfallBadge = document.getElementById("badge-waterfall-saved");
-    if (window.TaxOptimizer && window.TaxOptimizer.simulateWithdrawalWaterfall) {
-      const remainingNeed = plan.annualExpenses || 25000;
-      const wf = window.TaxOptimizer.simulateWithdrawalWaterfall(remainingNeed, {
-        peaBalance: plan.frenchAccounts?.peaBalance ?? 35000,
-        assuranceVieBalance: plan.frenchAccounts?.assuranceVieBalance ?? 10000,
-        livretABalance: plan.frenchAccounts?.livretABalance ?? 5000
-      });
-      if (waterfallBadge) {
-        waterfallBadge.innerText = `Tiết kiệm: ${window.RetirementEngine.formatCurrency(wf.taxSavedVsPFU, state.currency)} thuế/năm`;
-      }
-    }
+    // 2. Ensure Country Filter is active
+    updateTaxRegimeUI(taxRegime);
 
     // 3. Destroy chart if existed
     if (state.charts.tax) {

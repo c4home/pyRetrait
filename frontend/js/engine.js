@@ -757,15 +757,15 @@ window.RetirementEngine = (function() {
       // 1. Phân loại và tích hợp nguồn lương hưu an sinh theo quốc gia
       const workC = plan.workCountry || 'FR';
       const retireC = plan.retireCountry || plan.workCountry || 'FR';
-      const hasFrenchPension = (workC === 'FR' || retireC === 'FR');
-      const hasBhxhPension = (workC === 'VN' || retireC === 'VN');
-      const hasGermanPension = (workC === 'DE' || retireC === 'DE');
-      const hasUsPension = (workC === 'US' || retireC === 'US');
-      const hasJapanPension = (workC === 'JP' || retireC === 'JP');
-      const hasCanadaPension = (workC === 'CA' || retireC === 'CA');
-      const hasAustraliaPension = (workC === 'AU' || retireC === 'AU');
-      const hasKoreaPension = (workC === 'KR' || retireC === 'KR');
-      const hasTaiwanPension = (workC === 'TW' || retireC === 'TW');
+      const hasFrenchPension = (workC === 'FR' || retireC === 'FR' || plan.enableFrenchPension === true);
+      const hasBhxhPension = (workC === 'VN' || retireC === 'VN' || plan.bhxhVnEnabled === true);
+      const hasGermanPension = (workC === 'DE' || retireC === 'DE' || plan.enableGermanPension === true);
+      const hasUsPension = (workC === 'US' || retireC === 'US' || plan.enableUsPension === true);
+      const hasJapanPension = (workC === 'JP' || retireC === 'JP' || plan.enableJapanPension === true);
+      const hasCanadaPension = (workC === 'CA' || retireC === 'CA' || plan.enableCanadaPension === true);
+      const hasAustraliaPension = (workC === 'AU' || retireC === 'AU' || plan.enableAustraliaPension === true);
+      const hasKoreaPension = (workC === 'KR' || retireC === 'KR' || plan.enableKoreaPension === true);
+      const hasTaiwanPension = (workC === 'TW' || retireC === 'TW' || plan.enableTaiwanPension === true);
 
       // 1.1 Lương hưu Pháp (CNAV + Agirc-Arrco)
       if (isRetired && hasFrenchPension && plan.enableFrenchPension !== false) {
@@ -1094,15 +1094,19 @@ window.RetirementEngine = (function() {
           if (kAge >= 0 && kAge < 20) depCount++;
         }
 
-        // CAF Family Allowance in France (chỉ áp dụng khi ở Pháp)
-        let cafMonthly = 0;
+        // Trợ cấp gia đình trực tiếp (Family Allowance / Kindergeld) theo quốc gia
+        let familyAllowanceMonthly = 0;
         if (plan.workCountry === 'FR') {
-          if (depCount === 2) cafMonthly = 148;
-          else if (depCount === 3) cafMonthly = 338;
-          else if (depCount >= 4) cafMonthly = 529;
+          if (depCount === 2) familyAllowanceMonthly = 148;
+          else if (depCount === 3) familyAllowanceMonthly = 338;
+          else if (depCount >= 4) familyAllowanceMonthly = 529;
+        } else if (plan.workCountry === 'DE') {
+          familyAllowanceMonthly = depCount * 250; // Kindergeld Đức
+        } else if (plan.workCountry === 'BE') {
+          familyAllowanceMonthly = depCount * 190; // Allocations Bỉ
         }
 
-        const netAnnualChildCost = Math.max(0, grossChildCost - (cafMonthly * 12));
+        const netAnnualChildCost = Math.max(0, grossChildCost - (familyAllowanceMonthly * 12));
         childLifecycleCostThisYear = netAnnualChildCost * cumInflation;
       }
 

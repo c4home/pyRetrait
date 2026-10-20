@@ -120,9 +120,14 @@
     const vac = numOr(apt.vacancy_pct, 5.0) / 100;
     const effectiveRent = monthlyRent * (1 - vac);
 
-    let annualCharges = numOr(apt.annual_coop, 0) + numOr(apt.annual_tf, 0) +
-      numOr(apt.annual_pno, 0) + numOr(apt.annual_maintenance, 300);
-    annualCharges += (effectiveRent * 12) * (numOr(apt.annual_mgmt_pct, 0) / 100);
+    let annualCharges = 0;
+    if (apt.monthly_expenses !== undefined && apt.monthly_expenses !== null && Number(apt.monthly_expenses) > 0) {
+      annualCharges = Number(apt.monthly_expenses) * 12;
+    } else {
+      annualCharges = numOr(apt.annual_coop, 0) + numOr(apt.annual_tf, 0) +
+        numOr(apt.annual_pno, 0) + numOr(apt.annual_maintenance, 300);
+      annualCharges += (effectiveRent * 12) * (numOr(apt.annual_mgmt_pct, 0) / 100);
+    }
     const monthlyCharges = annualCharges / 12;
 
     const monthlyCashflow = effectiveRent - monthlyLoanPmt - monthlyCharges;
@@ -133,12 +138,13 @@
 
     const surface = numOr(apt.surface, 30);
     const startYear = truthyOr(apt.start_year, 2023);
+    const endAge = numOr(apt.end_age, 85);
     const round2 = (x) => Math.round(x * 100) / 100;
 
     return {
       name: name, address: apt.address || name, surface: surface,
       typology: apt.typology || "T2", dpe_rating: apt.dpe_rating || "C",
-      start_year: startYear, payoff_year: startYear + dur,
+      start_year: startYear, end_age: endAge, payoff_year: startYear + dur,
       property_price: Math.round(price), price_per_m2: surface > 0 ? Math.round(price / surface) : 0,
       notary_fees: Math.round(notary), bank_fees: Math.round(bank),
       renovation_cost: Math.round(renov), furniture_cost: Math.round(furn),
@@ -147,6 +153,7 @@
       annual_interest_rate: rate, annual_insurance_rate: ins,
       monthly_rent: Math.round(monthlyRent), effective_monthly_rent: Math.round(effectiveRent),
       monthly_loan_payment: Math.round(monthlyLoanPmt), monthly_charges: Math.round(monthlyCharges),
+      monthly_expenses: Math.round(monthlyCharges),
       monthly_cashflow: Math.round(monthlyCashflow), annual_cashflow: Math.round(monthlyCashflow * 12),
       monthly_post_loan_cashflow: Math.round(monthlyPostLoanCashflow),
       annual_post_loan_cashflow: Math.round(monthlyPostLoanCashflow * 12),
@@ -326,9 +333,9 @@
               </div>
               <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">${apt.address || 'Toulouse, France'}</p>
             </div>
-            <div style="display: flex; gap: 0.35rem;">
-              <button class="btn btn-sm btn-ghost btn-edit-apt" data-name="${encodeURIComponent(apt.name)}" title="Chỉnh sửa">Sửa</button>
-              <button class="btn btn-sm btn-ghost btn-delete-apt" data-name="${encodeURIComponent(apt.name)}" style="color: #ef4444;" title="Xóa">Xóa</button>
+            <div class="income-item-actions" style="display: flex; align-items: center; gap: 0.35rem; flex-shrink: 0;">
+              <button type="button" class="income-item-btn btn-edit-apt" data-name="${encodeURIComponent(apt.name)}" title="Chỉnh sửa" style="font-size: 0.75rem; height: 24px; padding: 0 10px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">Sửa</button>
+              <button type="button" class="income-item-btn income-item-del btn-delete-apt" data-name="${encodeURIComponent(apt.name)}" title="Xóa" style="font-size: 0.75rem; height: 24px; padding: 0 10px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">Xóa</button>
             </div>
           </div>
 
@@ -1088,26 +1095,23 @@
       }
 
       const price = aptData.property_price || r.property_price || 90000;
+      const startYr = aptData.start_year || r.start_year || 2024;
+      const rentStartYr = aptData.rent_start_year || r.rent_start_year || startYr;
       setVal("inp-apt-address", aptData.address || r.address || "");
-      setVal("inp-apt-start-year", aptData.start_year || r.start_year || 2023);
+      setVal("inp-apt-start-year", startYr);
+      setVal("inp-apt-rent-start-year", rentStartYr);
+      setVal("inp-apt-end-age", aptData.end_age || r.end_age || 85);
       setVal("inp-apt-surface", aptData.surface || r.surface || 30);
       setVal("inp-apt-typology", aptData.typology || r.typology || "T2 (2 pièces)");
       setVal("inp-apt-dpe", aptData.dpe_rating || r.dpe_rating || "C");
       setVal("inp-apt-price", price);
-      setVal("inp-apt-notary", aptData.notary_fees || r.notary_fees || Math.round(price * 0.075));
-      setVal("inp-apt-reno", aptData.renovation_cost || r.renovation_cost || 0);
-      setVal("inp-apt-furniture", aptData.furniture_cost || r.furniture_cost || 2000);
       setVal("inp-apt-rent", aptData.monthly_rent || r.monthly_rent || 600);
       setVal("inp-apt-vacance", aptData.vacancy_pct !== undefined ? aptData.vacancy_pct : (r.vacancy_pct !== undefined ? r.vacancy_pct : 5.0));
-      setVal("inp-apt-coop", r.annual_coop || 900);
-      setVal("inp-apt-tf", r.annual_tf || 800);
-      setVal("inp-apt-pno", r.annual_pno || 150);
-      setVal("inp-apt-maintenance", r.annual_maintenance !== undefined ? r.annual_maintenance : 300);
+      setVal("inp-apt-coop", r.annual_coop || 600);
+      setVal("inp-apt-tf", r.annual_tf || 500);
+      setVal("inp-apt-pno", r.annual_pno || 120);
+      setVal("inp-apt-maintenance", r.annual_maintenance !== undefined ? r.annual_maintenance : 200);
       setVal("inp-apt-mgmt-pct", r.annual_mgmt_pct !== undefined ? r.annual_mgmt_pct : 0.0);
-      setVal("inp-apt-down-payment", r.down_payment_input || 8000);
-      setVal("inp-apt-duration", aptData.loan_duration || r.loan_duration || 20);
-      setVal("inp-apt-rate", aptData.annual_interest_rate || r.annual_interest_rate || 3.6);
-      setVal("inp-apt-ins-rate", aptData.annual_insurance_rate || r.annual_insurance_rate || 0.3);
 
       const category = r.property_category || aptData.property_category || (aptData.typology && (/maison|villa|nhà/i).test(aptData.typology) ? "house" : "apartment");
       setVal("inp-apt-category", category);
@@ -1122,6 +1126,7 @@
           ? Math.round(savedLoanPmt)
           : "";
       }
+      setVal("inp-apt-duration", r.loan_duration || aptData.loan_duration || 20);
     } else {
       if (titleEl) titleEl.innerText = "Thêm Bất Động Sản Cho Thuê Mới";
       if (nameInp) nameInp.value = "";
@@ -1136,24 +1141,20 @@
       updatePropertyFormulaUI("apartment");
       setVal("inp-apt-address", "");
       setVal("inp-apt-start-year", 2024);
+      setVal("inp-apt-rent-start-year", 2024);
+      setVal("inp-apt-end-age", 85);
       setVal("inp-apt-surface", 35);
       setVal("inp-apt-typology", "T2 (2 pièces)");
       setVal("inp-apt-dpe", "C");
       setVal("inp-apt-price", defaultPrice);
-      setVal("inp-apt-notary", Math.round(defaultPrice * 0.075));
-      setVal("inp-apt-reno", 0);
-      setVal("inp-apt-furniture", 2000);
       setVal("inp-apt-rent", 650);
       setVal("inp-apt-vacance", 5.0);
-      setVal("inp-apt-coop", 900);
-      setVal("inp-apt-tf", 800);
-      setVal("inp-apt-pno", 150);
-      setVal("inp-apt-maintenance", 300);
-      setVal("inp-apt-mgmt-pct", 0.0);
-      setVal("inp-apt-down-payment", 8000);
       setVal("inp-apt-duration", 20);
-      setVal("inp-apt-rate", 3.6);
-      setVal("inp-apt-ins-rate", 0.3);
+      setVal("inp-apt-coop", 600);
+      setVal("inp-apt-tf", 500);
+      setVal("inp-apt-pno", 120);
+      setVal("inp-apt-maintenance", 200);
+      setVal("inp-apt-mgmt-pct", 0.0);
 
       const inpCredit = document.getElementById("inp-apt-monthly-credit");
       if (inpCredit) {
@@ -1211,9 +1212,14 @@
       ? Number(getVal("inp-apt-appreciation"))
       : (category === "house" ? 2.5 : 0.0);
 
+    const startYear = Number(getVal("inp-apt-start-year")) || 2024;
+    const rentStartYear = Number(getVal("inp-apt-rent-start-year")) || startYear;
+
     const aptParams = {
       address: getVal("inp-apt-address") || name,
-      start_year: Number(getVal("inp-apt-start-year")) || 2023,
+      start_year: startYear,
+      rent_start_year: rentStartYear,
+      end_age: Number(getVal("inp-apt-end-age")) || 85,
       surface: Number(getVal("inp-apt-surface")) || 30,
       typology: getVal("inp-apt-typology") || "T2 (2 pièces)",
       dpe_rating: getVal("inp-apt-dpe") || "C",
@@ -1223,23 +1229,25 @@
       renovation_state: "Bon état",
       property_price: Number(getVal("inp-apt-price")) || 90000,
       property_type: "ancien",
-      auto_calc_notary: true,
-      notary_fees: Number(getVal("inp-apt-notary")) || 6750,
-      renovation_cost: Number(getVal("inp-apt-reno")) || 0,
-      furniture_cost: Number(getVal("inp-apt-furniture")) || 2000,
+      auto_calc_notary: false,
+      notary_fees: 0,
+      renovation_cost: 0,
+      furniture_cost: 0,
       monthly_rent: Number(getVal("inp-apt-rent")) || 600,
       vacancy_pct: Number(getVal("inp-apt-vacance")) || 5.0,
-      annual_coop: Number(getVal("inp-apt-coop")) || 900,
-      annual_tf: Number(getVal("inp-apt-tf")) || 800,
-      annual_pno: Number(getVal("inp-apt-pno")) || 150,
-      annual_maintenance: Number(getVal("inp-apt-maintenance")) || 300,
+      monthly_expenses: Math.round(((Number(getVal("inp-apt-coop")) || 0) + (Number(getVal("inp-apt-tf")) || 0) + (Number(getVal("inp-apt-pno")) || 0) + (Number(getVal("inp-apt-maintenance")) || 0) + ((Number(getVal("inp-apt-rent")) || 600) * (1 - (Number(getVal("inp-apt-vacance")) || 5.0) / 100) * 12 * (Number(getVal("inp-apt-mgmt-pct")) || 0) / 100)) / 12),
+      monthly_charges: Math.round(((Number(getVal("inp-apt-coop")) || 0) + (Number(getVal("inp-apt-tf")) || 0) + (Number(getVal("inp-apt-pno")) || 0) + (Number(getVal("inp-apt-maintenance")) || 0) + ((Number(getVal("inp-apt-rent")) || 600) * (1 - (Number(getVal("inp-apt-vacance")) || 5.0) / 100) * 12 * (Number(getVal("inp-apt-mgmt-pct")) || 0) / 100)) / 12),
+      annual_coop: Number(getVal("inp-apt-coop")) || 600,
+      annual_tf: Number(getVal("inp-apt-tf")) || 500,
+      annual_pno: Number(getVal("inp-apt-pno")) || 120,
+      annual_maintenance: Number(getVal("inp-apt-maintenance")) || 200,
       annual_mgmt_pct: Number(getVal("inp-apt-mgmt-pct")) || 0.0,
       monthly_loan_payment: Number(getVal("inp-apt-monthly-credit")) || 0,
-      auto_calc_bank: true,
-      down_payment_input: Number(getVal("inp-apt-down-payment")) || 8000,
+      auto_calc_bank: false,
+      down_payment_input: 0,
       loan_duration: Number(getVal("inp-apt-duration")) || 20,
-      annual_interest_rate: Number(getVal("inp-apt-rate")) || 3.6,
-      annual_insurance_rate: Number(getVal("inp-apt-ins-rate")) || 0.3,
+      annual_interest_rate: 0,
+      annual_insurance_rate: 0,
       user_tmi: 30
     };
 
@@ -1361,12 +1369,8 @@
     return el ? el.value : "";
   }
 
-  function updateAptLiveSummary(triggeredByCreditInput = false) {
+  function updateAptLiveSummary() {
     const price = parseFloat(getVal("inp-apt-price")) || 0;
-    const notary = parseFloat(getVal("inp-apt-notary")) || 0;
-    const furn = parseFloat(getVal("inp-apt-furniture")) || 0;
-    const reno = parseFloat(getVal("inp-apt-reno")) || 0;
-    const down = parseFloat(getVal("inp-apt-down-payment")) || 0;
     const rent = parseFloat(getVal("inp-apt-rent")) || 0;
     const vac = (parseFloat(getVal("inp-apt-vacance")) || 5.0) / 100.0;
     const tf = parseFloat(getVal("inp-apt-tf")) || 0;
@@ -1374,20 +1378,8 @@
     const pno = parseFloat(getVal("inp-apt-pno")) || 0;
     const maint = parseFloat(getVal("inp-apt-maintenance")) || 300;
     const mgmtPct = (parseFloat(getVal("inp-apt-mgmt-pct")) || 0.0) / 100.0;
-    const dur = parseInt(getVal("inp-apt-duration")) || 20;
-    const rate = (parseFloat(getVal("inp-apt-rate")) || 3.6) / 100.0;
-    const insRate = (parseFloat(getVal("inp-apt-ins-rate")) || 0.3) / 100.0;
 
-    const bank = 1500; // standard bank guarantee/file fee in France
-    const total = price + notary + bank + reno + furn;
-    const loan = Math.max(0, total - down);
-
-    // Calculated monthly mortgage payment
-    const r = rate / 12.0;
-    const n = dur * 12;
-    const loanPmt = (loan > 0 && r > 0) ? loan * (r / (1.0 - Math.pow(1.0 + r, -n))) : (loan / Math.max(1, n));
-    const insPmt = (loan * insRate) / 12.0;
-    const calcMonthlyPmt = Math.round(loanPmt + insPmt);
+    const total = price;
 
     // User's manual credit repayment input is the PRIMARY source of truth:
     const inpCredit = document.getElementById("inp-apt-monthly-credit");
@@ -1401,30 +1393,34 @@
 
     // Effective rent after vacancy
     const effectiveRent = rent * (1.0 - vac);
+
+    // Operating expenses calculated directly from Coop, TF, PNO, Maintenance, and Agency fee
     const monthlyMgmtFee = (effectiveRent * 12.0 * mgmtPct) / 12.0;
-    const monthlyOperatingCharges = (coop + tf + pno + maint) / 12.0 + monthlyMgmtFee;
+    const monthlyOperatingCharges = Math.round((coop + tf + pno + maint) / 12.0 + monthlyMgmtFee);
     const totalMonthlyOutflow = actualCreditPmt + monthlyOperatingCharges;
     const netCashflow = effectiveRent - totalMonthlyOutflow;
 
-    // Badges update
-    const badgeRent = document.getElementById("badge-apt-effective-rent");
-    if (badgeRent) {
-      badgeRent.innerText = `Thực thu: ${formatMoneyEUR(Math.round(effectiveRent))}/tháng`;
+    // Header badges for Columns (Rent & Total Expenses)
+    const lblHeaderRent = document.getElementById("lbl-apt-header-rent");
+    if (lblHeaderRent) {
+      lblHeaderRent.innerText = `+${formatMoneyEUR(Math.round(effectiveRent))}/tháng`;
     }
 
-    const badgeExp = document.getElementById("badge-apt-total-expenses");
-    if (badgeExp) {
-      badgeExp.innerText = `Tổng chi: ~${formatMoneyEUR(Math.round(totalMonthlyOutflow))}/tháng (Crédit: ${formatMoneyEUR(actualCreditPmt)} + Phí: ${formatMoneyEUR(Math.round(monthlyOperatingCharges))})`;
+    const lblHeaderExp = document.getElementById("lbl-apt-header-expenses");
+    if (lblHeaderExp) {
+      lblHeaderExp.innerText = `-${formatMoneyEUR(Math.round(totalMonthlyOutflow))}/tháng`;
     }
 
     const lblTotal = document.getElementById("lbl-apt-total-project");
-    const lblLoan = document.getElementById("lbl-apt-loan-amount");
-    const lblDown = document.getElementById("lbl-apt-down-payment");
     const lblNetCf = document.getElementById("lbl-apt-net-cashflow");
+    const lblPayoff = document.getElementById("lbl-apt-payoff-year");
+
+    const startYr = parseInt(getVal("inp-apt-start-year")) || 2024;
+    const dur = parseInt(getVal("inp-apt-duration")) || 20;
+    const payoffYr = startYr + dur;
 
     if (lblTotal) lblTotal.innerText = formatMoneyEUR(total);
-    if (lblLoan) lblLoan.innerText = formatMoneyEUR(loan);
-    if (lblDown) lblDown.innerText = formatMoneyEUR(down);
+    if (lblPayoff) lblPayoff.innerText = `Năm ${payoffYr} (${dur} năm)`;
     if (lblNetCf) {
       const sign = netCashflow >= 0 ? "+" : "";
       lblNetCf.innerText = `${sign}${formatMoneyEUR(Math.round(netCashflow))}/tháng`;
@@ -1460,8 +1456,6 @@
       });
     }
 
-
-
     // Chuyển đổi công thức Nhà mặt đất vs Căn hộ chung cư
     const selCat = document.getElementById("inp-apt-category");
     if (selCat) {
@@ -1475,45 +1469,6 @@
       });
     }
 
-    // Auto-calculate Notary Fees (~7.5% in France) when property price changes
-    const inpPrice = document.getElementById("inp-apt-price");
-    const inpNotary = document.getElementById("inp-apt-notary");
-    if (inpPrice && inpNotary) {
-      inpPrice.addEventListener("input", () => {
-        const p = parseFloat(inpPrice.value) || 0;
-        inpNotary.value = Math.round(p * 0.075);
-        updateAptLiveSummary();
-      });
-    }
-
-    // Monthly Credit recalculate button (Only on manual user request)
-    const btnRecalcCredit = document.getElementById("btn-recalc-apt-credit");
-    if (btnRecalcCredit) {
-      btnRecalcCredit.addEventListener("click", () => {
-        const inpCredit = document.getElementById("inp-apt-monthly-credit");
-        if (inpCredit) {
-          const price = parseFloat(getVal("inp-apt-price")) || 0;
-          const notary = parseFloat(getVal("inp-apt-notary")) || 0;
-          const furn = parseFloat(getVal("inp-apt-furniture")) || 0;
-          const reno = parseFloat(getVal("inp-apt-reno")) || 0;
-          const down = parseFloat(getVal("inp-apt-down-payment")) || 0;
-          const dur = parseInt(getVal("inp-apt-duration")) || 20;
-          const rate = (parseFloat(getVal("inp-apt-rate")) || 3.6) / 100.0;
-          const insRate = (parseFloat(getVal("inp-apt-ins-rate")) || 0.3) / 100.0;
-          const bank = 1500;
-          const total = price + notary + bank + reno + furn;
-          const loan = Math.max(0, total - down);
-          const r = rate / 12.0;
-          const n = dur * 12;
-          const loanPmt = (loan > 0 && r > 0) ? loan * (r / (1.0 - Math.pow(1.0 + r, -n))) : (loan / Math.max(1, n));
-          const insPmt = (loan * insRate) / 12.0;
-          const estPmt = Math.round(loanPmt + insPmt);
-          inpCredit.value = estPmt;
-          updateAptLiveSummary();
-        }
-      });
-    }
-
     // Direct input on Monthly Credit
     const inpCredit = document.getElementById("inp-apt-monthly-credit");
     if (inpCredit) {
@@ -1522,12 +1477,30 @@
       });
     }
 
-    // Live update apartment modal summary on cost & revenue inputs (without modifying monthly credit!)
+    // Lắng nghe các chi phí chi tiết để tự động cập nhật tổng chi và dòng tiền
+    ["inp-apt-coop", "inp-apt-tf", "inp-apt-pno", "inp-apt-maintenance", "inp-apt-mgmt-pct"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("input", () => updateAptLiveSummary());
+    });
+
+    // Tự động gợi ý năm bắt đầu thu tiền khi thay đổi năm mua
+    const inpStartYr = document.getElementById("inp-apt-start-year");
+    const inpRentStartYr = document.getElementById("inp-apt-rent-start-year");
+    if (inpStartYr && inpRentStartYr) {
+      inpStartYr.addEventListener("change", () => {
+        const buyYr = parseInt(inpStartYr.value) || 2024;
+        const currentRentYr = parseInt(inpRentStartYr.value);
+        if (isNaN(currentRentYr) || currentRentYr < buyYr) {
+          inpRentStartYr.value = buyYr;
+        }
+        updateAptLiveSummary();
+      });
+    }
+
+    // Live update apartment modal summary on cost & revenue inputs
     [
-      "inp-apt-price", "inp-apt-notary", "inp-apt-furniture", "inp-apt-reno",
-      "inp-apt-down-payment", "inp-apt-rent", "inp-apt-vacance", "inp-apt-tf",
-      "inp-apt-coop", "inp-apt-pno", "inp-apt-maintenance", "inp-apt-mgmt-pct",
-      "inp-apt-duration", "inp-apt-rate", "inp-apt-ins-rate"
+      "inp-apt-start-year", "inp-apt-rent-start-year", "inp-apt-price", "inp-apt-appreciation",
+      "inp-apt-rent", "inp-apt-vacance", "inp-apt-end-age", "inp-apt-duration"
     ].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener("input", () => updateAptLiveSummary());

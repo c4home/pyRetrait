@@ -674,3 +674,256 @@ Sau khi đã upload lên Server và có đường link web thật, bạn **KHÔN
 | **Giai đoạn 6C. Kiểm duyệt Bảo mật & Chống sập trước khi Upload** | *"Tôi chuẩn bị upload lên Server. Hãy chạy `./verify_js.sh`, rà soát các code mới thêm xem có nguy cơ XSS (thiếu `escapeHtml`), thiếu `NaN/Infinity` guard, lộ API Key hay quên tăng `?v=...` trong `index.html` không, rồi báo cáo trạng thái sẵn sàng deploy."* |
 | **Giai đoạn 6D. Test tấn công Bảo mật trực tiếp trên Link Web thật (200 token)** | *"Web thật đang chạy tại `http://144.217.95.231:8080`. Không mở `browser_subagent`, hãy chạy `./verify_js.sh --live http://144.217.95.231:8080` để bắn 7 bài test bảo mật thực tế và báo cáo kết quả."* |
 | **Khi phiên chat đã dài 10–12 lượt hoặc vừa rút ra kinh nghiệm mới** | Gõ `/compact` (nếu đang dở việc), gõ `/learn` (để AI nhớ vĩnh viễn quy tắc vừa dạy), hoặc bấm **`New Chat (+)`** (nếu đã xong việc). |
+
+---
+
+## Phần IV. Chiến Lược Mô-Đun Hóa (Modularity Architecture) & Quy Trình Hợp Tác Đa Lập Trình Viên / Đa AI (Zero-Conflict Team Collaboration)
+
+### 1. Nỗi Đau Thực Tế: Vì Sao "Làm Một Mình Với AI Rất Mệt" & Nỗi Sợ Khi Có Người Khác Cùng Làm?
+
+Khi bạn tự mình dùng AI xây dựng một ứng dụng từ con số 0, ở giai đoạn đầu tốc độ phát triển cực kỳ nhanh. Nhưng khi ứng dụng lớn dần lên (hàng ngàn dòng code, nhiều phân hệ logic, nhiều tab giao diện):
+- **Bạn bắt đầu kiệt sức vì làm "một mình gánh tất":** Vừa phải nghĩ nghiệp vụ, vừa ra prompt cho AI, vừa kiểm thử số liệu, vừa rà soát giao diện và canh chừng token. Bạn muốn san sẻ công việc cho lập trình viên khác, đối tác, freelancer hoặc mở nhiều phiên AI Agent làm song song cùng lúc.
+- **Nhưng bạn lại vấp phải nỗi sợ "Khủng hoảng Ghép Code" (Merge & Integration Nightmare):**
+  - Sợ người khác (hoặc AI khác) sửa vào file làm hỏng những tính năng bạn đã dày công hoàn thiện trước đó.
+  - Sợ xung đột mã nguồn gay gắt (Git Merge Conflicts) trên các file khổng lồ dùng chung như `index.html`, `styles.css` hay `i18n.js`.
+  - Sợ lệch tên biến trong dữ liệu (Data Schema Drifting) khiến người này lưu `retirement_age` còn người kia đọc `retireAge`, dẫn đến ứng dụng lăn ra lỗi `undefined` hoặc `NaN`.
+  - Sợ vỡ giao diện CSS do đặt trùng tên class (ví dụ cả 2 người cùng đặt class `.card` hay `.item` nhưng với hai màu nền và viền trái ngược nhau).
+
+Để giải quyết triệt để vấn đề này và chuyển hóa dự án từ **"Một mình gánh vác"** thành **"Cỗ máy hợp tác trơn tru"**, ứng dụng bắt buộc phải được thiết kế theo **Mô hình Mô-Đun Hóa 5 Lớp Chống Xung Đột (The 5-Layer Zero-Conflict Modularity Framework)** dưới đây:
+
+```mermaid
+flowchart TD
+    subgraph L1["Lớp 1: Đóng Băng Hợp Đồng Dữ Liệu (Contract-First Schema)"]
+        S1["PROJECT_BLUEPRINT.md chốt Schema"] --> S2["Mỗi Module sở hữu 1 Namespace riêng biệt"]
+    end
+    subgraph L2["Lớp 2: Kiến Trúc Phân Lập Code & DOM (Decoupled Isolation)"]
+        D1["DOM: Container ID Độc Lập (#mod-health-root)"]
+        D2["CSS: Tiền Tố Namespace Scoping (.hlth-*, .tax-*)"]
+        D3["Logic: Giao tiếp qua Event Bus (Pub/Sub)"]
+    end
+    subgraph L3["Lớp 3: Mô-Đun Hóa Đa Ngôn Ngữ Tự Đăng Ký (Decentralized i18n)"]
+        I1["I18n.registerModule('health', dict)"] --> I2["Không sửa chung file i18n.js"]
+    end
+    subgraph L4["Lớp 4: Hồ Sơ Nhiệm Vụ Khép Kín Cho Người Khác (Task Brief)"]
+        T1["White-list: File & Biến được phép sửa"]
+        T2["Black-list: Vùng cấm địa (Core Engine, Shared DOM)"]
+    end
+    subgraph L5["Lớp 5: Trọng Tài Tự Động Hóa & Git Ghép Nhánh (Gatekeeper CI)"]
+        G1["Feature Branch -> ./verify_js.sh tự động test"] --> G2["Merge vào main trong 3 phút không xung đột"]
+    end
+    L1 --> L2 --> L3 --> L4 --> L5
+```
+
+---
+
+### 2. Lớp 1 — Đóng Băng Hợp Đồng Dữ Liệu & Phân Quyền Namespace (Contract-First Schema)
+
+Nguyên tắc số 1 để nhiều người cùng làm mà không giẫm chân lên nhau: **Không ai được phép tự ý bịa thêm biến vào State chung mà chưa có sự đồng thuận trên bản thiết kế.**
+
+1. **Phân chia Không Gian Tên Dữ Liệu (Data Namespacing):**
+   - Thay vì để mọi biến phẳng lỳ trong đối tượng `plan` (dễ bị ghi đè lẫn nhau), mỗi phân hệ tính năng phải có một "ngăn kéo" riêng biệt:
+     ```javascript
+     // Cấu trúc phân quyền dữ liệu rõ ràng trong PROJECT_BLUEPRINT.md
+     const plan = {
+       // --- Dữ liệu nền tảng cốt lõi (Core Engine sở hữu, chỉ đọc) ---
+       id: "plan_123",
+       currentAge: 35,
+       retireAge: 62,
+       
+       // --- Namespace của Nhóm Tab 1 (Dòng tiền & Tài sản) ---
+       streams: { monthlySavings: 1500, expenses: 2000, ... },
+       
+       // --- Namespace của Nhóm Tab 2 (Sức khỏe & Tuổi thọ) ---
+       health: { bioAge: 33, healthspanScore: 85, lifestyleFactors: {...} },
+       
+       // --- Namespace của Nhóm Tab 3 (Thuế & Bất động sản LMNP) ---
+       taxes: { taxParts: 2.0, lmnpProperties: [...], foreignAccounts: [...] }
+     };
+     ```
+2. **Quy tắc Sở Hữu Dữ Liệu (Data Ownership Rule):**
+   - Người phụ trách Tab 2 **chỉ có quyền ghi vào `plan.health`**, tuyệt đối không được sửa đổi trực tiếp vào `plan.taxes` hay `plan.streams`.
+   - Nếu Tab 2 cần dùng tuổi nghỉ hưu, họ chỉ được **đọc** `plan.retireAge`, không được thay đổi giá trị của nó.
+
+---
+
+### 3. Lớp 2 — Kiến Trúc Phân Lập Giao Diện & Giao Tiếp Bằng Event Bus (Decoupled DOM & Event-Driven)
+
+Nguyên nhân lớn nhất gây xung đột khi ghép code là các lập trình viên **gọi trực tiếp hàm nội bộ của nhau** hoặc **cùng sửa chung vào một khối thẻ HTML / class CSS**.
+
+#### 2.1. Phân Lập Khung HTML Bằng Container ID Độc Lập
+- Trên trang chính `index.html`, bạn (với vai trò Kiến trúc sư trưởng / Tech Lead) chỉ cần tạo ra các "vùng đất cắm cọc" trống:
+  ```html
+  <!-- Khu vực do Người A phụ trách -->
+  <section id="module-cashflow-root" class="tab-pane active"></section>
+
+  <!-- Khu vực do Người B phụ trách -->
+  <section id="module-health-root" class="tab-pane"></section>
+
+  <!-- Khu vực do Người C phụ trách -->
+  <section id="module-taxes-root" class="tab-pane"></section>
+  ```
+- Người làm Tab B chỉ render HTML bên trong `#module-health-root`, hoàn toàn không chạm vào các dòng HTML của Người A hay Người C. Khi ghép code, `index.html` chỉ cần thêm đúng 1 dòng `<script src="js/ui-tab2-health.js"></script>` là xong!
+
+#### 2.2. Quy Chuẩn Đặt Tên CSS Có Tiền Tố Riêng (CSS Namespace Scoping)
+- Để tránh việc 2 người cùng đặt tên class `.title`, `.badge`, `.metric-value` nhưng ghi đè style của nhau, bắt buộc áp dụng quy tắc tiền tố theo module:
+  - Tab 1: `.cf-*` (Cash Flow — ví dụ `.cf-card`, `.cf-metric-row`).
+  - Tab 2: `.hlth-*` (Health — ví dụ `.hlth-bioage-card`, `.hlth-badge-safe`).
+  - Tab 3: `.tax-*` (Taxes & Real Estate — ví dụ `.tax-lmnp-table`, `.tax-deduction-chip`).
+- Tách file CSS theo từng phân hệ: Thay vì nhét 9.000 dòng vào `styles.css`, chia thành `css/modules/tab1-streams.css`, `css/modules/tab2-health.css`... Người nào làm tính năng nào chỉ sửa đúng file CSS của phân hệ đó.
+
+#### 2.3. Giao Tiếp Giữa Các Module Bằng Event Bus (Loose Coupling via Pub/Sub)
+- **Tuyệt đối cấm:** Tab 2 gọi trực tiếp `window.Tab1Streams.renderChart()` hoặc gọi hàm của Tab 3. Nếu Tab 1 đổi tên hàm, Tab 2 sẽ sập ngay lập tức!
+- **Chuẩn giao tiếp bằng Custom Event:**
+  - Khi một module làm thay đổi dữ liệu (ví dụ: người dùng cập nhật tuổi nghỉ hưu hoặc tình trạng hôn nhân), module đó chỉ cần bắn ra 1 sự kiện:
+    ```javascript
+    // Tab 1 hoặc Quick Setup Wizard thông báo dữ liệu đã đổi
+    window.dispatchEvent(new CustomEvent('pyretrait:plan-updated', {
+      detail: { planId: activePlan.id, timestamp: Date.now() }
+    }));
+    ```
+  - Các module khác (Tab 2, Tab 3) chỉ việc lắng nghe sự kiện này và tự kích hoạt hàm render nội bộ của chính mình:
+    ```javascript
+    // Trong ui-tab2-health.js
+    window.addEventListener('pyretrait:plan-updated', () => {
+      const plan = window.AppState.getActivePlan();
+      renderHealthTab(plan);
+    });
+    ```
+  - **Lợi ích vàng:** Bạn có thể tháo rời, nâng cấp, viết lại toàn bộ Tab 2 hoặc tắt bỏ tạm thời Tab 3 mà toàn bộ phần còn lại của ứng dụng vẫn chạy 100% bình thường, không sinh ra bất kỳ lỗi `undefined is not a function` nào!
+
+---
+
+### 4. Lớp 3 — Mô-Đun Hóa Đa Ngôn Ngữ Tự Đăng Ký (Decentralized i18n Registration)
+
+File `i18n.js` thường là "điểm nóng xung đột Git" (Merge Conflict Hotspot) lớn nhất vì tính năng nào cũng cần dịch Tiếng Việt, Tiếng Anh, Tiếng Pháp. Nếu 3 người cùng chèn thêm chữ vào file này, Git sẽ báo xung đột dòng liên tục.
+
+- **Giải pháp: Cơ chế Tự Đăng Ký Từ Điển (`Dynamic Translation Registration`):**
+  - Trong `i18n.js`, cung cấp một hàm mở rộng:
+    ```javascript
+    window.I18n = {
+      // ... từ điển nền tảng dùng chung (header, footer, nút bấm chung) ...
+      registerTranslations: function(namespace, translationsByLang) {
+        // translationsByLang: { vi: {...}, en: {...}, fr: {...} }
+        ['vi', 'en', 'fr'].forEach(lang => {
+          if (translationsByLang[lang]) {
+            Object.assign(DICTIONARY[lang], translationsByLang[lang]);
+          }
+        });
+        // Kích hoạt render lại chữ trên màn hình nếu cần
+        window.I18n.applyTranslations();
+      }
+    };
+    ```
+  - Người làm Tab 2 hoặc AI phụ trách phân hệ mới chỉ cần khai báo từ điển ngay đầu file của họ (`ui-tab2-health.js`) hoặc trong 1 file con `i18n-tab2.js`:
+    ```javascript
+    // Tự đăng ký từ vựng riêng của Tab Sức Khỏe, không cần đụng vào file i18n.js gốc!
+    window.I18n.registerTranslations('health', {
+      vi: { 'hlth.bioAge': 'Tuổi sinh học', 'hlth.safe': 'Dẻo dai' },
+      en: { 'hlth.bioAge': 'Biological Age', 'hlth.safe': 'Resilient' },
+      fr: { 'hlth.bioAge': 'Âge Biologique', 'hlth.safe': 'Résistant' }
+    });
+    ```
+  - Khi ghép code: **Không ai đụng vào `i18n.js` gốc**, loại bỏ hoàn toàn 100% nguy cơ merge conflict về ngôn ngữ!
+
+---
+
+### 5. Lớp 4 — Hồ Sơ Nhiệm Vụ Khép Kín Khi Phân Việc Cho Người Khác / AI Khác (Self-Contained Task Brief)
+
+Khi bạn muốn san sẻ một tính năng cho một lập trình viên khác (hoặc bật một cửa sổ AI Agent mới), **sai lầm lớn nhất** là giao việc bằng miệng hoặc nói chung chung: *"Làm giúp tôi tính năng tính khấu hao BĐS LMNP nhé"*. Người đó sẽ bắt đầu đọc mò vào toàn bộ dự án, sửa lung tung vào các file lõi và làm hỏng hệ thống.
+
+Hãy dùng **Mẫu Hồ Sơ Nhiệm Vụ Khép Kín (Task Brief Contract)** dưới đây gửi cho họ (Copy & Paste):
+
+```markdown
+# HỒ SƠ NHIỆM VỤ ĐỘC LẬP: TÍNH NĂNG [TÊN TÍNH NĂNG]
+
+## 1. Mục Tiêu & Yêu Cầu Nghiệp Vụ
+- Mô tả ngắn gọn: [Tính toán và hiển thị bảng khấu hao căn hộ LMNP Pháp].
+- Tham khảo giao diện mẫu: Xem ASCII Wireframe hoặc file nháp `frontend/preview.html`.
+
+## 2. Phạm Vi Quyền Hạn File (White-List vs Black-List — Cực Kỳ Quan Trọng)
+- **VÙNG ĐƯỢC PHÉP TẠO MỚI / CHỈNH SỬA (White-list):**
+  - Tạo mới file logic: `frontend/js/ui-tab3-lmnp.js` (không quá 1.000 dòng).
+  - Tạo mới file CSS: `frontend/css/modules/lmnp.css` (dùng tiền tố `.lmnp-*`).
+  - Viết hàm kiểm thử trong: `tests/test_lmnp.js`.
+- **VÙNG CẤM ĐỊA TUYỆT ĐỐI KHÔNG CHẠM VÀO (Black-list):**
+  - CẤM sửa `frontend/js/engine.js` và `frontend/js/state.js` gốc.
+  - CẤM sửa cấu trúc chung của `frontend/index.html` (chỉ được render nội dung vào container `<div id="lmnp-container-root">` đã cấp sẵn).
+  - CẤM sửa các class CSS dùng chung (`.card`, `.btn`, `.modal`).
+
+## 3. Hợp Đồng Dữ Liệu Đầu Vào & Đầu Ra (Data Contract)
+- **Đầu vào (Chỉ đọc từ AppState):**
+  - `const plan = window.AppState.getActivePlan();`
+  - Lấy trường: `plan.lmnpProperties` (mảng danh sách BĐS).
+- **Đầu ra (Ghi kết quả):**
+  - Khi người dùng thêm BĐS mới, chỉ cập nhật vào `plan.lmnpProperties`, sau đó gọi:
+    `window.dispatchEvent(new CustomEvent('pyretrait:plan-updated'));`
+
+## 4. Tiêu Chuẩn Nghiệm Thu Kỹ Thuật (Acceptance Criteria)
+1. Cú pháp JS hợp lệ 100%, chạy `./verify_js.sh` báo `[OK]`.
+2. Hỗ trợ song song Dark Mode & Light Mode bằng biến CSS (`var(--bg-card)`, `var(--text-main)`).
+3. Đăng ký từ điển đa ngôn ngữ (vi, en, fr) qua `window.I18n.registerTranslations()`.
+4. Không có lỗi `NaN` hay `Infinity` khi người dùng nhập số 0 hoặc để trống ô.
+```
+
+---
+
+### 6. Lớp 5 — Quy Trình Git Nhánh Độc Lập & Trọng Tài Tự Động Hóa (Git Feature Branching & Automated Gatekeeper)
+
+Để việc ghép code diễn ra trong 3 phút mà không có bất kỳ rủi ro nào:
+
+```mermaid
+gitGraph
+   commit id: "v2.4.0 (Main)"
+   branch feat/tab2-health
+   checkout feat/tab2-health
+   commit id: "Tạo ui-tab2-health.js"
+   commit id: "Thêm CSS .hlth-*"
+   checkout main
+   branch feat/tab3-lmnp
+   checkout feat/tab3-lmnp
+   commit id: "Tạo ui-tab3-lmnp.js"
+   checkout feat/tab2-health
+   commit id: "verify_js [OK]"
+   checkout main
+   merge feat/tab2-health id: "Merge nhánh Health (3 phút)"
+   checkout feat/tab3-lmnp
+   merge main id: "Rebase nhận code mới"
+   commit id: "verify_js [OK]"
+   checkout main
+   merge feat/tab3-lmnp id: "Merge nhánh LMNP (Không conflict)"
+```
+
+1. **Nguyên Tắc Phân Nhánh Git (Feature Branch Isolation):**
+   - Không ai (kể cả bạn khi thử nghiệm tính năng mới) được commit thẳng lên nhánh `main`.
+   - Mỗi người làm trên một nhánh độc lập:
+     - Bạn A: `git checkout -b feat/tab2-bioage`
+     - Bạn B: `git checkout -b feat/tab3-lmnp`
+2. **Quy Trình Kiểm Tra Bằng Trọng Tài Tự Động (`./verify_js.sh`):**
+   - Trước khi yêu cầu ghép nhánh (Pull Request), lập trình viên phải chạy lệnh kiểm thử trên máy của mình:
+     ```bash
+     ./verify_js.sh
+     ```
+   - Nếu có lỗi cú pháp, rò rỉ API key hoặc gõ sai quy tắc CSS: `./verify_js.sh` sẽ chặn lại ngay, không cho phép gửi code lỗi lên kho chung.
+3. **Quy Trình Nhạc Trưởng Ghép Nhánh (Integration Review Trong 3 Phút):**
+   - Khi Bạn A nộp nhánh `feat/tab2-bioage`:
+     1. Bạn mở Pull Request xem danh sách file thay đổi: Bạn A **chỉ sửa đúng 2 file riêng biệt** (`ui-tab2-health.js` và `tab2-health.css`), hoàn toàn không đụng vào `engine.js` hay `index.html`.
+     2. Bấm nút **Merge** trên GitHub / Git: **Xác suất conflict = 0%**!
+     3. Bạn mở `index.html` thêm đúng 1 dòng nhúng file của Bạn A, tăng `?v=...` và deploy lên server.
+   - Khi Bạn B chuẩn bị nộp nhánh `feat/tab3-lmnp`:
+     - Bạn B chỉ cần gõ `git merge main` để cập nhật các cải tiến của Bạn A vào máy mình. Nhờ các module nằm ở các file độc lập, việc merge này diễn ra tự động 100% trong 1 giây.
+
+---
+
+### 7. Tóm Tắt Bản Tuyên Ngôn: 6 Điều Khoản "Thảnh Thơi Khi Mở Rộng Đội Ngũ"
+
+| Điều khoản | Trước đây (Làm một mình, ôm đồm, mệt mỏi) | Sau khi Mô-Đun Hóa (Nhiều người/AI cùng làm trơn tru) |
+| :--- | :--- | :--- |
+| **1. Quản lý File** | Gom toàn bộ vào 1 vài file khổng lồ 5.000–8.000 dòng. | Mỗi tính năng là 1 file JS + 1 file CSS độc lập dưới 1.000 dòng. |
+| **2. Giao tiếp giữa các Tab** | Gọi chéo hàm nội bộ của nhau, đổi tên là sập cả web. | Giao tiếp 100% qua sự kiện Event Bus (`pyretrait:plan-updated`). |
+| **3. Cấu trúc Dữ liệu** | Mỗi người tự ý đặt tên biến mới trong State. | Đóng băng Schema trong `PROJECT_BLUEPRINT.md`, chia Namespace rõ ràng. |
+| **4. Đa ngôn ngữ i18n** | Cùng sửa vào 1 file `i18n.js` duy nhất, liên tục conflict Git. | Tự đăng ký từ điển qua `window.I18n.registerTranslations()`. |
+| **5. Phân công công việc** | Giao việc mơ hồ, người làm sau sửa đè vào code người làm trước. | Giao việc bằng **Hồ Sơ Nhiệm Vụ Độc Lập** (có White-list & Black-list file). |
+| **6. Ghép mã nguồn (Merge)** | Nơm nớp lo sợ vỡ web, mất cả ngày để gỡ merge conflict. | Trọng tài `./verify_js.sh` duyệt tự động, ghép nhánh trong 3 phút không lỗi. |
+
+Áp dụng trọn vẹn 5 lớp mô-đun hóa này sẽ giải phóng bạn khỏi sự kiệt sức của việc phát triển đơn độc, giúp bạn tự tin chia việc cho cộng sự hoặc điều phối nhiều AI Agent cùng xây dựng ứng dụng với tốc độ vượt trội mà hệ thống vẫn luôn ổn định, vững như bàn thạch!
+

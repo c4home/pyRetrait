@@ -2288,25 +2288,22 @@
             </div>
           </div>
         </div>
-
-        <!-- Nguồn gốc dữ liệu & Công thức tính -->
-        <details class="formula-accordion" style="grid-column: 1 / -1; margin-top: 0.35rem;">
-          <summary class="formula-toggle-btn">
-            <span>${window.I18n ? window.I18n.t("lbl_view_formula_ppp", "Xem nguồn dữ liệu & công thức đối chiếu PPP") : "Xem nguồn dữ liệu & công thức đối chiếu PPP"}</span>
-            <span class="formula-toggle-arrow">▾</span>
-          </summary>
-          <div class="formula-inline-box formula-info" style="font-size: 0.68rem; padding: 0.35rem 0.55rem; border-radius: 4px;">
-            <div class="formula-tag" style="font-size: 0.65rem; margin-bottom: 0.15rem;">Nguồn dữ liệu &amp; Công thức đối chiếu</div>
-            <div style="display: flex; flex-direction: column; gap: 0.12rem; line-height: 1.35;">
-              <code>• Chi tiêu hưu trí = ${(!hasCustomIncome || monthlyIncome <= 0)
-                ? `Mức sống tham chiếu ${targetCityDisplayName}`
-                : (isDomestic ? '(Thu nhập - Tiết kiệm - Nợ nhà)' : `(Thu nhập - Tiết kiệm - Nợ nhà) × PPP (${targetCityDisplayName}: ${pppPercentDisplay}%)`)} + Y tế (${calc.seniorHealthAddon} ${cur === 'EUR' ? '€' : cur})</code>
-              <code>• Công thức 3 mốc = Mức sống tham chiếu ${isDomestic ? targetCityDisplayName : 'quy đổi PPP (' + targetCityDisplayName + ')'} × ${isMarried ? '1.6 (hộ 2 người)' : '1.0 (cá nhân 1 người)'}${isDomestic ? '' : ` × ${pppPercentDisplay}%`}</code>
-              <code>• Nguồn dữ liệu: Khảo sát mức sống hộ gia đình OECD, INSEE, World Bank${isDomestic ? '' : ' PPP'} &amp; Numbeo 2024</code>
-            </div>
-          </div>
-        </details>
       `;
+
+      // Cập nhật công thức đối chiếu PPP nằm ở dưới section 3 Giai đoạn
+      const pppFormulaContent = document.getElementById("content-retire-ppp-formula");
+      if (pppFormulaContent) {
+        pppFormulaContent.innerHTML = `
+          <div class="formula-tag" style="font-size: 0.65rem; margin-bottom: 0.15rem;">Nguồn dữ liệu &amp; Công thức đối chiếu</div>
+          <div style="display: flex; flex-direction: column; gap: 0.12rem; line-height: 1.35;">
+            <code>• Chi tiêu hưu trí = ${(!hasCustomIncome || monthlyIncome <= 0)
+              ? `Mức sống tham chiếu ${targetCityDisplayName}`
+              : (isDomestic ? '(Thu nhập - Tiết kiệm - Nợ nhà)' : `(Thu nhập - Tiết kiệm - Nợ nhà) × PPP (${targetCityDisplayName}: ${pppPercentDisplay}%)`)} + Y tế (${calc.seniorHealthAddon} ${cur === 'EUR' ? '€' : cur})</code>
+            <code>• Công thức 3 mốc = Mức sống tham chiếu ${isDomestic ? targetCityDisplayName : 'quy đổi PPP (' + targetCityDisplayName + ')'} × ${isMarried ? '1.6 (hộ 2 người)' : '1.0 (cá nhân 1 người)'}${isDomestic ? '' : ` × ${pppPercentDisplay}%`}</code>
+            <code>• Nguồn dữ liệu: Khảo sát mức sống hộ gia đình OECD, INSEE, World Bank${isDomestic ? '' : ' PPP'} &amp; Numbeo 2024</code>
+          </div>
+        `;
+      }
     }
   }
 
