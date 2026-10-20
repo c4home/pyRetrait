@@ -526,9 +526,9 @@
     updateAssetAllocationUI(p, false);
 
     // 2. Dual Inflation & Forex Sync
+    const chkDual = document.getElementById("chk-dual-inflation-enabled");
+    if (chkDual) chkDual.checked = p.dualInflation ? (p.dualInflation.enabled !== false) : true;
     if (p.dualInflation) {
-      const chkDual = document.getElementById("chk-dual-inflation-enabled");
-      if (chkDual) chkDual.checked = p.dualInflation.enabled !== false;
       setVal("inp-inflation-pre", p.dualInflation.inflationPre || 2.2);
       setVal("inp-inflation-post", p.dualInflation.inflationPost || 4.0);
       setVal("inp-forex-base", p.dualInflation.eurVndInitialRate || 27500);

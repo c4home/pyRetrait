@@ -28,7 +28,7 @@
   <script src="js/icons-bundle.js?v=20261018_v1"></script>
 
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=20261019_v170">
+  <link rel="stylesheet" href="css/styles.css?v=20261020_v186">
 </head>
 
 <body>
@@ -168,50 +168,52 @@
           <span class="metric-label">Tỷ lệ thành công:</span>
           <span class="metric-value text-success" id="summary-success-prob">94.8%</span>
         </div>
-        <div class="formula-inline-box formula-success"
-          style="margin-top: 0.5rem; font-size: 0.72rem; padding: 0.5rem 0.6rem; border-radius: var(--radius-md);">
-          <div class="formula-tag" style="margin-bottom: 0.35rem; font-size: 0.72rem; font-weight: 700;">
-            Điều Kiện Đạt Tự Do Tài Chính
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 0.3rem; line-height: 1.45;">
-            <div>
-              <span style="color: var(--text-main); font-weight: 600;">1. Tiền cần bù đắp mỗi năm:</span>
-              <div style="color: var(--text-muted); font-size: 0.68rem; margin-top: 0.05rem;">
-                = Chi tiêu hưu − Lương hưu − Thu nhập thụ động
-              </div>
+        <details class="formula-accordion">
+          <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_fire">Xem tiêu chuẩn & công thức tính tự do tài chính</span>
+            <span class="formula-toggle-arrow">▾</span>
+          </summary>
+          <div class="formula-inline-box formula-success"
+            style="margin-top: 0.35rem; font-size: 0.72rem; padding: 0.5rem 0.6rem; border-radius: var(--radius-md);">
+            <div class="formula-tag" style="margin-bottom: 0.35rem; font-size: 0.72rem; font-weight: 700;">
+              Tiêu Chuẩn Tự Do Tài Chính
             </div>
-            <div>
-              <span style="color: var(--text-main); font-weight: 600;">2. Tài sản mục tiêu cần tích lũy:</span>
-              <div style="color: var(--text-muted); font-size: 0.68rem; margin-top: 0.05rem;">
-                = Tiền cần bù đắp × Hệ số an toàn (25 – 30 lần)
-              </div>
-            </div>
-            <div
-              style="color: var(--text-muted); font-size: 0.67rem; border-top: 1px dashed var(--border-subtle); padding-top: 0.25rem; margin-top: 0.1rem; line-height: 1.4;">
-              • <strong>Hưu ≤ 30 năm:</strong> Cần gấp <strong>25 lần</strong><br>
-              • <strong>Hưu 30–35 năm:</strong> Cần gấp <strong>28 lần</strong><br>
-              • <strong>Hưu &gt; 35 năm:</strong> Cần gấp <strong>30 lần</strong>
-            </div>
-            <div>
-              <span style="color: var(--text-main); font-weight: 600;">3. Chịu được các biến cố thị trường:</span>
-              <div style="color: var(--text-muted); font-size: 0.68rem; margin-top: 0.05rem;">
-                1,000 kịch bản thị trường đạt tỷ lệ thành công ≥ 80%
-              </div>
-            </div>
-            <div>
-              <span style="color: var(--text-main); font-weight: 600;">4. Chịu được các biến cố lớn cuộc đời:</span>
-              <div id="sidebar-stress-status"
-                style="color: var(--text-muted); font-size: 0.68rem; margin-top: 0.05rem; line-height: 1.45;">
-                <div>Bệnh tật, Khủng hoảng, Lạm phát</div>
+            <div style="display: flex; flex-direction: column; gap: 0.35rem; line-height: 1.45;">
+              <!-- Trụ Cột 1 -->
+              <div>
+                <span style="color: var(--text-main); font-weight: 600;">1. Vốn trước khi về hưu:</span>
+                <div style="color: var(--text-muted); font-size: 0.68rem; margin-top: 0.08rem; line-height: 1.4;">
+                  • Tài sản thanh khoản (trừ BĐS) ≥ 25–30 lần khoản thiếu.<br>
+                  • <em>Khoản thiếu = Chi tiêu hưu − Thu nhập hưu</em>
+                </div>
                 <div
-                  style="color: var(--text-muted); font-size: 0.67rem; border-top: 1px dashed var(--border-subtle); padding-top: 0.25rem; margin-top: 0.1rem; line-height: 1.4;">
-                  • <strong>Sàn tài sản:</strong> Cần <strong>≥ 5 năm</strong> chi tiêu<br>
-                  • <strong>Chi tiêu &amp; Mức sống:</strong> Đảm bảo <strong>≥ 80%</strong>
+                  style="color: var(--text-muted); font-size: 0.67rem; border-top: 1px dashed var(--border-subtle); padding-top: 0.25rem; margin-top: 0.15rem; line-height: 1.4;">
+                  - <strong>Hưu ≤ 30 năm:</strong> Cần gấp <strong>25 lần</strong><br>
+                  - <strong>Hưu 30–35 năm:</strong> Cần gấp <strong>28 lần</strong><br>
+                  - <strong>Hưu &gt; 35 năm:</strong> Cần gấp <strong>30 lần</strong>
+                </div>
+              </div>
+
+              <!-- Trụ Cột 2 -->
+              <div>
+                <span style="color: var(--text-main); font-weight: 600;">2. Chịu được biến động thị trường:</span>
+                <div style="color: var(--text-muted); font-size: 0.68rem; margin-top: 0.08rem;">
+                  • Mô phỏng 1,000 kịch bản ngẫu nhiên đạt tỷ lệ thành công ≥ 80%.
+                </div>
+              </div>
+
+              <!-- Trụ Cột 3 -->
+              <div>
+                <span style="color: var(--text-main); font-weight: 600;">3. Chịu được biến cố bệnh tật, khủng hoảng:</span>
+                <div id="sidebar-stress-status"
+                  style="color: var(--text-muted); font-size: 0.67rem; margin-top: 0.08rem; line-height: 1.45;">
+                  • Tài sản thanh khoản tại mọi thời điểm luôn <strong>≥ 5 năm khoản tiền thiếu</strong><br>
+                  • Chi tiêu thực tế luôn giữ vững <strong>≥ 80%</strong> kế hoạch ban đầu (không bị bóp nghẹt chi tiêu thiết yếu)
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </details>
 
       </div>
     </aside>
@@ -455,15 +457,21 @@
                       </div>
 
                       <!-- Công thức Lợi Nhuận Trọng Số Danh Mục -->
-                      <div class="formula-inline-box formula-success"
-                        style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
-                        <div class="formula-tag">Quy Chuẩn Phân Bổ & Lãi Suất Chung</div>
-                        <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                          <code>• Quy tắc 100%: Tổng các lớp tài sản không vượt quá 100%. Phần vốn chưa phân bổ được coi là tiền nhàn rỗi (lợi nhuận 0%/năm).</code>
-                          <code>• Lãi suất chung = (% Cổ phiếu × 9.5%) + (% Trái phiếu × 3.5%) + (% Tiền mặt × 1.5%) + (% Chưa đầu tư × 0%) + Thưởng tái cân bằng</code>
-                          <code>• Vốn đầu tư & Tiết kiệm: Cả tài sản hiện có và tiền tiết kiệm mới hàng năm đều được phân bổ sinh lời theo đúng tỷ lệ danh mục này.</code>
+                      <details class="formula-accordion">
+                        <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_alloc">Xem quy chuẩn phân bổ & công thức lãi suất</span>
+                          <span class="formula-toggle-arrow">▾</span>
+                        </summary>
+                        <div class="formula-inline-box formula-success"
+                          style="margin: 0.25rem 0 0 0; font-size: 0.72rem; padding: 0;">
+                          <div class="formula-tag">Quy Chuẩn Phân Bổ & Lãi Suất Chung</div>
+                          <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
+                            <code>• Quy tắc 100%: Tổng các lớp tài sản không vượt quá 100%. Phần vốn chưa phân bổ được coi là tiền nhàn rỗi (lợi nhuận 0%/năm).</code>
+                            <code>• Lãi suất chung = (% Cổ phiếu × 9.5%) + (% Trái phiếu × 3.5%) + (% Tiền mặt × 1.5%) + (% Chưa đầu tư × 0%) + Thưởng tái cân bằng</code>
+                            <code>• Vốn đầu tư & Tiết kiệm: Cả tài sản hiện có và tiền tiết kiệm mới hàng năm đều được phân bổ sinh lời theo đúng tỷ lệ danh mục này.</code>
+                          </div>
                         </div>
-                      </div>
+                      </details>
                     </div>
                   </div>
 
@@ -534,15 +542,21 @@
                       </button>
 
                       <!-- Công thức & Cơ chế LMNP Réel Pháp -->
-                      <div class="formula-inline-box formula-success"
-                        style="margin: 0.55rem 0 0 0; font-size: 0.72rem; padding: 0;">
-                        <div class="formula-tag">Cơ chế Thuế LMNP Réel Pháp (Miễn thuế IR 10-15 năm)</div>
-                        <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                          <code>• LMNP (Loueur en Meublé Non Professionnel): Khấu hao tài sản (Amortissement 85% giá nhà trong 25-30 năm) + Trừ chi phí lãi vay, bảo hiểm, phí quản lý.</code>
-                          <code>• Tiền thuê thực nhận không chịu thuế thu nhập cá nhân (IR = 0 €) trong suốt 10-15 năm đầu vận hành.</code>
-                          <code>• Dòng tiền thuê tự động tích hợp vào thu nhập FIRE, các khoản nợ vay tự động đồng bộ vào cột Chi Tiêu & Nợ Vay.</code>
+                      <details class="formula-accordion">
+                        <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_lmnp">Xem cơ chế thuế LMNP & khấu hao Pháp</span>
+                          <span class="formula-toggle-arrow">▾</span>
+                        </summary>
+                        <div class="formula-inline-box formula-success"
+                          style="margin: 0.25rem 0 0 0; font-size: 0.72rem; padding: 0;">
+                          <div class="formula-tag">Cơ chế Thuế LMNP Réel Pháp (Miễn thuế IR 10-15 năm)</div>
+                          <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
+                            <code>• LMNP (Loueur en Meublé Non Professionnel): Khấu hao tài sản (Amortissement 85% giá nhà trong 25-30 năm) + Trừ chi phí lãi vay, bảo hiểm, phí quản lý.</code>
+                            <code>• Tiền thuê thực nhận không chịu thuế thu nhập cá nhân (IR = 0 €) trong suốt 10-15 năm đầu vận hành.</code>
+                            <code>• Dòng tiền thuê tự động tích hợp vào thu nhập FIRE, các khoản nợ vay tự động đồng bộ vào cột Chi Tiêu & Nợ Vay.</code>
+                          </div>
                         </div>
-                      </div>
+                      </details>
                     </div>
                   </div>
 
@@ -659,16 +673,22 @@
                       </div>
 
                       <!-- Công thức Pháp nằm cùng card Lương Hưu Pháp -->
-                      <div class="formula-inline-box formula-success"
-                        style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
-                        <div class="formula-tag">Công thức Hưu Trí Pháp (Réforme 2023)</div>
-                        <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                          <code>• Lương mục tiêu 43n (Taux Plein) = CNAV (50% lương ≤ PASS) + Agirc-Arrco (~15-25% lương)</code>
-                          <code>• Số quý = (min(Tuổi hưu FIRE, Tuổi nhận hưu) - Tuổi đi làm) × 4 (Chuẩn: 172 quý = 43 năm)</code>
-                          <code>• Tỷ lệ Prorata = min(172, Số quý) / 172 • Phạt Décote = -1.25%/quý thiếu (&lt; 67t)</code>
-                          <code>• Cơ chế phân bổ: Tính độc lập theo mức đóng của từng người và cộng gộp vào dòng tiền an sinh</code>
+                      <details class="formula-accordion">
+                        <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_french_pension">Xem công thức hưu trí Pháp (Réforme 2023)</span>
+                          <span class="formula-toggle-arrow">▾</span>
+                        </summary>
+                        <div class="formula-inline-box formula-success"
+                          style="margin: 0.25rem 0 0 0; font-size: 0.72rem; padding: 0;">
+                          <div class="formula-tag">Công thức Hưu Trí Pháp (Réforme 2023)</div>
+                          <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
+                            <code>• Lương mục tiêu 43n (Taux Plein) = CNAV (50% lương ≤ PASS) + Agirc-Arrco (~15-25% lương)</code>
+                            <code>• Số quý = (min(Tuổi hưu FIRE, Tuổi nhận hưu) - Tuổi đi làm) × 4 (Chuẩn: 172 quý = 43 năm)</code>
+                            <code>• Tỷ lệ Prorata = min(172, Số quý) / 172 • Phạt Décote = -1.25%/quý thiếu (&lt; 67t)</code>
+                            <code>• Cơ chế phân bổ: Tính độc lập theo mức đóng của từng người và cộng gộp vào dòng tiền an sinh</code>
+                          </div>
                         </div>
-                      </div>
+                      </details>
                     </div>
                   </div>
 
@@ -799,15 +819,21 @@
                       </div>
 
                       <!-- Công thức Việt Nam nằm cùng card Lương Hưu VN -->
-                      <div class="formula-inline-box formula-success"
-                        style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
-                        <div class="formula-tag">Công thức BHXH Tự Nguyện Việt Nam (Luật 2024)</div>
-                        <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                          <code>• Tiền đóng/tháng = Thu nhập chọn đóng × 22% (Nhà nước hỗ trợ 10-50% chuẩn nghèo)</code>
-                          <code>• Tỷ lệ hưởng: Nam (20 năm = 45%, mỗi năm +2% max 75%, tuổi hưởng 62); Nữ (15 năm = 45%, mỗi năm +2% max 75%, tuổi hưởng 60)</code>
-                          <code>• Quyền lợi: Người tham gia được nhận lương hưu độc lập trọn đời và cấp thẻ BHYT 95%</code>
+                      <details class="formula-accordion">
+                        <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_vn_pension">Xem công thức BHXH Tự nguyện VN (Luật 2024)</span>
+                          <span class="formula-toggle-arrow">▾</span>
+                        </summary>
+                        <div class="formula-inline-box formula-success"
+                          style="margin: 0.25rem 0 0 0; font-size: 0.72rem; padding: 0;">
+                          <div class="formula-tag">Công thức BHXH Tự Nguyện Việt Nam (Luật 2024)</div>
+                          <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
+                            <code>• Tiền đóng/tháng = Thu nhập chọn đóng × 22% (Nhà nước hỗ trợ 10-50% chuẩn nghèo)</code>
+                            <code>• Tỷ lệ hưởng: Nam (20 năm = 45%, mỗi năm +2% max 75%, tuổi hưởng 62); Nữ (15 năm = 45%, mỗi năm +2% max 75%, tuổi hưởng 60)</code>
+                            <code>• Quyền lợi: Người tham gia được nhận lương hưu độc lập trọn đời và cấp thẻ BHYT 95%</code>
+                          </div>
                         </div>
-                      </div>
+                      </details>
                     </div>
                   </div>
 
@@ -922,15 +948,21 @@
                         </div>
                       </div>
 
-                      <div class="formula-inline-box formula-success"
-                        style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
-                        <div class="formula-tag">Công thức Bảo hiểm Hưu trí Đức (Gesetzliche Rentenversicherung)</div>
-                        <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                          <code>• Điểm hưu trí Rentenpunkte (RP) = Lương gross / Thu nhập bình quân (~45.358 €/năm 2024)</code>
-                          <code>• Giá trị 1 điểm Rentenwert = 39,32 €/tháng • Tuổi chuẩn Regelaltersgrenze = 67 tuổi</code>
-                          <code>• Nhận sớm từ 63t giảm -3,6%/năm • Nhận muộn sau 67t thưởng +6,0%/năm</code>
+                      <details class="formula-accordion">
+                        <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_german_pension">Xem công thức Hưu trí Đức (Rentenpunkte)</span>
+                          <span class="formula-toggle-arrow">▾</span>
+                        </summary>
+                        <div class="formula-inline-box formula-success"
+                          style="margin: 0.25rem 0 0 0; font-size: 0.72rem; padding: 0;">
+                          <div class="formula-tag">Công thức Bảo hiểm Hưu trí Đức (Gesetzliche Rentenversicherung)</div>
+                          <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
+                            <code>• Điểm hưu trí Rentenpunkte (RP) = Lương gross / Thu nhập bình quân (~45.358 €/năm 2024)</code>
+                            <code>• Giá trị 1 điểm Rentenwert = 39,32 €/tháng • Tuổi chuẩn Regelaltersgrenze = 67 tuổi</code>
+                            <code>• Nhận sớm từ 63t giảm -3,6%/năm • Nhận muộn sau 67t thưởng +6,0%/năm</code>
+                          </div>
                         </div>
-                      </div>
+                      </details>
                     </div>
                   </div>
 
@@ -1045,15 +1077,21 @@
                         </div>
                       </div>
 
-                      <div class="formula-inline-box formula-success"
-                        style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
-                        <div class="formula-tag">Công thức An Sinh Xã Hội Mỹ (Social Security Administration)</div>
-                        <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                          <code>• Thu nhập tháng bình quân 35 năm (AIME) = Lương đóng FICA / 12</code>
-                          <code>• Bend Points 2024: 90% (AIME ≤ $1.174) + 32% (phần $1.174 - $7.078) + 15% (phần > $7.078)</code>
-                          <code>• Tuổi hưu chuẩn FRA = 67 tuổi • Nhận sớm từ 62t giảm tối đa -30% • Nhận muộn tới 70t tăng +8%/năm</code>
+                      <details class="formula-accordion">
+                        <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_us_pension">Xem công thức An sinh xã hội Mỹ (SSA / AIME)</span>
+                          <span class="formula-toggle-arrow">▾</span>
+                        </summary>
+                        <div class="formula-inline-box formula-success"
+                          style="margin: 0.25rem 0 0 0; font-size: 0.72rem; padding: 0;">
+                          <div class="formula-tag">Công thức An Sinh Xã Hội Mỹ (Social Security Administration)</div>
+                          <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
+                            <code>• Thu nhập tháng bình quân 35 năm (AIME) = Lương đóng FICA / 12</code>
+                            <code>• Bend Points 2024: 90% (AIME ≤ $1.174) + 32% (phần $1.174 - $7.078) + 15% (phần > $7.078)</code>
+                            <code>• Tuổi hưu chuẩn FRA = 67 tuổi • Nhận sớm từ 62t giảm tối đa -30% • Nhận muộn tới 70t tăng +8%/năm</code>
+                          </div>
                         </div>
-                      </div>
+                      </details>
                     </div>
                   </div>
 
@@ -1168,15 +1206,21 @@
                         </div>
                       </div>
 
-                      <div class="formula-inline-box formula-success"
-                        style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
-                        <div class="formula-tag">Công thức Lương Hưu Nhật Bản (Nenkin 2 tầng)</div>
-                        <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                          <code>• Tầng 1 (Kokumin Nenkin): Chuẩn 40 năm nhận ~816.000 JPY/năm (~68.000 JPY/tháng) theo tỷ lệ số năm đóng</code>
-                          <code>• Tầng 2 (Kōsei Nenkin): Lương bình quân năm × 0.5481% × Số năm đóng (dành cho người đi làm)</code>
-                          <code>• Tuổi chuẩn 65 tuổi • Nhận sớm (60-64t) giảm -4.8%/năm • Nhận muộn (66-75t) tăng +8.4%/năm</code>
+                      <details class="formula-accordion">
+                        <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_japan_pension">Xem công thức Lương hưu Nhật Bản (Nenkin 2 tầng)</span>
+                          <span class="formula-toggle-arrow">▾</span>
+                        </summary>
+                        <div class="formula-inline-box formula-success"
+                          style="margin: 0.25rem 0 0 0; font-size: 0.72rem; padding: 0;">
+                          <div class="formula-tag">Công thức Lương Hưu Nhật Bản (Nenkin 2 tầng)</div>
+                          <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
+                            <code>• Tầng 1 (Kokumin Nenkin): Chuẩn 40 năm nhận ~816.000 JPY/năm (~68.000 JPY/tháng) theo tỷ lệ số năm đóng</code>
+                            <code>• Tầng 2 (Kōsei Nenkin): Lương bình quân năm × 0.5481% × Số năm đóng (dành cho người đi làm)</code>
+                            <code>• Tuổi chuẩn 65 tuổi • Nhận sớm (60-64t) giảm -4.8%/năm • Nhận muộn (66-75t) tăng +8.4%/năm</code>
+                          </div>
                         </div>
-                      </div>
+                      </details>
                     </div>
                   </div>
 
@@ -1305,15 +1349,21 @@
                         </div>
                       </div>
 
-                      <div class="formula-inline-box formula-success"
-                        style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
-                        <div class="formula-tag">Công thức Lương Hưu Canada (Canada Pension Plan &amp; OAS)</div>
-                        <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                          <code>• Trụ cột 1 (CPP): Thay thế 25% thu nhập bình quân tới mức trần YMPE ($68.500 CAD 2024)</code>
-                          <code>• Trụ cột 2 (OAS): Trợ cấp tuổi già theo thời gian cư trú (tối thiểu 10 năm, tối đa 40 năm đạt $8.560 CAD/năm)</code>
-                          <code>• Tuổi chuẩn 65 tuổi • Nhận sớm CPP từ 60t giảm -7.2%/năm • Nhận muộn tới 70t tăng +8.4%/năm (CPP) và +7.2%/năm (OAS)</code>
+                      <details class="formula-accordion">
+                        <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_canada_pension">Xem công thức Lương hưu Canada (CPP & OAS)</span>
+                          <span class="formula-toggle-arrow">▾</span>
+                        </summary>
+                        <div class="formula-inline-box formula-success"
+                          style="margin: 0.25rem 0 0 0; font-size: 0.72rem; padding: 0;">
+                          <div class="formula-tag">Công thức Lương Hưu Canada (Canada Pension Plan &amp; OAS)</div>
+                          <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
+                            <code>• Trụ cột 1 (CPP): Thay thế 25% thu nhập bình quân tới mức trần YMPE ($68.500 CAD 2024)</code>
+                            <code>• Trụ cột 2 (OAS): Trợ cấp tuổi già theo thời gian cư trú (tối thiểu 10 năm, tối đa 40 năm đạt $8.560 CAD/năm)</code>
+                            <code>• Tuổi chuẩn 65 tuổi • Nhận sớm CPP từ 60t giảm -7.2%/năm • Nhận muộn tới 70t tăng +8.4%/năm (CPP) và +7.2%/năm (OAS)</code>
+                          </div>
                         </div>
-                      </div>
+                      </details>
                     </div>
                   </div>
 
@@ -1442,15 +1492,21 @@
                         </div>
                       </div>
 
-                      <div class="formula-inline-box formula-success"
-                        style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
-                        <div class="formula-tag">Công thức Hưu Trí &amp; Quỹ Hưu Bổng Úc (Superannuation &amp; Centrelink)</div>
-                        <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                          <code>• Trụ cột 1 (Superannuation): Quỹ tích lũy bắt buộc (SG 11.5% lương) rút niên kim an toàn 5%/năm từ 60 tuổi</code>
-                          <code>• Trụ cột 2 (Age Pension): Trợ cấp an sinh chính phủ từ 67 tuổi sau khi xét duyệt thu nhập và tài sản (Means-tested)</code>
-                          <code>• Phối hợp dòng tiền: Tối ưu giữa niên kim Super tích lũy và trợ cấp tuổi già Centrelink trọn đời</code>
+                      <details class="formula-accordion">
+                        <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_australia_pension">Xem công thức Hưu bổng & Trợ cấp Úc</span>
+                          <span class="formula-toggle-arrow">▾</span>
+                        </summary>
+                        <div class="formula-inline-box formula-success"
+                          style="margin: 0.25rem 0 0 0; font-size: 0.72rem; padding: 0;">
+                          <div class="formula-tag">Công thức Hưu Trí &amp; Quỹ Hưu Bổng Úc (Superannuation &amp; Centrelink)</div>
+                          <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
+                            <code>• Trụ cột 1 (Superannuation): Quỹ tích lũy bắt buộc (SG 11.5% lương) rút niên kim an toàn 5%/năm từ 60 tuổi</code>
+                            <code>• Trụ cột 2 (Age Pension): Trợ cấp an sinh chính phủ từ 67 tuổi sau khi xét duyệt thu nhập và tài sản (Means-tested)</code>
+                            <code>• Phối hợp dòng tiền: Tối ưu giữa niên kim Super tích lũy và trợ cấp tuổi già Centrelink trọn đời</code>
+                          </div>
                         </div>
-                      </div>
+                      </details>
                     </div>
                   </div>
 
@@ -1565,15 +1621,21 @@
                         </div>
                       </div>
 
-                      <div class="formula-inline-box formula-success"
-                        style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
-                        <div class="formula-tag">Công thức Lương Hưu Quốc Gia Hàn Quốc (NPS - 국민연금)</div>
-                        <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                          <code>• Công thức cơ sở = ((A + B) / 2) × (1.0% × Số năm đóng) • Đóng tối thiểu 10 năm</code>
-                          <code>• A = Thu nhập bình quân toàn quốc (~2.989.237 ₩) • B = Thu nhập đóng bình quân cá nhân (trần 6.170.000 ₩)</code>
-                          <code>• Tuổi chuẩn 65 tuổi • Nhận sớm (60-64t) giảm -6%/năm • Nhận muộn (66-70t) tăng +7.2%/năm</code>
+                      <details class="formula-accordion">
+                        <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_korea_pension">Xem công thức Lương hưu Quốc gia Hàn Quốc (NPS)</span>
+                          <span class="formula-toggle-arrow">▾</span>
+                        </summary>
+                        <div class="formula-inline-box formula-success"
+                          style="margin: 0.25rem 0 0 0; font-size: 0.72rem; padding: 0;">
+                          <div class="formula-tag">Công thức Lương Hưu Quốc Gia Hàn Quốc (NPS - 국민연금)</div>
+                          <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
+                            <code>• Công thức cơ sở = ((A + B) / 2) × (1.0% × Số năm đóng) • Đóng tối thiểu 10 năm</code>
+                            <code>• A = Thu nhập bình quân toàn quốc (~2.989.237 ₩) • B = Thu nhập đóng bình quân cá nhân (trần 6.170.000 ₩)</code>
+                            <code>• Tuổi chuẩn 65 tuổi • Nhận sớm (60-64t) giảm -6%/năm • Nhận muộn (66-70t) tăng +7.2%/năm</code>
+                          </div>
                         </div>
-                      </div>
+                      </details>
                     </div>
                   </div>
 
@@ -1688,15 +1750,21 @@
                         </div>
                       </div>
 
-                      <div class="formula-inline-box formula-success"
-                        style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
-                        <div class="formula-tag">Công thức Hưu Trí Lao Động Đài Loan (勞保老年年金 &amp; 勞退新制)</div>
-                        <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                          <code>• Trụ cột 1 (勞保老年年金): Lương tháng đóng BH (trần 45.800 NT$) × Số năm đóng × 1.55% (tối thiểu 15 năm)</code>
-                          <code>• Trụ cột 2 (勞退新制): Niên kim trích từ tài khoản tích lũy 6% chủ sử dụng lao động đóng bắt buộc hàng tháng</code>
-                          <code>• Tuổi chuẩn 65 tuổi • Nhận sớm từ 60t giảm -4%/năm (tối đa -20%) • Nhận muộn tới 70t tăng +4%/năm (tối đa +20%)</code>
+                      <details class="formula-accordion">
+                        <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_taiwan_pension">Xem công thức Hưu trí Đài Loan (Bảo hiểm lao động)</span>
+                          <span class="formula-toggle-arrow">▾</span>
+                        </summary>
+                        <div class="formula-inline-box formula-success"
+                          style="margin: 0.25rem 0 0 0; font-size: 0.72rem; padding: 0;">
+                          <div class="formula-tag">Công thức Hưu Trí Lao Động Đài Loan (勞保老年年金 &amp; 勞退新制)</div>
+                          <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
+                            <code>• Trụ cột 1 (勞保老年年金): Lương tháng đóng BH (trần 45.800 NT$) × Số năm đóng × 1.55% (tối thiểu 15 năm)</code>
+                            <code>• Trụ cột 2 (勞退新制): Niên kim trích từ tài khoản tích lũy 6% chủ sử dụng lao động đóng bắt buộc hàng tháng</code>
+                            <code>• Tuổi chuẩn 65 tuổi • Nhận sớm từ 60t giảm -4%/năm (tối đa -20%) • Nhận muộn tới 70t tăng +4%/năm (tối đa +20%)</code>
+                          </div>
                         </div>
-                      </div>
+                      </details>
                     </div>
                   </div>
 
@@ -1784,10 +1852,16 @@
                               <div class="kpi-mini-item">Sống sót: <strong id="stat-surv-bengen_4pct">--</strong></div>
                               <div class="kpi-mini-item">Ổn định: <strong id="stat-stab-bengen_4pct">Cao</strong></div>
                             </div>
-                            <div class="formula-inline-box"
-                              style="margin-top: 0.25rem; padding: 0.2rem 0.45rem; font-size: 0.7rem;">
-                              <code>Rút(t) = [Danh mục(0) × SWR] × (1 + lạm phát)^t</code>
-                            </div>
+                            <details class="formula-accordion">
+                              <summary class="formula-toggle-btn" onclick="event.stopPropagation();">
+            <span data-i18n="lbl_view_formula_short">Xem công thức tính</span>
+                                <span class="formula-toggle-arrow">▾</span>
+                              </summary>
+                              <div class="formula-inline-box"
+                                style="margin-top: 0.25rem; padding: 0.2rem 0.45rem; font-size: 0.7rem;">
+                                <code>Rút(t) = [Danh mục(0) × SWR] × (1 + lạm phát)^t</code>
+                              </div>
+                            </details>
                           </div>
                         </label>
 
@@ -1811,11 +1885,17 @@
                               <div class="kpi-mini-item">Ổn định: <strong id="stat-stab-guyton_klinger">Rất Cao</strong>
                               </div>
                             </div>
-                            <div class="formula-inline-box formula-success"
-                              style="margin-top: 0.25rem; padding: 0.2rem 0.45rem; font-size: 0.7rem;">
-                              <code>• Rút thực tế &gt; 1.2 × SWR: Cắt giảm 10% chi tiêu</code><br>
-                              <code>• Rút thực tế &lt; 0.8 × SWR: Thưởng tăng 10% chi tiêu</code>
-                            </div>
+                            <details class="formula-accordion">
+                              <summary class="formula-toggle-btn" onclick="event.stopPropagation();">
+            <span data-i18n="lbl_view_formula_short">Xem công thức tính</span>
+                                <span class="formula-toggle-arrow">▾</span>
+                              </summary>
+                              <div class="formula-inline-box formula-success"
+                                style="margin-top: 0.25rem; padding: 0.2rem 0.45rem; font-size: 0.7rem;">
+                                <code>• Rút thực tế &gt; 1.2 × SWR: Cắt giảm 10% chi tiêu</code><br>
+                                <code>• Rút thực tế &lt; 0.8 × SWR: Thưởng tăng 10% chi tiêu</code>
+                              </div>
+                            </details>
                           </div>
                         </label>
 
@@ -1838,10 +1918,16 @@
                                   id="stat-surv-vpw">--</strong></div>
                               <div class="kpi-mini-item">Ổn định: <strong id="stat-stab-vpw">Linh hoạt</strong></div>
                             </div>
-                            <div class="formula-inline-box formula-purple"
-                              style="margin-top: 0.25rem; padding: 0.2rem 0.45rem; font-size: 0.7rem;">
-                              <code>Tỷ lệ rút(t) = 1 / (Tuổi thọ - Tuổi(t) + 1) + 2%</code>
-                            </div>
+                            <details class="formula-accordion">
+                              <summary class="formula-toggle-btn" onclick="event.stopPropagation();">
+            <span data-i18n="lbl_view_formula_short">Xem công thức tính</span>
+                                <span class="formula-toggle-arrow">▾</span>
+                              </summary>
+                              <div class="formula-inline-box formula-purple"
+                                style="margin-top: 0.25rem; padding: 0.2rem 0.45rem; font-size: 0.7rem;">
+                                <code>Tỷ lệ rút(t) = 1 / (Tuổi thọ - Tuổi(t) + 1) + 2%</code>
+                              </div>
+                            </details>
                           </div>
                         </label>
 
@@ -1865,10 +1951,16 @@
                               <div class="kpi-mini-item">Ổn định: <strong id="stat-stab-fixed_pct">Biến động</strong>
                               </div>
                             </div>
-                            <div class="formula-inline-box formula-warning"
-                              style="margin-top: 0.25rem; padding: 0.2rem 0.45rem; font-size: 0.7rem;">
-                              <code>Rút(t) = Danh mục(t) × SWR cố định</code>
-                            </div>
+                            <details class="formula-accordion">
+                              <summary class="formula-toggle-btn" onclick="event.stopPropagation();">
+            <span data-i18n="lbl_view_formula_short">Xem công thức tính</span>
+                                <span class="formula-toggle-arrow">▾</span>
+                              </summary>
+                              <div class="formula-inline-box formula-warning"
+                                style="margin-top: 0.25rem; padding: 0.2rem 0.45rem; font-size: 0.7rem;">
+                                <code>Rút(t) = Danh mục(t) × SWR cố định</code>
+                              </div>
+                            </details>
                           </div>
                         </label>
                       </div>
@@ -1965,7 +2057,7 @@
                           id="lbl-retire-card-monthly">€1,365<small>/tháng</small></span>
                         <span id="hint-retire-expenses"
                           style="font-size: 0.73rem; color: var(--text-muted); display: block; margin-top: 0.2rem;">≈
-                          €16.4k/năm • Chi tiêu hưu trí tại Việt Nam (PPP 0.45x)</span>
+                          €16.4k/năm • Chi tiêu hưu trí tại Việt Nam (PPP 45%)</span>
                       </div>
                       <div class="expense-item-timing"
                         style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem;">
@@ -1998,7 +2090,7 @@
                           <div class="location-radio-content">
                             <div class="location-radio-header">
                               <span class="location-radio-title">Nếu ở Pháp</span>
-                              <span class="location-radio-badge">1.00x</span>
+                              <span class="location-radio-badge">100% (chuẩn)</span>
                             </div>
                             <div class="location-radio-detail font-mono" id="label-loc-france">≈ €3.0k/tháng ≈ €36.0k/năm</div>
                           </div>
@@ -2009,7 +2101,7 @@
                           <div class="location-radio-content">
                             <div class="location-radio-header">
                               <span class="location-radio-title">Nếu ở Việt Nam</span>
-                              <span class="location-radio-badge badge-discount">Giảm ~55% (0.45x)</span>
+                              <span class="location-radio-badge badge-discount">45% (giảm ~55%)</span>
                             </div>
                             <div class="location-radio-detail font-mono" id="label-loc-vietnam">≈ €1.4k/tháng ≈ €16.4k/năm</div>
                           </div>
@@ -2020,7 +2112,7 @@
                           <div class="location-radio-content">
                             <div class="location-radio-header">
                               <span class="location-radio-title">Nếu ở song hành Pháp - Việt</span>
-                              <span class="location-radio-badge badge-hybrid">Giảm ~30% (0.70x)</span>
+                              <span class="location-radio-badge badge-hybrid">70% (giảm ~30%)</span>
                             </div>
                             <div class="location-radio-detail font-mono" id="label-loc-hybrid">≈ €2.2k/tháng ≈ €26.4k/năm</div>
                           </div>
@@ -2060,26 +2152,53 @@
                           <div style="font-size: 0.68rem; font-weight: 700; color: var(--text-muted); margin-top: 0.25rem; border-top: 1px dashed var(--border-subtle); padding-top: 0.2rem;">
                             Tỷ lệ 7 nhóm chi tiêu gia đình:
                           </div>
-                          <div style="font-size: 0.68rem; color: var(--text-muted); line-height: 1.35; display: grid; grid-template-columns: 1fr 1fr; gap: 0.1rem 0.35rem;">
-                            <span>Ăn uống: <strong>29%</strong></span>
-                            <span>Nhà ở: <strong>23%</strong></span>
-                            <span>Y tế BHYT: <strong>13%</strong></span>
-                            <span>Điện nước: <strong>9%</strong></span>
-                            <span>Đi lại: <strong>7%</strong></span>
-                            <span>Đồ gia dụng: <strong>5%</strong></span>
-                            <span style="grid-column: 1 / -1;">Giải trí, du lịch: <strong>13%</strong></span>
+                          <div style="display: flex; flex-direction: column; gap: 0.08rem; font-size: 0.7rem;">
+                            <div class="retire-callout-step" style="padding: 0.06rem 0;">
+                              <span>Ăn uống (29%):</span>
+                              <strong class="font-mono">~500 €</strong>
+                            </div>
+                            <div class="retire-callout-step" style="padding: 0.06rem 0;">
+                              <span>Nhà ở (23%):</span>
+                              <strong class="font-mono">~400 €</strong>
+                            </div>
+                            <div class="retire-callout-step" style="padding: 0.06rem 0;">
+                              <span>Y tế BHYT (13%):</span>
+                              <strong class="font-mono">~225 €</strong>
+                            </div>
+                            <div class="retire-callout-step" style="padding: 0.06rem 0;">
+                              <span>Điện nước (9%):</span>
+                              <strong class="font-mono">~155 €</strong>
+                            </div>
+                            <div class="retire-callout-step" style="padding: 0.06rem 0;">
+                              <span>Đi lại (7%):</span>
+                              <strong class="font-mono">~120 €</strong>
+                            </div>
+                            <div class="retire-callout-step" style="padding: 0.06rem 0;">
+                              <span>Đồ gia dụng (5%):</span>
+                              <strong class="font-mono">~85 €</strong>
+                            </div>
+                            <div class="retire-callout-step" style="padding: 0.06rem 0;">
+                              <span>Giải trí, du lịch (14%):</span>
+                              <strong class="font-mono">~245 €</strong>
+                            </div>
                           </div>
                         </div>
 
                         <!-- Nguồn gốc dữ liệu & Công thức tính (Kéo giãn theo chiều ngang cả 2 cột) -->
-                        <div class="formula-inline-box formula-info" style="grid-column: 1 / -1; margin-top: 0.35rem; font-size: 0.68rem; padding: 0.35rem 0.55rem; border-radius: 4px;">
-                          <div class="formula-tag" style="font-size: 0.65rem; margin-bottom: 0.15rem;">Nguồn dữ liệu &amp; Công thức đối chiếu</div>
-                          <div style="display: flex; flex-direction: column; gap: 0.12rem; line-height: 1.35;">
-                            <code>• Công thức 3 mốc = Mức sống chuẩn tại Pháp × Hệ số quy mô gia đình (1.0 cá nhân / 1.6 cặp đôi) × Hệ số PPP điểm đến</code>
-                            <code>• Mức sống chuẩn tại Pháp: Cơ bản 1.600 €/tháng • Thoải mái 2.400 €/tháng • Thịnh vượng 4.000 €/tháng</code>
-                            <code>• Nguồn dữ liệu: Tổng hợp từ khảo sát mức sống hộ gia đình OECD, INSEE (Pháp) &amp; VHLSS (Việt Nam)</code>
+                        <details class="formula-accordion" style="grid-column: 1 / -1; margin-top: 0.35rem;">
+                          <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_ppp">Xem nguồn dữ liệu & công thức đối chiếu PPP</span>
+                            <span class="formula-toggle-arrow">▾</span>
+                          </summary>
+                          <div class="formula-inline-box formula-info" style="font-size: 0.68rem; padding: 0.35rem 0.55rem; border-radius: 4px;">
+                            <div class="formula-tag" style="font-size: 0.65rem; margin-bottom: 0.15rem;">Nguồn dữ liệu &amp; Công thức đối chiếu</div>
+                            <div style="display: flex; flex-direction: column; gap: 0.12rem; line-height: 1.35;">
+                              <code>• Công thức 3 mốc = Mức sống chuẩn tại Pháp × Hệ số quy mô gia đình (1.0 cá nhân / 1.6 cặp đôi) × Hệ số PPP điểm đến</code>
+                              <code>• Mức sống chuẩn tại Pháp: Cơ bản 1.600 €/tháng • Thoải mái 2.400 €/tháng • Thịnh vượng 4.000 €/tháng</code>
+                              <code>• Nguồn dữ liệu: Tổng hợp từ khảo sát mức sống hộ gia đình OECD, INSEE (Pháp) &amp; VHLSS (Việt Nam)</code>
+                            </div>
                           </div>
-                        </div>
+                        </details>
                       </div>
 
                       <!-- [ TẦNG 3: MÔ HÌNH CHI TIÊU 3 GIAI ĐOẠN (THANH 3 CỘT NGANG MINI) ] -->
@@ -2226,18 +2345,24 @@
                         </div>
 
                         <!-- Công thức Lạm Phát 2 Chặng & Trượt Giá Tỷ Giá -->
-                        <div class="formula-inline-box formula-danger"
-                          style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
-                          <div class="formula-tag">Công thức Lạm Phát 2 Chặng & Trượt Giá Tỷ Giá</div>
-                          <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                            <code>• Giai đoạn Pháp (tích lũy): Chi_phí(t) = Chi_phí₀ × (1 + i_Pháp)^t</code>
-                            <code>• Giai đoạn VN (hưu trí): Chi_phí(t) = Chi_phí_hưu × (1 + i_VN)^(t - Tuổi_hưu)</code>
-                            <code>• Tỷ giá EUR/VND(t) = Tỷ giá ban đầu × (1 + Trượt_giá)^t</code>
-                            <span style="font-size: 0.71rem; color: var(--text-muted); margin-top: 0.2rem;"><em>Hiệu ứng
-                                Fisher & PPP (Purchasing Power Parity):</em> Chênh lệch lạm phát giữa VN (~4.0%) và Pháp
-                              (~2.2%) được bù trừ qua mức tăng giá trị của EUR theo thời gian.</span>
+                        <details class="formula-accordion">
+                          <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_inflation">Xem công thức lạm phát 2 chặng & tỷ giá</span>
+                            <span class="formula-toggle-arrow">▾</span>
+                          </summary>
+                          <div class="formula-inline-box formula-danger"
+                            style="margin: 0.25rem 0 0 0; font-size: 0.72rem; padding: 0;">
+                            <div class="formula-tag">Công thức Lạm Phát 2 Chặng & Trượt Giá Tỷ Giá</div>
+                            <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
+                              <code>• Giai đoạn Pháp (tích lũy): Chi_phí(t) = Chi_phí₀ × (1 + i_Pháp)^t</code>
+                              <code>• Giai đoạn VN (hưu trí): Chi_phí(t) = Chi_phí_hưu × (1 + i_VN)^(t - Tuổi_hưu)</code>
+                              <code>• Tỷ giá EUR/VND(t) = Tỷ giá ban đầu × (1 + Trượt_giá)^t</code>
+                              <span style="font-size: 0.71rem; color: var(--text-muted); margin-top: 0.2rem;"><em>Hiệu ứng
+                                  Fisher & PPP (Purchasing Power Parity):</em> Chênh lệch lạm phát giữa VN (~4.0%) và Pháp
+                                (~2.2%) được bù trừ qua mức tăng giá trị của EUR theo thời gian.</span>
+                            </div>
                           </div>
-                        </div>
+                        </details>
                       </div>
                     </div>
                   </div>
@@ -2347,18 +2472,24 @@
                       </div>
 
                       <!-- Công thức Kế Hoạch Con Cái -->
-                      <div class="formula-inline-box formula-danger"
-                        style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
-                        <div class="formula-tag">Cơ Chế Chi Phí Con Cái & Quyền Lợi Pháp</div>
-                        <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                          <code>• Chi phí 0–18t = Số bé (0 ≤ tuổi &lt; 18) × Nuôi con hàng tháng × 12</code>
-                          <code>• Chi phí ĐH 18–23t = Số bé (18 ≤ tuổi ≤ 23) × Đơn giá Đại học × 12</code>
-                          <code>• Ưu đãi Quotient Familial: Thêm 0.5 part/bé (bé 1 &amp; 2) và 1.0 part/bé (từ bé thứ 3) giúp giảm thuế IR</code>
-                          <span style="font-size: 0.71rem; color: var(--text-muted); margin-top: 0.2rem;">Khi con vào
-                            đại học, các căn hộ BĐS LMNP đã hết nợ vay sẽ sản sinh dòng tiền ròng thụ động tự động trang
-                            trải chi phí học vấn của con.</span>
+                      <details class="formula-accordion">
+                        <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_children">Xem cơ chế tính chi phí con cái & trợ cấp CAF</span>
+                          <span class="formula-toggle-arrow">▾</span>
+                        </summary>
+                        <div class="formula-inline-box formula-danger"
+                          style="margin: 0.25rem 0 0 0; font-size: 0.72rem; padding: 0;">
+                          <div class="formula-tag">Cơ Chế Chi Phí Con Cái & Quyền Lợi Pháp</div>
+                          <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
+                            <code>• Chi phí 0–18t = Số bé (0 ≤ tuổi &lt; 18) × Nuôi con hàng tháng × 12</code>
+                            <code>• Chi phí ĐH 18–23t = Số bé (18 ≤ tuổi ≤ 23) × Đơn giá Đại học × 12</code>
+                            <code>• Ưu đãi Quotient Familial: Thêm 0.5 part/bé (bé 1 &amp; 2) và 1.0 part/bé (từ bé thứ 3) giúp giảm thuế IR</code>
+                            <span style="font-size: 0.71rem; color: var(--text-muted); margin-top: 0.2rem;">Khi con vào
+                              đại học, các căn hộ BĐS LMNP đã hết nợ vay sẽ sản sinh dòng tiền ròng thụ động tự động trang
+                              trải chi phí học vấn của con.</span>
+                          </div>
                         </div>
-                      </div>
+                      </details>
                     </div>
                   </div>
 
@@ -2416,17 +2547,23 @@
                       </div>
 
                       <!-- Công thức Quỹ Chăm Sóc Cao Niên -->
-                      <div class="formula-inline-box formula-danger"
-                        style="margin: 0.4rem 0 0 0; font-size: 0.72rem; padding: 0;">
-                        <div class="formula-tag">Công thức Quỹ Chăm Sóc Cao Niên</div>
-                        <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
-                          <code>• Chi phí năm = Ngân sách/tháng × 12</code>
-                          <code>• Điều kiện kích hoạt: Tuổi mô phỏng ≥ Tuổi bắt đầu chăm sóc</code>
-                          <code>• Trượt giá: Tự động điều chỉnh theo tỷ lệ lạm phát hàng năm</code>
-                          <span style="font-size: 0.71rem; color: var(--text-muted); margin-top: 0.2rem;">Bảo vệ danh
-                            mục tài sản không bị cạn kiệt sớm bởi các chi phí y tế phát sinh cuối đời.</span>
+                      <details class="formula-accordion">
+                        <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_senior">Xem công thức quỹ chăm sóc cao niên</span>
+                          <span class="formula-toggle-arrow">▾</span>
+                        </summary>
+                        <div class="formula-inline-box formula-danger"
+                          style="margin: 0.25rem 0 0 0; font-size: 0.72rem; padding: 0;">
+                          <div class="formula-tag">Công thức Quỹ Chăm Sóc Cao Niên</div>
+                          <div style="display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
+                            <code>• Chi phí năm = Ngân sách/tháng × 12</code>
+                            <code>• Điều kiện kích hoạt: Tuổi mô phỏng ≥ Tuổi bắt đầu chăm sóc</code>
+                            <code>• Trượt giá: Tự động điều chỉnh theo tỷ lệ lạm phát hàng năm</code>
+                            <span style="font-size: 0.71rem; color: var(--text-muted); margin-top: 0.2rem;">Bảo vệ danh
+                              mục tài sản không bị cạn kiệt sớm bởi các chi phí y tế phát sinh cuối đời.</span>
+                          </div>
                         </div>
-                      </div>
+                      </details>
                     </div>
                   </div>
 
@@ -3812,80 +3949,86 @@
               </div>
 
               <!-- Hộp Công Thức Tính Khoảng Cách Suy Yếu Cuối Đời (Healthspan Gap) - Trải Rộng 2 Cột -->
-              <div class="healthspan-formula-box"
-                style="grid-column: 1 / -1; padding: 0.85rem 1rem; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
-                <div
-                  style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem; flex-wrap: wrap; gap: 0.35rem;">
-                  <span
-                    style="font-size: 0.76rem; font-weight: 700; color: var(--accent-emerald); text-transform: uppercase; letter-spacing: 0.02em;">
-                    Công thức Tính Khoảng Cách Suy Yếu (Healthspan Gap)
-                  </span>
-                  <div style="display: flex; align-items: center; gap: 0.4rem;">
-                    <span style="font-size: 0.72rem; color: var(--text-muted);">Mục tiêu vàng:</span>
-                    <span class="badge badge-warning" style="font-size: 0.68rem; padding: 0.15rem 0.5rem;">Thu hẹp
-                      khoảng cách về 0 năm</span>
-                  </div>
-                </div>
-
-                <div
-                  style="padding: 0.5rem 0.75rem; background: var(--bg-app); border: 1px dashed var(--border-subtle); border-radius: 4px; margin-bottom: 0.65rem; font-size: 0.76rem; font-weight: 600; color: var(--text-main); font-family: var(--font-sans); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem;">
-                  <code>Khoảng Cách Suy Yếu (năm) = Kỳ Vọng Sống (Lifespan) - Tuổi Thọ Khỏe Mạnh (Healthspan)</code>
-                  <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500;">(Kỳ vọng sống mặc định:
-                    80–85 tuổi theo nhân khẩu học)</span>
-                </div>
-
-                <!-- 2 Cột Đối Chiếu Song Song Cân Đối -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.85rem;">
-                  <!-- Cột 1: Tác động của 5 Thói quen vàng -->
+              <details class="formula-accordion" style="grid-column: 1 / -1; width: 100%;">
+                <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_healthspan">Xem công thức tính khoảng cách suy yếu (Healthspan Gap)</span>
+                  <span class="formula-toggle-arrow">▾</span>
+                </summary>
+                <div class="healthspan-formula-box"
+                  style="padding: 0.85rem 1rem; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-top: 0.35rem;">
                   <div
-                    style="padding: 0.6rem 0.75rem; background: var(--bg-app); border-radius: 4px; border: 1px solid var(--border-subtle); font-size: 0.72rem; line-height: 1.5; color: var(--text-muted);">
-                    <div
-                      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
-                      <strong style="color: var(--text-main); font-size: 0.74rem;">1. Tác động của 5 Thói quen
-                        vàng</strong>
-                      <span class="badge badge-success" style="font-size: 0.68rem; padding: 0.1rem 0.4rem;">Tối đa +3.8
-                        năm</span>
-                    </div>
-                    <div style="padding-left: 0.35rem; display: flex; flex-direction: column; gap: 0.2rem;">
-                      <div>• Mỗi thói quen tích cực: <strong>tăng đúng +1.5 năm</strong> sống khỏe.</div>
-                      <div>• Đạt trọn vẹn cả 5 thói quen: <strong>+3.8 năm</strong> sống khỏe (không có thói quen nào:
-                        trừ <strong>-3.8 năm</strong>).</div>
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem; flex-wrap: wrap; gap: 0.35rem;">
+                    <span
+                      style="font-size: 0.76rem; font-weight: 700; color: var(--accent-emerald); text-transform: uppercase; letter-spacing: 0.02em;">
+                      Công thức Tính Khoảng Cách Suy Yếu (Healthspan Gap)
+                    </span>
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                      <span style="font-size: 0.72rem; color: var(--text-muted);">Mục tiêu vàng:</span>
+                      <span class="badge badge-warning" style="font-size: 0.68rem; padding: 0.15rem 0.5rem;">Thu hẹp
+                        khoảng cách về 0 năm</span>
                     </div>
                   </div>
 
-                  <!-- Cột 2: Tác động của 4 Biomarkers -->
                   <div
-                    style="padding: 0.6rem 0.75rem; background: var(--bg-app); border-radius: 4px; border: 1px solid var(--border-subtle); font-size: 0.72rem; line-height: 1.5; color: var(--text-muted);">
+                    style="padding: 0.5rem 0.75rem; background: var(--bg-app); border: 1px dashed var(--border-subtle); border-radius: 4px; margin-bottom: 0.65rem; font-size: 0.76rem; font-weight: 600; color: var(--text-main); font-family: var(--font-sans); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem;">
+                    <code>Khoảng Cách Suy Yếu (năm) = Kỳ Vọng Sống (Lifespan) - Tuổi Thọ Khỏe Mạnh (Healthspan)</code>
+                    <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500;">(Kỳ vọng sống mặc định:
+                      80–85 tuổi theo nhân khẩu học)</span>
+                  </div>
+
+                  <!-- 2 Cột Đối Chiếu Song Song Cân Đối -->
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.85rem;">
+                    <!-- Cột 1: Tác động của 5 Thói quen vàng -->
                     <div
-                      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
-                      <strong style="color: var(--text-main); font-size: 0.74rem;">2. Tác động của 4 Chỉ số sinh
-                        học</strong>
-                      <span class="badge badge-info" style="font-size: 0.68rem; padding: 0.1rem 0.4rem;">Tối đa +3.0
-                        năm</span>
+                      style="padding: 0.6rem 0.75rem; background: var(--bg-app); border-radius: 4px; border: 1px solid var(--border-subtle); font-size: 0.72rem; line-height: 1.5; color: var(--text-muted);">
+                      <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
+                        <strong style="color: var(--text-main); font-size: 0.74rem;">1. Tác động của 5 Thói quen
+                          vàng</strong>
+                        <span class="badge badge-success" style="font-size: 0.68rem; padding: 0.1rem 0.4rem;">Tối đa +3.8
+                          năm</span>
+                      </div>
+                      <div style="padding-left: 0.35rem; display: flex; flex-direction: column; gap: 0.2rem;">
+                        <div>• Mỗi thói quen tích cực: <strong>tăng đúng +1.5 năm</strong> sống khỏe.</div>
+                        <div>• Đạt trọn vẹn cả 5 thói quen: <strong>+3.8 năm</strong> sống khỏe (không có thói quen nào:
+                          trừ <strong>-3.8 năm</strong>).</div>
+                      </div>
                     </div>
+
+                    <!-- Cột 2: Tác động của 4 Biomarkers -->
                     <div
-                      style="padding-left: 0.35rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.2rem 0.6rem;">
-                      <div>• <em>Nhịp tim nghỉ (&lt;60):</em> <strong>+0.75 năm</strong></div>
-                      <div>• <em>Huyết áp chuẩn (&lt;120):</em> <strong>+0.75 năm</strong></div>
-                      <div>• <em>Vòng eo/Cao (&lt;0.5):</em> <strong>+0.75 năm</strong></div>
-                      <div>• <em>Sức mạnh hít đất (&gt;20):</em> <strong>+0.75 năm</strong></div>
-                    </div>
-                    <div
-                      style="margin-top: 0.3rem; padding-top: 0.25rem; border-top: 1px dashed var(--border-subtle); font-size: 0.7rem; color: var(--text-faint);">
-                      ➔ Tối ưu cả 4 chỉ số giúp cơ thể trẻ hơn <strong>6 tuổi sinh học</strong> và tăng thêm tới
-                      <strong>+3.0 năm</strong> tự lập.
+                      style="padding: 0.6rem 0.75rem; background: var(--bg-app); border-radius: 4px; border: 1px solid var(--border-subtle); font-size: 0.72rem; line-height: 1.5; color: var(--text-muted);">
+                      <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
+                        <strong style="color: var(--text-main); font-size: 0.74rem;">2. Tác động của 4 Chỉ số sinh
+                          học</strong>
+                        <span class="badge badge-info" style="font-size: 0.68rem; padding: 0.1rem 0.4rem;">Tối đa +3.0
+                          năm</span>
+                      </div>
+                      <div
+                        style="padding-left: 0.35rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.2rem 0.6rem;">
+                        <div>• <em>Nhịp tim nghỉ (&lt;60):</em> <strong>+0.75 năm</strong></div>
+                        <div>• <em>Huyết áp chuẩn (&lt;120):</em> <strong>+0.75 năm</strong></div>
+                        <div>• <em>Vòng eo/Cao (&lt;0.5):</em> <strong>+0.75 năm</strong></div>
+                        <div>• <em>Sức mạnh hít đất (&gt;20):</em> <strong>+0.75 năm</strong></div>
+                      </div>
+                      <div
+                        style="margin-top: 0.3rem; padding-top: 0.25rem; border-top: 1px dashed var(--border-subtle); font-size: 0.7rem; color: var(--text-faint);">
+                        ➔ Tối ưu cả 4 chỉ số giúp cơ thể trẻ hơn <strong>6 tuổi sinh học</strong> và tăng thêm tới
+                        <strong>+3.0 năm</strong> tự lập.
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <!-- Dòng Ý nghĩa thực tiễn nén bệnh tật -->
-                <div
-                  style="margin-top: 0.55rem; padding-top: 0.45rem; border-top: 1px dashed var(--border-subtle); font-size: 0.72rem; color: var(--text-muted); line-height: 1.45;">
-                  • <strong>Ý nghĩa thực tiễn:</strong> Giúp bạn chủ động nén thời gian bệnh tật cuối đời (Compression
-                  of Morbidity) về mức ngắn nhất, bảo toàn tài sản ròng và giữ trọn vẹn chất lượng sống an nhàn lúc về
-                  hưu.
+                  <!-- Dòng Ý nghĩa thực tiễn nén bệnh tật -->
+                  <div
+                    style="margin-top: 0.55rem; padding-top: 0.45rem; border-top: 1px dashed var(--border-subtle); font-size: 0.72rem; color: var(--text-muted); line-height: 1.45;">
+                    • <strong>Ý nghĩa thực tiễn:</strong> Giúp bạn chủ động nén thời gian bệnh tật cuối đời (Compression
+                    of Morbidity) về mức ngắn nhất, bảo toàn tài sản ròng và giữ trọn vẹn chất lượng sống an nhàn lúc về
+                    hưu.
+                  </div>
                 </div>
-              </div>
+              </details>
             </div>
           </div>
         </div>
@@ -4236,14 +4379,20 @@
           </div>
 
           <!-- Ghi chú ROI y tế dự phòng -->
-          <div class="formula-inline-box formula-blue" style="margin-top: 1rem; font-size: 0.78rem;">
-            <div class="formula-tag">Quy Luật Hoàn Vốn Đầu Tư (ROI) Y Tế Dự Phòng</div>
-            <div style="margin-top: 0.35rem; line-height: 1.5; color: var(--text-muted);">
-              Các nghiên cứu y tế công cộng quốc tế chỉ ra: <strong>Mỗi 1 € đầu tư cho y tế dự phòng trước tuổi 60 giúp
-                tiết kiệm từ 6 € đến 10 €</strong> chi phí phẫu thuật, thuốc men và viện phí điều trị biến chứng sau
-              tuổi 70. Sức khỏe là khoản đầu tư có tỷ suất sinh lời vượt trội nhất.
+          <details class="formula-accordion" style="margin-top: 1rem;">
+            <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_medical_roi">Xem quy luật hoàn vốn đầu tư (ROI) y tế dự phòng</span>
+              <span class="formula-toggle-arrow">▾</span>
+            </summary>
+            <div class="formula-inline-box formula-blue" style="margin-top: 0.35rem; font-size: 0.78rem;">
+              <div class="formula-tag">Quy Luật Hoàn Vốn Đầu Tư (ROI) Y Tế Dự Phòng</div>
+              <div style="margin-top: 0.35rem; line-height: 1.5; color: var(--text-muted);">
+                Các nghiên cứu y tế công cộng quốc tế chỉ ra: <strong>Mỗi 1 € đầu tư cho y tế dự phòng trước tuổi 60 giúp
+                  tiết kiệm từ 6 € đến 10 €</strong> chi phí phẫu thuật, thuốc men và viện phí điều trị biến chứng sau
+                tuổi 70. Sức khỏe là khoản đầu tư có tỷ suất sinh lời vượt trội nhất.
+              </div>
             </div>
-          </div>
+          </details>
         </div>
 
         <!-- ========================================== -->
@@ -4395,15 +4544,21 @@
             </div>
 
             <!-- Hộp chênh lệch tài chính Geo-arbitrage -->
-            <div class="formula-inline-box formula-emerald" style="font-size: 0.78rem;">
-              <div class="formula-tag">Hiệu Ứng Chênh Lệch Chi Phí Sống (Geo-Arbitrage)</div>
-              <div style="margin-top: 0.35rem; line-height: 1.5; color: var(--text-muted);">
-                Nếu chuyển từ phương án EHPAD Pháp (trung bình 3.200 €/tháng) sang mô hình Chăm sóc cao cấp tại nhà ở
-                Việt Nam (trung bình 1.000 €/tháng) trong 5 năm: Bạn <strong>tiết kiệm được hơn 132.000 € (≈ 3,5 Tỷ
-                  ₫)</strong> — vừa bảo toàn tài sản di sản cho con cháu, vừa nhận được sự chăm sóc tận tâm 1-kèm-1 ấm
-                áp.
+            <details class="formula-accordion" style="margin-top: 0.5rem;">
+              <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_geo_health">Xem hiệu ứng chênh lệch chi phí y tế Pháp - Việt</span>
+                <span class="formula-toggle-arrow">▾</span>
+              </summary>
+              <div class="formula-inline-box formula-emerald" style="margin-top: 0.35rem; font-size: 0.78rem;">
+                <div class="formula-tag">Hiệu Ứng Chênh Lệch Chi Phí Sống (Geo-Arbitrage)</div>
+                <div style="margin-top: 0.35rem; line-height: 1.5; color: var(--text-muted);">
+                  Nếu chuyển từ phương án EHPAD Pháp (trung bình 3.200 €/tháng) sang mô hình Chăm sóc cao cấp tại nhà ở
+                  Việt Nam (trung bình 1.000 €/tháng) trong 5 năm: Bạn <strong>tiết kiệm được hơn 132.000 € (≈ 3,5 Tỷ
+                    ₫)</strong> — vừa bảo toàn tài sản di sản cho con cháu, vừa nhận được sự chăm sóc tận tâm 1-kèm-1 ấm
+                  áp.
+                </div>
               </div>
-            </div>
+            </details>
           </div>
         </div>
       </section>
@@ -5189,17 +5344,23 @@
         </div>
 
         <!-- Formula display box for real estate valuation -->
-        <div class="formula-inline-box" id="box-property-formula" style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
-          <div class="formula-tag" id="tag-property-formula">Công thức Định giá Căn Hộ Chung Cư (Khấu hao sau 30 năm)
+        <details class="formula-accordion" style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
+          <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_property">Xem công thức định giá BĐS & khấu hao</span>
+            <span class="formula-toggle-arrow">▾</span>
+          </summary>
+          <div class="formula-inline-box" id="box-property-formula" style="margin-top: 0.35rem;">
+            <div class="formula-tag" id="tag-property-formula">Công thức Định giá Căn Hộ Chung Cư (Khấu hao sau 30 năm)
+            </div>
+            <div id="desc-property-formula" style="font-size: 0.78rem; line-height: 1.45; color: var(--text-muted);">
+              • <strong>Phần Đất (20%):</strong> Tăng trưởng ổn định dài hạn (+2.0%/năm theo thị trường).<br>
+              • <strong>Phần Xác nhà (80%):</strong> Khấu hao công trình giảm dần theo tuổi thọ 30 năm (chạm sàn 10% ở năm
+              thứ 30).<br>
+              • <strong>Tổng giá trị(t) = Đất(t) + Xác nhà(t)</strong> (Khắc phục việc BĐS chung cư tăng ảo vô tận, phản
+              ánh đúng hao mòn sau 30 năm).
+            </div>
           </div>
-          <div id="desc-property-formula" style="font-size: 0.78rem; line-height: 1.45; color: var(--text-muted);">
-            • <strong>Phần Đất (20%):</strong> Tăng trưởng ổn định dài hạn (+2.0%/năm theo thị trường).<br>
-            • <strong>Phần Xác nhà (80%):</strong> Khấu hao công trình giảm dần theo tuổi thọ 30 năm (chạm sàn 10% ở năm
-            thứ 30).<br>
-            • <strong>Tổng giá trị(t) = Đất(t) + Xác nhà(t)</strong> (Khắc phục việc BĐS chung cư tăng ảo vô tận, phản
-            ánh đúng hao mòn sau 30 năm).
-          </div>
-        </div>
+        </details>
 
         <h5 style="margin: 0.75rem 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; color: var(--primary);">
           Gói vay thế chấp ngân hàng Pháp</h5>
@@ -5237,12 +5398,18 @@
         </div>
 
         <!-- Inline Formula: Realistic Real Estate Economics -->
-        <div class="formula-inline-box" style="margin-top: 0.65rem;">
-          <div class="formula-tag"> Công thức Dòng Tiền Ròng BĐS Thực Tế (Cashflow Net)</div>
-          <code>• Tiền thuê thực nhận = Tiền thuê niêm yết × (1 - Tỷ lệ phòng trống Vacance %)</code><br>
-          <code>• Chi phí vận hành = (Phí Coop + Thuế TF + Bảo hiểm PNO + Bảo trì)/12 + Phí quản lý agency</code><br>
-          <code>• Dòng tiền Ròng = Tiền thuê thực nhận - Trả nợ Crédit ngân hàng - Chi phí vận hành</code>
-        </div>
+        <details class="formula-accordion" style="margin-top: 0.65rem;">
+          <summary class="formula-toggle-btn">
+            <span data-i18n="lbl_view_formula_net_cashflow">Xem công thức dòng tiền ròng BĐS thực tế</span>
+            <span class="formula-toggle-arrow">▾</span>
+          </summary>
+          <div class="formula-inline-box" style="margin-top: 0.35rem;">
+            <div class="formula-tag"> Công thức Dòng Tiền Ròng BĐS Thực Tế (Cashflow Net)</div>
+            <code>• Tiền thuê thực nhận = Tiền thuê niêm yết × (1 - Tỷ lệ phòng trống Vacance %)</code><br>
+            <code>• Chi phí vận hành = (Phí Coop + Thuế TF + Bảo hiểm PNO + Bảo trì)/12 + Phí quản lý agency</code><br>
+            <code>• Dòng tiền Ròng = Tiền thuê thực nhận - Trả nợ Crédit ngân hàng - Chi phí vận hành</code>
+          </div>
+        </details>
 
         <!-- Section 1 & 2: Doanh Thu & Chi Phí Vận Hành Side-by-Side -->
         <div class="apt-financial-split">
@@ -5985,9 +6152,9 @@
   </div>
 
   <!-- Application Logic Modules -->
-  <script src="js/i18n.js?v=20261019_v178"></script>
-  <script src="js/state.js?v=20261019_v166"></script>
-  <script src="js/engine.js?v=20261019_v173"></script>
+  <script src="js/i18n.js?v=20261020_v185"></script>
+  <script src="js/state.js?v=20261019_v179"></script>
+  <script src="js/engine.js?v=20261020_v183"></script>
   <script src="js/taxOptimizer.js?v=20261019_v166"></script>
   <script src="js/monteCarlo.js?v=20261019_v165"></script>
   <script src="js/scenarios.js?v=20261016_v103"></script>
@@ -5997,11 +6164,11 @@
   <script src="js/auth.js?v=20261018_v157"></script>
   <!-- Tầng 3: Giao diện tách theo từng Tab độc lập + Modals + Nhạc trưởng điều phối -->
   <script src="js/ui-modals.js?v=20261019_v178"></script>
-  <script src="js/ui-tab1-charts.js?v=20261019_v173"></script>
-  <script src="js/ui-tab1-streams.js?v=20261019_v176"></script>
+  <script src="js/ui-tab1-charts.js?v=20261020_v177"></script>
+  <script src="js/ui-tab1-streams.js?v=20261020_v187"></script>
   <script src="js/ui-tab2-health.js?v=20261019_v165"></script>
   <script src="js/ui-tab3-taxes.js?v=20261019_v166"></script>
-  <script src="js/ui.js?v=20261019_v174"></script>
+  <script src="js/ui.js?v=20261019_v179"></script>
 </body>
 
 </html>

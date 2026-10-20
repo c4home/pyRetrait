@@ -353,24 +353,24 @@
     const plan = getActivePlan();
     const endAge = Number(plan.lifeExpectancy) || 85;
 
-    // Cập nhật trạng thái hiển thị trên Sidebar: 4. Chịu được các biến cố lớn cuộc đời
+    // Cập nhật trạng thái hiển thị trên Sidebar: 3. Chịu được biến cố bệnh tật, khủng hoảng
     const sidebarStatus = document.getElementById("sidebar-stress-status");
     if (sidebarStatus) {
-      const medText = lang === 'en' ? 'Medical Shock' : (lang === 'fr' ? 'Choc Médical' : 'Bệnh tật');
-      const crashText = lang === 'en' ? 'Market Crash' : (lang === 'fr' ? 'Krach Boursier' : 'Khủng hoảng');
-      const infText = lang === 'en' ? 'High Inflation' : (lang === 'fr' ? 'Inflation' : 'Lạm phát');
+      const floorText = lang === 'en'
+        ? 'Liquid assets at all times <strong>≥ 5 yrs net deficit</strong>'
+        : (lang === 'fr'
+            ? 'Actifs liquides en tout temps <strong>≥ 5 ans de déficit net</strong>'
+            : 'Tài sản thanh khoản tại mọi thời điểm luôn <strong>≥ 5 năm khoản tiền thiếu</strong>');
 
-      const floorLabel = lang === 'en' ? 'Asset Floor' : (lang === 'fr' ? 'Plancher de capital' : 'Sàn tài sản');
-      const floorVal = lang === 'en' ? 'Need <strong>≥ 5 yrs</strong> expenses' : (lang === 'fr' ? 'Nécessite <strong>≥ 5 ans</strong> dépenses' : 'Cần <strong>≥ 5 năm</strong> chi tiêu');
-      const spendLabel = lang === 'en' ? 'Spending & Living Standard' : (lang === 'fr' ? 'Dépenses & Niveau de vie' : 'Chi tiêu & Mức sống');
-      const spendVal = lang === 'en' ? 'Maintain <strong>≥ 80%</strong>' : (lang === 'fr' ? 'Maintenir <strong>≥ 80%</strong>' : 'Đảm bảo <strong>≥ 80%</strong>');
+      const spendText = lang === 'en'
+        ? 'Living standard firmly maintained <strong>≥ 80%</strong>'
+        : (lang === 'fr'
+            ? 'Niveau de vie maintenu <strong>≥ 80%</strong>'
+            : 'Chi tiêu thực tế luôn giữ vững <strong>≥ 80%</strong> kế hoạch ban đầu (không bị bóp nghẹt chi tiêu thiết yếu)');
 
       sidebarStatus.innerHTML = `
-        <div>${medText}, ${crashText}, ${infText}</div>
-        <div style="color: var(--text-muted); font-size: 0.67rem; border-top: 1px dashed var(--border-subtle); padding-top: 0.25rem; margin-top: 0.1rem; line-height: 1.4;">
-          • <strong>${floorLabel}:</strong> ${floorVal}<br>
-          • <strong>${spendLabel}:</strong> ${spendVal}
-        </div>
+        • ${floorText}<br>
+        • ${spendText}
       `;
     }
 

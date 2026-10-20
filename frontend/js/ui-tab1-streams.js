@@ -274,7 +274,7 @@
 
     const hintOptimalAge = document.getElementById("hint-optimal-retire-age");
     if (hintOptimalAge) {
-      hintOptimalAge.title = "Tuổi gợi ý đáp ứng tất cả 4 điều kiện tự do tài chính: Đủ Nest Egg, Tỷ lệ thị trường ≥ 80% & Vượt qua 3 biến cố lớn cuộc đời (Bệnh tật, Khủng hoảng, Lạm phát). Nhấp để áp dụng.";
+      hintOptimalAge.title = "Tuổi gợi ý đáp ứng tất cả 3 trụ cột tự do tài chính: Vốn trước khi về hưu (25–30x), Chịu được biến động thị trường ≥ 80% & Chịu được biến cố bệnh tật, khủng hoảng. Nhấp để áp dụng.";
       hintOptimalAge.addEventListener("click", () => {
         const plan = getActivePlan();
         const proj = window.RetirementEngine.runProjection(plan);
@@ -296,7 +296,7 @@
     const summaryOptimalAge = document.getElementById("summary-optimal-age");
     if (summaryOptimalAge) {
       summaryOptimalAge.style.cursor = "pointer";
-      summaryOptimalAge.title = "Tuổi gợi ý đáp ứng tất cả 4 điều kiện tự do tài chính: Đủ Nest Egg, Tỷ lệ thị trường ≥ 80% & Vượt qua 3 biến cố lớn cuộc đời (Bệnh tật, Khủng hoảng, Lạm phát). Nhấp để áp dụng vào kế hoạch.";
+      summaryOptimalAge.title = "Tuổi gợi ý đáp ứng tất cả 3 trụ cột tự do tài chính: Vốn trước khi về hưu (25–30x), Chịu được biến động thị trường ≥ 80% & Chịu được biến cố bệnh tật, khủng hoảng. Nhấp để áp dụng vào kế hoạch.";
       summaryOptimalAge.addEventListener("click", () => {
         if (hintOptimalAge) hintOptimalAge.click();
       });
@@ -659,8 +659,11 @@
     const chkDual = document.getElementById('chk-dual-inflation-enabled');
     if (chkDual) {
       chkDual.addEventListener('change', () => {
-        updateDualInflationUI();
+        const plan = getActivePlan();
+        if (!plan.dualInflation) plan.dualInflation = {};
+        plan.dualInflation.enabled = chkDual.checked;
         savePlansToStorage();
+        updateDualInflationUI(plan);
         updateAll();
       });
     }
@@ -736,11 +739,14 @@
         e.stopPropagation();
         const plan = getActivePlan();
         const isEnabled = plan.dualInflation?.enabled !== false;
+        const isDomestic = (plan.retireMode === 'domestic' || (plan.workCountry && plan.retireCountry && plan.workCountry === plan.retireCountry) || (plan.workCity && plan.retireCity && plan.workCity === plan.retireCity));
         if (isEnabled) {
           showConfirmDialog({
             icon: "",
-            title: "Xác nhận tắt Mô hình Lạm phát 2 Chặng",
-            message: `Bạn có chắc chắn muốn tắt <strong>Lạm phát 2 Chặng & Trượt giá EUR/VND</strong>?<br><span style="font-size:0.75rem; color:var(--text-faint); margin-top:6px; display:inline-block;">Hệ thống sẽ áp dụng tỷ lệ lạm phát đơn đồng nhất cho toàn bộ chu kỳ cuộc đời.</span>`,
+            title: isDomestic ? "Xác nhận tắt Lạm phát chi tiêu" : "Xác nhận tắt Mô hình Lạm phát 2 Chặng",
+            message: isDomestic
+              ? `Bạn có chắc chắn muốn tắt <strong>Lạm phát chi tiêu</strong>?<br><span style="font-size:0.75rem; color:var(--text-faint); margin-top:6px; display:inline-block;">Hệ thống sẽ giữ nguyên chi phí sinh hoạt danh nghĩa (lạm phát 0%/năm).</span>`
+              : `Bạn có chắc chắn muốn tắt <strong>Lạm phát 2 Chặng & Trượt giá EUR/VND</strong>?<br><span style="font-size:0.75rem; color:var(--text-faint); margin-top:6px; display:inline-block;">Hệ thống sẽ áp dụng tỷ lệ lạm phát đơn đồng nhất cho toàn bộ chu kỳ cuộc đời.</span>`,
             confirmText: "Tắt mô hình",
             onConfirm: () => {
               if (!plan.dualInflation) plan.dualInflation = {};
@@ -936,6 +942,14 @@
     const lblFuture = document.getElementById("lbl-inflation-card-future");
     const badgeStatus = document.getElementById("badge-dual-inflation-status");
 
+    // Thẻ lạm phát luôn active by default (dualInflation.enabled !== false)
+    const isEnabled = chk ? chk.checked : (p.dualInflation?.enabled !== false);
+    if (chk) chk.checked = isEnabled;
+
+    if (cardEl) {
+      cardEl.style.opacity = isEnabled ? "1" : "0.55";
+    }
+
     if (isDomestic) {
       // 1. Chế độ Lạm phát Nội địa (1 Quốc gia)
       if (lblTitle) {
@@ -958,18 +972,15 @@
         lblForexCard.innerText = `Áp dụng cho toàn bộ chi tiêu sinh hoạt`;
       }
       if (badgeStatus) {
-        badgeStatus.innerText = `Nội địa • ${infRate}%`;
-        badgeStatus.style.background = "rgba(16, 185, 129, 0.12)";
-        badgeStatus.style.color = "#10b981";
-        badgeStatus.style.borderColor = "rgba(16, 185, 129, 0.25)";
-      }
-      if (cardEl) {
-        cardEl.style.opacity = "1";
+        badgeStatus.innerText = isEnabled ? `Nội địa • ${infRate}%` : "Đã tắt";
+        badgeStatus.style.background = isEnabled ? "rgba(16, 185, 129, 0.12)" : "rgba(100, 116, 139, 0.15)";
+        badgeStatus.style.color = isEnabled ? "#10b981" : "#94a3b8";
+        badgeStatus.style.borderColor = isEnabled ? "rgba(16, 185, 129, 0.25)" : "var(--border-subtle)";
       }
 
       p.inflationRate = infRate;
       if (!p.dualInflation) p.dualInflation = {};
-      p.dualInflation.enabled = false;
+      p.dualInflation.enabled = isEnabled;
       p.dualInflation.inflationPre = infRate;
       p.dualInflation.inflationPost = infRate;
     } else {
@@ -995,8 +1006,6 @@
         lblForex.innerText = `~${forex60.toLocaleString("vi-VN")} ₫/€`;
       }
 
-      const isEnabled = chk ? chk.checked : (p.dualInflation?.enabled !== false);
-
       if (lblRates) {
         lblRates.innerText = `Pháp ${pre}% • VN ${post}%`;
       }
@@ -1011,9 +1020,6 @@
         badgeStatus.style.background = isEnabled ? "rgba(244, 63, 94, 0.12)" : "rgba(100, 116, 139, 0.15)";
         badgeStatus.style.color = isEnabled ? "#fb7185" : "#94a3b8";
         badgeStatus.style.borderColor = isEnabled ? "rgba(244, 63, 94, 0.25)" : "var(--border-subtle)";
-      }
-      if (cardEl) {
-        cardEl.style.opacity = isEnabled ? "1" : "0.55";
       }
 
       if (!p.dualInflation) p.dualInflation = {};
@@ -2147,14 +2153,23 @@
         : { label: "Điểm đến", flag: "📍", ppp: 0.45 };
       const targetCityDisplayName = `${targetCityProfile.flag ? targetCityProfile.flag + ' ' : ''}${targetCityProfile.label || targetCityProfile.countryLabel || 'Điểm đến'}`;
 
-      const pppFactorDisplay = (Number(calc.pppRatio) || 0.45).toFixed(2);
+      const pppFactor = Number(calc.pppRatio) || 0.45;
+      const pppPercentDisplay = Math.round(pppFactor * 100);
       const totalBudget = calc.monthlyRetireTotal || 1;
-      const bFood = Math.round(((calc.breakdown?.food || 0) / totalBudget) * 100);
-      const bHousing = Math.round(((calc.breakdown?.housing || 0) / totalBudget) * 100);
-      const bHealth = Math.round(((calc.breakdown?.health || 0) / totalBudget) * 100);
-      const bUtil = Math.round(((calc.breakdown?.utilities || 0) / totalBudget) * 100);
-      const bTrans = Math.round(((calc.breakdown?.transport || 0) / totalBudget) * 100);
-      const bApp = Math.round(((calc.breakdown?.household || 0) / totalBudget) * 100);
+      const valFood = calc.breakdown?.food || 0;
+      const valHousing = calc.breakdown?.housing || 0;
+      const valHealth = calc.breakdown?.health || 0;
+      const valUtil = calc.breakdown?.utilities || 0;
+      const valTrans = calc.breakdown?.transport || 0;
+      const valApp = calc.breakdown?.household || 0;
+      const valLeisure = Math.max(0, totalBudget - (valFood + valHousing + valHealth + valUtil + valTrans + valApp));
+
+      const bFood = Math.round((valFood / totalBudget) * 100);
+      const bHousing = Math.round((valHousing / totalBudget) * 100);
+      const bHealth = Math.round((valHealth / totalBudget) * 100);
+      const bUtil = Math.round((valUtil / totalBudget) * 100);
+      const bTrans = Math.round((valTrans / totalBudget) * 100);
+      const bApp = Math.round((valApp / totalBudget) * 100);
       const bLeisure = Math.max(0, 100 - (bFood + bHousing + bHealth + bUtil + bTrans + bApp));
 
       let leftColHtml = '';
@@ -2182,7 +2197,7 @@
       } else {
         const pppStepHtml = isDomestic ? '' : `
           <div class="retire-callout-step">
-            <span>Quy đổi sang ${targetCityDisplayName} (${pppFactorDisplay}x):</span>
+            <span>Quy đổi sang ${targetCityDisplayName} (${pppPercentDisplay}%):</span>
             <strong>${fmt(calc.pppAdjustedLiving)}/th</strong>
           </div>
         `;
@@ -2242,28 +2257,55 @@
           <div style="font-size: 0.68rem; font-weight: 700; color: var(--text-muted); margin-top: 0.25rem; border-top: 1px dashed var(--border-subtle); padding-top: 0.2rem;">
             Tỷ lệ 7 nhóm chi tiêu gia đình:
           </div>
-          <div style="font-size: 0.68rem; color: var(--text-muted); line-height: 1.35; display: grid; grid-template-columns: 1fr 1fr; gap: 0.1rem 0.35rem;">
-            <span>Ăn uống: <strong>${bFood}%</strong></span>
-            <span>Nhà ở: <strong>${bHousing}%</strong></span>
-            <span>Y tế BHYT: <strong>${bHealth}%</strong></span>
-            <span>Điện nước: <strong>${bUtil}%</strong></span>
-            <span>Đi lại: <strong>${bTrans}%</strong></span>
-            <span>Đồ gia dụng: <strong>${bApp}%</strong></span>
-            <span style="grid-column: 1 / -1;">Giải trí, du lịch: <strong>${bLeisure}%</strong></span>
+          <div style="display: flex; flex-direction: column; gap: 0.08rem; font-size: 0.7rem;">
+            <div class="retire-callout-step" style="padding: 0.06rem 0;">
+              <span>Ăn uống (${bFood}%):</span>
+              <strong class="font-mono">~${fmt(valFood)}</strong>
+            </div>
+            <div class="retire-callout-step" style="padding: 0.06rem 0;">
+              <span>Nhà ở (${bHousing}%):</span>
+              <strong class="font-mono">~${fmt(valHousing)}</strong>
+            </div>
+            <div class="retire-callout-step" style="padding: 0.06rem 0;">
+              <span>Y tế BHYT (${bHealth}%):</span>
+              <strong class="font-mono">~${fmt(valHealth)}</strong>
+            </div>
+            <div class="retire-callout-step" style="padding: 0.06rem 0;">
+              <span>Điện nước (${bUtil}%):</span>
+              <strong class="font-mono">~${fmt(valUtil)}</strong>
+            </div>
+            <div class="retire-callout-step" style="padding: 0.06rem 0;">
+              <span>Đi lại (${bTrans}%):</span>
+              <strong class="font-mono">~${fmt(valTrans)}</strong>
+            </div>
+            <div class="retire-callout-step" style="padding: 0.06rem 0;">
+              <span>Đồ gia dụng (${bApp}%):</span>
+              <strong class="font-mono">~${fmt(valApp)}</strong>
+            </div>
+            <div class="retire-callout-step" style="padding: 0.06rem 0;">
+              <span>Giải trí, du lịch (${bLeisure}%):</span>
+              <strong class="font-mono">~${fmt(valLeisure)}</strong>
+            </div>
           </div>
         </div>
 
         <!-- Nguồn gốc dữ liệu & Công thức tính -->
-        <div class="formula-inline-box formula-info" style="grid-column: 1 / -1; margin-top: 0.35rem; font-size: 0.68rem; padding: 0.35rem 0.55rem; border-radius: 4px;">
-          <div class="formula-tag" style="font-size: 0.65rem; margin-bottom: 0.15rem;">Nguồn dữ liệu &amp; Công thức đối chiếu</div>
-          <div style="display: flex; flex-direction: column; gap: 0.12rem; line-height: 1.35;">
-            <code>• Chi tiêu hưu trí = ${(!hasCustomIncome || monthlyIncome <= 0)
-              ? `Mức sống tham chiếu ${targetCityDisplayName}`
-              : (isDomestic ? '(Thu nhập - Tiết kiệm - Nợ nhà)' : `(Thu nhập - Tiết kiệm - Nợ nhà) × PPP (${targetCityDisplayName}: ${pppFactorDisplay}x)`)} + Y tế (${calc.seniorHealthAddon} ${cur === 'EUR' ? '€' : cur})</code>
-            <code>• Công thức 3 mốc = Mức sống tham chiếu ${isDomestic ? targetCityDisplayName : 'quy đổi PPP (' + targetCityDisplayName + ')'} × ${isMarried ? '1.6 (hộ 2 người)' : '1.0 (cá nhân 1 người)'}${isDomestic ? '' : ` × ${pppFactorDisplay}`}</code>
-            <code>• Nguồn dữ liệu: Khảo sát mức sống hộ gia đình OECD, INSEE, World Bank${isDomestic ? '' : ' PPP'} &amp; Numbeo 2024</code>
+        <details class="formula-accordion" style="grid-column: 1 / -1; margin-top: 0.35rem;">
+          <summary class="formula-toggle-btn">
+            <span>${window.I18n ? window.I18n.t("lbl_view_formula_ppp", "Xem nguồn dữ liệu & công thức đối chiếu PPP") : "Xem nguồn dữ liệu & công thức đối chiếu PPP"}</span>
+            <span class="formula-toggle-arrow">▾</span>
+          </summary>
+          <div class="formula-inline-box formula-info" style="font-size: 0.68rem; padding: 0.35rem 0.55rem; border-radius: 4px;">
+            <div class="formula-tag" style="font-size: 0.65rem; margin-bottom: 0.15rem;">Nguồn dữ liệu &amp; Công thức đối chiếu</div>
+            <div style="display: flex; flex-direction: column; gap: 0.12rem; line-height: 1.35;">
+              <code>• Chi tiêu hưu trí = ${(!hasCustomIncome || monthlyIncome <= 0)
+                ? `Mức sống tham chiếu ${targetCityDisplayName}`
+                : (isDomestic ? '(Thu nhập - Tiết kiệm - Nợ nhà)' : `(Thu nhập - Tiết kiệm - Nợ nhà) × PPP (${targetCityDisplayName}: ${pppPercentDisplay}%)`)} + Y tế (${calc.seniorHealthAddon} ${cur === 'EUR' ? '€' : cur})</code>
+              <code>• Công thức 3 mốc = Mức sống tham chiếu ${isDomestic ? targetCityDisplayName : 'quy đổi PPP (' + targetCityDisplayName + ')'} × ${isMarried ? '1.6 (hộ 2 người)' : '1.0 (cá nhân 1 người)'}${isDomestic ? '' : ` × ${pppPercentDisplay}%`}</code>
+              <code>• Nguồn dữ liệu: Khảo sát mức sống hộ gia đình OECD, INSEE, World Bank${isDomestic ? '' : ' PPP'} &amp; Numbeo 2024</code>
+            </div>
           </div>
-        </div>
+        </details>
       `;
     }
   }

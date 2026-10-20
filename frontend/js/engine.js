@@ -365,7 +365,7 @@ window.RetirementEngine = (function() {
       }
 
       // Kiểm tra Multi-Gate qua toàn bộ các năm nghỉ hưu:
-      // Gate 1: Sàn Tài sản An toàn >= 5 năm chi tiêu hiện hành
+      // Gate 1: Sàn Tài sản An toàn >= 5 năm khoản tiền thiếu mỗi năm (Chi tiêu - Lương hưu & Thụ động)
       // Gate 2: Mức sống không bị cắt giảm quá 20% (chi tiêu thực tế >= 80% chi tiêu kế hoạch)
       // Gate 3: Danh mục không cạn kiệt (portfolioEnd > 0)
       if (stressProj && Array.isArray(stressProj.timeline)) {
@@ -381,9 +381,12 @@ window.RetirementEngine = (function() {
             break;
           }
 
-          // Gate 1: Sàn Tài sản An Toàn >= 5 năm chi tiêu hiện hành
+          // Gate 1: Sàn Tài sản An Toàn >= 5 năm khoản tiền thiếu mỗi năm
+          // Khoản tiền thiếu mỗi năm = Max(0, Tổng chi tiêu cả năm - Lương hưu & Tiền thụ động nhận được)
           const annualExp = row.expenses || 0;
-          const safetyFloor = annualExp * 5;
+          const netPassive = Math.max(0, (row.income || 0) - (row.tax || 0));
+          const netDeficit = Math.max(0, annualExp - netPassive);
+          const safetyFloor = netDeficit * 5;
           if (row.portfolioEnd < safetyFloor) {
             passed = false;
             failureReason = 'floor_breach';
@@ -412,7 +415,10 @@ window.RetirementEngine = (function() {
         if (stressProj && Array.isArray(stressProj.timeline)) {
           const failRow = stressProj.timeline.find(r => r.age === failureAge);
           if (failRow) {
-            const floor = (failRow.expenses || 0) * 5;
+            const failExp = failRow.expenses || 0;
+            const failNetPassive = Math.max(0, (failRow.income || 0) - (failRow.tax || 0));
+            const failDeficit = Math.max(0, failExp - failNetPassive);
+            const floor = failDeficit * 5;
             deficitAtFail = Math.max(0, floor - (failRow.portfolioEnd || 0));
           }
         }
@@ -465,11 +471,10 @@ window.RetirementEngine = (function() {
 
   /**
    * Tìm Tuổi Nghỉ Hưu Tối Ưu / Tuổi Gợi Ý (Optimal / Suggested Retirement Age)
-   * Tiêu chuẩn khắt khe: Phải ĐÁP ỨNG TOÀN BỘ 4 ĐIỀU KIỆN ĐẠT TỰ DO TÀI CHÍNH:
-   * 1. Tiền cần bù đắp mỗi năm: Chi tiêu hưu - Lương hưu - Thu nhập thụ động
-   * 2. Tài sản mục tiêu cần tích lũy: Tiền cần bù đắp × Hệ số an toàn (25 - 30 lần tùy thời lượng hưu)
-   * 3. Chịu được biến cố thị trường: 1,000 kịch bản mô phỏng Monte Carlo đạt tỷ lệ thành công ≥ 80%
-   * 4. Chịu được biến cố lớn cuộc đời: Vượt qua cả 3 cú sốc (Bệnh tật, Khủng hoảng, Lạm phát) với Sàn tài sản ≥ 5 năm & Mức sống ≥ 80% (isBulletproof)
+   * Tiêu chuẩn khắt khe: Phải ĐÁP ỨNG TOÀN BỘ 3 TRỤ CỘT ĐẠT TỰ DO TÀI CHÍNH:
+   * 1. Vốn trước khi về hưu: Tài sản thanh khoản ≥ Hệ số an toàn (25 - 30 lần) × Khoản tiền thiếu mỗi năm (kèm bù đắp các năm chờ lương hưu)
+   * 2. Chịu được biến động thị trường: 1,000 kịch bản mô phỏng Monte Carlo đạt tỷ lệ thành công ≥ 80%
+   * 3. Chịu được biến cố bệnh tật, khủng hoảng: Vượt qua cả 3 cú sốc (Bệnh tật, Khủng hoảng, Lạm phát) với Sàn thanh khoản ≥ 5 năm khoản tiền thiếu & Mức sống ≥ 80% (isBulletproof)
    * Và đảm bảo dòng tiền cơ sở không cạn kiệt (survived: true).
    */
   function findOptimalRetirementAge(plan, baseFireAge = null) {
@@ -712,9 +717,12 @@ window.RetirementEngine = (function() {
       const isRetired = age >= retireAge;
 
       // 4. Dual-Stage Inflation Compounding
-      const currentInflation = (plan.dualInflation && plan.dualInflation.enabled)
-        ? (isRetired ? (Number(plan.dualInflation.inflationPost) || 4.0) / 100.0 : (Number(plan.dualInflation.inflationPre) || 2.2) / 100.0)
-        : (Number(plan.inflationRate) || 4.0) / 100.0;
+      const isInflationActive = plan.dualInflation ? (plan.dualInflation.enabled !== false) : true;
+      const currentInflation = isInflationActive
+        ? (isSingleCountry
+            ? (Number(plan.dualInflation?.inflationPre) || Number(plan.inflationRate) || (plan.workCountry === 'VN' ? 4.0 : 2.0)) / 100.0
+            : (isRetired ? (Number(plan.dualInflation?.inflationPost) || 4.0) / 100.0 : (Number(plan.dualInflation?.inflationPre) || 2.2) / 100.0))
+        : 0;
       
       if (i > 0) {
         cumInflation *= (1.0 + currentInflation);
@@ -1363,7 +1371,7 @@ window.RetirementEngine = (function() {
       });
     }
 
-    // Key metrics calculations: Chuẩn hóa theo 4 Điều Kiện Đạt Tự Do Tài Chính
+    // Key metrics calculations: Chuẩn hóa theo 3 Trụ Cột Đạt Tự Do Tài Chính
     const finalPortfolio = timeline[timeline.length - 1].portfolioEnd;
     
     // 1. Tiền cần bù đắp mỗi năm = Chi tiêu hưu − Lương hưu − Thu nhập thụ động

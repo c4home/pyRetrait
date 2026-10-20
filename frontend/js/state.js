@@ -199,6 +199,18 @@
       if (!plan.taiwanPensionDetails.spouse1) plan.taiwanPensionDetails.spouse1 = { insuredMonthlySalary: 45800, yearsContributed: 20, claimAge: 65 };
       if (!plan.taiwanPensionDetails.spouse2) plan.taiwanPensionDetails.spouse2 = { insuredMonthlySalary: 36000, yearsContributed: 15, claimAge: 65 };
     }
+    if (!plan.dualInflation) {
+      const isVn = (plan.workCountry === 'VN');
+      plan.dualInflation = {
+        enabled: true,
+        inflationPre: isVn ? 4.0 : 2.2,
+        inflationPost: (plan.retireCountry === 'FR' ? 2.0 : 4.0),
+        eurVndInitialRate: 27500,
+        eurVndAnnualDrift: 1.2
+      };
+    } else if (plan.dualInflation.enabled === undefined) {
+      plan.dualInflation.enabled = true;
+    }
     if (!plan.healthProfiles) {
       plan.healthProfiles = {
         primary: {
@@ -497,7 +509,14 @@
           ],
           spendingPhases: { enabled: true, gogoAge: 55, gogoFactor: 1.15, slowgoAge: 70, slowgoFactor: 0.90, nogoFactor: 0.80 },
           healthcare: { enabled: true },
-          assetAllocation: { stocks: 80, bonds: 20, realEstate: 0, cash: 0 }
+          assetAllocation: { stocks: 80, bonds: 20, realEstate: 0, cash: 0 },
+          dualInflation: {
+            enabled: true,
+            inflationPre: 2.2,
+            inflationPost: 4.0,
+            eurVndInitialRate: 27500,
+            eurVndAnnualDrift: 1.2
+          }
         }
       }
     };
