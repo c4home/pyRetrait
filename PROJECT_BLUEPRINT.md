@@ -106,6 +106,7 @@ Dưới đây là cấu trúc JSON chuẩn của một đối tượng kế ho�
 
 ```json
 {
+  "_schemaVersion": 1,
   "id": "plan_franco_viet",
   "name": "Kế hoạch Franco-Viet FIRE",
   "currency": "EUR",

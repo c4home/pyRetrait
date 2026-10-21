@@ -7,6 +7,7 @@
   'use strict';
 
   const STORAGE_KEY = "pyRetrait_plans_v2";
+  const CURRENT_SCHEMA_VERSION = 1;
 
   // Global Central State
   const state = {
@@ -50,10 +51,34 @@
     return state;
   }
 
+  /**
+   * Chuỗi di trú tuần tự theo nấc thang (Sequential Migration Pipeline)
+   * Đảm bảo không bao giờ làm mất hay lỗi dữ liệu cũ của người dùng khi app nâng cấp phiên bản
+   * @param {Object} rawPlan - Kế hoạch thô từ localStorage / file backup / database
+   * @returns {Object} Kế hoạch đã được chuẩn hóa lên phiên bản mới nhất
+   */
+  function migratePlan(rawPlan) {
+    if (!rawPlan || typeof rawPlan !== 'object') return rawPlan;
+    let plan = { ...rawPlan };
+    let v = Number(plan._schemaVersion) || 1;
+
+    // Nấc thang di trú dự phòng khi nâng lên phiên bản schema tiếp theo
+    // Ví dụ: if (v < 2) { plan.newField = ...; v = 2; }
+    // if (v < 3) { ... v = 3; }
+
+    plan._schemaVersion = Math.max(v, CURRENT_SCHEMA_VERSION);
+    return ensurePlanDefaults(plan);
+  }
+
   function getActivePlan() {
     if (!state.plansData || !state.plansData.plans) return null;
-    const plan = state.plansData.plans[state.plansData.activePlanId] || Object.values(state.plansData.plans)[0] || null;
-    if (plan) ensurePlanDefaults(plan);
+    let plan = state.plansData.plans[state.plansData.activePlanId] || Object.values(state.plansData.plans)[0] || null;
+    if (plan) {
+      plan = migratePlan(plan);
+      if (plan.id && state.plansData.plans[plan.id]) {
+        state.plansData.plans[plan.id] = plan;
+      }
+    }
     return plan;
   }
 
@@ -98,6 +123,7 @@
 
   function ensurePlanDefaults(plan) {
     if (!plan || typeof plan !== 'object') return plan;
+    if (!plan._schemaVersion) plan._schemaVersion = CURRENT_SCHEMA_VERSION;
     if (!plan.workCountry) plan.workCountry = 'FR';
     if (!plan.workCity) plan.workCity = 'fr_paris';
     if (!plan.retireCountry) plan.retireCountry = 'VN';
@@ -529,6 +555,8 @@
   // Expose to window.AppState
   window.AppState = {
     STORAGE_KEY,
+    CURRENT_SCHEMA_VERSION,
+    migratePlan,
     state,
     getState,
     getActivePlan,

@@ -6,72 +6,72 @@
 
 ---
 
-## 1. `frontend/index.html` (6406 dòng)
+## 1. `frontend/index.html` (6417 dòng)
 | Khu vực / Thẻ ID | Khoảng dòng (`StartLine` – `EndLine`) |
 | :--- | :--- |
-| `<header>` (Thanh điều hướng trên cùng) | `36 – 254` |
-| `#tab-projections` | `255 – 371` |
-| Cột 1: Các Luồng Thu nhập (`col1_income_header`) | `372 – 382` |
-| `#card-asset-allocation-stream` | `383 – 473` |
-| `#card-lmnp-income-stream` | `474 – 552` |
-| `#card-french-pension-stream` | `553 – 684` |
-| `#card-bhxh-income-stream` | `685 – 829` |
-| `#card-german-pension-stream` | `830 – 958` |
-| `#card-us-pension-stream` | `959 – 1087` |
-| `#card-japan-pension-stream` | `1088 – 1216` |
-| `#card-canada-pension-stream` | `1217 – 1359` |
-| `#card-australia-pension-stream` | `1360 – 1502` |
-| `#card-korea-pension-stream` | `1503 – 1631` |
-| `#card-taiwan-pension-stream` | `1632 – 1773` |
-| `#card-withdrawal-strategy-controls` | `1774 – 1829` |
-| `#card-strat-bengen_4pct` | `1830 – 1856` |
-| `#card-strat-guyton_klinger` | `1857 – 1890` |
-| `#card-strat-vpw` | `1891 – 1922` |
-| `#card-strat-fixed_pct` | `1923 – 2022` |
-| Cột 2: Các Luồng Chi tiêu (`col2_expense_header`) | `2023 – 2032` |
-| `#card-retire-expense-stream` | `2033 – 2254` |
-| `#card-dual-inflation-stream` | `2255 – 2361` |
-| `#card-children-family-stream` | `2362 – 2486` |
-| `#card-senior-care-stream` | `2487 – 2561` |
-| `#card-estate-legacy-combined` | `2562 – 2650` |
-| `#section-gemini-projections` | `2651 – 2733` |
-| `#chart-networth` | `2734 – 2759` |
-| `#chart-cashflow` | `2760 – 2767` |
-| `#tab-taxes` | `2768 – 2797` |
-| `#card-sustainable-spending` | `2798 – 2934` |
-| `#section-country-tools-wrapper` | `2935 – 2954` |
-| `#card-pea-masterclass` | `2955 – 3126` |
-| `#card-assurance-vie-masterclass` | `3127 – 3301` |
-| `#card-livret-masterclass` | `3302 – 3478` |
-| `#card-estate-inheritance-masterclass` | `3479 – 3572` |
-| `#card-vietnam-tools` | `3573 – 3649` |
-| `#card-us-tools` | `3650 – 3726` |
-| `#card-germany-tools` | `3727 – 3788` |
-| `#card-international-tools` | `3789 – 3854` |
-| `#tab-estate` | `3855 – 3891` |
-| `#card-healthspan-score` | `3892 – 3919` |
-| `#card-couple-primary-col` | `3920 – 3941` |
-| `#card-couple-spouse-col` | `3942 – 4350` |
-| `#card-longevity-nutrition` | `4351 – 4576` |
-| `#card-health-roadmap` | `4577 – 4714` |
-| `#card-franco-viet-guide` | `4715 – 4810` |
-| `#card-elderly-care-comparison` | `4811 – 4882` |
-| `#plan-modal` | `4883 – 5170` |
-| `#income-modal` | `5171 – 5225` |
-| `#expense-modal` | `5226 – 5320` |
-| `#actual-networth-modal` | `5321 – 5401` |
-| `#milestone-modal` | `5402 – 5509` |
-| `#modal-gemini-settings` | `5510 – 5563` |
-| `#apartment-modal` | `5564 – 5749` |
-| `#auth-modal` | `5750 – 5833` |
-| `#modal-formula-guide` | `5834 – 6068` |
-| `#quick-setup-modal` | `6069 – 6284` |
-| `#confirm-modal` | `6285 – 6303` |
-| `#feature-intro-modal` | `6304 – 6406` |
+| `<header>` (Thanh điều hướng trên cùng) | `40 – 258` |
+| `#tab-projections` | `259 – 375` |
+| Cột 1: Các Luồng Thu nhập (`col1_income_header`) | `376 – 386` |
+| `#card-asset-allocation-stream` | `387 – 477` |
+| `#card-lmnp-income-stream` | `478 – 556` |
+| `#card-french-pension-stream` | `557 – 688` |
+| `#card-bhxh-income-stream` | `689 – 833` |
+| `#card-german-pension-stream` | `834 – 962` |
+| `#card-us-pension-stream` | `963 – 1091` |
+| `#card-japan-pension-stream` | `1092 – 1220` |
+| `#card-canada-pension-stream` | `1221 – 1363` |
+| `#card-australia-pension-stream` | `1364 – 1506` |
+| `#card-korea-pension-stream` | `1507 – 1635` |
+| `#card-taiwan-pension-stream` | `1636 – 1777` |
+| `#card-withdrawal-strategy-controls` | `1778 – 1833` |
+| `#card-strat-bengen_4pct` | `1834 – 1860` |
+| `#card-strat-guyton_klinger` | `1861 – 1894` |
+| `#card-strat-vpw` | `1895 – 1926` |
+| `#card-strat-fixed_pct` | `1927 – 2026` |
+| Cột 2: Các Luồng Chi tiêu (`col2_expense_header`) | `2027 – 2036` |
+| `#card-retire-expense-stream` | `2037 – 2258` |
+| `#card-dual-inflation-stream` | `2259 – 2365` |
+| `#card-children-family-stream` | `2366 – 2491` |
+| `#card-senior-care-stream` | `2492 – 2566` |
+| `#card-estate-legacy-combined` | `2567 – 2661` |
+| `#section-gemini-projections` | `2662 – 2744` |
+| `#chart-networth` | `2745 – 2770` |
+| `#chart-cashflow` | `2771 – 2778` |
+| `#tab-taxes` | `2779 – 2808` |
+| `#card-sustainable-spending` | `2809 – 2945` |
+| `#section-country-tools-wrapper` | `2946 – 2965` |
+| `#card-pea-masterclass` | `2966 – 3137` |
+| `#card-assurance-vie-masterclass` | `3138 – 3312` |
+| `#card-livret-masterclass` | `3313 – 3489` |
+| `#card-estate-inheritance-masterclass` | `3490 – 3583` |
+| `#card-vietnam-tools` | `3584 – 3660` |
+| `#card-us-tools` | `3661 – 3737` |
+| `#card-germany-tools` | `3738 – 3799` |
+| `#card-international-tools` | `3800 – 3865` |
+| `#tab-estate` | `3866 – 3902` |
+| `#card-healthspan-score` | `3903 – 3930` |
+| `#card-couple-primary-col` | `3931 – 3952` |
+| `#card-couple-spouse-col` | `3953 – 4361` |
+| `#card-longevity-nutrition` | `4362 – 4587` |
+| `#card-health-roadmap` | `4588 – 4725` |
+| `#card-franco-viet-guide` | `4726 – 4821` |
+| `#card-elderly-care-comparison` | `4822 – 4893` |
+| `#plan-modal` | `4894 – 5181` |
+| `#income-modal` | `5182 – 5236` |
+| `#expense-modal` | `5237 – 5331` |
+| `#actual-networth-modal` | `5332 – 5412` |
+| `#milestone-modal` | `5413 – 5520` |
+| `#modal-gemini-settings` | `5521 – 5574` |
+| `#apartment-modal` | `5575 – 5760` |
+| `#auth-modal` | `5761 – 5844` |
+| `#modal-formula-guide` | `5845 – 6079` |
+| `#quick-setup-modal` | `6080 – 6295` |
+| `#confirm-modal` | `6296 – 6314` |
+| `#feature-intro-modal` | `6315 – 6417` |
 
 ---
 
-## 2. `frontend/css/styles.css` (9809 dòng)
+## 2. `frontend/css/styles.css` (9846 dòng)
 | Phân mục CSS (`/* === ... === */`) | Khoảng dòng (`StartLine` – `EndLine`) |
 | :--- | :--- |
 | pyRetrait — Premium Design System & Theme Stylesheet | `1 – 78` |
@@ -84,88 +84,90 @@
 | Cards & Layout Panels | `995 – 1202` |
 | Form Controls & Inputs | `1203 – 1351` |
 | Expandable Panels for Advanced Modules | `1352 – 1634` |
-| Income & Expense Streams Side-by-Side Layout | `1635 – 1808` |
-| Expense Streams & Crédits | `1809 – 2878` |
-| Withdrawal Strategy Cards | `2879 – 3044` |
-| Monte Carlo Stats Integrated in Chart Card | `3045 – 3149` |
-| What-If Scenarios List | `3150 – 3199` |
-| Spending Phases Card & Estate | `3200 – 3224` |
-| AI Advisor Panel | `3225 – 3373` |
-| Data Table | `3374 – 3415` |
-| Dropdown Menus & Modals | `3416 – 3678` |
-| Life Milestones Visuals & Markers | `3679 – 3905` |
-| French Accounts Tracking & Withdrawal Waterfall Styles | `3906 – 4051` |
-| Gemini AI Insights & Chart Commentary Component | `4052 – 4630` |
-| Responsive Breakpoints & Layout Adaptations | `4631 – 4720` |
-| Print / Export Report Stylesheet | `4721 – 4754` |
-| pyLocation / Patrimoine Custom Component Styles | `4755 – 4772` |
-| Inline Financial & Mathematical Formulas (Direct Verification) | `4773 – 4775` |
-| Collapsible Formula Accordion (Mass Audience UX - Anti-Overwhelm) | `4776 – 5001` |
-| PEA Masterclass & Strategic Tips (Native pyRetrait Design System) | `5002 – 5236` |
-| Family & Children Planning: Side-by-Side (Inputs Left, Formulas Right) | `5237 – 5324` |
-| Estate Planning & Legacy Milestone: Unified Composite Card | `5325 – 5397` |
-| Retirement Spending Smile: Side-by-Side (Inputs Left, Budget & Science Right) | `5398 – 5540` |
-| Dual-Theme (Light & Dark) UI Optimization & Period Timeline Cards | `5541 – 6057` |
-| Cross-Tab Unified Light/Dark Mode Components & Accents | `6058 – 6542` |
-| Franco-Viet Guide Components (Health, Pension, Cross-border Benefits) | `6543 – 6721` |
-| Onboarding Wizard (Thiết Lập Nhanh 4 Bước) | `6722 – 7110` |
-| Feature Discovery / Capabilities Intro Modal | `7111 – 7390` |
-| Special Expense Item: Kế Hoạch Thừa Kế & Đánh Giá Mục Tiêu Di Sản | `7391 – 7452` |
-| Tab Hero Banners (Universal Philosophy & Core Questions/Answers) | `7453 – 7815` |
-| Advanced Healthspan Features (1, 3, 4, 5) | `7816 – 8253` |
-| Longevity Nutrition Matrix (3-Column Layout: Sáng, Trưa, Tối) | `8254 – 8271` |
-| Longevity Nutrition Matrix Styling | `8272 – 8289` |
-| Cellular Hydration & Electrolytes Protocol (70% Body Weight) | `8290 – 8744` |
-| Health 3-Tier Layout Architecture | `8745 – 8774` |
-| Tab Quản Lý Rủi Ro: Bố Cục 2 Tầng Dọc Liền Mạch (Sequential 2-Tier Dashboard) | `8775 – 8839` |
-| Lưới An Toàn 3 Biến Cố & FIRE Bền Bỉ (Triple-Shock Safety Net & Bulletproof FIRE) | `8840 – 9154` |
-| .profile-summary-bar { | `9155 – 9619` |
-| DÒNG GHI CHÚ: VÌ SAO TIỀN MẶT & QUỸ ĐẦU TƯ QUAN TRỌNG HƠN TỔNG TÀI SẢN | `9620 – 9658` |
-| TAB 3: LỜI KHUYÊN & CÔNG CỤ TÀI CHÍNH THEO QUỐC GIA (SMART TIPS HUB) | `9659 – 9809` |
+| Income & Expense Streams Side-by-Side Layout | `1635 – 1845` |
+| Expense Streams & Crédits | `1846 – 2915` |
+| Withdrawal Strategy Cards | `2916 – 3081` |
+| Monte Carlo Stats Integrated in Chart Card | `3082 – 3186` |
+| What-If Scenarios List | `3187 – 3236` |
+| Spending Phases Card & Estate | `3237 – 3261` |
+| AI Advisor Panel | `3262 – 3410` |
+| Data Table | `3411 – 3452` |
+| Dropdown Menus & Modals | `3453 – 3715` |
+| Life Milestones Visuals & Markers | `3716 – 3942` |
+| French Accounts Tracking & Withdrawal Waterfall Styles | `3943 – 4088` |
+| Gemini AI Insights & Chart Commentary Component | `4089 – 4667` |
+| Responsive Breakpoints & Layout Adaptations | `4668 – 4757` |
+| Print / Export Report Stylesheet | `4758 – 4791` |
+| pyLocation / Patrimoine Custom Component Styles | `4792 – 4809` |
+| Inline Financial & Mathematical Formulas (Direct Verification) | `4810 – 4812` |
+| Collapsible Formula Accordion (Mass Audience UX - Anti-Overwhelm) | `4813 – 5038` |
+| PEA Masterclass & Strategic Tips (Native pyRetrait Design System) | `5039 – 5273` |
+| Family & Children Planning: Side-by-Side (Inputs Left, Formulas Right) | `5274 – 5361` |
+| Estate Planning & Legacy Milestone: Unified Composite Card | `5362 – 5434` |
+| Retirement Spending Smile: Side-by-Side (Inputs Left, Budget & Science Right) | `5435 – 5577` |
+| Dual-Theme (Light & Dark) UI Optimization & Period Timeline Cards | `5578 – 6094` |
+| Cross-Tab Unified Light/Dark Mode Components & Accents | `6095 – 6579` |
+| Franco-Viet Guide Components (Health, Pension, Cross-border Benefits) | `6580 – 6758` |
+| Onboarding Wizard (Thiết Lập Nhanh 4 Bước) | `6759 – 7147` |
+| Feature Discovery / Capabilities Intro Modal | `7148 – 7427` |
+| Special Expense Item: Kế Hoạch Thừa Kế & Đánh Giá Mục Tiêu Di Sản | `7428 – 7489` |
+| Tab Hero Banners (Universal Philosophy & Core Questions/Answers) | `7490 – 7852` |
+| Advanced Healthspan Features (1, 3, 4, 5) | `7853 – 8290` |
+| Longevity Nutrition Matrix (3-Column Layout: Sáng, Trưa, Tối) | `8291 – 8308` |
+| Longevity Nutrition Matrix Styling | `8309 – 8326` |
+| Cellular Hydration & Electrolytes Protocol (70% Body Weight) | `8327 – 8781` |
+| Health 3-Tier Layout Architecture | `8782 – 8811` |
+| Tab Quản Lý Rủi Ro: Bố Cục 2 Tầng Dọc Liền Mạch (Sequential 2-Tier Dashboard) | `8812 – 8876` |
+| Lưới An Toàn 3 Biến Cố & FIRE Bền Bỉ (Triple-Shock Safety Net & Bulletproof FIRE) | `8877 – 9191` |
+| .profile-summary-bar { | `9192 – 9656` |
+| DÒNG GHI CHÚ: VÌ SAO TIỀN MẶT & QUỸ ĐẦU TƯ QUAN TRỌNG HƠN TỔNG TÀI SẢN | `9657 – 9695` |
+| TAB 3: LỜI KHUYÊN & CÔNG CỤ TÀI CHÍNH THEO QUỐC GIA (SMART TIPS HUB) | `9696 – 9846` |
 
 ---
 
-## 3. `frontend/js/i18n.js` (1057 dòng) & `state.js` (553 dòng — Tầng 2 State)
+## 3. `frontend/js/i18n.js` (1103 dòng) & `state.js` (581 dòng — Tầng 2 State)
 ### `i18n.js`
 | Từ điển / Hàm | Khoảng dòng (`StartLine` – `EndLine`) |
 | :--- | :--- |
-| Từ điển `vi` | `21 – 303` |
-| Từ điển `en` | `304 – 586` |
-| Từ điển `fr` | `587 – 871` |
-| `getSavedLanguage()` | `872 – 883` |
-| `t()` | `884 – 895` |
-| `applyLanguage()` | `896 – 946` |
-| `setLanguage()` | `947 – 950` |
-| `renderLanguageDropdown()` | `951 – 988` |
-| `toggleDropdown()` | `989 – 1004` |
-| `closeDropdown()` | `1005 – 1013` |
-| `init()` | `1014 – 1057` |
+| Từ điển `vi` | `21 – 311` |
+| Từ điển `en` | `312 – 602` |
+| Từ điển `fr` | `603 – 895` |
+| `getSavedLanguage()` | `896 – 907` |
+| `t()` | `908 – 919` |
+| `applyLanguage()` | `920 – 970` |
+| `setLanguage()` | `971 – 974` |
+| `renderLanguageDropdown()` | `975 – 1012` |
+| `toggleDropdown()` | `1013 – 1028` |
+| `closeDropdown()` | `1029 – 1037` |
+| `init()` | `1038 – 1070` |
+| `registerTranslations()` | `1071 – 1103` |
 
 ### `state.js`
 | Tên hàm (`function`) | Khoảng dòng (`StartLine` – `EndLine`) |
 | :--- | :--- |
-| `on()` | `30 – 35` |
-| `off()` | `36 – 40` |
-| `emit()` | `41 – 48` |
-| `getState()` | `49 – 52` |
-| `getActivePlan()` | `53 – 59` |
-| `setActivePlanId()` | `60 – 71` |
-| `getCurrency()` | `72 – 75` |
-| `setCurrency()` | `76 – 80` |
-| `getViewMode()` | `81 – 84` |
-| `setViewMode()` | `85 – 89` |
-| `getActiveTab()` | `90 – 93` |
-| `setActiveTab()` | `94 – 98` |
-| `ensurePlanDefaults()` | `99 – 229` |
-| `syncSalaryStreamsWithMaritalStatus()` | `230 – 327` |
-| `applySavedUserPreferences()` | `328 – 360` |
-| `savePlansToStorage()` | `361 – 404` |
-| `debouncedSavePlansToStorage()` | `405 – 408` |
-| `loadInitialPlans()` | `409 – 553` |
+| `on()` | `31 – 36` |
+| `off()` | `37 – 41` |
+| `emit()` | `42 – 49` |
+| `getState()` | `50 – 59` |
+| `migratePlan()` | `60 – 72` |
+| `getActivePlan()` | `73 – 84` |
+| `setActivePlanId()` | `85 – 96` |
+| `getCurrency()` | `97 – 100` |
+| `setCurrency()` | `101 – 105` |
+| `getViewMode()` | `106 – 109` |
+| `setViewMode()` | `110 – 114` |
+| `getActiveTab()` | `115 – 118` |
+| `setActiveTab()` | `119 – 123` |
+| `ensurePlanDefaults()` | `124 – 255` |
+| `syncSalaryStreamsWithMaritalStatus()` | `256 – 353` |
+| `applySavedUserPreferences()` | `354 – 386` |
+| `savePlansToStorage()` | `387 – 430` |
+| `debouncedSavePlansToStorage()` | `431 – 434` |
+| `loadInitialPlans()` | `435 – 581` |
 
 ---
 
-## 4. `frontend/js/engine.js` (1680 dòng — Tầng 1 Core Engine)
+## 4. `frontend/js/engine.js` (1686 dòng — Tầng 1 Core Engine)
 | Tên hàm (`function`) | Khoảng dòng (`StartLine` – `EndLine`) |
 | :--- | :--- |
 | `getCurrencySymbol()` | `9 – 16` |
@@ -176,13 +178,13 @@
 | `computePropertyValue()` | `135 – 186` |
 | `calculateSingleMortgageSchedule()` | `187 – 308` |
 | `evaluateStressResilience()` | `309 – 479` |
-| `findOptimalRetirementAge()` | `480 – 595` |
-| `runProjection()` | `596 – 1680` |
+| `findOptimalRetirementAge()` | `480 – 597` |
+| `runProjection()` | `598 – 1686` |
 
 ---
 
 ## 5. Tầng 3 UI — Nhạc Trưởng & 3 Tab Độc Lập + Modals
-### 5.1. `frontend/js/ui.js` (916 dòng — Nhạc trưởng điều phối trung tâm)
+### 5.1. `frontend/js/ui.js` (923 dòng — Nhạc trưởng điều phối trung tâm)
 | Tên hàm (`function`) | Khoảng dòng (`StartLine` – `EndLine`) |
 | :--- | :--- |
 | `getVal()` | `30 – 34` |
@@ -202,13 +204,13 @@
 | `switchTab()` | `330 – 344` |
 | `renderActiveTab()` | `345 – 353` |
 | `renderActivePlanInputs()` | `354 – 563` |
-| `updateAll()` | `564 – 752` |
-| `convertPlanCurrency()` | `753 – 785` |
-| `setCurrency()` | `786 – 807` |
-| `setViewMode()` | `808 – 819` |
-| `updateThemeIcon()` | `820 – 830` |
-| `toggleTheme()` | `831 – 841` |
-| `loadTheme()` | `842 – 916` |
+| `updateAll()` | `564 – 759` |
+| `convertPlanCurrency()` | `760 – 792` |
+| `setCurrency()` | `793 – 814` |
+| `setViewMode()` | `815 – 826` |
+| `updateThemeIcon()` | `827 – 837` |
+| `toggleTheme()` | `838 – 848` |
+| `loadTheme()` | `849 – 923` |
 
 ### 5.2. `frontend/js/ui-tab1-charts.js` (1852 dòng — Tab 1A: Biểu đồ, Monte Carlo, Biến cố & Bảng năm)
 | Tên hàm (`function`) | Khoảng dòng (`StartLine` – `EndLine`) |
@@ -231,7 +233,7 @@
 | `renderMonteCarloTab()` | `1402 – 1633` |
 | `renderScenarioTab()` | `1634 – 1852` |
 
-### 5.3. `frontend/js/ui-tab1-streams.js` (3057 dòng — Tab 1B: Luồng Thu/Chi, Phân bổ tài sản & 4 Chiến lược)
+### 5.3. `frontend/js/ui-tab1-streams.js` (3045 dòng — Tab 1B: Luồng Thu/Chi, Phân bổ tài sản & 4 Chiến lược)
 | Tên hàm (`function`) | Khoảng dòng (`StartLine` – `EndLine`) |
 | :--- | :--- |
 | `getVal()` | `16 – 20` |
@@ -257,16 +259,16 @@
 | `updateCashflowBalanceUI()` | `1627 – 1727` |
 | `syncSavingsAndExpensesFromRate()` | `1728 – 1731` |
 | `updateSavingsRateUI()` | `1732 – 1736` |
-| `applyProfileVisibilityRules()` | `1737 – 2309` |
-| `updateRetirementLocationRadiosUI()` | `2310 – 2479` |
-| `updateExpenseSavingsHints()` | `2480 – 2484` |
-| `renderExpensePeriodsSummary()` | `2485 – 2776` |
-| `renderExpenseStreamsList()` | `2777 – 2891` |
-| `updateWithdrawalStrategyCards()` | `2892 – 2903` |
-| `hexToRgba()` | `2904 – 3022` |
-| `renderWithdrawalComparison()` | `3023 – 3057` |
+| `applyProfileVisibilityRules()` | `1737 – 2297` |
+| `updateRetirementLocationRadiosUI()` | `2298 – 2467` |
+| `updateExpenseSavingsHints()` | `2468 – 2472` |
+| `renderExpensePeriodsSummary()` | `2473 – 2764` |
+| `renderExpenseStreamsList()` | `2765 – 2879` |
+| `updateWithdrawalStrategyCards()` | `2880 – 2891` |
+| `hexToRgba()` | `2892 – 3010` |
+| `renderWithdrawalComparison()` | `3011 – 3045` |
 
-### 5.4. `frontend/js/ui-tab2-health.js` (1759 dòng — Tab 2: Sức khỏe, Con cái & Y tế dự phòng)
+### 5.4. `frontend/js/ui-tab2-health.js` (1811 dòng — Tab 2: Sức khỏe, Con cái & Y tế dự phòng)
 | Tên hàm (`function`) | Khoảng dòng (`StartLine` – `EndLine`) |
 | :--- | :--- |
 | `getVal()` | `14 – 18` |
@@ -291,15 +293,15 @@
 | `initHealthTabEvents()` | `700 – 773` |
 | `bindTab2Events()` | `774 – 1002` |
 | `updateSeniorCareUI()` | `1003 – 1068` |
-| `updateFamilyStreamUI()` | `1069 – 1247` |
-| `updateFamilyChildrenSimulation()` | `1248 – 1348` |
-| `renderFamilyCashFlowChart()` | `1349 – 1532` |
-| `initFamilyChildrenSimulation()` | `1533 – 1569` |
-| `updateEstateMilestones()` | `1570 – 1632` |
-| `renderEstateTab()` | `1633 – 1639` |
-| `renderAdvisorTab()` | `1640 – 1759` |
+| `updateFamilyStreamUI()` | `1069 – 1299` |
+| `updateFamilyChildrenSimulation()` | `1300 – 1400` |
+| `renderFamilyCashFlowChart()` | `1401 – 1584` |
+| `initFamilyChildrenSimulation()` | `1585 – 1621` |
+| `updateEstateMilestones()` | `1622 – 1684` |
+| `renderEstateTab()` | `1685 – 1691` |
+| `renderAdvisorTab()` | `1692 – 1811` |
 
-### 5.5. `frontend/js/ui-tab3-taxes.js` (2881 dòng — Tab 3: Tối ưu Thuế, Lương hưu Pháp/VN & LMNP)
+### 5.5. `frontend/js/ui-tab3-taxes.js` (3114 dòng — Tab 3: Tối ưu Thuế, Lương hưu Pháp/VN & LMNP)
 | Tên hàm (`function`) | Khoảng dòng (`StartLine` – `EndLine`) |
 | :--- | :--- |
 | `getVal()` | `14 – 18` |
@@ -309,37 +311,38 @@
 | `getActivePlan()` | `53 – 60` |
 | `savePlansToStorage()` | `61 – 70` |
 | `debouncedSavePlansToStorage()` | `71 – 81` |
-| `bindTab3Events()` | `82 – 810` |
-| `initFrancoVietGuideInteractions()` | `811 – 858` |
-| `getPlanActiveCountries()` | `859 – 876` |
-| `renderCountryFilterBar()` | `877 – 933` |
-| `applyCountryToolsFilter()` | `934 – 949` |
-| `updateTaxRegimeUI()` | `950 – 966` |
-| `renderGlobalAccountsContent()` | `967 – 1059` |
-| `estimateFrenchFullPension()` | `1060 – 1082` |
-| `getPrimarySalaryIncome()` | `1083 – 1097` |
-| `syncPensionBaseAuto()` | `1098 – 1121` |
-| `updatePensionDecoteUI()` | `1122 – 1225` |
-| `updateBhxhVnUI()` | `1226 – 1407` |
-| `updateGermanPensionUI()` | `1408 – 1497` |
-| `updateUsPensionUI()` | `1498 – 1587` |
-| `updateJapanPensionUI()` | `1588 – 1679` |
-| `updateCanadaPensionUI()` | `1680 – 1777` |
-| `updateAustraliaPensionUI()` | `1778 – 1875` |
-| `updateKoreaPensionUI()` | `1876 – 1967` |
-| `updateTaiwanPensionUI()` | `1968 – 2059` |
-| `syncBhxhVnStreams()` | `2060 – 2150` |
-| `eurToPlanFactor()` | `2151 – 2158` |
-| `extractPatrimoineLoansEur()` | `2159 – 2189` |
-| `buildPatrimoineLoans()` | `2190 – 2210` |
-| `applyPatrimoineToPlan()` | `2211 – 2318` |
-| `fetchPatrimoineData()` | `2319 – 2334` |
-| `syncFromPatrimoine()` | `2335 – 2347` |
-| `updateLmnpUI()` | `2348 – 2544` |
-| `renderPatrimoineLoansList()` | `2545 – 2567` |
-| `updateMortgageUI()` | `2568 – 2653` |
-| `syncMortgageToExpenseStreams()` | `2654 – 2743` |
-| `renderTaxTab()` | `2744 – 2881` |
+| `bindTab3Events()` | `82 – 870` |
+| `initFrancoVietGuideInteractions()` | `871 – 918` |
+| `getPlanActiveCountries()` | `919 – 936` |
+| `renderCountryFilterBar()` | `937 – 993` |
+| `applyCountryToolsFilter()` | `994 – 1009` |
+| `updateTaxRegimeUI()` | `1010 – 1026` |
+| `renderGlobalAccountsContent()` | `1027 – 1119` |
+| `estimateFrenchFullPension()` | `1120 – 1142` |
+| `getPrimarySalaryIncome()` | `1143 – 1157` |
+| `syncPensionBaseAuto()` | `1158 – 1181` |
+| `updatePensionDecoteUI()` | `1182 – 1399` |
+| `updateBhxhVnUI()` | `1400 – 1581` |
+| `updateGermanPensionUI()` | `1582 – 1671` |
+| `updateUsPensionUI()` | `1672 – 1761` |
+| `updateJapanPensionUI()` | `1762 – 1853` |
+| `updateCanadaPensionUI()` | `1854 – 1951` |
+| `updateAustraliaPensionUI()` | `1952 – 2049` |
+| `updateKoreaPensionUI()` | `2050 – 2141` |
+| `updateTaiwanPensionUI()` | `2142 – 2233` |
+| `syncBhxhVnStreams()` | `2234 – 2324` |
+| `eurToPlanFactor()` | `2325 – 2332` |
+| `extractPatrimoineLoansEur()` | `2333 – 2363` |
+| `buildPatrimoineLoans()` | `2364 – 2384` |
+| `applyPatrimoineToPlan()` | `2385 – 2492` |
+| `fetchPatrimoineData()` | `2493 – 2508` |
+| `syncFromPatrimoine()` | `2509 – 2521` |
+| `updateLmnpUI()` | `2522 – 2744` |
+| `renderPatrimoineLoansList()` | `2745 – 2767` |
+| `updateMortgageUI()` | `2768 – 2853` |
+| `syncMortgageToExpenseStreams()` | `2854 – 2943` |
+| `renderTaxTab()` | `2944 – 3047` |
+| `updateAllInternationalPensionsUI()` | `3048 – 3114` |
 
 ### 5.6. `frontend/js/ui-modals.js` (1938 dòng — Popup Modals & Thiết lập nhanh Wizard)
 | Tên hàm (`function`) | Khoảng dòng (`StartLine` – `EndLine`) |
@@ -440,25 +443,27 @@
 
 ---
 
-## 7. `frontend/js/taxOptimizer.js` (1376 dòng), `monteCarlo.js` (265 dòng) & `geminiAdvisor.js` (424 dòng)
+## 7. `frontend/js/taxOptimizer.js` (1815 dòng), `monteCarlo.js` (265 dòng) & `geminiAdvisor.js` (424 dòng)
 ### `taxOptimizer.js`
 | Tên hàm (`function`) | Khoảng dòng (`StartLine` – `EndLine`) |
 | :--- | :--- |
-| `calculateProgressiveTax()` | `110 – 212` |
-| `computeFrenchTaxParts()` | `213 – 251` |
-| `calculateTaxDetailed()` | `252 – 432` |
-| `calculateRetireBudgetFromCashflow()` | `433 – 531` |
-| `getSuggestedRetirementBudget()` | `532 – 577` |
-| `calculateFrenchPension()` | `578 – 653` |
-| `calculateVietnamBhxhPension()` | `654 – 733` |
-| `calculateGermanPension()` | `734 – 805` |
-| `calculateUsSocialSecurityPension()` | `806 – 897` |
-| `calculateJapanPension()` | `898 – 975` |
-| `calculateCanadaPension()` | `976 – 1062` |
-| `calculateAustraliaPension()` | `1063 – 1138` |
-| `calculateKoreaPension()` | `1139 – 1215` |
-| `calculateTaiwanPension()` | `1216 – 1292` |
-| `simulateWithdrawalWaterfall()` | `1293 – 1376` |
+| `getFamilyPolicyByCountry()` | `324 – 474` |
+| `getRealEstatePolicyByCountry()` | `475 – 544` |
+| `calculateProgressiveTax()` | `545 – 647` |
+| `computeFrenchTaxParts()` | `648 – 686` |
+| `calculateTaxDetailed()` | `687 – 867` |
+| `calculateRetireBudgetFromCashflow()` | `868 – 966` |
+| `getSuggestedRetirementBudget()` | `967 – 1012` |
+| `calculateFrenchPension()` | `1013 – 1088` |
+| `calculateVietnamBhxhPension()` | `1089 – 1168` |
+| `calculateGermanPension()` | `1169 – 1240` |
+| `calculateUsSocialSecurityPension()` | `1241 – 1332` |
+| `calculateJapanPension()` | `1333 – 1410` |
+| `calculateCanadaPension()` | `1411 – 1497` |
+| `calculateAustraliaPension()` | `1498 – 1573` |
+| `calculateKoreaPension()` | `1574 – 1650` |
+| `calculateTaiwanPension()` | `1651 – 1727` |
+| `simulateWithdrawalWaterfall()` | `1728 – 1815` |
 
 ### `monteCarlo.js`
 | Tên hàm (`function`) | Khoảng dòng (`StartLine` – `EndLine`) |

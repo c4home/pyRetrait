@@ -1658,6 +1658,43 @@ samp {
   }
 }
 
+/* Periods Summary Inflation Note (Chú thích số tiền danh nghĩa tương lai) */
+.periods-summary-note {
+  column-span: all;
+  -webkit-column-span: all;
+  margin-top: 1.25rem;
+  margin-bottom: 0.6rem;
+  padding: 0.5rem 0.85rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid #0284c7;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.periods-summary-note i {
+  color: #0284c7;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.periods-summary-note strong {
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+[data-theme="light"] .periods-summary-note {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  border-left-color: #0284c7;
+  color: #475569;
+}
+
 /* Periods Summary Side-by-Side Row (Aligned Horizontally) */
 .periods-summary-side-by-side {
   column-span: all;
@@ -1665,7 +1702,7 @@ samp {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
-  margin-top: 1.25rem;
+  margin-top: 0.5rem;
   align-items: stretch;
 }
 

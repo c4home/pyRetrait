@@ -3045,6 +3045,38 @@
     }
   }
 
+  function updateAllInternationalPensionsUI(plan) {
+    if (!plan) plan = getActivePlan();
+    if (!plan) return;
+    const hasDe = (plan.enableGermanPension !== false && (plan.workCountry === 'DE' || plan.retireCountry === 'DE'));
+    const hasUs = (plan.enableUsPension !== false && (plan.workCountry === 'US' || plan.retireCountry === 'US'));
+    const hasJp = (plan.enableJapanPension !== false && (plan.workCountry === 'JP' || plan.retireCountry === 'JP'));
+    const hasCa = (plan.enableCanadaPension !== false && (plan.workCountry === 'CA' || plan.retireCountry === 'CA'));
+    const hasAu = (plan.enableAustraliaPension !== false && (plan.workCountry === 'AU' || plan.retireCountry === 'AU'));
+    const hasKr = (plan.enableKoreaPension !== false && (plan.workCountry === 'KR' || plan.retireCountry === 'KR'));
+    const hasTw = (plan.enableTaiwanPension !== false && (plan.workCountry === 'TW' || plan.retireCountry === 'TW'));
+
+    if (hasDe) updateGermanPensionUI(plan);
+    if (hasUs) updateUsPensionUI(plan);
+    if (hasJp) updateJapanPensionUI(plan);
+    if (hasCa) updateCanadaPensionUI(plan);
+    if (hasAu) updateAustraliaPensionUI(plan);
+    if (hasKr) updateKoreaPensionUI(plan);
+    if (hasTw) updateTaiwanPensionUI(plan);
+  }
+
+  // Đăng ký nhận sự kiện Event Bus để giải phóng phụ thuộc chéo (Loose Coupling)
+  if (typeof window !== 'undefined') {
+    window.addEventListener('pyretrait:pension-sync', (e) => {
+      updateAllInternationalPensionsUI(e.detail?.plan);
+    });
+    if (window.AppState && typeof window.AppState.on === 'function') {
+      window.AppState.on('pension-sync', (data) => {
+        updateAllInternationalPensionsUI(data?.plan);
+      });
+    }
+  }
+
   const Tab3Exports = {
     bindEvents: bindTab3Events,
     initFrancoVietGuideInteractions,
@@ -3061,6 +3093,7 @@
     updateAustraliaPensionUI,
     updateKoreaPensionUI,
     updateTaiwanPensionUI,
+    updateAllInternationalPensionsUI,
     syncBhxhVnStreams,
     eurToPlanFactor,
     extractPatrimoineLoansEur,

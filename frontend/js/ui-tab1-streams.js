@@ -2081,27 +2081,15 @@
       lblTaiwanTitle.innerText = isMarried ? "Tổng lương hưu Đài Loan cả hai người:" : "Tổng lương hưu Đài Loan cá nhân:";
     }
 
-    // Cập nhật giá trị hiển thị cho các thẻ đang bật
-    if (hasDe && window.Tab3TaxesUI && typeof window.Tab3TaxesUI.updateGermanPensionUI === 'function') {
-      window.Tab3TaxesUI.updateGermanPensionUI(plan);
-    }
-    if (hasUs && window.Tab3TaxesUI && typeof window.Tab3TaxesUI.updateUsPensionUI === 'function') {
-      window.Tab3TaxesUI.updateUsPensionUI(plan);
-    }
-    if (hasJp && window.Tab3TaxesUI && typeof window.Tab3TaxesUI.updateJapanPensionUI === 'function') {
-      window.Tab3TaxesUI.updateJapanPensionUI(plan);
-    }
-    if (hasCa && window.Tab3TaxesUI && typeof window.Tab3TaxesUI.updateCanadaPensionUI === 'function') {
-      window.Tab3TaxesUI.updateCanadaPensionUI(plan);
-    }
-    if (hasAu && window.Tab3TaxesUI && typeof window.Tab3TaxesUI.updateAustraliaPensionUI === 'function') {
-      window.Tab3TaxesUI.updateAustraliaPensionUI(plan);
-    }
-    if (hasKr && window.Tab3TaxesUI && typeof window.Tab3TaxesUI.updateKoreaPensionUI === 'function') {
-      window.Tab3TaxesUI.updateKoreaPensionUI(plan);
-    }
-    if (hasTw && window.Tab3TaxesUI && typeof window.Tab3TaxesUI.updateTaiwanPensionUI === 'function') {
-      window.Tab3TaxesUI.updateTaiwanPensionUI(plan);
+    // Cập nhật giá trị hiển thị cho các thẻ lương hưu quốc tế qua Event Bus (Loose Coupling)
+    if (typeof window !== 'undefined') {
+      if (window.AppState && typeof window.AppState.emit === 'function') {
+        window.AppState.emit('pension-sync', { plan });
+      }
+      window.dispatchEvent(new CustomEvent('pyretrait:pension-sync', { detail: { plan } }));
+      if (window.Tab3TaxesUI && typeof window.Tab3TaxesUI.updateAllInternationalPensionsUI === 'function') {
+        window.Tab3TaxesUI.updateAllInternationalPensionsUI(plan);
+      }
     }
 
     // Callout & Breakdown 7 items calculation

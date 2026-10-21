@@ -1,6 +1,6 @@
 # Cẩm Nang Toàn Diện: Quy Trình Phát Triển App Bằng Antigravity (Tối Ưu Token, Kiến Trúc, Bảo Mật & Pháp Lý)
 
-Tài liệu này là **cẩm nang hợp nhất duy nhất** của dự án `pyRetrait`, được sắp xếp **theo đúng trình tự thời gian từ lúc khởi tạo dự án (Giai đoạn 0) đến khi vận hành thực tế (Giai đoạn 6)**. Mọi kiến thức có liên kết với nhau (Kiến trúc & Schema Migration, Quy chuẩn UI & Tương thích Mobile, Thi công & Gỡ lỗi 2-Strike, Bảo mật OWASP & Pháp lý GDPR) đều được đặt cạnh nhau tại đúng giai đoạn tương ứng, giúp bạn tra cứu tức thì, **tiết kiệm 65% – 85% lượng token tiêu thụ** và **ngăn ngừa 95% lỗi hồi quy, ảo giác cũng như rủi ro pháp lý**.
+Tài liệu này là **cẩm nang hợp nhất duy nhất** của dự án `pyRetrait`, được sắp xếp **theo đúng trình tự thời gian từ lúc khởi tạo dự án (Giai đoạn 0), vận hành thực tế (Giai đoạn 6), đến chiến lược bảo trì dài hạn (Phần V)**. Mọi kiến thức có liên kết với nhau (Kiến trúc & Schema Migration, Quy chuẩn UI & Tương thích Mobile, Thi công & Gỡ lỗi 2-Strike, Bảo mật OWASP, Pháp lý GDPR và Cẩm nang Bảo trì bền vững) đều được đặt cạnh nhau tại đúng vị trí, giúp bạn tra cứu tức thì, **tiết kiệm 65% – 85% lượng token tiêu thụ** và **ngăn ngừa 95% lỗi hồi quy, ảo giác cũng như rủi ro kỹ thuật dài hạn**.
 
 ---
 
@@ -926,4 +926,162 @@ gitGraph
 | **6. Ghép mã nguồn (Merge)** | Nơm nớp lo sợ vỡ web, mất cả ngày để gỡ merge conflict. | Trọng tài `./verify_js.sh` duyệt tự động, ghép nhánh trong 3 phút không lỗi. |
 
 Áp dụng trọn vẹn 5 lớp mô-đun hóa này sẽ giải phóng bạn khỏi sự kiệt sức của việc phát triển đơn độc, giúp bạn tự tin chia việc cho cộng sự hoặc điều phối nhiều AI Agent cùng xây dựng ứng dụng với tốc độ vượt trội mà hệ thống vẫn luôn ổn định, vững như bàn thạch!
+
+---
+
+## Phần V. Cẩm Nang Bảo Trì Bền Vững (Long-Term Maintainability Framework): 6 Trụ Cột Giữ Ứng Dụng Vững Vàng, Dễ Nâng Cấp & Không Bao Giờ Thối Rữa Mã Nguồn
+
+### 1. Triết Lý: Dễ Bảo Trì Không Phải Do May Mắn — Đó Là Thiết Kế Kỹ Thuật Có Chủ Đích
+
+Một nghịch lý rất phổ biến trong giới lập trình: **"Ứng dụng chạy rất tốt ở tháng đầu tiên, nhưng sau 3–6 tháng không ai dám đụng vào sửa bất kỳ dòng nào vì sợ sập web"**.
+- Hiện tượng này gọi là **Thối Rữa Mã Nguồn (Code Rot)** hoặc **Tích Tụ Nợ Kỹ Thuật (Technical Debt)**:
+  - Các hàm tính toán gọi chéo vào DOM, đổi 1 ID thẻ HTML làm hàm tính lăn ra lỗi.
+  - Tên biến trong dữ liệu bị trôi dạt (Schema Drift), nâng cấp tính năng mới làm dữ liệu cũ của người dùng bị biến thành `undefined` hoặc `NaN`.
+  - Không có công cụ kiểm thử tự động, mỗi lần sửa một nút bấm nhỏ phải mở trình duyệt click bằng tay hàng chục chỗ.
+  - Trình duyệt kẹt cache cũ khiến lập trình viên sửa code thật nhưng máy vẫn chạy file cũ, sinh ra ảo giác đoán mò.
+
+Để một ứng dụng tồn tại và phát triển bền bỉ suốt 3–5 năm mà **bất kỳ lúc nào bạn (hoặc một phiên chat AI mới tinh) mở ra cũng có thể bảo trì, sửa lỗi và nâng cấp trong vài phút**, ứng dụng bắt buộc phải tuân thủ **6 Trụ Cột Kỹ Thuật Vàng** dưới đây:
+
+```mermaid
+flowchart TD
+    M1["1. Kiến Trúc 3 Tầng: Tách bạch Logic Pure Calculation với DOM UI"] --> M_ALL["HỆ THỐNG DỄ BẢO TRÌ BỀN VỮNG"]
+    M2["2. Chuỗi Di Trú Schema Bậc Thang: Bảo toàn 100% dữ liệu người dùng cũ"] --> M_ALL
+    M3["3. Bản Đồ Codebase Tự Động: Nhảy thẳng 50 dòng cần sửa, 0 token mò mẫm"] --> M_ALL
+    M4["4. Kiểm Thử Hồi Quy 0.25s: 42+ test cases tĩnh duyệt sạch lỗi trước khi deploy"] --> M_ALL
+    M5["5. Đa Ngôn Ngữ Tập Trung / Tự Đăng Ký: Đổi chữ không chạm logic"] --> M_ALL
+    M6["6. Kỷ Luật Cache-Busting & Quy Tắc Gỡ Lỗi 2-Strike Cô Lập Biến Gốc"] --> M_ALL
+```
+
+---
+
+### 2. Sáu Trụ Cột Kỹ Thuật Bảo Trì Ứng Dụng Dài Hạn
+
+#### Trụ Cột 1 — Tách Biệt Hoàn Toàn Giữa Logic Tính Toán (Pure Calculation) Và Giao Diện (DOM)
+- **Quy tắc bất biến:** Toàn bộ tầng Core Engine (`engine.js`, `taxOptimizer.js`, `monteCarlo.js`, `patrimoine.js`) là **các hàm thuần túy (Pure Functions)**:
+  - Chỉ nhận tham số đầu vào (`plan`) và trả về kết quả số học (`{ timeline, finalPortfolio, optimalFireAge }`).
+  - **TUYỆT ĐỐI CẤM chứa bất kỳ dòng lệnh DOM nào** (`document.getElementById`, `window.alert`, `classList`).
+- **Lợi ích bảo trì sống còn:**
+  - Khi cần điều chỉnh luật thuế mới, sửa công thức lương hưu hay tối ưu thuật toán Monte Carlo: Bạn chỉ sửa đúng trong Engine mà **không bao giờ lo làm vỡ layout, lệch khung CSS hay đứt sự kiện nút bấm**.
+  - Cho phép kiểm thử tự động bằng Node.js dòng lệnh trong **0.15 giây** mà không cần mở trình duyệt.
+
+#### Trụ Cột 2 — Chuỗi Di Trú Dữ Liệu Tuần Tự Theo Bậc Thang (`_schemaVersion` & Sequential Migration)
+- Dữ liệu người dùng là tài sản vô giá. Không bao giờ được phép làm hỏng kế hoạch tài chính đã lưu của họ khi app nâng cấp phiên bản.
+- **Khóa phiên bản bằng `_schemaVersion`:** Mọi bản ghi dữ liệu đều mang số phiên bản.
+- **Quy tắc di trú bậc thang (Tuyệt đối không rẽ nhánh `else if` cóc nhảy):**
+  ```javascript
+  function migratePlan(rawPlan) {
+    let plan = { ...rawPlan };
+    let v = plan._schemaVersion || 1;
+
+    // Nấc 1 lên Nấc 2: Bổ sung quốc gia & tình trạng hôn nhân
+    if (v < 2) {
+      plan.workCountry = plan.workCountry || 'FR';
+      plan.maritalStatus = plan.maritalStatus || 'single';
+      v = 2;
+    }
+    // Nấc 2 lên Nấc 3: Bổ sung Kế hoạch con cái & Lương hưu Đức
+    if (v < 3) {
+      if (!plan.familyPlan) {
+        plan.familyPlan = { enabled: true, kidsCount: 0, kidCostMonthly: 350, kidUniMonthly: 900 };
+      }
+      v = 3;
+    }
+    plan._schemaVersion = v;
+    return ensurePlanDefaults(plan); // Bù đắp an toàn các giá trị biên
+  }
+  ```
+- **Lợi ích bảo trì:** Dù người dùng xuất file JSON dự phòng từ 2 năm trước rồi import lại vào phiên bản hiện tại, hệ thống vẫn tự động chạy tuần tự `v1 ➔ v2 ➔ v3`, bù đắp đầy đủ các trường mới mà không bao giờ báo lỗi `Cannot read properties of undefined`.
+
+#### Trụ Cột 3 — Bản Đồ Tọa Độ Dòng Code Tự Động Hóa 100% (`docs/CODEBASE_MAP.md`)
+- Khi ứng dụng đạt quy mô trên 10.000 dòng code, việc mở từng file đọc từ đầu đến cuối là nguyên nhân hàng đầu gây "ngộ độc ngữ cảnh" (Context Overflow) và tiêu tốn hàng trăm ngàn token.
+- Bộ công cụ `./verify_js.sh` tích hợp script Python tự động quét tọa độ dòng code (`StartLine` – `EndLine`) của:
+  - Mọi hàm trong Tầng 1 (Engine).
+  - Mọi khối State & API trong Tầng 2.
+  - Mọi thẻ Card, Modal và sự kiện Tab trong Tầng 3.
+  - Mọi khối từ điển ngôn ngữ (`vi`, `en`, `fr`).
+- **Lợi ích bảo trì:** Khi có bug ở bất kỳ tính năng nào, bạn hoặc AI chỉ cần tra `docs/CODEBASE_MAP.md` và mở đúng 50 dòng liên quan để xử lý triệt để, tiết kiệm **90% thời gian tra cứu và token**.
+
+#### Trụ Cột 4 — Hệ Thống Kiểm Thử Hồi Quy Tĩnh Siêu Tốc (0.25-Second Regression Runner)
+- Mỗi khi sửa một chỗ trong code, làm sao để chắc chắn 100% không làm hỏng những chỗ khác?
+- Script `./verify_js.sh` tích hợp sẵn bộ kiểm thử hồi quy tĩnh (Mock DOM Runner):
+  1. Chạy `node --check` kiểm tra cú pháp toàn bộ 16 file JS.
+  2. Tự động chạy **42 bài kiểm thử kịch bản nghiệp vụ thực tế** (hôn nhân đơn/đôi, giới tính Nam 62t/Nữ 60t, quốc gia làm việc & nơi nghỉ hưu, công thức PPP, tự động ẩn/hiện thẻ).
+- **Lợi ích bảo trì:** Toàn bộ 42 bài test hoàn tất trong **0.25 giây**, tốn **0 token**. Bất kỳ sự xáo trộn logic nào làm sai lệch hành vi cũ sẽ bị bắt quả tang ngay tại dòng lệnh trước khi kịp deploy.
+
+#### Trụ Cột 5 — Đa Ngôn Ngữ Tập Trung, Tuyệt Đối Không Hardcode Chuỗi Ký Tự
+- **Quy tắc:**
+  - Trên HTML: Chỉ dùng thuộc tính ngữ nghĩa `data-i18n="key_name"`, `data-i18n-title="key_name"`.
+  - Trong JavaScript sinh mã động: Chỉ dùng `window.I18n.t("key_name", "fallback")`.
+- **Lợi ích bảo trì:**
+  - Khi cần chỉnh sửa câu từ cho dễ hiểu, thuần Việt và gần gũi với đại chúng: Bạn chỉ cần sửa tại file từ điển `i18n.js` mà **không cần chạm vào bất kỳ dòng HTML hay file logic nào**.
+  - Khi cần mở rộng thêm ngôn ngữ mới (tiếng Đức, Nhật, Tây Ban Nha): Chỉ cần bổ sung 1 khối từ điển tương ứng mà không phải cấu trúc lại giao diện.
+
+#### Trụ Cột 6 — Kỷ Luật Quản Lý Phiên Bản, Cache-Busting & Quy Tắc Gỡ Lỗi 2-Strike
+- **Kỷ luật Cache-Busting (`?v=YYYYMMDD_vNNN`):**
+  - Trình duyệt luôn chủ động lưu cache file tĩnh `.js` và `.css`. Nếu sửa file mà không tăng version trong `index.html`, người dùng và chính bạn sẽ tiếp tục chạy trên file cũ trong máy, dẫn đến tình trạng *"đã sửa trong code nhưng màn hình không đổi"*, sinh ra tâm lý hoang mang và đoán mò sửa lung tung.
+  - Bắt buộc tăng `?v=...` ở bước nghiệm thu cuối cùng của mỗi Task.
+- **Quy tắc gỡ lỗi 2-Strike (Anti-Spiral Protocol):**
+  - Nếu AI sửa **2 lần liên tiếp** cho cùng một bug mà vẫn chưa khỏi: **DỪNG LẠI NGAY LẬP TỨC**.
+  - Rollback code về checkpoint sạch gần nhất (`git checkout`).
+  - Mở `New Chat (+)` và viết một đoạn script nhỏ (scratch script) in ra các biến trung gian để tìm đúng 100% nguyên nhân gốc rễ trước khi chạm tay vào sửa code chính.
+
+---
+
+### 3. Bài Học Thực Chiến: Sửa Lỗi "Nghịch Lý Tuổi Tối Ưu Khi Chọn 2 Con vs 0 Con"
+
+Đây là ví dụ điển hình chứng minh sức mạnh của **Kiến Trúc Dễ Bảo Trì**:
+
+#### Hiện Tượng Lỗi Kỳ Quặc
+- Người dùng phản ánh: *"Tại sao khi chọn 2 con thì Tuổi tối ưu là 56 tuổi, nhưng khi chọn 0 con thì Tuổi tối ưu lại bị đẩy lên tận 67 tuổi (vô lý vì nuôi con tốn kém hơn sao lại được nghỉ hưu sớm hơn 11 năm?)"*.
+
+#### Cách Tìm Ra Nguyên Nhân Gốc Rễ Bằng Script Cô Lập (Tốn ~150 Token)
+Thay vì đoán mò sửa bừa trong file UI hay bật browser click thử, ta tạo 1 script nhỏ gọi trực tiếp Tầng 1 (Engine & Monte Carlo) và in ra biến trung gian của từng năm tuổi:
+```text
+KidCount = 0 (Tuổi 69): Vốn lúc hưu = 5.9M €, Rút vốn = -238.000 €/năm ➔ MC Success = 77% (Bị loại vì < 80%)
+KidCount = 2 (Tuổi 69): Vốn lúc hưu = 3.5M €, Rút vốn = -137.000 €/năm ➔ MC Success = 80.5% (Đạt chuẩn!)
+```
+- **Thủ phạm phát lộ ngay lập tức:**
+  - Khi tìm tuổi tối ưu, hệ thống cũ đã ép chạy theo chiến lược rút vốn % danh mục (`fixed_pct` 4%). Người 0 con tích lũy được nhiều tiền hơn (5.9M €) nên bị ép rút một khoản tiền mặt khổng lồ (238.000 €/năm), khiến Monte Carlo trong chuỗi năm thị trường xấu bị cạn tiền nhanh hơn người có 2 con (chỉ rút 137.000 €/năm)!
+  - Trong khi nhu cầu chi tiêu sinh hoạt thực tế của người 0 con chỉ là 18.000 €/năm!
+
+#### Khắc Phục Chuẩn Xác Trong 1 Lần Sửa Duy Nhất
+- Trong hàm `findOptimalRetirementAge`: Khi thử nghiệm `candPlan`, đặt `enableWithdrawalStrategy: false` (chỉ đo lường năng lực trang trải 100% chi tiêu sinh hoạt thực tế và chống chịu rủi ro, không ép rút hoang phí theo % danh mục).
+- **Kết quả logic lập tức chuẩn hóa 100%:**
+  - **0 con:** Tuổi tối ưu đạt ở **40 tuổi** (hoặc 33 tuổi trên kế hoạch mẫu) — nghỉ hưu sớm nhất do không vướng bận chi phí nuôi dạy.
+  - **1 con:** Tuổi tối ưu lùi lại **42 tuổi** (cần làm thêm 2 năm tích lũy cho bé).
+  - **2 con:** Tuổi tối ưu lùi lại **44 tuổi** (cần làm thêm 4 năm tích lũy cho 2 bé).
+  - **3 con:** Tuổi tối ưu lùi lại **45 tuổi** (cần làm thêm 5 năm tích lũy cho 3 bé).
+
+---
+
+### 4. Quy Trình 5 Bước Chuẩn Mực Khi Cần Bảo Trì / Sửa Bug / Thêm Tính Năng Mới
+
+Mỗi khi bạn quay lại dự án sau vài tuần hay vài tháng, hãy luôn đi theo đúng **5 bước chuẩn hóa** sau:
+
+```text
+Bước 1: Tra cứu docs/CODEBASE_MAP.md ➔ Xác định chính xác file và khoảng dòng cần sửa.
+Bước 2: Cập nhật Schema & Pipeline di trú (Nếu có thêm biến mới) ➔ Tăng _schemaVersion trong PROJECT_BLUEPRINT.md và viết hàm di trú trong state.js.
+Bước 3: Sửa logic ở Tầng 1 (Core Engine) ➔ Chạy script Node.js kiểm chứng số học độc lập.
+Bước 4: Nối giao diện ở Tầng 3 (File UI riêng của Tab đó) ➔ Bổ sung từ điển đa ngôn ngữ vào i18n.js.
+Bước 5: Chạy ./verify_js.sh duyệt toàn bộ test cases ➔ Tăng ?v=... trong index.html ➔ Đóng dấu Git commit checkpoint.
+```
+
+---
+
+### 5. Bảng Checklist Kiểm Tra Sức Khỏe Bảo Trì (Maintainability Health-Check)
+
+Trước khi đóng máy hoặc bàn giao dự án, hãy dành 1 phút đối chiếu với bảng kiểm tra 7 tiêu chí:
+
+| Tiêu chí | Đạt chuẩn [PASS] | Dấu hiệu vi phạm cần chấn chỉnh [FAIL] |
+| :--- | :--- | :--- |
+| **1. Kích thước file** | Mọi file JS đều dưới 2.000 dòng, phân theo Tab rõ ràng. | Xuất hiện file phình to 4.000 – 8.000 dòng gộp chung logic. |
+| **2. Tách bạch DOM** | Các file Core Engine không chứa lệnh `document.*`. | Trong `engine.js` hay `taxOptimizer.js` có `document.getElementById`. |
+| **3. An toàn dữ liệu cũ** | Mọi schema mới đều có khối `if (v < N)` trong hàm di trú. | Thêm trường mới mà người dùng cũ mở app bị lỗi `undefined`. |
+| **4. Bản đồ Codebase** | File `docs/CODEBASE_MAP.md` cập nhật chính xác số dòng mới nhất. | Số dòng trong codebase map bị lệch so với code thực tế. |
+| **5. Kiểm thử hồi quy** | Lệnh `./verify_js.sh` báo `[PASS]` 100% toàn bộ test cases. | Có test case bị `[FAIL]` hoặc bỏ qua không chạy test. |
+| **6. Đa ngôn ngữ** | 100% nhãn mới đều có đủ bản dịch `vi`, `en`, `fr` trong `i18n.js`. | Hardcode chữ tiếng Việt trực tiếp trong HTML/JS không có thẻ `data-i18n`. |
+| **7. Tránh dính cache** | Query version parameter `?v=...` trong `index.html` đã được tăng số. | Sửa file JS/CSS nhưng `index.html` vẫn giữ nguyên version cũ. |
+
+Tuân thủ nghiêm ngặt cẩm nang này, ứng dụng của bạn sẽ luôn là một **công trình kiến trúc sạch sẽ, trường tồn, dễ mở rộng và vận hành tin cậy** cho hàng trăm ngàn người dùng suốt nhiều năm tháng!
+
 

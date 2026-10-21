@@ -568,13 +568,13 @@
     // Keep Pension & Décote live display synchronized
     try { updatePensionDecoteUI(plan); } catch (e) { console.warn("updatePensionDecoteUI error:", e); }
     try { updateBhxhVnUI(plan); } catch (e) { console.warn("updateBhxhVnUI error:", e); }
-    try { if (window.Tab3TaxesUI?.updateGermanPensionUI) window.Tab3TaxesUI.updateGermanPensionUI(plan); } catch (e) {}
-    try { if (window.Tab3TaxesUI?.updateUsPensionUI) window.Tab3TaxesUI.updateUsPensionUI(plan); } catch (e) {}
-    try { if (window.Tab3TaxesUI?.updateJapanPensionUI) window.Tab3TaxesUI.updateJapanPensionUI(plan); } catch (e) {}
-    try { if (window.Tab3TaxesUI?.updateCanadaPensionUI) window.Tab3TaxesUI.updateCanadaPensionUI(plan); } catch (e) {}
-    try { if (window.Tab3TaxesUI?.updateAustraliaPensionUI) window.Tab3TaxesUI.updateAustraliaPensionUI(plan); } catch (e) {}
-    try { if (window.Tab3TaxesUI?.updateKoreaPensionUI) window.Tab3TaxesUI.updateKoreaPensionUI(plan); } catch (e) {}
-    try { if (window.Tab3TaxesUI?.updateTaiwanPensionUI) window.Tab3TaxesUI.updateTaiwanPensionUI(plan); } catch (e) {}
+    try {
+      if (window.Tab3TaxesUI?.updateAllInternationalPensionsUI) {
+        window.Tab3TaxesUI.updateAllInternationalPensionsUI(plan);
+      } else {
+        window.dispatchEvent(new CustomEvent('pyretrait:pension-sync', { detail: { plan } }));
+      }
+    } catch (e) {}
     try { updateLmnpUI(plan); } catch (e) { console.warn("updateLmnpUI error:", e); }
     try { updateDualInflationUI(plan); } catch (e) { console.warn("updateDualInflationUI error:", e); }
     try { updateEstateMilestones(plan, proj); } catch (e) { console.warn("updateEstateMilestones error:", e); }

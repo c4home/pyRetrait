@@ -27,8 +27,12 @@
   <script src="js/iconify-icon.min.js?v=20261018_v1"></script>
   <script src="js/icons-bundle.js?v=20261018_v1"></script>
 
-  <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=20261020_v194">
+  <!-- CSS Stylesheet: Core Design System + Sub-modules -->
+  <link rel="stylesheet" href="css/styles.css?v=20261021_v203">
+  <link rel="stylesheet" href="css/modules/tab1-streams.css?v=20261021_v203">
+  <link rel="stylesheet" href="css/modules/tab2-health.css?v=20261021_v203">
+  <link rel="stylesheet" href="css/modules/tab3-taxes.css?v=20261021_v203">
+  <link rel="stylesheet" href="css/modules/modals.css?v=20261021_v203">
 </head>
 
 <body>
@@ -2618,12 +2622,18 @@
                 </div>
               </div>
 
+              <!-- Chú thích Số tiền danh nghĩa tương lai đã tính lạm phát -->
+              <div class="periods-summary-note">
+                <i class="fas fa-info-circle"></i>
+                <span><strong data-i18n="periods_summary_note_prefix">Lưu ý:</strong> <span data-i18n="periods_summary_note_text">Số tiền danh nghĩa tương lai đã tính lạm phát trượt giá qua các năm (phản ánh dòng tiền thực tế cần chi và nhận tại thời điểm đó).</span></span>
+              </div>
+
               <!-- Hàng Tổng Hợp Giai Đoạn Tuổi (Căn Hàng Ngang - Aligned Horizontally) -->
               <div class="periods-summary-side-by-side">
                 <!-- Tổng thu nhập theo các giai đoạn tuổi (Cột trái) -->
                 <div class="income-periods-box" id="income-periods-box">
                   <div class="income-periods-header">
-                    <span class="income-periods-title">
+                    <span class="income-periods-title" data-i18n="income_periods_title">
                       Tổng thu nhập theo giai đoạn tuổi
                     </span>
                     <span id="income-periods-count" class="income-periods-count"></span>
@@ -2636,7 +2646,7 @@
                 <!-- Tổng chi tiêu theo các giai đoạn tuổi (Cột phải) -->
                 <div class="expense-periods-box" id="expense-periods-box">
                   <div class="expense-periods-header">
-                    <span class="expense-periods-title">
+                    <span class="expense-periods-title" data-i18n="expense_periods_title">
                       Tổng chi tiêu theo giai đoạn tuổi
                     </span>
                     <span id="expense-periods-count" class="expense-periods-count"></span>
@@ -6385,9 +6395,9 @@
   </div>
 
   <!-- Application Logic Modules -->
-  <script src="js/i18n.js?v=20261020_v194"></script>
-  <script src="js/state.js?v=20261019_v179"></script>
-  <script src="js/engine.js?v=20261020_v185"></script>
+  <script src="js/i18n.js?v=20261021_v203"></script>
+  <script src="js/state.js?v=20261021_v203"></script>
+  <script src="js/engine.js?v=20261021_v186"></script>
   <script src="js/taxOptimizer.js?v=20261020_v201"></script>
   <script src="js/monteCarlo.js?v=20261019_v165"></script>
   <script src="js/scenarios.js?v=20261016_v103"></script>
@@ -6398,10 +6408,10 @@
   <!-- Tầng 3: Giao diện tách theo từng Tab độc lập + Modals + Nhạc trưởng điều phối -->
   <script src="js/ui-modals.js?v=20261019_v178"></script>
   <script src="js/ui-tab1-charts.js?v=20261020_v177"></script>
-  <script src="js/ui-tab1-streams.js?v=20261020_v196"></script>
+  <script src="js/ui-tab1-streams.js?v=20261021_v203"></script>
   <script src="js/ui-tab2-health.js?v=20261020_v195"></script>
-  <script src="js/ui-tab3-taxes.js?v=20261020_v200"></script>
-  <script src="js/ui.js?v=20261020_v197"></script>
+  <script src="js/ui-tab3-taxes.js?v=20261021_v203"></script>
+  <script src="js/ui.js?v=20261021_v203"></script>
 </body>
 
 </html>

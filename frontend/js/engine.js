@@ -481,8 +481,8 @@ window.RetirementEngine = (function() {
     if (!plan) return null;
     const currentAge = Number(plan.currentAge) || 29;
     const lifeExpectancy = Number(plan.lifeExpectancy) || 85;
-    // Bắt đầu quét từ tuổi chạm Nest Egg mục tiêu (nếu có) hoặc tuổi hiện tại
-    const minSearchAge = Math.max(currentAge, Number(baseFireAge) || currentAge);
+    // Bắt đầu quét từ tuổi hiện tại trở đi để tìm đúng điểm tự do tài chính tối ưu sớm nhất
+    const minSearchAge = currentAge;
     const maxSearchAge = Math.min(lifeExpectancy - 2, 75);
 
     const mcSim = (typeof window !== 'undefined' && window.MonteCarloSimulator) 
@@ -496,7 +496,9 @@ window.RetirementEngine = (function() {
     let maxMcRate = 0;
 
     for (let candAge = minSearchAge; candAge <= maxSearchAge; candAge++) {
-      const candPlan = { ...plan, retirementAge: candAge };
+      // Khi thử nghiệm tuổi nghỉ hưu tối ưu, đo lường năng lực trang trải 100% chi tiêu sinh hoạt hưu trí thực tế
+      // (enableWithdrawalStrategy: false để không ép rút tỷ lệ % danh mục quá mức khi tài sản lớn, tránh nghịch lý người giàu hơn lại bị đánh giá rủi ro hơn)
+      const candPlan = { ...plan, retirementAge: candAge, enableWithdrawalStrategy: false };
 
       // Nấc 1: Chạy projection cơ sở cho tuổi thử nghiệm (bỏ qua đệ quy optimal và stress)
       const candProj = runProjection(candPlan, null, true, true);

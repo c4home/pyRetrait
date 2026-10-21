@@ -96,6 +96,10 @@
       "card_lmnp_turo": "Doanh thu BĐS LMNP & Cho thuê xe Turo",
       "card_senior_care": "Dự phòng Chăm sóc Tuổi Già (78t+)",
       "card_family_plan": "Kế Hoạch Con Cái & Gia Đình",
+      "income_periods_title": "Tổng thu nhập theo giai đoạn tuổi",
+      "expense_periods_title": "Tổng chi tiêu theo giai đoạn tuổi",
+      "periods_summary_note_prefix": "Lưu ý:",
+      "periods_summary_note_text": "Số tiền danh nghĩa tương lai đã tính lạm phát trượt giá qua các năm (phản ánh dòng tiền thực tế cần chi và nhận tại thời điểm đó).",
       "card_estate_legacy": "Kế Hoạch Thừa Kế & Đánh Giá Mục Tiêu Di Sản",
       "card_healthspan_title": "Chỉ Số Tuổi Thọ Khỏe Mạnh (Healthspan vs Lifespan)",
       "card_preventive_budget_title": "Hoạch Định Ngân Sách Y Tế Dự Phòng Theo Độ Tuổi",
@@ -383,6 +387,10 @@
       "card_lmnp_turo": "LMNP Real Estate & Turo Fleet Income",
       "card_senior_care": "Senior Long-Term Care Reserve (Age 78+)",
       "card_family_plan": "Children & Family Planning",
+      "income_periods_title": "Income by Age Phase",
+      "expense_periods_title": "Expenses by Age Phase",
+      "periods_summary_note_prefix": "Note:",
+      "periods_summary_note_text": "Future nominal figures already factor in cumulative inflation over the years (actual cashflow at each phase).",
       "card_estate_legacy": "Estate Planning & Legacy Milestone",
       "card_healthspan_title": "Healthspan & Longevity Score",
       "card_preventive_budget_title": "Preventive Healthcare Budget by Age",
@@ -670,6 +678,10 @@
       "card_lmnp_turo": "Revenus Immobiliers LMNP & Flotte Turo",
       "card_senior_care": "Réserve Dépendance & EHPAD (78+ ans)",
       "card_family_plan": "Plan Enfants & Famille",
+      "income_periods_title": "Revenus par tranche d'âge",
+      "expense_periods_title": "Dépenses par tranche d'âge",
+      "periods_summary_note_prefix": "Remarque :",
+      "periods_summary_note_text": "Les montants nominaux futurs intègrent l'inflation cumulée au fil des années (flux réels constatés à cette période).",
       "card_estate_legacy": "Planification Successorale & Transmission",
       "card_healthspan_title": "Score d'Espérance de Vie en Bonne Santé",
       "card_preventive_budget_title": "Budget Santé Préventive par Âge",
@@ -1050,6 +1062,27 @@
     });
   }
 
+  /**
+   * Tự đăng ký từ điển động cho từng Module/Tab độc lập (Decentralized i18n)
+   * Giúp các lập trình viên hoặc AI Agents thêm từ vựng riêng mà không cần sửa file i18n.js gốc
+   * @param {string} namespace - Tên định danh phân hệ (ví dụ: 'health', 'taxes', 'community')
+   * @param {Object} translationsByLang - Đối tượng dạng { vi: {...}, en: {...}, fr: {...} }
+   */
+  function registerTranslations(namespace, translationsByLang) {
+    if (!translationsByLang || typeof translationsByLang !== 'object') return;
+    SUPPORTED_LANGS.forEach(lang => {
+      if (translationsByLang[lang] && typeof translationsByLang[lang] === 'object') {
+        if (!translations[lang]) translations[lang] = {};
+        Object.assign(translations[lang], translationsByLang[lang]);
+      }
+    });
+
+    // Nếu DOM đã sẵn sàng, tự động áp dụng bản dịch mới cho các phần tử trên trang
+    if (typeof document !== 'undefined' && document.body) {
+      applyLanguage(currentLang);
+    }
+  }
+
   // Export module
   window.I18n = {
     t,
@@ -1057,6 +1090,7 @@
     getLanguage: () => currentLang,
     AVAILABLE_LANGUAGES,
     SUPPORTED_LANGS,
+    registerTranslations,
     init
   };
 

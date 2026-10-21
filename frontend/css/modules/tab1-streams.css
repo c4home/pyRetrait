@@ -1,0 +1,370 @@
+/* pyRetrait — Module CSS: Tab 1 Luồng Thu/Chi, Hưu Trí & Kế Hoạch Gia Đình */
+
+/* ==========================================================================
+   Family & Children Planning: Side-by-Side (Inputs Left, Formulas Right)
+   ========================================================================== */
+.family-composite-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.family-composite-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.family-composite-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  padding-left: 1.5rem;
+}
+
+@media (max-width: 992px) {
+  .family-composite-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .family-composite-right {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 1rem;
+  }
+}
+
+.family-formula-card {
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  border-radius: 8px;
+  padding: 0.75rem 0.85rem;
+  font-size: 0.82rem;
+}
+
+.family-formula-title {
+  font-weight: 700;
+  color: #818cf8;
+  margin-bottom: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.family-formula-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.family-formula-card code {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #c7d2fe;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  line-height: 1.6;
+  margin-bottom: 0.4rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.family-formula-note {
+  font-size: 0.76rem;
+  color: var(--text-muted, #94a3b8);
+  line-height: 1.45;
+}
+
+/* ==========================================================================
+   Estate Planning & Legacy Milestone: Unified Composite Card
+   ========================================================================== */
+.estate-composite-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.estate-composite-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.estate-composite-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  padding-left: 1.5rem;
+}
+
+@media (max-width: 992px) {
+  .estate-composite-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .estate-composite-right {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 1rem;
+  }
+}
+
+.estate-strategy-card {
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  border-radius: 8px;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.82rem;
+}
+
+.estate-strategy-title {
+  font-weight: 700;
+  color: #fbbf24;
+  margin-bottom: 0.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.estate-strategy-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fde68a;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.estate-strategy-desc {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   Retirement Spending Smile: Side-by-Side (Inputs Left, Budget & Science Right)
+   ========================================================================== */
+.spending-smile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.spending-smile-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.spending-smile-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  padding-left: 1.5rem;
+}
+
+@media (max-width: 992px) {
+  .spending-smile-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .spending-smile-right {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 1rem;
+  }
+}
+
+.spending-budget-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.spending-budget-card {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.spending-budget-card.phase-gogo {
+  border-left: 3px solid #60a5fa;
+}
+
+.spending-budget-card.phase-slowgo {
+  border-left: 3px solid #fbbf24;
+}
+
+.spending-budget-card.phase-nogo {
+  border-left: 3px solid #f43f5e;
+}
+
+.spending-budget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.spending-budget-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.spending-budget-badge.delta-pos {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.spending-budget-badge.delta-neg {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.spending-budget-amount {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+  font-family: var(--font-mono, monospace);
+}
+
+.spending-budget-desc {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.spending-science-box {
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  border-radius: 8px;
+  padding: 0.7rem 0.85rem;
+}
+
+.spending-science-title {
+  font-weight: 700;
+  color: #c084fc;
+  font-size: 0.82rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.spending-science-box code {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #ddd6fe;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.45rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+
+
+
+
+
+
+
+
+
+/* ==========================================================================
+   Special Expense Item: Kế Hoạch Thừa Kế & Đánh Giá Mục Tiêu Di Sản
+   ========================================================================== */
+.expense-item-legacy {
+  background: var(--bg-card);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  border-left: 3px solid #f43f5e;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.95rem;
+  margin-bottom: 0.65rem;
+  transition: var(--transition-fast);
+}
+
+.expense-item-legacy:hover {
+  border-color: rgba(244, 63, 94, 0.55);
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.12);
+}
+
+.estate-legacy-config-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.75rem;
+  margin-top: 0.55rem;
+}
+
+[data-theme="light"] .expense-item-legacy {
+  background: #ffffff !important;
+  border: 1px solid #fecdd3 !important;
+  border-left: 3px solid #e11d48 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .expense-item-legacy:hover {
+  background: #fff1f2 !important;
+  border-color: #fda4af !important;
+}
+
+[data-theme="light"] .estate-legacy-config-box {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] .estate-strategy-card {
+  background: #ffffff !important;
+  border: 1px solid #fde68a !important;
+}
+
+[data-theme="light"] .estate-strategy-title {
+  color: #b45309 !important;
+}
+
+[data-theme="light"] .estate-strategy-badge {
+  background: #fef3c7 !important;
+  color: #92400e !important;
+  border-color: #fde68a !important;
+}
+
+[data-theme="light"] .estate-strategy-desc {
+  color: #334155 !important;
+}
+
