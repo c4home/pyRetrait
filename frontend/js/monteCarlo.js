@@ -49,9 +49,9 @@ window.MonteCarloSimulator = (function() {
       const ageAxis = baseRows.map(r => r.age);
       const startPortfolio = Number(baseRows[0] && baseRows[0].portfolioEnd !== undefined ? baseRows[0].portfolioEnd : (plan.currentSavings || 0));
 
-      const rawMeanPre = (baseRun.weightedReturnPre !== undefined) ? baseRun.weightedReturnPre : (Number(plan.investmentReturnPre) || 8.0);
+      const rawMeanPre = (baseRun.weightedReturnPre !== undefined) ? baseRun.weightedReturnPre : (plan.enableAssetAllocation === false ? 0 : (Number(plan.investmentReturnPre) || 8.0));
       const meanReturnPre = rawMeanPre > 1 ? (rawMeanPre / 100.0) : rawMeanPre;
-      const rawMeanPost = (baseRun.weightedReturnPost !== undefined) ? baseRun.weightedReturnPost : (Number(plan.investmentReturnPost) || rawMeanPre);
+      const rawMeanPost = (baseRun.weightedReturnPost !== undefined) ? baseRun.weightedReturnPost : (plan.enableAssetAllocation === false ? 0 : (Number(plan.investmentReturnPost) || rawMeanPre));
       const meanReturnPost = rawMeanPost > 1 ? (rawMeanPost / 100.0) : rawMeanPost;
       const sigma = (Number(volatility) || 15.0) / 100.0;
 
@@ -147,14 +147,20 @@ window.MonteCarloSimulator = (function() {
     const baseRetireExpenses = Number(plan.retirementExpenses) || 12000;
     const effectiveRetireExpenses = baseRetireExpenses;
 
-    const meanReturnPre = (Number(plan.investmentReturnPre) || 8.0) / 100.0;
-    const meanReturnPost = meanReturnPre;
+    const rawMeanPre = (plan.enableAssetAllocation === false) ? 0 : (plan.investmentReturnPre !== undefined && plan.investmentReturnPre !== null ? Number(plan.investmentReturnPre) : 8.0);
+    const meanReturnPre = rawMeanPre / 100.0;
+    const meanReturnPost = (plan.enableAssetAllocation === false) ? 0 : (plan.investmentReturnPost !== undefined && plan.investmentReturnPost !== null ? Number(plan.investmentReturnPost) / 100.0 : meanReturnPre);
     const sigma = (Number(volatility) || 15.0) / 100.0;
     const inflation = (Number(plan.inflationRate) || 2.5) / 100.0;
 
     const ssAge = Number(plan.socialSecurityAge) || 65;
     const ssAnnual = Number(plan.socialSecurityAnnual) || 0;
-    const passiveStreams = (plan.incomes || []).filter(inc => inc.enabled !== false);
+    const passiveStreams = (plan.incomes || []).filter(inc => {
+      if (inc.enabled === false) return false;
+      const isLmnp = inc.isRealEstate || inc.isLmnp || (inc.name && (/lmnp|doanh thu bđs|doanh thu bds|doanh thu bất động sản|bất động sản|bat dong san|cho thuê/i).test(inc.name));
+      if (isLmnp && plan.lmnpEnabled === false) return false;
+      return true;
+    });
 
     const totalYears = lifeExpectancy - currentAge;
     const ageAxis = [];

@@ -38,7 +38,7 @@ Hãy tận dụng tối đa 4 lệnh nội bộ của Antigravity tương ứng 
 
 ---
 
-### 3. Mười Hai Nguyên Tắc Vàng Trong Thao Tác Hàng Ngày
+### 3. Mười Ba Nguyên Tắc Vàng Trong Thao Tác Hàng Ngày
 
 1. **Nguyên Tắc "1 Nhiệm Vụ = 1 Phiên Chat Mới" (Quan Trọng Số 1):**
    - **Bắt buộc bấm `New Chat (+)` khi:** (a) Vừa hoàn thành xong 1 Task trong file kế hoạch hoặc sửa xong 1 bug lớn; (b) Chuẩn bị chuyển từ việc sửa thuật toán (`engine.js`) sang việc chỉnh giao diện (`index.html`, `styles.css`); (c) Phiên chat đã chạm ngưỡng **10 – 12 lượt đối thoại**.
@@ -94,6 +94,14 @@ Hãy tận dụng tối đa 4 lệnh nội bộ của Antigravity tương ứng 
     - **Asset Cache-Busting (`?v=...`):** Mỗi khi sửa file JavaScript hoặc CSS, bắt buộc phải tăng query version parameter (`?v=YYYYMMDD_vNNN`) trong thẻ `<link>` và `<script>` của `index.html`. Tránh tuyệt đối tình trạng người dùng/tester mở web vẫn dính cache cũ và lầm tưởng code AI bị lỗi.
     - **Data Schema Versioning (`_schemaVersion`):** Mọi đối tượng lưu trữ (`localStorage`, JSON backup, SQLite) bắt buộc có số phiên bản dữ liệu (`_schemaVersion: 1, 2, 3...`). Khi nâng cấp app, luôn có pipeline chuyển đổi tuần tự (migration) để dữ liệu cũ không bao giờ bị hỏng hay mất.
     - **Semantic Release Versioning (`SemVer`):** Đánh số phiên bản phát hành (`vMAJOR.MINOR.PATCH`) hiển thị rõ trên UI và gắn Git tag để dễ dàng truy vết và rollback tức thì trong 1 giây nếu gặp sự cố.
+
+13. **Quy Chuẩn "Vòng Lặp Khép Kín 4 Điểm" Chống Biến Nhập Liệu Ma (Anti-Orphan Input Protocol):**
+    - **Tuyệt đối cấm tạo ô input trên UI chỉ để "cho đẹp" hoặc "để dành sau này":** Mọi ô nhập liệu (`<input>`, `<select>`, `<button>`, slider, checkbox) trên giao diện hoặc Modal bắt buộc phải đi trọn vẹn một vòng đời khép kín 4 điểm:
+      1. *UI Element:* Có ID rõ ràng, có nhãn label và đa ngôn ngữ `data-i18n`.
+      2. *Two-Way State Binding:* Có hàm nạp từ State ra UI (`input.value = plan.foo ?? default`) và sự kiện lưu từ UI vào State (`plan.foo = parse(input.value); savePlan()`).
+      3. *Schema Contract:* Được khai báo chính thức trong `PROJECT_BLUEPRINT.md` và hàm di trú/bảo vệ `ensurePlanDefaults(plan)`.
+      4. *Engine Consumption:* Phải được đọc và tham gia trực tiếp vào ít nhất 1 phép tính toán trong Core Engine (`engine.js`, `taxOptimizer.js`, `patrimoine.js`).
+    - Nếu người dùng chỉnh một ô input mà kết quả đầu ra không hề thay đổi, đó là "Biến Ma" (Ghost/Orphan Input) làm xói mòn lòng tin của người dùng và gây rác ngữ cảnh mã nguồn.
 
 ---
 
@@ -227,10 +235,15 @@ Khi bạn vừa nảy ra một ý tưởng mới hoặc một phân hệ lớn, 
 
 90% lỗi đập đi xây lại (tốn hàng triệu token) xuất phát từ việc **vừa viết giao diện vừa tự bịa tên biến**, hoặc **khi nâng cấp tính năng mới (`v2`) làm hỏng cấu trúc dữ liệu cũ (`v1`) của người dùng đang lưu trong `localStorage` / `SQLite`**.
 
-#### 1. Ba Trụ Cột Bất Biến Trong `PROJECT_BLUEPRINT.md`
+#### 1. Bốn Trụ Cột Bất Biến Trong `PROJECT_BLUEPRINT.md`
 1. **Nguyên tắc Kiến trúc:** Ví dụ Local-First (100% tính toán ở trình duyệt, offline-ready) kết hợp FastAPI + SQLite đồng bộ đám mây.
 2. **Chuẩn hóa Đơn vị Nội bộ (Internal Canonical Units):** Mọi số tiền lưu trong bộ nhớ đều quy về `EUR/năm` (hoặc `USD` cho kịch bản Mỹ), tỷ lệ phần trăm lưu thống nhất (`4.0` nghĩa là `4%`). Chỉ khi hiển thị ra màn hình mới nhân tỷ giá.
 3. **Bảng Schema Dữ Liệu Duy Nhất (Single Source of Truth JSON Schema):** Liệt kê đầy đủ tên trường (`camelCase`), kiểu dữ liệu, giá trị mặc định của toàn bộ đối tượng dữ liệu (User, Plan, Asset, Health...).
+4. **Hợp Đồng Toàn Diện Vòng Đời Biến (Full-Lifecycle Variable Contract — Chống Biến Ma / Biến Rác):** Mọi trường dữ liệu đưa vào Schema bắt buộc phải xác định rõ 3 điểm neo trước khi viết code:
+   - *UI Element:* Ô nhập/select nào trên UI hoặc Modal sẽ cho người dùng chỉnh biến này?
+   - *State Binding:* Hàm nào trong `state.js` sẽ nạp/lưu và cấp default value an toàn trong `ensurePlanDefaults()`?
+   - *Engine Calculation:* Hàm nào trong Tầng 1 (`engine.js`, `taxOptimizer.js`, `patrimoine.js`...) sẽ đọc biến này và nó trực tiếp làm thay đổi kết quả gì?
+   - *Quy tắc thép:* Tuyệt đối cấm khai báo biến vào Schema chỉ để "dự phòng" mà không có bất kỳ dòng code tính toán nào trong Engine tiêu thụ biến đó.
 
 #### 2. Chiến Lược Quản Lý Versioning Dữ Liệu & Đường Ống Di Trú Tuần Tự (Zero-Data-Loss Schema Versioning & Sequential Migration Pipeline)
 
@@ -443,7 +456,52 @@ Thay vì bật `browser_subagent` (tốn 50.000 token và không biết lỗi do
   Hãy kiểm tra công thức tính [tên_công_thức] trong frontend/js/engine.js. Chạy ./verify_js.sh với 2 trường hợp: (1) Người độc thân thu nhập 35.000€, (2) Trường hợp có 2 người phụ thuộc + trường hợp biên tài sản = 0. Phân tích kết quả in ra xem từng con số đã khớp chuẩn chưa.
   ```
 
-#### 3. Chiến Thuật "Thoát Vòng Lặp Tử Thần Khi AI Sửa Lỗi Mãi Không Xong" (2-Strike Anti-Spiral Protocol)
+#### 3. Quy Trình Chống Biến Nhập Liệu "Ma" (Anti-Orphan Input Protocol & Delta Sensitivity Test)
+
+Một trong những lỗi gây mất uy tín sản phẩm và lãng phí token nhất là **"Biến Nhập Liệu Ma" (Ghost / Orphan Input Variables)**:
+- Người dùng tỉ mỉ nhập số liệu vào ô trên màn hình hoặc Modal, nhưng kết quả tính toán tài chính bên dưới **không hề nhúc nhích 1 đồng**!
+- Điều này tạo cảm giác ứng dụng "lừa đảo" hoặc bị lỗi, trong khi mã nguồn tích tụ biến rác không ai dám xóa.
+
+##### A. Ba Căn Nguyên Sinh Ra Biến Nhập Liệu Ma
+1. **Đứt gãy DOM ➔ State (UI Ghost Input):** Thẻ HTML có ô nhập (`<input id="kidUniMonthly">`) nhưng trong file UI Tab không viết sự kiện `addEventListener('input'/'change')` để đọc `value` lưu vào `plan`, hoặc đọc nhầm ID khác.
+2. **Đứt gãy State ➔ Core Engine (Disconnected State Field):** Biến được lưu vào State (`plan.kidUniMonthly = 900`) nhưng trong toàn bộ các file Tầng 1 (`engine.js`, `taxOptimizer.js`, `patrimoine.js`...), **không có bất kỳ dòng code nào đọc đến `plan.kidUniMonthly`**!
+3. **Biến Xác Sống Sau Refactor (Zombie Field):** Thuật toán phiên bản cũ từng dùng biến này, nhưng khi nâng cấp công thức mới, lập trình viên/AI đã thay bằng công thức khác nhưng quên xóa ô nhập trên UI và quên xóa trường trong Schema.
+
+##### B. Bài Test Độ Nhạy Biến Thiên (Delta Sensitivity Test — Tốn ~150 Token)
+Làm sao để chứng minh 100% một biến đầu vào thực sự có tác động đến kết quả? **Hãy thử nghiệm độ nhạy (Delta Test):**
+- **Quy tắc thực hiện:** Chạy hàm Core Engine 2 lần với 2 giá trị cực hạn khác nhau của biến cần thử (ví dụ giá trị Min và Max):
+  ```bash
+  # Ví dụ: Kiểm tra xem biến 'kidCostMonthly' có thực sự tác động đến dòng tiền không
+  ./verify_js.sh "(() => {
+    const p1 = window.AppState.getActivePlan();
+    const planA = { ...p1, familyPlan: { ...p1.familyPlan, kidCostMonthly: 100 } };
+    const planB = { ...p1, familyPlan: { ...p1.familyPlan, kidCostMonthly: 1500 } };
+    const resA = window.RetirementEngine.runProjection(planA);
+    const resB = window.RetirementEngine.runProjection(planB);
+    const delta = resA.finalPortfolio - resB.finalPortfolio;
+    return { hasImpact: delta !== 0, deltaSavings: delta };
+  })()"
+  ```
+- **Tiêu chuẩn nghiệm thu:**
+  - Nếu `hasImpact: true` và `delta !== 0`: **[PASS]** Biến có tác động số học thực sự đến dòng tiền.
+  - Nếu `hasImpact: false` hoặc `delta === 0`: **[FAIL — BIẾN MA PHÁT LỘ]** Thuật toán trong `engine.js` đang bỏ rơi biến này hoặc công thức bị đứt đoạn!
+
+##### C. Script Quét Tĩnh Phát Hiện Biến State Không Dùng Đến (Orphan State Detector)
+Để rà soát nhanh toàn bộ dự án xem có biến nào được khai báo trong State mà không bao giờ được Core Engine đọc tới:
+```bash
+# Quét tìm những thuộc tính của plan trong state.js nhưng không xuất hiện trong engine.js/taxOptimizer.js
+python3 -c "
+import re
+with open('frontend/js/state.js') as f:
+    state_keys = set(re.findall(r'plan\.([a-zA-Z0-9_]+)\s*=', f.read()))
+with open('frontend/js/engine.js') as f1, open('frontend/js/taxOptimizer.js') as f2:
+    engine_code = f1.read() + f2.read()
+orphan = [k for k in state_keys if not re.search(r'plan\.' + k + r'\b', engine_code)]
+print('[CẢNH BÁO BIẾN MA]:', orphan if orphan else 'Sạch 100% không có biến ma!')
+"
+```
+
+#### 4. Chiến Thuật "Thoát Vòng Lặp Tử Thần Khi AI Sửa Lỗi Mãi Không Xong" (2-Strike Anti-Spiral Protocol)
 Khi gặp một bug khó, nếu AI đoán mò sửa lần 1 không trúng, sửa lần 2 đẻ thêm lỗi mới, đến lần 4–5 thì cả phiên chat dày tới 200.000 token mà code lại rối tung. Hãy áp dụng **Quy tắc Quá 2 Lần Thử Là Dừng Ngay (The 2-Strike Rule)**:
 1. **Bước 1 — Khôi phục code sạch (Clean Rollback):** Nếu AI sửa **2 lượt liên tiếp** cho cùng một lỗi mà chưa khỏi, **DỪNG NGAY** việc gõ *"vẫn lỗi, sửa lại đi"*. Chạy `git checkout -- <tên_file_vừa_sửa_hỏng>` (hoặc bảo AI hoàn tác đoạn vừa sửa) để đưa code về điểm Checkpoint ổn định trước đó.
 2. **Bước 2 — Mở `New Chat (+)` và dùng "Prompt Cô Lập Nguyên Nhân Gốc Rễ" (Root-Cause Isolation — Copy & Paste):**
@@ -455,7 +513,7 @@ Khi gặp một bug khó, nếu AI đoán mò sửa lần 1 không trúng, sửa
    2. Chạy ./verify_js.sh với biểu thức in ra các biến trung gian của hàm tính toán để kiểm chứng xem con số bị lệch ở tầng Engine hay tầng UI. Sau khi tìm ra đúng 100% thủ phạm thì mới đề xuất dòng cần sửa.
    ```
 
-#### 4. Kiểm Thử Tĩnh Tương Tác UI Bằng Mock DOM Trong Runner (UI Static Assertion 0-Token)
+#### 5. Kiểm Thử Tĩnh Tương Tác UI Bằng Mock DOM Trong Runner (UI Static Assertion 0-Token)
 Kiểm tra tương tác UI động (đổi dropdown thì thẻ nào ẩn/hiện, chọn độc thân thì ẩn bạn đời, kết hôn thì hiện 2 cột song song) **hoàn toàn có thể tự động hóa 100% bằng dòng lệnh** mà không cần mở trình duyệt:
 - **Mock DOM Siêu Nhẹ Trong Node.js:** Nhúng một mock object tối giản vào script test runner (`./verify_js.sh`):
   ```javascript
@@ -475,7 +533,7 @@ Kiểm tra tương tác UI động (đổi dropdown thì thẻ nào ẩn/hiện,
   - Nhóm 4: Ràng buộc logic Popup & Ngân sách tự động điều chỉnh theo PPP.
 - **Hiệu quả:** Toàn bộ 42 bài test UI chạy xong trong **0.25 giây**, tốn **0 token browser**, đảm bảo giao diện vững chắc trước khi người dùng kịp mở trình duyệt.
 
-#### 5. Quy Trình Versioning Khi Hoàn Thành Task (Asset Cache-Busting, Git Commit & Rollback Safety Net)
+#### 6. Quy Trình Versioning Khi Hoàn Thành Task (Asset Cache-Busting, Git Commit & Rollback Safety Net)
 
 Mỗi khi thi công xong 1 Task, hãy thực hiện quy trình chốt Version 3 lớp để đảm bảo code sạch, trình duyệt nhận file mới ngay và có lưới an toàn khôi phục:
 
@@ -668,7 +726,8 @@ Sau khi đã upload lên Server và có đường link web thật, bạn **KHÔN
 | **Giai đoạn 5B. Sửa nhanh nhiều điểm giao diện / CSS / chữ (Prompt Batching)** | *"Tra cứu `@docs/CODEBASE_MAP.md`, mở đúng khu vực trong `frontend/index.html` (hoặc `styles.css`) và sửa 3 điểm sau: 1... 2... 3... Sau đó chạy `./verify_js.sh`."* |
 | **Giai đoạn 5C. Kiểm tra lỗi tính toán khi thấy số liệu lạ** | *"Trong Tab X, khi tôi chỉnh biến A từ 0% lên 10% thì kết quả B nhảy từ X lên Y bất thường. Hãy tra `@docs/CODEBASE_MAP.md` để kiểm tra hàm tính trong `frontend/js/engine.js`, sửa lại và chạy `./verify_js.sh` với biểu thức kiểm chứng."* |
 | **Giai đoạn 5D. Thoát vòng lặp khi AI sửa 2 lần chưa hết lỗi (2-Strike Rule)** | *"Dừng sửa code! Hãy hoàn tác đoạn vừa sửa hỏng, liệt kê 3 giả thuyết nguyên nhân gốc rễ gây lỗi [X] và dùng `./verify_js.sh` in ra giá trị biến trung gian để tìm đúng 100% thủ phạm trước khi sửa lại."* |
-| **Giai đoạn 5E. Kiểm thử toàn diện 40+ kịch bản UI bằng Mock DOM & Tăng `?v=...`** | *"Chạy `./verify_js.sh` để test tự động toàn bộ 42 kịch bản UI, tăng query version parameter `?v=YYYYMMDD_vNNN` trong `index.html` cho các file CSS/JS vừa sửa, và đóng commit checkpoint."* |
+| **Giai đoạn 5E. Kiểm tra Chống Biến Ma & Test Độ Nhạy (Delta Sensitivity)** | *"Hãy kiểm tra tính năng [X]: (1) Rà soát toàn bộ ô input trên UI xem đã nối 2 chiều với State chưa; (2) Chạy Delta Sensitivity Test bằng `./verify_js.sh` (thay đổi giá trị input từ min lên max xem kết quả trong Engine có biến thiên tương ứng không) để chứng minh 100% không có biến nhập liệu ma (orphan variable) bị bỏ rơi."* |
+| **Giai đoạn 5F. Kiểm thử toàn diện 40+ kịch bản UI bằng Mock DOM & Tăng `?v=...`** | *"Chạy `./verify_js.sh` để test tự động toàn bộ 42 kịch bản UI, tăng query version parameter `?v=YYYYMMDD_vNNN` trong `index.html` cho các file CSS/JS vừa sửa, và đóng commit checkpoint."* |
 | **Giai đoạn 6A. Kiểm duyệt Pháp lý, Miễn trừ trách nhiệm & GDPR** | *"Thực hiện Kiểm duyệt Pháp lý & GDPR: kiểm tra từ vựng cam kết trái phép trong `i18n.js`, guardrail trong `geminiAdvisor.js`, sự hiện diện của Disclaimer (Tài chính/Thuế/Y tế) trên UI & bản in PDF, và kiểm tra ẩn danh hóa PII khi gọi AI."* |
 | **Giai đoạn 6B. Đóng dấu Release SemVer, Cập nhật UI Badge & CHANGELOG.md** | *"Chuẩn bị phát hành phiên bản mới [vX.Y.Z]: (1) Cập nhật huy hiệu UI Version Badge trong `index.html`; (2) Ghi chép các thay đổi (Added, Changed, Fixed) vào `CHANGELOG.md`; (3) Kiểm tra bảo mật và sẵn sàng gắn Git Tag `vX.Y.Z`."* |
 | **Giai đoạn 6C. Kiểm duyệt Bảo mật & Chống sập trước khi Upload** | *"Tôi chuẩn bị upload lên Server. Hãy chạy `./verify_js.sh`, rà soát các code mới thêm xem có nguy cơ XSS (thiếu `escapeHtml`), thiếu `NaN/Infinity` guard, lộ API Key hay quên tăng `?v=...` trong `index.html` không, rồi báo cáo trạng thái sẵn sàng deploy."* |
@@ -1070,7 +1129,7 @@ Bước 5: Chạy ./verify_js.sh duyệt toàn bộ test cases ➔ Tăng ?v=... 
 
 ### 5. Bảng Checklist Kiểm Tra Sức Khỏe Bảo Trì (Maintainability Health-Check)
 
-Trước khi đóng máy hoặc bàn giao dự án, hãy dành 1 phút đối chiếu với bảng kiểm tra 7 tiêu chí:
+Trước khi đóng máy hoặc bàn giao dự án, hãy dành 1 phút đối chiếu với bảng kiểm tra 8 tiêu chí:
 
 | Tiêu chí | Đạt chuẩn [PASS] | Dấu hiệu vi phạm cần chấn chỉnh [FAIL] |
 | :--- | :--- | :--- |
@@ -1081,6 +1140,7 @@ Trước khi đóng máy hoặc bàn giao dự án, hãy dành 1 phút đối ch
 | **5. Kiểm thử hồi quy** | Lệnh `./verify_js.sh` báo `[PASS]` 100% toàn bộ test cases. | Có test case bị `[FAIL]` hoặc bỏ qua không chạy test. |
 | **6. Đa ngôn ngữ** | 100% nhãn mới đều có đủ bản dịch `vi`, `en`, `fr` trong `i18n.js`. | Hardcode chữ tiếng Việt trực tiếp trong HTML/JS không có thẻ `data-i18n`. |
 | **7. Tránh dính cache** | Query version parameter `?v=...` trong `index.html` đã được tăng số. | Sửa file JS/CSS nhưng `index.html` vẫn giữ nguyên version cũ. |
+| **8. Không có Biến Ma** | 100% ô input trên UI đều có kết nối 2 chiều với State và trực tiếp làm thay đổi kết quả ở Core Engine (vượt qua Delta Sensitivity Test). | Có ô nhập trên UI hoặc thuộc tính trong State nhưng không có bất kỳ dòng code nào trong Core Engine đọc tới. |
 
 Tuân thủ nghiêm ngặt cẩm nang này, ứng dụng của bạn sẽ luôn là một **công trình kiến trúc sạch sẽ, trường tồn, dễ mở rộng và vận hành tin cậy** cho hàng trăm ngàn người dùng suốt nhiều năm tháng!
 

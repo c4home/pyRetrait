@@ -300,11 +300,11 @@
       `;
 
       chip.addEventListener("click", () => {
-        if (state.charts.networth) {
-          const idx = proj.timeline.findIndex(p => p.age === m.age);
-          if (idx !== -1) {
-            container.querySelectorAll(".milestone-chip").forEach(c => c.classList.remove("active"));
-            chip.classList.add("active");
+        const idx = proj.timeline.findIndex(p => p.age === m.age);
+        if (idx !== -1) {
+          container.querySelectorAll(".milestone-chip").forEach(c => c.classList.remove("active"));
+          chip.classList.add("active");
+          if (state.charts.networth) {
             state.charts.networth.setActiveElements([
               { datasetIndex: 0, index: idx }
             ]);
@@ -313,6 +313,16 @@
               { x: 0, y: 0 }
             );
             state.charts.networth.update();
+          }
+          if (state.charts.cashflow) {
+            state.charts.cashflow.setActiveElements([
+              { datasetIndex: 0, index: idx }
+            ]);
+            state.charts.cashflow.tooltip.setActiveElements(
+              [{ datasetIndex: 0, index: idx }],
+              { x: 0, y: 0 }
+            );
+            state.charts.cashflow.update();
           }
         }
       });
@@ -863,10 +873,10 @@
         });
       });
     } else if (state.compareWithdrawals) {
-      // 4 Nhánh Chiến Lược Rút Tiền:
+      // 4 Nhánh Chiến Lược Rút Tiền (So sánh thuần túy để thấy sự khác biệt giữa 4 trường phái):
       strategies.forEach(strat => {
         const isChosen = (strat.key === chosenStrat);
-        const tempPlan = { ...activePlan, withdrawalStrategy: strat.key, enableWithdrawalStrategy: true };
+        const tempPlan = { ...activePlan, withdrawalStrategy: strat.key, enableWithdrawalStrategy: true, smartWithdrawalCap: false };
         const res = window.RetirementEngine.runProjection(tempPlan);
 
         const stratData = proj.timeline.map(p => {
@@ -1003,7 +1013,23 @@
         maintainAspectRatio: false,
         interaction: {
           mode: 'index',
-          intersect: false
+          intersect: false,
+          axis: 'x'
+        },
+        elements: {
+          point: {
+            hitRadius: 15
+          }
+        },
+        onClick: (evt, activeElements) => {
+          if (activeElements && activeElements.length > 0) {
+            const idx = activeElements[0].index;
+            if (state.charts.cashflow) {
+              state.charts.cashflow.setActiveElements([{ datasetIndex: 0, index: idx }]);
+              state.charts.cashflow.tooltip.setActiveElements([{ datasetIndex: 0, index: idx }], { x: 0, y: 0 });
+              state.charts.cashflow.update();
+            }
+          }
         },
         plugins: {
           legend: {
@@ -1104,6 +1130,7 @@
   function renderCashFlowChart(proj) {
     const ctx = document.getElementById("chart-cashflow").getContext("2d");
     const activePlan = getActivePlan();
+    const isStrategyActive = activePlan.enableWithdrawalStrategy !== false;
     const stratKey = activePlan.withdrawalStrategy || 'guyton_klinger';
     const stratMap = {
       'guyton_klinger': 'Guyton-Klinger',
@@ -1116,7 +1143,8 @@
     const labels = proj.timeline.map(p => [`${p.age}t`, `${p.year}`]);
     const incomes = proj.timeline.map(p => p.income);
     const expenses = proj.timeline.map(p => p.expenses);
-    const withdrawals = proj.timeline.map(p => p.isRetired ? (p.withdrawal || 0) : null);
+    // Chỉ hiển thị giá trị dòng tiền rút vốn ở những năm thực sự CẦN rút vốn (isRetired và withdrawal > 0)
+    const withdrawals = proj.timeline.map(p => (p.isRetired && (p.withdrawal || 0) > 0) ? p.withdrawal : null);
 
     if (state.charts.cashflow) {
       state.charts.cashflow.destroy();
@@ -1138,6 +1166,7 @@
 
     const pointRadii = proj.timeline.map(p => milestoneMap.has(p.age) ? 4.5 : 0);
     const pointHoverRadii = proj.timeline.map(p => milestoneMap.has(p.age) ? 7.5 : 6);
+    const withdrawalRadii = proj.timeline.map(p => milestoneMap.has(p.age) ? 4.5 : ((p.isRetired && (p.withdrawal || 0) > 0) ? 2.5 : 0));
 
     const gradientIncome = ctx.createLinearGradient(0, 0, 0, 320);
     gradientIncome.addColorStop(0, isLight ? 'rgba(5, 150, 105, 0.32)' : 'rgba(16, 185, 129, 0.35)');
@@ -1159,11 +1188,12 @@
       }
     };
 
-    const isStrategyActive = activePlan.enableWithdrawalStrategy !== false;
+    const incomeLabel = (window.I18n && window.I18n.t) ? window.I18n.t('chart_income_label', 'Thu nhập') : 'Thu nhập';
+    const expenseLabel = (window.I18n && window.I18n.t) ? window.I18n.t('chart_expense_label', 'Chi tiêu') : 'Chi tiêu';
 
     const datasets = [
       {
-        label: `Thu nhập Hàng năm (${sym})`,
+        label: `${incomeLabel} (${sym})`,
         data: incomes,
         borderColor: incomeColor,
         backgroundColor: gradientIncome,
@@ -1172,12 +1202,13 @@
         tension: 0.35,
         pointRadius: pointRadii,
         pointHoverRadius: pointHoverRadii,
+        pointHitRadius: 15,
         pointBackgroundColor: incomeColor,
         pointBorderColor: '#ffffff',
         pointBorderWidth: 2
       },
       {
-        label: `Chi tiêu Sinh hoạt (${sym})`,
+        label: `${expenseLabel} (${sym})`,
         data: expenses,
         borderColor: expenseColor,
         backgroundColor: gradientExpense,
@@ -1186,15 +1217,13 @@
         tension: 0.35,
         pointRadius: pointRadii,
         pointHoverRadius: pointHoverRadii,
+        pointHitRadius: 15,
         pointBackgroundColor: expenseColor,
         pointBorderColor: '#ffffff',
         pointBorderWidth: 2
-      }
-    ];
-
-    if (isStrategyActive) {
-      datasets.push({
-        label: `Dòng tiền Rút vốn [${stratName}] (${sym})`,
+      },
+      {
+        label: `Dòng tiền Rút vốn (${sym})`,
         data: withdrawals,
         borderColor: withdrawalColor,
         backgroundColor: gradientWithdrawal,
@@ -1202,13 +1231,15 @@
         borderDash: [5, 4],
         fill: false,
         tension: 0.35,
-        pointRadius: pointRadii,
+        spanGaps: false,
+        pointRadius: withdrawalRadii,
         pointHoverRadius: pointHoverRadii,
+        pointHitRadius: 15,
         pointBackgroundColor: withdrawalColor,
         pointBorderColor: '#ffffff',
         pointBorderWidth: 2
-      });
-    }
+      }
+    ];
 
     state.charts.cashflow = new Chart(ctx, {
       type: 'line',
@@ -1222,7 +1253,23 @@
         maintainAspectRatio: false,
         interaction: {
           mode: 'index',
-          intersect: false
+          intersect: false,
+          axis: 'x'
+        },
+        elements: {
+          point: {
+            hitRadius: 15
+          }
+        },
+        onClick: (evt, activeElements) => {
+          if (activeElements && activeElements.length > 0) {
+            const idx = activeElements[0].index;
+            if (state.charts.networth) {
+              state.charts.networth.setActiveElements([{ datasetIndex: 0, index: idx }]);
+              state.charts.networth.tooltip.setActiveElements([{ datasetIndex: 0, index: idx }], { x: 0, y: 0 });
+              state.charts.networth.update();
+            }
+          }
         },
         plugins: {
           legend: {
@@ -1234,6 +1281,7 @@
             }
           },
           tooltip: {
+            animation: { duration: 100 },
             backgroundColor: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.95)',
             titleColor: isLight ? '#0f172a' : '#f8fafc',
             bodyColor: isLight ? '#334155' : '#cbd5e1',
@@ -1260,15 +1308,48 @@
                 const formattedMonthly = window.RetirementEngine.formatCurrency(valMonthly, currSym, false);
                 const idx = item.dataIndex;
                 const p = proj.timeline[idx];
-                let name = 'Thu nhập ngoài';
-                if (item.datasetIndex === 1) name = 'Chi tiêu sinh hoạt';
-                else if (item.datasetIndex === 2) {
-                  name = `Rút vốn (${stratName})`;
-                  if (valAnnual === 0 && p && p.isRetired && (p.portfolioEnd || 0) <= 0) {
-                    return ` ${name}: ${formattedAnnual}/năm (Quỹ đầu tư cạn vốn 0€)`;
+
+                if (item.datasetIndex === 0) {
+                  const name = (window.I18n && window.I18n.t) ? window.I18n.t('chart_income_label', 'Thu nhập') : 'Thu nhập';
+                  const mainLine = ` ${name}: ${formattedAnnual}/năm (${formattedMonthly}/tháng)`;
+                  const subLines = [];
+                  if (p && Array.isArray(p.incomeBreakdown) && p.incomeBreakdown.length > 0) {
+                    p.incomeBreakdown.forEach(inc => {
+                      if (inc.amount !== 0 && inc.monthly !== undefined) {
+                        const isNeg = inc.monthly < 0;
+                        const mFmt = window.RetirementEngine.formatCurrency(inc.monthly, currSym, false);
+                        const prefix = isNeg ? '   - ' : '   + ';
+                        const signPrefix = (!isNeg && !mFmt.startsWith('+')) ? '+' : '';
+                        subLines.push(`${prefix}${inc.name}: ${signPrefix}${mFmt}/tháng`);
+                      }
+                    });
                   }
+                  return subLines.length > 0 ? [mainLine, ...subLines] : mainLine;
                 }
-                return ` ${name}: ${formattedAnnual}/năm (${formattedMonthly}/tháng)`;
+
+                if (item.datasetIndex === 1) {
+                  const name = (window.I18n && window.I18n.t) ? window.I18n.t('chart_expense_label', 'Chi tiêu') : 'Chi tiêu';
+                  const mainLine = ` ${name}: ${formattedAnnual}/năm (${formattedMonthly}/tháng)`;
+                  const subLines = [];
+                  if (p && Array.isArray(p.expenseBreakdown) && p.expenseBreakdown.length > 0) {
+                    p.expenseBreakdown.forEach(exp => {
+                      const mFmt = window.RetirementEngine.formatCurrency(Math.abs(exp.monthly), currSym, false);
+                      if (exp.isAllowance) {
+                        subLines.push(`   + ${exp.name}: -${mFmt}/tháng`);
+                      } else if (exp.amount !== 0) {
+                        subLines.push(`   - ${exp.name}: ${mFmt}/tháng`);
+                      }
+                    });
+                  }
+                  return subLines.length > 0 ? [mainLine, ...subLines] : mainLine;
+                }
+
+                if (item.datasetIndex === 2) {
+                  const name = 'Dòng tiền Rút vốn';
+                  return ` ${name}: ${formattedAnnual}/năm (${formattedMonthly}/tháng)`;
+                }
+
+                return ` ${formattedAnnual}/năm (${formattedMonthly}/tháng)`;
               },
               afterBody: (items) => {
                 const idx = items[0].dataIndex;
@@ -1422,11 +1503,19 @@
       const isMed = sRate >= 50;
       const lvlText = isHigh ? "Rất cao" : (isMed ? "Trung bình" : "Thấp (Cần điều chỉnh)");
       const lvlClass = isHigh ? "text-success" : (isMed ? "text-warning" : "text-danger");
+      const isExcessWithdrawal = (plan.enableWithdrawalStrategy !== false && plan.smartWithdrawalCap === false);
+      const excessTipHtml = isExcessWithdrawal
+        ? `<div style="margin-top: 0.35rem; font-size: 0.72rem; color: #d97706; line-height: 1.4;">
+             ⚠️ <strong>Gợi ý:</strong> Tỷ lệ thành công đang bị kéo giảm do bạn đang rút cố định theo tỷ lệ SWR vượt nhu cầu thực tế sau lương hưu. Khuyến nghị chỉ rút bù đắp phần thiếu hụt để bảo toàn danh mục.
+           </div>`
+        : "";
+
       srrBox.innerHTML = `
         <div class="srr-level">Mức độ an toàn: <strong class="${lvlClass}">${lvlText} (${res.successRate}%)</strong></div>
         <p>${isHigh 
           ? "Danh mục có sức chống chịu tuyệt vời trước các đợt suy thoái nhờ đệm tài sản vững và dòng tiền hưu trí trợ lực." 
           : "Khuyến nghị tăng thêm mức tiết kiệm hàng tháng hoặc lùi tuổi nghỉ hưu 1–2 năm để tăng tỷ lệ sống sót qua các đợt suy thoái."}</p>
+        ${excessTipHtml}
       `;
     }
 

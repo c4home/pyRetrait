@@ -249,6 +249,30 @@
         }
       };
     }
+    if (plan.enableAssetAllocation === undefined) {
+      plan.enableAssetAllocation = true;
+    }
+    if (plan.smartWithdrawalCap === undefined) {
+      plan.smartWithdrawalCap = true;
+    }
+    if (!plan.familyPlan) {
+      plan.familyPlan = {
+        enabled: true,
+        kidsCount: 2,
+        status: (plan.maritalStatus === 'married' ? 'couple' : 'single'),
+        kid1Birth: 2022,
+        kid2Birth: 2025,
+        kid3Birth: 2027,
+        kid4Birth: 2029,
+        kidCostMonthly: 350,
+        kidUniMonthly: 900
+      };
+    } else {
+      if (plan.familyPlan.enabled === undefined) plan.familyPlan.enabled = true;
+      if (plan.familyPlan.kidsCount === undefined) plan.familyPlan.kidsCount = 2;
+      if (plan.familyPlan.kidCostMonthly === undefined) plan.familyPlan.kidCostMonthly = 350;
+      if (plan.familyPlan.kidUniMonthly === undefined) plan.familyPlan.kidUniMonthly = 900;
+    }
     syncSalaryStreamsWithMaritalStatus(plan);
     return plan;
   }
@@ -346,6 +370,20 @@
           spouseSalary.name = "Lương hiện tại của bạn đời";
         }
       }
+    }
+
+    // 4. Quản lý trọn gói BĐS: Dọn sạch các khoản nợ vay & chi phí BĐS khỏi danh mục Chi tiêu chung
+    if (Array.isArray(plan.expenses)) {
+      plan.expenses = plan.expenses.filter(e => {
+        if (!e || typeof e !== 'object') return false;
+        const name = e.name || '';
+        if (e.source === 'patrimoine') return false;
+        if (name.startsWith('Chi phí BĐS & Crédit:')) return false;
+        if (name.startsWith('Trả nợ Crédit: BĐS')) return false;
+        if (name.startsWith('Crédit BĐS:')) return false;
+        if (name.includes('BĐS Cho thuê LMNP')) return false;
+        return true;
+      });
     }
 
     return plan;
@@ -542,6 +580,17 @@
             inflationPost: 4.0,
             eurVndInitialRate: 27500,
             eurVndAnnualDrift: 1.2
+          },
+          familyPlan: {
+            enabled: true,
+            kidsCount: 2,
+            status: "couple",
+            kid1Birth: 2022,
+            kid2Birth: 2025,
+            kid3Birth: 2027,
+            kid4Birth: 2029,
+            kidCostMonthly: 350,
+            kidUniMonthly: 900
           }
         }
       }

@@ -81,6 +81,14 @@ window.RetirementEngine = (function() {
     return Math.round((baseWeighted + bonus) * 100) / 100;
   }
 
+  // Nhận diện chuẩn xác toàn diện các luồng thu nhập BĐS / LMNP (kể cả 1 căn hay nhiều căn)
+  function isRealEstateIncomeStream(stream) {
+    if (!stream) return false;
+    if (stream.isRealEstate || stream.isLmnp) return true;
+    const name = stream.name || '';
+    return (/lmnp|doanh thu bđs|doanh thu bds|doanh thu bất động sản|dòng tiền bđs|dòng tiền bds|dòng tiền bất động sản|bất động sản|bat dong san|cho thuê/i).test(name);
+  }
+
   // Calculate full standard amortization schedule and home equity trajectory.
   // Supports either a single manual loan, or `mortgage.loans` (an array of loans,
   // e.g. one per apartment synced from Gestion de Patrimoine) which are summed per age.
@@ -519,6 +527,7 @@ window.RetirementEngine = (function() {
       if (Array.isArray(plan.incomes)) {
         plan.incomes.forEach(inc => {
           if (inc.enabled === false) return;
+          if (isRealEstateIncomeStream(inc) && plan.lmnpEnabled === false) return;
           const sAge = Number(inc.startAge) || currentAge;
           const eAge = Number(inc.endAge) || lifeExpectancy;
           const name = (inc.name || "").toLowerCase();
@@ -607,16 +616,23 @@ window.RetirementEngine = (function() {
     let returnPost = 0.075;
     let weightedReturnPre = 8.0;
     let weightedReturnPost = 7.5;
-    if (plan.assetAllocation) {
+    const isAssetAllocEnabled = (plan.enableAssetAllocation !== false);
+    if (isAssetAllocEnabled && plan.assetAllocation) {
       weightedReturnPre = calculateWeightedReturn(plan.assetAllocation, plan.assetReturns, 0.3);
       weightedReturnPost = weightedReturnPre;
       returnPre = weightedReturnPre / 100.0;
       returnPost = weightedReturnPost / 100.0;
-    } else {
-      weightedReturnPre = Number(plan.investmentReturnPre) || 8.0;
-      weightedReturnPost = weightedReturnPre;
+    } else if (isAssetAllocEnabled) {
+      weightedReturnPre = (plan.investmentReturnPre !== undefined && plan.investmentReturnPre !== null) ? Number(plan.investmentReturnPre) : 8.0;
+      weightedReturnPost = (plan.investmentReturnPost !== undefined && plan.investmentReturnPost !== null) ? Number(plan.investmentReturnPost) : weightedReturnPre;
       returnPre = weightedReturnPre / 100.0;
       returnPost = weightedReturnPost / 100.0;
+    } else {
+      // Khi TẮT Danh mục đầu tư: Tiền nhàn rỗi không tham gia thị trường sinh lời, lợi suất = 0.0%/năm
+      weightedReturnPre = 0.0;
+      weightedReturnPost = 0.0;
+      returnPre = 0.0;
+      returnPost = 0.0;
     }
 
     // 2. Mortgages & Amortization Schedule
@@ -626,7 +642,7 @@ window.RetirementEngine = (function() {
     let frenchAccs = plan.frenchAccounts ? { ...plan.frenchAccounts } : null;
     let totalWaterfallTaxSaved = 0;
 
-    const targetLegacy = Number(plan.targetLegacy) || 100_000;
+    const targetLegacy = (plan.enableEstateLegacy !== false) ? (Number(plan.targetLegacy) || 100_000) : 0;
     const baseRetireExpenses = Number(plan.retirementExpenses) || 12_000;
     const annualSavings = Number(plan.annualSavings) || 10_000;
     const initialSavings = (plan.currentSavings !== undefined && plan.currentSavings !== null && !isNaN(Number(plan.currentSavings)))
@@ -650,11 +666,12 @@ window.RetirementEngine = (function() {
       for (let age = startAge; age < currentAge; age++) {
         const pastYear = birthYear + age;
 
-        // Chỉ tính thu nhập trong quá khứ NẾU người dùng thực sự có cấu hình nguồn thu nhập tại độ tuổi đó
         let pastIncome = 0;
+        const pastIncomeBreakdown = [];
         if (Array.isArray(plan.incomes)) {
           plan.incomes.forEach(stream => {
             if (stream.enabled === false) return;
+            if (isRealEstateIncomeStream(stream) && plan.lmnpEnabled === false) return;
             const sAge = Number(stream.startAge);
             const isSalary = !stream.isBhxhVn && (stream.isSalary || (stream.name && (/lương|salary|impôt|impot/i).test(stream.name)));
             const effectiveEndAge = isSalary ? retireAge : (Number(stream.endAge) || retireAge);
@@ -663,6 +680,13 @@ window.RetirementEngine = (function() {
               const streamYearsActive = age - sAge;
               const streamVal = (Number(stream.amount) || 0) * Math.pow(1.0 + streamGrowth, streamYearsActive);
               pastIncome += streamVal;
+              if (streamVal !== 0) {
+                pastIncomeBreakdown.push({
+                  name: stream.name || 'Thu nhập',
+                  amount: streamVal,
+                  monthly: streamVal / 12
+                });
+              }
             }
           });
         }
@@ -670,6 +694,11 @@ window.RetirementEngine = (function() {
 
         // Chi tiêu sinh hoạt quá khứ: chỉ phát sinh tương ứng nếu có thu nhập thực tế, nếu không có thu nhập thì mặc định = 0
         const pastExpenses = pastIncome > 0 ? Math.min(pastIncome, Math.round(Number(plan.annualExpenses || 15000))) : 0;
+        const pastExpenseBreakdown = pastExpenses > 0 ? [{
+          name: 'Chi tiêu sinh hoạt',
+          amount: pastExpenses,
+          monthly: pastExpenses / 12
+        }] : [];
 
         // Tài sản quá khứ: chỉ có nếu có tích lũy từ thu nhập thực tế, không tự động sinh số dương giả lập
         const pastPortfolio = pastIncome > 0 ? Math.max(0, pastIncome - pastExpenses) : 0;
@@ -681,6 +710,8 @@ window.RetirementEngine = (function() {
           isPast: true,
           income: pastIncome,
           expenses: pastExpenses,
+          incomeBreakdown: pastIncomeBreakdown,
+          expenseBreakdown: pastExpenseBreakdown,
           withdrawal: 0,
           totalAvailableCash: pastIncome,
           mortgagePayment: 0,
@@ -736,9 +767,13 @@ window.RetirementEngine = (function() {
       // 1. Calculate Active and Passive Incomes for this year
       let annualIncome = 0;
       let taxableIncome = 0;
+      const incomeBreakdown = [];
       if (Array.isArray(plan.incomes)) {
         plan.incomes.forEach(stream => {
           if (stream.enabled === false) return;
+          // Kiểm tra nếu là luồng BĐS LMNP và cờ lmnpEnabled bị tắt
+          if (isRealEstateIncomeStream(stream) && plan.lmnpEnabled === false) return;
+
           const isSalary = !stream.isBhxhVn && (stream.isSalary || (stream.name && (/lương|salary|impôt|impot/i).test(stream.name)));
           const effectiveEndAge = isSalary ? (retireAge - 1) : (Number(stream.endAge) || retireAge);
           if (age >= stream.startAge && age <= effectiveEndAge) {
@@ -751,6 +786,13 @@ window.RetirementEngine = (function() {
             if (stream.taxable !== false) {
               taxableIncome += streamVal;
             }
+            if (streamVal !== 0) {
+              incomeBreakdown.push({
+                name: stream.name || 'Thu nhập ngoài',
+                amount: streamVal,
+                monthly: streamVal / 12
+              });
+            }
           }
         });
       }
@@ -759,18 +801,20 @@ window.RetirementEngine = (function() {
       // 1. Phân loại và tích hợp nguồn lương hưu an sinh theo quốc gia
       const workC = plan.workCountry || 'FR';
       const retireC = plan.retireCountry || plan.workCountry || 'FR';
-      const hasFrenchPension = (workC === 'FR' || retireC === 'FR' || plan.enableFrenchPension === true);
-      const hasBhxhPension = (workC === 'VN' || retireC === 'VN' || plan.bhxhVnEnabled === true);
-      const hasGermanPension = (workC === 'DE' || retireC === 'DE' || plan.enableGermanPension === true);
-      const hasUsPension = (workC === 'US' || retireC === 'US' || plan.enableUsPension === true);
-      const hasJapanPension = (workC === 'JP' || retireC === 'JP' || plan.enableJapanPension === true);
-      const hasCanadaPension = (workC === 'CA' || retireC === 'CA' || plan.enableCanadaPension === true);
-      const hasAustraliaPension = (workC === 'AU' || retireC === 'AU' || plan.enableAustraliaPension === true);
-      const hasKoreaPension = (workC === 'KR' || retireC === 'KR' || plan.enableKoreaPension === true);
-      const hasTaiwanPension = (workC === 'TW' || retireC === 'TW' || plan.enableTaiwanPension === true);
+      const isFrenchEnabled = (plan.enableFrenchPension !== false);
+      const isBhxhEnabled = (plan.enableBhxhVn !== false && plan.bhxhVnEnabled !== false);
+      const hasFrenchPension = (workC === 'FR' || retireC === 'FR' || plan.enableFrenchPension === true) && isFrenchEnabled;
+      const hasBhxhPension = (workC === 'VN' || retireC === 'VN' || plan.enableBhxhVn === true || plan.bhxhVnEnabled === true) && isBhxhEnabled;
+      const hasGermanPension = (workC === 'DE' || retireC === 'DE' || plan.enableGermanPension === true) && (plan.enableGermanPension !== false);
+      const hasUsPension = (workC === 'US' || retireC === 'US' || plan.enableUsPension === true) && (plan.enableUsPension !== false);
+      const hasJapanPension = (workC === 'JP' || retireC === 'JP' || plan.enableJapanPension === true) && (plan.enableJapanPension !== false);
+      const hasCanadaPension = (workC === 'CA' || retireC === 'CA' || plan.enableCanadaPension === true) && (plan.enableCanadaPension !== false);
+      const hasAustraliaPension = (workC === 'AU' || retireC === 'AU' || plan.enableAustraliaPension === true) && (plan.enableAustraliaPension !== false);
+      const hasKoreaPension = (workC === 'KR' || retireC === 'KR' || plan.enableKoreaPension === true) && (plan.enableKoreaPension !== false);
+      const hasTaiwanPension = (workC === 'TW' || retireC === 'TW' || plan.enableTaiwanPension === true) && (plan.enableTaiwanPension !== false);
 
       // 1.1 Lương hưu Pháp (CNAV + Agirc-Arrco)
-      if (isRetired && hasFrenchPension && plan.enableFrenchPension !== false) {
+      if (isRetired && hasFrenchPension && isFrenchEnabled) {
         if (plan.maritalStatus === 'married' && plan.frenchPensionDetails) {
           const s1 = plan.frenchPensionDetails.spouse1 || {};
           const s2 = plan.frenchPensionDetails.spouse2 || {};
@@ -792,6 +836,20 @@ window.RetirementEngine = (function() {
           const frenchTotal = p1Amt + p2Amt;
           annualIncome += frenchTotal;
           taxableIncome += frenchTotal;
+          if (p1Amt > 0) {
+            incomeBreakdown.push({
+              name: 'Lương hưu Pháp (Bạn)',
+              amount: p1Amt,
+              monthly: p1Amt / 12
+            });
+          }
+          if (p2Amt > 0) {
+            incomeBreakdown.push({
+              name: 'Lương hưu Pháp (Bạn đời)',
+              amount: p2Amt,
+              monthly: p2Amt / 12
+            });
+          }
         } else {
           const s1 = plan.frenchPensionDetails?.spouse1 || {};
           const ssAge = Number(s1.claimAge) || Number(plan.socialSecurityAge) || 64;
@@ -799,14 +857,21 @@ window.RetirementEngine = (function() {
             const rawSS = Number(s1.targetAnnualPension) || Number(plan.socialSecurityAnnual) || 18000;
             if (rawSS > 0) {
               const startWorkAge = Number(s1.startWorkAge) || Number(plan.startWorkAge) || 24;
+              let pensionReceived = 0;
               if (window.TaxOptimizer && window.TaxOptimizer.calculateFrenchPension) {
                 const resSS = window.TaxOptimizer.calculateFrenchPension(rawSS, startWorkAge, Math.min(retireAge, ssAge), ssAge);
-                const pensionReceived = resSS.totalAnnualPension * cumInflation;
-                annualIncome += pensionReceived;
-                taxableIncome += pensionReceived;
+                pensionReceived = resSS.totalAnnualPension * cumInflation;
               } else {
-                annualIncome += rawSS * cumInflation;
-                taxableIncome += rawSS * cumInflation;
+                pensionReceived = rawSS * cumInflation;
+              }
+              annualIncome += pensionReceived;
+              taxableIncome += pensionReceived;
+              if (pensionReceived > 0) {
+                incomeBreakdown.push({
+                  name: 'Lương hưu Pháp',
+                  amount: pensionReceived,
+                  monthly: pensionReceived / 12
+                });
               }
             }
           }
@@ -814,7 +879,7 @@ window.RetirementEngine = (function() {
       }
 
       // 1.2 Lương hưu BHXH Việt Nam
-      if (isRetired && hasBhxhPension && plan.enableBhxhVn !== false && plan.bhxhVnDetails) {
+      if (isRetired && hasBhxhPension && isBhxhEnabled && plan.bhxhVnDetails) {
         const b1 = plan.bhxhVnDetails.spouse1 || {};
         const b2 = plan.bhxhVnDetails.spouse2 || {};
         const userGender = plan.gender || b1.gender || 'male';
@@ -836,9 +901,25 @@ window.RetirementEngine = (function() {
           }
         }
 
+        const conv = (plan.currency === 'VND') ? 1 : (currentEurVndRate || 27500);
+        if (b1Amt > 0) {
+          const b1Val = (b1Amt * cumInflation) / conv;
+          incomeBreakdown.push({
+            name: plan.maritalStatus === 'married' ? 'Lương hưu BHXH VN (Bạn)' : 'Lương hưu BHXH VN',
+            amount: b1Val,
+            monthly: b1Val / 12
+          });
+        }
+        if (b2Amt > 0) {
+          const b2Val = (b2Amt * cumInflation) / conv;
+          incomeBreakdown.push({
+            name: 'Lương hưu BHXH VN (Bạn đời)',
+            amount: b2Val,
+            monthly: b2Val / 12
+          });
+        }
         const totalBhxhVnd = (b1Amt + b2Amt) * cumInflation;
         if (totalBhxhVnd > 0) {
-          const conv = (plan.currency === 'VND') ? 1 : (currentEurVndRate || 27500);
           const bhxhVal = (totalBhxhVnd / conv);
           annualIncome += bhxhVal;
           taxableIncome += bhxhVal;
@@ -866,6 +947,20 @@ window.RetirementEngine = (function() {
           }
         }
 
+        if (g1Amt > 0) {
+          incomeBreakdown.push({
+            name: plan.maritalStatus === 'married' ? 'Lương hưu Đức (Bạn)' : 'Lương hưu Đức',
+            amount: g1Amt * cumInflation,
+            monthly: (g1Amt * cumInflation) / 12
+          });
+        }
+        if (g2Amt > 0) {
+          incomeBreakdown.push({
+            name: 'Lương hưu Đức (Bạn đời)',
+            amount: g2Amt * cumInflation,
+            monthly: (g2Amt * cumInflation) / 12
+          });
+        }
         const totalGermanEur = (g1Amt + g2Amt) * cumInflation;
         if (totalGermanEur > 0) {
           annualIncome += totalGermanEur;
@@ -894,9 +989,26 @@ window.RetirementEngine = (function() {
           }
         }
 
+        const usdToEurRate = 0.92;
+        if (u1Amt > 0) {
+          const u1Val = (plan.currency === 'USD') ? (u1Amt * cumInflation) : (u1Amt * cumInflation * usdToEurRate);
+          incomeBreakdown.push({
+            name: plan.maritalStatus === 'married' ? 'Lương hưu An sinh Mỹ (Bạn)' : 'Lương hưu An sinh Mỹ',
+            amount: u1Val,
+            monthly: u1Val / 12
+          });
+        }
+        if (u2Amt > 0) {
+          const u2Val = (plan.currency === 'USD') ? (u2Amt * cumInflation) : (u2Amt * cumInflation * usdToEurRate);
+          incomeBreakdown.push({
+            name: 'Lương hưu An sinh Mỹ (Bạn đời)',
+            amount: u2Val,
+            monthly: u2Val / 12
+          });
+        }
+
         const totalUsd = (u1Amt + u2Amt) * cumInflation;
         if (totalUsd > 0) {
-          const usdToEurRate = 0.92;
           const usPensionVal = (plan.currency === 'USD') ? totalUsd : (totalUsd * usdToEurRate);
           annualIncome += usPensionVal;
           taxableIncome += usPensionVal;
@@ -922,6 +1034,24 @@ window.RetirementEngine = (function() {
             const resJ2 = window.TaxOptimizer.calculateJapanPension(j2.grossAnnualSalary || 3500000, j2.yearsContributed || 20, j2Claim);
             j2Amt = resJ2.totalAnnualPensionEur;
           }
+        }
+
+        const convJp = (plan.currency === 'EUR') ? 1 : (plan.currency === 'USD' ? 1 / 0.92 : (currentEurVndRate || 27500));
+        if (j1Amt > 0) {
+          const j1Val = (j1Amt * cumInflation) * convJp;
+          incomeBreakdown.push({
+            name: plan.maritalStatus === 'married' ? 'Lương hưu Nhật Bản (Bạn)' : 'Lương hưu Nhật Bản',
+            amount: j1Val,
+            monthly: j1Val / 12
+          });
+        }
+        if (j2Amt > 0) {
+          const j2Val = (j2Amt * cumInflation) * convJp;
+          incomeBreakdown.push({
+            name: 'Lương hưu Nhật Bản (Bạn đời)',
+            amount: j2Val,
+            monthly: j2Val / 12
+          });
         }
 
         const totalJpEur = (j1Amt + j2Amt) * cumInflation;
@@ -953,6 +1083,24 @@ window.RetirementEngine = (function() {
           }
         }
 
+        const convCa = (plan.currency === 'EUR') ? 1 : (plan.currency === 'USD' ? 1 / 0.92 : (currentEurVndRate || 27500));
+        if (c1Amt > 0) {
+          const c1Val = (c1Amt * cumInflation) * convCa;
+          incomeBreakdown.push({
+            name: plan.maritalStatus === 'married' ? 'Lương hưu Canada (Bạn)' : 'Lương hưu Canada',
+            amount: c1Val,
+            monthly: c1Val / 12
+          });
+        }
+        if (c2Amt > 0) {
+          const c2Val = (c2Amt * cumInflation) * convCa;
+          incomeBreakdown.push({
+            name: 'Lương hưu Canada (Bạn đời)',
+            amount: c2Val,
+            monthly: c2Val / 12
+          });
+        }
+
         const totalCaEur = (c1Amt + c2Amt) * cumInflation;
         if (totalCaEur > 0) {
           const caVal = (plan.currency === 'EUR') ? totalCaEur : (plan.currency === 'USD' ? totalCaEur / 0.92 : totalCaEur * (currentEurVndRate || 27500));
@@ -980,6 +1128,24 @@ window.RetirementEngine = (function() {
             const resA2 = window.TaxOptimizer.calculateAustraliaPension(a2.grossAnnualSalary || 65000, a2.yearsWorked || 20, a2.superBalance || 180000, a2Claim);
             a2Amt = resA2.totalAnnualPensionEur;
           }
+        }
+
+        const convAu = (plan.currency === 'EUR') ? 1 : (plan.currency === 'USD' ? 1 / 0.92 : (currentEurVndRate || 27500));
+        if (a1Amt > 0) {
+          const a1Val = (a1Amt * cumInflation) * convAu;
+          incomeBreakdown.push({
+            name: plan.maritalStatus === 'married' ? 'Lương hưu Úc (Bạn)' : 'Lương hưu Úc',
+            amount: a1Val,
+            monthly: a1Val / 12
+          });
+        }
+        if (a2Amt > 0) {
+          const a2Val = (a2Amt * cumInflation) * convAu;
+          incomeBreakdown.push({
+            name: 'Lương hưu Úc (Bạn đời)',
+            amount: a2Val,
+            monthly: a2Val / 12
+          });
         }
 
         const totalAuEur = (a1Amt + a2Amt) * cumInflation;
@@ -1011,6 +1177,24 @@ window.RetirementEngine = (function() {
           }
         }
 
+        const convKr = (plan.currency === 'EUR') ? 1 : (plan.currency === 'USD' ? 1 / 0.92 : (currentEurVndRate || 27500));
+        if (k1Amt > 0) {
+          const k1Val = (k1Amt * cumInflation) * convKr;
+          incomeBreakdown.push({
+            name: plan.maritalStatus === 'married' ? 'Lương hưu Hàn Quốc (Bạn)' : 'Lương hưu Hàn Quốc',
+            amount: k1Val,
+            monthly: k1Val / 12
+          });
+        }
+        if (k2Amt > 0) {
+          const k2Val = (k2Amt * cumInflation) * convKr;
+          incomeBreakdown.push({
+            name: 'Lương hưu Hàn Quốc (Bạn đời)',
+            amount: k2Val,
+            monthly: k2Val / 12
+          });
+        }
+
         const totalKrEur = (k1Amt + k2Amt) * cumInflation;
         if (totalKrEur > 0) {
           const krVal = (plan.currency === 'EUR') ? totalKrEur : (plan.currency === 'USD' ? totalKrEur / 0.92 : totalKrEur * (currentEurVndRate || 27500));
@@ -1038,6 +1222,24 @@ window.RetirementEngine = (function() {
             const resT2 = window.TaxOptimizer.calculateTaiwanPension(t2.insuredMonthlySalary || 36000, t2.yearsContributed || 15, t2Claim);
             t2Amt = resT2.totalAnnualPensionEur;
           }
+        }
+
+        const convTw = (plan.currency === 'EUR') ? 1 : (plan.currency === 'USD' ? 1 / 0.92 : (currentEurVndRate || 27500));
+        if (t1Amt > 0) {
+          const t1Val = (t1Amt * cumInflation) * convTw;
+          incomeBreakdown.push({
+            name: plan.maritalStatus === 'married' ? 'Lương hưu Đài Loan (Bạn)' : 'Lương hưu Đài Loan',
+            amount: t1Val,
+            monthly: t1Val / 12
+          });
+        }
+        if (t2Amt > 0) {
+          const t2Val = (t2Amt * cumInflation) * convTw;
+          incomeBreakdown.push({
+            name: 'Lương hưu Đài Loan (Bạn đời)',
+            amount: t2Val,
+            monthly: t2Val / 12
+          });
         }
 
         const totalTwEur = (t1Amt + t2Amt) * cumInflation;
@@ -1071,6 +1273,7 @@ window.RetirementEngine = (function() {
 
       // Child Lifecycle Expenses (Kế Hoạch Con Cái & Gia Đình)
       let childLifecycleCostThisYear = 0;
+      const childCostItems = [];
       if (plan.familyPlan && plan.familyPlan.enabled !== false && Number(plan.familyPlan.kidsCount) > 0) {
         const kCount = Number(plan.familyPlan.kidsCount) || 0;
         const curSimYear = (Number(plan.birthYear) || (new Date().getFullYear() - currentAge)) + age;
@@ -1091,8 +1294,21 @@ window.RetirementEngine = (function() {
         let depCount = 0;
         for (let k = 0; k < Math.min(kCount, 4); k++) {
           const kAge = curSimYear - birthYears[k];
-          if (kAge >= 0 && kAge < 18) grossChildCost += kidCostMonthly * 12;
-          else if (kAge >= 18 && kAge <= 23) grossChildCost += kidUniMonthly * 12;
+          if (kAge >= 0 && kAge < 18) {
+            grossChildCost += kidCostMonthly * 12;
+            childCostItems.push({
+              name: `Nuôi con thứ ${k + 1} (0–18 tuổi)`,
+              amount: kidCostMonthly * 12 * cumInflation,
+              monthly: kidCostMonthly * cumInflation
+            });
+          } else if (kAge >= 18 && kAge <= 23) {
+            grossChildCost += kidUniMonthly * 12;
+            childCostItems.push({
+              name: `Nuôi con thứ ${k + 1} (Đại học 18–23 tuổi)`,
+              amount: kidUniMonthly * 12 * cumInflation,
+              monthly: kidUniMonthly * cumInflation
+            });
+          }
           if (kAge >= 0 && kAge < 20) depCount++;
         }
 
@@ -1106,6 +1322,15 @@ window.RetirementEngine = (function() {
           familyAllowanceMonthly = depCount * 250; // Kindergeld Đức
         } else if (plan.workCountry === 'BE') {
           familyAllowanceMonthly = depCount * 190; // Allocations Bỉ
+        }
+
+        if (familyAllowanceMonthly > 0 && depCount > 0) {
+          childCostItems.push({
+            name: 'Trợ cấp gia đình (CAF / Kindergeld)',
+            amount: -(familyAllowanceMonthly * 12 * cumInflation),
+            monthly: -(familyAllowanceMonthly * cumInflation),
+            isAllowance: true
+          });
         }
 
         const netAnnualChildCost = Math.max(0, grossChildCost - (familyAllowanceMonthly * 12));
@@ -1140,16 +1365,97 @@ window.RetirementEngine = (function() {
       }
 
       let currentExpenses = 0;
+      const expenseBreakdown = [];
       if (isRetired) {
         // Base living expenses in retirement (Phương án 1: Số tiền nhập vào đã là chi tiêu thực tế tại địa điểm đã chọn)
+        const enableRetireExp = plan.enableRetirementExpense !== false;
+        const baseRetireLiving = enableRetireExp ? ((baseRetireExpenses * spendingFactor) * cumInflation) : 0;
+        if (enableRetireExp && baseRetireLiving > 0) {
+          expenseBreakdown.push({
+            name: 'Sinh hoạt cơ bản (Hưu trí)',
+            amount: baseRetireLiving,
+            monthly: baseRetireLiving / 12
+          });
+        }
+        if (seniorCareCost > 0) {
+          const careVal = seniorCareCost * cumInflation;
+          expenseBreakdown.push({
+            name: 'Chăm sóc tuổi già (EHPAD/Y tế)',
+            amount: careVal,
+            monthly: careVal / 12
+          });
+        }
+        if (hasExpenseStreams && activeDebtsSum > 0) {
+          plan.expenses.forEach(exp => {
+            if (exp.enabled === false) return;
+            const isDebt = exp.isDebt === true || (/crédit|credit|vay|nợ|loan|prêt|pret|ngân hàng/i).test(exp.name || '');
+            if (!isDebt) return;
+            const start = (exp.startAge !== undefined && exp.startAge !== null && !isNaN(Number(exp.startAge)))
+              ? Number(exp.startAge) : currentAge;
+            const end = (exp.endAge !== undefined && exp.endAge !== null && !isNaN(Number(exp.endAge)))
+              ? Number(exp.endAge) : 85;
+            if (age >= start && age <= end) {
+              const expGrowth = (exp.growth !== undefined && exp.growth !== null && !isNaN(Number(exp.growth)))
+                ? Number(exp.growth) / 100.0
+                : 0.0;
+              const yearsActive = age - start;
+              const expVal = (Number(exp.amount) || 0) * Math.pow(1.0 + expGrowth, yearsActive);
+              if (expVal > 0) {
+                expenseBreakdown.push({
+                  name: exp.name || 'Trả nợ vay',
+                  amount: expVal,
+                  monthly: expVal / 12
+                });
+              }
+            }
+          });
+        }
+        childCostItems.forEach(ci => expenseBreakdown.push(ci));
+
         const baseRetire = ((baseRetireExpenses * spendingFactor) + seniorCareCost) * cumInflation;
         currentExpenses = baseRetire + activeDebtsSum + childLifecycleCostThisYear;
       } else {
         // Accumulation phase: realistic sum of active expense streams or fallback to base
         if (hasExpenseStreams && activeExpenseStreamsSum > 0) {
+          plan.expenses.forEach(exp => {
+            if (exp.enabled === false) return;
+            const start = (exp.startAge !== undefined && exp.startAge !== null && !isNaN(Number(exp.startAge)))
+              ? Number(exp.startAge) : currentAge;
+            const end = (exp.endAge !== undefined && exp.endAge !== null && !isNaN(Number(exp.endAge)))
+              ? Number(exp.endAge) : 85;
+            if (age >= start && age <= end) {
+              const expGrowth = (exp.growth !== undefined && exp.growth !== null && !isNaN(Number(exp.growth)))
+                ? Number(exp.growth) / 100.0
+                : 0.0;
+              const yearsActive = age - start;
+              const expVal = (Number(exp.amount) || 0) * Math.pow(1.0 + expGrowth, yearsActive);
+              if (expVal > 0) {
+                expenseBreakdown.push({
+                  name: exp.name || 'Chi tiêu sinh hoạt',
+                  amount: expVal,
+                  monthly: expVal / 12
+                });
+              }
+            }
+          });
+          childCostItems.forEach(ci => expenseBreakdown.push(ci));
           currentExpenses = activeExpenseStreamsSum + childLifecycleCostThisYear;
         } else {
-          currentExpenses = ((Number(plan.annualExpenses) || 240_000_000) * cumInflation) + childLifecycleCostThisYear;
+          let baseAccum = 0;
+          if (annualIncome > 0 && plan.savingsRate !== undefined && plan.savingsRate !== null && Number(plan.savingsRate) > 0) {
+            const rate = Number(plan.savingsRate) / 100.0;
+            const incomeAfterTax = Math.max(0, annualIncome - estimatedTax);
+            baseAccum = incomeAfterTax * (1.0 - rate);
+          } else {
+            baseAccum = (Number(plan.annualExpenses) || 240_000_000) * cumInflation;
+          }
+          expenseBreakdown.push({
+            name: 'Chi tiêu sinh hoạt',
+            amount: baseAccum,
+            monthly: baseAccum / 12
+          });
+          childCostItems.forEach(ci => expenseBreakdown.push(ci));
+          currentExpenses = baseAccum + childLifecycleCostThisYear;
         }
       }
 
@@ -1160,11 +1466,20 @@ window.RetirementEngine = (function() {
           scenarioReturnModifier = -0.35; // -35% crash in early retirement
         } else if (overrideScenario === 'high_inflation' && (age >= retireAge && age < retireAge + 5)) {
           currentExpenses *= 1.30; // 30% jump in expenses
+          expenseBreakdown.forEach(eb => {
+            eb.amount *= 1.30;
+            eb.monthly *= 1.30;
+          });
         } else if (overrideScenario === 'medical_shock' && age === 65) {
           const fx = currentEurVndRate || 27500;
           const medicalShockAmt = 500_000_000 / fx; // 500tr VND (~18k EUR)
           currentExpenses += medicalShockAmt;
           portfolio = Math.max(0, portfolio - medicalShockAmt);
+          expenseBreakdown.push({
+            name: 'Biến cố y tế đột xuất',
+            amount: medicalShockAmt,
+            monthly: medicalShockAmt / 12
+          });
         } else if (overrideScenario === 'downsizing' && age === 60) {
           const fx = currentEurVndRate || 27500;
           portfolio += (2_000_000_000 / fx); // 2 tỷ VND (~73k EUR)
@@ -1287,8 +1602,20 @@ window.RetirementEngine = (function() {
         if (isStrategyActive) {
           // Khi BẬT chiến lược rút tiền:
           // Danh mục rút theo quy tắc chiến lược đã chọn (Bengen 4%, Guyton-Klinger, VPW, Fixed %)
-          // Nếu phát sinh thiếu hụt sinh hoạt (deficit) lớn hơn mức rút chiến lược, danh mục sẽ rút tối thiểu bằng deficit
-          const targetWithdrawal = Math.max(withdrawalAmount, deficit);
+          // 1. Nếu BẬT Smart Cap (mặc định):
+          //    - Khi thâm hụt sinh hoạt (deficit) nhỏ hơn mức rút chiến lược: chỉ rút đúng deficit để không rút cạn danh mục ảo khi đã có lương hưu trợ lực.
+          //    - Khi thâm hụt sinh hoạt lớn hơn mức rút chiến lược: áp dụng trần an toàn của chiến lược để bảo vệ danh mục không bị lạm rút.
+          // 2. Nếu TẮT Smart Cap (chế độ rút cố định truyền thống):
+          //    - Luôn ép rút tối thiểu theo mức SWR của chiến lược bất kể có cần tiêu hết hay không.
+          const isSmartCap = plan.smartWithdrawalCap !== false;
+          // 1. Khi BẬT Smart Cap (mặc định):
+          //    Danh mục rút đúng bằng phần thiếu hụt sinh hoạt thực tế (deficit) sau khi đã trừ lương hưu/thu nhập khác.
+          //    Không bao giờ ép rút thừa theo tỷ lệ SWR, đảm bảo đủ tiền sống và bảo toàn tối đa danh mục.
+          // 2. Khi TẮT Smart Cap (chế độ truyền thống):
+          //    Luôn ép rút tối thiểu theo tỷ lệ SWR của chiến lược (Math.max(withdrawalAmount, deficit)).
+          const targetWithdrawal = isSmartCap
+            ? deficit
+            : Math.max(withdrawalAmount, deficit);
           actualWithdrawal = Math.max(0, Math.min(portfolio, targetWithdrawal));
 
           // Dòng tiền ròng tác động lên danh mục:
@@ -1305,23 +1632,18 @@ window.RetirementEngine = (function() {
             totalWaterfallTaxSaved += wf.taxSavedVsPFU;
           }
         } else {
-          // Khi TẮT chiến lược rút tiền: danh mục chỉ rút thuần túy bù đắp phần thiếu hụt sinh hoạt thực tế
+          // Khi TẮT chiến lược rút tiền: KHÔNG rút vốn từ danh mục đầu tư
+          // Người về hưu chỉ sống bằng nguồn thu nhập ngoài (lương hưu, cổ tức, thụ động)
+          // Danh mục đầu tư được giữ nguyên vẹn để tiếp tục sinh lời
+          actualWithdrawal = 0;
           if (incomeAfterTax >= currentExpenses) {
             const surplus = incomeAfterTax - currentExpenses;
             portfolio = (portfolio + surplus) * (1.0 + returnRate);
             netSavingsOrWithdrawal = surplus;
-            actualWithdrawal = 0;
           } else {
-            actualWithdrawal = Math.max(0, Math.min(portfolio, deficit));
-            portfolio = Math.max(0, (portfolio - actualWithdrawal) * (1.0 + returnRate));
-            netSavingsOrWithdrawal = -actualWithdrawal;
-
-            // Tax-Efficient French Account Withdrawal Waterfall
-            if (frenchAccs && actualWithdrawal > 0 && window.TaxOptimizer && window.TaxOptimizer.simulateWithdrawalWaterfall) {
-              const wf = window.TaxOptimizer.simulateWithdrawalWaterfall(frenchAccs, actualWithdrawal, true);
-              frenchAccs = wf.remainingBalances;
-              totalWaterfallTaxSaved += wf.taxSavedVsPFU;
-            }
+            // Không rút tiền từ danh mục, số dư vẫn sinh lời bình thường
+            portfolio = portfolio * (1.0 + returnRate);
+            netSavingsOrWithdrawal = 0;
           }
         }
       }
@@ -1358,6 +1680,8 @@ window.RetirementEngine = (function() {
         isRetired,
         income: annualIncome,
         expenses: currentExpenses,
+        incomeBreakdown,
+        expenseBreakdown,
         withdrawal: actualWithdrawal,
         totalAvailableCash: isRetired ? (annualIncome + actualWithdrawal) : annualIncome,
         mortgagePayment: mortgagePaymentThisYear,
@@ -1389,6 +1713,7 @@ window.RetirementEngine = (function() {
     if (Array.isArray(plan.incomes)) {
       plan.incomes.forEach(inc => {
         if (inc.enabled === false) return;
+        if (isRealEstateIncomeStream(inc) && plan.lmnpEnabled === false) return;
         const sAge = Number(inc.startAge) || currentAge;
         const eAge = Number(inc.endAge) || lifeExpectancy;
         const name = (inc.name || "").toLowerCase();
@@ -1661,6 +1986,7 @@ window.RetirementEngine = (function() {
       readinessScore: score,
       survived: finalPortfolio > 0,
       meetsLegacy: finalPortfolio >= targetLegacy,
+      targetLegacy,
       mortgageSchedule,
       weightedReturnPre,
       weightedReturnPost,

@@ -290,12 +290,21 @@
   function syncSalaryStreamsWithRetireAge(plan) {
     if (!plan || !Array.isArray(plan.incomes)) return;
     const rAge = Number(plan.retirementAge) || 42;
+    const curAge = Number(plan.currentAge) || 29;
     plan.incomes.forEach(stream => {
+      if (!stream) return;
       const name = stream.name || "";
-      if (stream.isSalary || (/lương|salary|impôt|impot/i).test(name)) {
+      const isSalary = stream.isSalary || stream.isPrimarySalary || stream.isSpouseSalary || (/lương|salary|impôt|impot/i).test(name);
+      if (isSalary) {
         stream.endAge = rAge;
+        if (stream.isPrimarySalary && curAge) {
+          stream.startAge = curAge;
+        }
       }
     });
+    if (typeof renderIncomeStreamsList === 'function') {
+      try { renderIncomeStreamsList(); } catch (e) {}
+    }
   }
 
   function bindInput(id, fieldPath, typeConverter) {
@@ -316,6 +325,9 @@
 
         if (fieldPath === "retirementAge") {
           syncSalaryStreamsWithRetireAge(plan);
+          if (typeof renderIncomeStreamsList === 'function') {
+            try { renderIncomeStreamsList(); } catch (e) {}
+          }
         }
         
         savePlansToStorage();
@@ -400,10 +412,12 @@
     setVal("inp-monthly-expenses", Math.round(annualExp / 12));
     setVal("inp-monthly-savings", Math.round(annualSav / 12));
 
-    // Base Monthly là mức chi tiêu tại nơi đắt nhất (Pháp - factor 1.00)
+    // Base Monthly là mức chi tiêu tại nơi chi phí cao nhất (factor 1.00)
     const loc = p.retirementLocation || "vietnam";
-    const pppFactors = { 'france': 1.0, 'hybrid': 0.70, 'vietnam': 0.45 };
-    const factor = pppFactors[loc] || 1.0;
+    const ratios = (window.Tab1StreamsUI && typeof window.Tab1StreamsUI.getRetirementPppRatios === 'function')
+      ? window.Tab1StreamsUI.getRetirementPppRatios(p)
+      : null;
+    const factor = ratios ? (ratios.factors[loc] || 1.0) : 1.0;
     let baseMonthly = Number(p.baseRetireMonthly);
     if (!baseMonthly || isNaN(baseMonthly) || baseMonthly <= 0) {
       if (annualRetire > 0) {
@@ -432,9 +446,9 @@
     setVal("inp-acc-livreta", p.frenchAccounts?.livretABalance ?? 5000);
     updateTaxRegimeUI(taxRegime);
 
-    // Location & Franco-Vietnamien PPP
+    // Location & Multi-Country PPP
     setVal("sel-retirement-location", p.retirementLocation || "vietnam");
-    updateRetirementLocationUI(p.retirementLocation || "vietnam");
+    updateRetirementLocationUI(p.retirementLocation || "vietnam", p);
 
     // French Pension & Décote
     setVal("inp-start-work-age", p.startWorkAge || 24);
@@ -456,6 +470,10 @@
     updateSeniorCareUI(p);
 
     // Kế Hoạch Con Cái & Gia Đình
+    const chkFamily = document.getElementById("chk-enable-family-stream");
+    if (chkFamily && p.familyPlan) {
+      chkFamily.checked = p.familyPlan.enabled !== false;
+    }
     updateFamilyStreamUI(p);
 
     // Sync currency badge & buttons
@@ -491,6 +509,10 @@
     if (chkWithdrawalInput) {
       chkWithdrawalInput.checked = p.enableWithdrawalStrategy !== false;
     }
+    const chkSmartCapInput = document.getElementById("chk-smart-withdrawal-cap");
+    if (chkSmartCapInput) {
+      chkSmartCapInput.checked = p.smartWithdrawalCap !== false;
+    }
 
     // Spending Smile (Retirement Card)
     if (p.spendingPhases) {
@@ -514,6 +536,8 @@
     }
 
     // 1. Asset Allocation Sync
+    const chkAlloc = document.getElementById("chk-enable-asset-allocation");
+    if (chkAlloc) chkAlloc.checked = p.enableAssetAllocation !== false;
     if (!p.assetAllocation) {
       p.assetAllocation = { stocks: 80, bonds: 20, realEstate: 0, cash: 0 };
     }
@@ -524,6 +548,18 @@
     }
     setVal("inp-alloc-cash", p.assetAllocation.cash !== undefined ? p.assetAllocation.cash : 0);
     updateAssetAllocationUI(p, false);
+
+    // LMNP Stream Sync
+    const chkLmnp = document.getElementById("chk-enable-lmnp-stream");
+    if (chkLmnp) chkLmnp.checked = p.lmnpEnabled !== false;
+
+    // French Pension Sync
+    const chkFrench = document.getElementById("chk-enable-french-pension");
+    if (chkFrench) chkFrench.checked = p.enableFrenchPension !== false;
+
+    // Vietnam BHXH Sync
+    const chkBhxhVn = document.getElementById("chk-enable-bhxh-vn");
+    if (chkBhxhVn) chkBhxhVn.checked = (p.enableBhxhVn !== false && p.bhxhVnEnabled !== false);
 
     // 2. Dual Inflation & Forex Sync
     const chkDual = document.getElementById("chk-dual-inflation-enabled");
@@ -549,6 +585,14 @@
     const chkMortPat = document.getElementById("chk-mortgage-from-patrimoine");
     if (chkMortPat) chkMortPat.checked = p.mortgageFromPatrimoine !== false;
     updateMortgageUI(p);
+
+    // 4. Estate Legacy Sync
+    const chkLegacy = document.getElementById("chk-enable-estate-legacy");
+    if (chkLegacy) {
+      chkLegacy.checked = p.enableEstateLegacy !== false;
+      const cardLeg = document.getElementById("card-estate-legacy-combined");
+      if (cardLeg) cardLeg.style.opacity = p.enableEstateLegacy !== false ? "1" : "0.55";
+    }
 
     renderIncomeStreamsList();
     renderExpenseStreamsList();
@@ -585,6 +629,8 @@
     // Bảng giai đoạn tuổi phụ thuộc tuổi nghỉ hưu -> phải render lại khi bất kỳ input nào đổi
     try { renderIncomePeriodsSummary(plan); } catch (e) { console.warn("renderIncomePeriodsSummary error:", e); }
     try { renderExpensePeriodsSummary(plan); } catch (e) { console.warn("renderExpensePeriodsSummary error:", e); }
+    try { if (typeof renderIncomeStreamsList === 'function') renderIncomeStreamsList(); } catch (e) {}
+    try { if (typeof renderExpenseStreamsList === 'function') renderExpenseStreamsList(); } catch (e) {}
 
     // Update Top KPIs
     document.getElementById("kpi-current-networth").innerText = window.RetirementEngine.formatCurrency(plan.currentSavings, state.currency);
@@ -625,21 +671,26 @@
     document.getElementById("kpi-estate-end").innerText = window.RetirementEngine.formatCurrency(estateVal, state.currency);
     const estateSubEl = document.getElementById("kpi-estate-subtitle");
     if (estateSubEl) {
-      const targetLegacy = Number(plan.targetLegacy) || 100000;
-      const legacyPct = targetLegacy > 0 ? Math.round((estateVal / targetLegacy) * 100) : 100;
-      const fmtTarget = window.RetirementEngine.formatCurrency(targetLegacy, state.currency);
-      if (proj.finalPortfolio <= 0 && estateVal > 0) {
-        estateSubEl.className = "kpi-subtitle text-warning";
-        estateSubEl.innerHTML = `Tiền mặt cạn trước 85t (Còn lại BĐS: <strong>${window.RetirementEngine.formatCurrency(estateVal, state.currency)}</strong>)`;
-      } else if (estateVal >= targetLegacy) {
-        estateSubEl.className = "kpi-subtitle text-success";
-        estateSubEl.innerHTML = `Đạt <strong>${legacyPct}%</strong> mục tiêu thừa kế (${fmtTarget})`;
-      } else if (estateVal > 0) {
-        estateSubEl.className = "kpi-subtitle text-warning";
-        estateSubEl.innerHTML = `Đạt <strong>${legacyPct}%</strong> mục tiêu (${fmtTarget})`;
+      if (plan.enableEstateLegacy === false) {
+        estateSubEl.className = "kpi-subtitle text-muted";
+        estateSubEl.innerHTML = `<span>Tắt mục tiêu di sản thừa kế (Không ép để lại tài sản)</span>`;
       } else {
-        estateSubEl.className = "kpi-subtitle text-danger";
-        estateSubEl.innerHTML = `Thâm hụt di sản (Mục tiêu: ${fmtTarget})`;
+        const targetLegacy = Number(plan.targetLegacy) || 100000;
+        const legacyPct = targetLegacy > 0 ? Math.round((estateVal / targetLegacy) * 100) : 100;
+        const fmtTarget = window.RetirementEngine.formatCurrency(targetLegacy, state.currency);
+        if (proj.finalPortfolio <= 0 && estateVal > 0) {
+          estateSubEl.className = "kpi-subtitle text-warning";
+          estateSubEl.innerHTML = `Tiền mặt cạn trước 85t (Còn lại BĐS: <strong>${window.RetirementEngine.formatCurrency(estateVal, state.currency)}</strong>)`;
+        } else if (estateVal >= targetLegacy) {
+          estateSubEl.className = "kpi-subtitle text-success";
+          estateSubEl.innerHTML = `Đạt <strong>${legacyPct}%</strong> mục tiêu thừa kế (${fmtTarget})`;
+        } else if (estateVal > 0) {
+          estateSubEl.className = "kpi-subtitle text-warning";
+          estateSubEl.innerHTML = `Đạt <strong>${legacyPct}%</strong> mục tiêu (${fmtTarget})`;
+        } else {
+          estateSubEl.className = "kpi-subtitle text-danger";
+          estateSubEl.innerHTML = `Thâm hụt di sản (Mục tiêu: ${fmtTarget})`;
+        }
       }
     }
 

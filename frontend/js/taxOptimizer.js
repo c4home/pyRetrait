@@ -17,43 +17,43 @@ window.TaxOptimizer = (function() {
   // Gốc chuẩn: Pháp Paris = 1.00
   const COUNTRY_PPP_PROFILES = {
     // 1. Pháp & Tây Âu
-    'fr_paris': { countryCode: 'FR', label: 'Paris & Vùng Thủ Đô', countryLabel: 'Pháp', flag: '🇫🇷', ppp: 1.00, inflation: 0.020, healthCostBase: 180 },
-    'fr_province': { countryCode: 'FR', label: 'Tỉnh lẻ Pháp', countryLabel: 'Pháp', flag: '🇫🇷', ppp: 0.85, inflation: 0.020, healthCostBase: 180 },
-    'de_munich': { countryCode: 'DE', label: 'Munich / Frankfurt', countryLabel: 'Đức', flag: '🇩🇪', ppp: 1.05, inflation: 0.022, healthCostBase: 200 },
-    'de_berlin': { countryCode: 'DE', label: 'Berlin / Tỉnh lẻ', countryLabel: 'Đức', flag: '🇩🇪', ppp: 0.90, inflation: 0.022, healthCostBase: 200 },
-    'be_brussels': { countryCode: 'BE', label: 'Brussels / Bỉ', countryLabel: 'Bỉ', flag: '🇧🇪', ppp: 0.92, inflation: 0.020, healthCostBase: 180 },
-    'ch_zurich': { countryCode: 'CH', label: 'Zurich / Geneva', countryLabel: 'Thụy Sĩ', flag: '🇨🇭', ppp: 1.45, inflation: 0.015, healthCostBase: 350 },
-    'uk_london': { countryCode: 'UK', label: 'London / Anh', countryLabel: 'Anh', flag: '🇬🇧', ppp: 1.10, inflation: 0.025, healthCostBase: 150 },
+    'fr_paris': { countryCode: 'FR', label: 'Paris & Vùng Thủ Đô', countryLabel: 'Pháp', flag: '🇫🇷', currency: 'EUR', currencySymbol: '€', ppp: 1.00, inflation: 0.020, healthCostBase: 180 },
+    'fr_province': { countryCode: 'FR', label: 'Tỉnh lẻ Pháp', countryLabel: 'Pháp', flag: '🇫🇷', currency: 'EUR', currencySymbol: '€', ppp: 0.85, inflation: 0.020, healthCostBase: 180 },
+    'de_munich': { countryCode: 'DE', label: 'Munich / Frankfurt', countryLabel: 'Đức', flag: '🇩🇪', currency: 'EUR', currencySymbol: '€', ppp: 1.05, inflation: 0.022, healthCostBase: 200 },
+    'de_berlin': { countryCode: 'DE', label: 'Berlin / Tỉnh lẻ', countryLabel: 'Đức', flag: '🇩🇪', currency: 'EUR', currencySymbol: '€', ppp: 0.90, inflation: 0.022, healthCostBase: 200 },
+    'be_brussels': { countryCode: 'BE', label: 'Brussels / Bỉ', countryLabel: 'Bỉ', flag: '🇧🇪', currency: 'EUR', currencySymbol: '€', ppp: 0.92, inflation: 0.020, healthCostBase: 180 },
+    'ch_zurich': { countryCode: 'CH', label: 'Zurich / Geneva', countryLabel: 'Thụy Sĩ', flag: '🇨🇭', currency: 'CHF', currencySymbol: 'Fr.', ppp: 1.45, inflation: 0.015, healthCostBase: 350 },
+    'uk_london': { countryCode: 'UK', label: 'London / Anh', countryLabel: 'Anh', flag: '🇬🇧', currency: 'GBP', currencySymbol: '£', ppp: 1.10, inflation: 0.025, healthCostBase: 150 },
 
     // 2. Nam Âu (Thiên đường hưu trí Châu Âu)
-    'pt_lisbon': { countryCode: 'PT', label: 'Lisbon / Porto', countryLabel: 'Bồ Đào Nha', flag: '🇵🇹', ppp: 0.65, inflation: 0.025, healthCostBase: 140 },
-    'pt_algarve': { countryCode: 'PT', label: 'Algarve / Tỉnh lẻ', countryLabel: 'Bồ Đào Nha', flag: '🇵🇹', ppp: 0.55, inflation: 0.025, healthCostBase: 130 },
-    'es_valencia': { countryCode: 'ES', label: 'Valencia / Alicante', countryLabel: 'Tây Ban Nha', flag: '🇪🇸', ppp: 0.68, inflation: 0.023, healthCostBase: 140 },
-    'es_province': { countryCode: 'ES', label: 'Tỉnh lẻ Tây Ban Nha', countryLabel: 'Tây Ban Nha', flag: '🇪🇸', ppp: 0.58, inflation: 0.023, healthCostBase: 130 },
-    'it_rome': { countryCode: 'IT', label: 'Rome / Milan', countryLabel: 'Ý', flag: '🇮🇹', ppp: 0.78, inflation: 0.022, healthCostBase: 150 },
-    'gr_athens': { countryCode: 'GR', label: 'Athens / Hy Lạp', countryLabel: 'Hy Lạp', flag: '🇬🇷', ppp: 0.58, inflation: 0.025, healthCostBase: 120 },
+    'pt_lisbon': { countryCode: 'PT', label: 'Lisbon / Porto', countryLabel: 'Bồ Đào Nha', flag: '🇵🇹', currency: 'EUR', currencySymbol: '€', ppp: 0.65, inflation: 0.025, healthCostBase: 140 },
+    'pt_algarve': { countryCode: 'PT', label: 'Algarve / Tỉnh lẻ', countryLabel: 'Bồ Đào Nha', flag: '🇵🇹', currency: 'EUR', currencySymbol: '€', ppp: 0.55, inflation: 0.025, healthCostBase: 130 },
+    'es_valencia': { countryCode: 'ES', label: 'Valencia / Alicante', countryLabel: 'Tây Ban Nha', flag: '🇪🇸', currency: 'EUR', currencySymbol: '€', ppp: 0.68, inflation: 0.023, healthCostBase: 140 },
+    'es_province': { countryCode: 'ES', label: 'Tỉnh lẻ Tây Ban Nha', countryLabel: 'Tây Ban Nha', flag: '🇪🇸', currency: 'EUR', currencySymbol: '€', ppp: 0.58, inflation: 0.023, healthCostBase: 130 },
+    'it_rome': { countryCode: 'IT', label: 'Rome / Milan', countryLabel: 'Ý', flag: '🇮🇹', currency: 'EUR', currencySymbol: '€', ppp: 0.78, inflation: 0.022, healthCostBase: 150 },
+    'gr_athens': { countryCode: 'GR', label: 'Athens / Hy Lạp', countryLabel: 'Hy Lạp', flag: '🇬🇷', currency: 'EUR', currencySymbol: '€', ppp: 0.58, inflation: 0.025, healthCostBase: 120 },
 
     // 3. Bắc Mỹ & Châu Đại Dương
-    'us_ny_sf': { countryCode: 'US', label: 'New York / San Francisco', countryLabel: 'Mỹ', flag: '🇺🇸', ppp: 1.35, inflation: 0.025, healthCostBase: 300 },
-    'us_average': { countryCode: 'US', label: 'Bình quân các bang Mỹ', countryLabel: 'Mỹ', flag: '🇺🇸', ppp: 1.00, inflation: 0.025, healthCostBase: 250 },
-    'ca_toronto': { countryCode: 'CA', label: 'Toronto / Vancouver', countryLabel: 'Canada', flag: '🇨🇦', ppp: 0.98, inflation: 0.023, healthCostBase: 200 },
-    'au_sydney': { countryCode: 'AU', label: 'Sydney / Melbourne', countryLabel: 'Úc', flag: '🇦🇺', ppp: 1.05, inflation: 0.025, healthCostBase: 220 },
+    'us_ny_sf': { countryCode: 'US', label: 'New York / San Francisco', countryLabel: 'Mỹ', flag: '🇺🇸', currency: 'USD', currencySymbol: '$', ppp: 1.35, inflation: 0.025, healthCostBase: 300 },
+    'us_average': { countryCode: 'US', label: 'Bình quân các bang Mỹ', countryLabel: 'Mỹ', flag: '🇺🇸', currency: 'USD', currencySymbol: '$', ppp: 1.00, inflation: 0.025, healthCostBase: 250 },
+    'ca_toronto': { countryCode: 'CA', label: 'Toronto / Vancouver', countryLabel: 'Canada', flag: '🇨🇦', currency: 'CAD', currencySymbol: 'C$', ppp: 0.98, inflation: 0.023, healthCostBase: 200 },
+    'au_sydney': { countryCode: 'AU', label: 'Sydney / Melbourne', countryLabel: 'Úc', flag: '🇦🇺', currency: 'AUD', currencySymbol: 'A$', ppp: 1.05, inflation: 0.025, healthCostBase: 220 },
 
     // 4. Đông Nam Á & Châu Á
-    'vn_hcm_hn': { countryCode: 'VN', label: 'TP.HCM / Hà Nội', countryLabel: 'Việt Nam', flag: '🇻🇳', ppp: 0.45, inflation: 0.040, healthCostBase: 100 },
-    'vn_province': { countryCode: 'VN', label: 'Đà Nẵng / Tỉnh lẻ VN', countryLabel: 'Việt Nam', flag: '🇻🇳', ppp: 0.35, inflation: 0.040, healthCostBase: 90 },
-    'th_bangkok': { countryCode: 'TH', label: 'Bangkok', countryLabel: 'Thái Lan', flag: '🇹🇭', ppp: 0.45, inflation: 0.025, healthCostBase: 110 },
-    'th_chiangmai': { countryCode: 'TH', label: 'Chiang Mai / Tỉnh lẻ', countryLabel: 'Thái Lan', flag: '🇹🇭', ppp: 0.35, inflation: 0.025, healthCostBase: 95 },
-    'my_kl': { countryCode: 'MY', label: 'Kuala Lumpur / Penang', countryLabel: 'Malaysia', flag: '🇲🇾', ppp: 0.48, inflation: 0.025, healthCostBase: 100 },
-    'sg_singapore': { countryCode: 'SG', label: 'Singapore', countryLabel: 'Singapore', flag: '🇸🇬', ppp: 1.20, inflation: 0.022, healthCostBase: 250 },
-    'cn_shanghai': { countryCode: 'CN', label: 'Thượng Hải / Bắc Kinh', countryLabel: 'Trung Quốc', flag: '🇨🇳', ppp: 0.65, inflation: 0.025, healthCostBase: 120 },
-    'cn_tier2': { countryCode: 'CN', label: 'Thành Đô / Tỉnh lẻ', countryLabel: 'Trung Quốc', flag: '🇨🇳', ppp: 0.45, inflation: 0.025, healthCostBase: 100 },
-    'jp_tokyo': { countryCode: 'JP', label: 'Tokyo / Nhật Bản', countryLabel: 'Nhật Bản', flag: '🇯🇵', ppp: 0.85, inflation: 0.015, healthCostBase: 160 },
-    'kr_seoul': { countryCode: 'KR', label: 'Seoul / Hàn Quốc', countryLabel: 'Hàn Quốc', flag: '🇰🇷', ppp: 0.82, inflation: 0.022, healthCostBase: 150 },
-    'tw_taipei': { countryCode: 'TW', label: 'Đài Bắc / Đài Loan', countryLabel: 'Đài Loan', flag: '🇹🇼', ppp: 0.70, inflation: 0.020, healthCostBase: 130 },
+    'vn_hcm_hn': { countryCode: 'VN', label: 'TP.HCM / Hà Nội', countryLabel: 'Việt Nam', flag: '🇻🇳', currency: 'VND', currencySymbol: '₫', ppp: 0.45, inflation: 0.040, healthCostBase: 100 },
+    'vn_province': { countryCode: 'VN', label: 'Đà Nẵng / Tỉnh lẻ VN', countryLabel: 'Việt Nam', flag: '🇻🇳', currency: 'VND', currencySymbol: '₫', ppp: 0.35, inflation: 0.040, healthCostBase: 90 },
+    'th_bangkok': { countryCode: 'TH', label: 'Bangkok', countryLabel: 'Thái Lan', flag: '🇹🇭', currency: 'THB', currencySymbol: '฿', ppp: 0.45, inflation: 0.025, healthCostBase: 110 },
+    'th_chiangmai': { countryCode: 'TH', label: 'Chiang Mai / Tỉnh lẻ', countryLabel: 'Thái Lan', flag: '🇹🇭', currency: 'THB', currencySymbol: '฿', ppp: 0.35, inflation: 0.025, healthCostBase: 95 },
+    'my_kl': { countryCode: 'MY', label: 'Kuala Lumpur / Penang', countryLabel: 'Malaysia', flag: '🇲🇾', currency: 'MYR', currencySymbol: 'RM', ppp: 0.48, inflation: 0.025, healthCostBase: 100 },
+    'sg_singapore': { countryCode: 'SG', label: 'Singapore', countryLabel: 'Singapore', flag: '🇸🇬', currency: 'SGD', currencySymbol: 'S$', ppp: 1.20, inflation: 0.022, healthCostBase: 250 },
+    'cn_shanghai': { countryCode: 'CN', label: 'Thượng Hải / Bắc Kinh', countryLabel: 'Trung Quốc', flag: '🇨🇳', currency: 'CNY', currencySymbol: '¥', ppp: 0.65, inflation: 0.025, healthCostBase: 120 },
+    'cn_tier2': { countryCode: 'CN', label: 'Thành Đô / Tỉnh lẻ', countryLabel: 'Trung Quốc', flag: '🇨🇳', currency: 'CNY', currencySymbol: '¥', ppp: 0.45, inflation: 0.025, healthCostBase: 100 },
+    'jp_tokyo': { countryCode: 'JP', label: 'Tokyo / Nhật Bản', countryLabel: 'Nhật Bản', flag: '🇯🇵', currency: 'JPY', currencySymbol: '¥', ppp: 0.85, inflation: 0.015, healthCostBase: 160 },
+    'kr_seoul': { countryCode: 'KR', label: 'Seoul / Hàn Quốc', countryLabel: 'Hàn Quốc', flag: '🇰🇷', currency: 'KRW', currencySymbol: '₩', ppp: 0.82, inflation: 0.022, healthCostBase: 150 },
+    'tw_taipei': { countryCode: 'TW', label: 'Đài Bắc / Đài Loan', countryLabel: 'Đài Loan', flag: '🇹🇼', currency: 'TWD', currencySymbol: 'NT$', ppp: 0.70, inflation: 0.020, healthCostBase: 130 },
 
     // 5. Tùy chỉnh cá nhân
-    'custom': { countryCode: 'CUSTOM', label: 'Tùy chỉnh cá nhân', countryLabel: 'Khác', flag: '🌐', ppp: 1.00, inflation: 0.025, healthCostBase: 150 }
+    'custom': { countryCode: 'CUSTOM', label: 'Tùy chỉnh cá nhân', countryLabel: 'Khác', flag: '🌐', currency: 'EUR', currencySymbol: '€', ppp: 1.00, inflation: 0.025, healthCostBase: 150 }
   };
 
   // Chính sách Phúc Lợi Con Cái & Ưu Đãi Thuế Gia Đình Đa Quốc Gia
@@ -347,13 +347,13 @@ window.TaxOptimizer = (function() {
     };
   }
 
-  // Chính sách Thuế & Dòng Tiền Cho Thuê BĐS Đa Quốc Gia
+  // Chính sách Thuế & Dòng Tiền Cho Thuê Bất Động Sản Đa Quốc Gia
   const COUNTRY_REAL_ESTATE_POLICIES = {
     'VN': {
       vi: {
-        toggleText: 'Xem cơ chế thuế BĐS & dòng tiền cho thuê VN',
-        tagText: 'Cơ Chế Thuế Cho Thuê BĐS Việt Nam (Thuế Khoán 10%)',
-        rule1: '• Ngưỡng miễn thuế: Doanh thu cho thuê BĐS cá nhân dưới 100 triệu VNĐ/năm được miễn hoàn toàn thuế GTGT và thuế TNCN.',
+        toggleText: 'Xem cơ chế thuế bất động sản & dòng tiền cho thuê VN',
+        tagText: 'Cơ Chế Thuế Cho Thuê Bất Động Sản Việt Nam (Thuế Khoán 10%)',
+        rule1: '• Ngưỡng miễn thuế: Doanh thu cho thuê bất động sản cá nhân dưới 100 triệu VNĐ/năm được miễn hoàn toàn thuế GTGT và thuế TNCN.',
         rule2: '• Thuế suất cho thuê: Doanh thu trên 100 triệu VNĐ/năm chịu thuế khoán 10% (5% thuế GTGT + 5% thuế TNCN) trên tổng doanh thu.',
         rule3: '• Dòng tiền ròng tự động tích hợp vào thu nhập FIRE, các khoản trả góp ngân hàng tự động đồng bộ vào cột Chi Tiêu & Nợ Vay.'
       },
@@ -397,8 +397,8 @@ window.TaxOptimizer = (function() {
     },
     'US': {
       vi: {
-        toggleText: 'Xem cơ chế thuế BĐS & khấu hao Mỹ (Schedule E)',
-        tagText: 'Cơ Chế Thuế Cho Thuê BĐS Mỹ (Khấu Hao 27.5 Năm)',
+        toggleText: 'Xem cơ chế thuế bất động sản & khấu hao Mỹ (Schedule E)',
+        tagText: 'Cơ Chế Thuế Cho Thuê Bất Động Sản Mỹ (Khấu Hao 27.5 Năm)',
         rule1: '• Khấu hao tài sản (Depreciation): Khấu hao công trình nhà ở 27.5 năm giúp tạo khoản chi phí giảm trừ thuế đáng kể.',
         rule2: '• Khấu trừ chi phí: Lãi vay mua nhà, thuế tài sản địa phương (Property Tax), bảo hiểm và bảo trì được trừ vào doanh thu.',
         rule3: '• Dòng tiền thuê ròng tự động tích hợp vào thu nhập FIRE, các khoản vay thế chấp đồng bộ vào cột Chi Tiêu & Nợ Vay.'
@@ -420,8 +420,8 @@ window.TaxOptimizer = (function() {
     },
     'DE': {
       vi: {
-        toggleText: 'Xem cơ chế thuế BĐS & khấu hao Đức (AfA)',
-        tagText: 'Cơ Chế Thuế Cho Thuê BĐS Đức (Khấu Hao AfA 2-3%)',
+        toggleText: 'Xem cơ chế thuế bất động sản & khấu hao Đức (AfA)',
+        tagText: 'Cơ Chế Thuế Cho Thuê Bất Động Sản Đức (Khấu Hao AfA 2-3%)',
         rule1: '• Khấu hao AfA (Absetzung für Abnutzung): Khấu hao 2% - 3%/năm giá trị công trình + trừ chi phí lãi vay và chi phí vận hành.',
         rule2: '• Thu nhập cho thuê ròng sau khấu trừ được cộng vào thu nhập chịu thuế lũy tiến theo luật Đức.',
         rule3: '• Dòng tiền thuê tự động tích hợp vào thu nhập FIRE, các khoản nợ vay tự động đồng bộ vào cột Chi Tiêu & Nợ Vay.'
@@ -443,8 +443,8 @@ window.TaxOptimizer = (function() {
     },
     'OTHER': {
       vi: {
-        toggleText: 'Xem cơ chế thuế BĐS & dòng tiền cho thuê sở tại',
-        tagText: 'Cơ Chế Thuế Cho Thuê BĐS & Dòng Tiền Thụ Động',
+        toggleText: 'Xem cơ chế thuế bất động sản & dòng tiền cho thuê sở tại',
+        tagText: 'Cơ Chế Thuế Cho Thuê Bất Động Sản & Dòng Tiền Thụ Động',
         rule1: '• Doanh thu cho thuê định kỳ trừ các khoản khấu trừ hợp lệ (khấu hao, lãi vay, bảo hiểm, quản lý) theo luật nước sở tại.',
         rule2: '• Thu nhập ròng cho thuê là nguồn thu nhập thụ động bền vững bảo vệ danh mục đầu tư trước lạm phát.',
         rule3: '• Dòng tiền thuê tự động tích hợp vào thu nhập FIRE, các khoản nợ vay tự động đồng bộ vào cột Chi Tiêu & Nợ Vay.'
@@ -467,8 +467,8 @@ window.TaxOptimizer = (function() {
   };
 
   /**
-   * Tra cứu cơ chế thuế BĐS cho thuê đa quốc gia
-   * @param {string} countryCode - Mã quốc gia 2 ký tự (FR, VN, US, DE, ...)
+   * Tra cứu cơ chế thuế Bất động sản cho thuê đa quốc gia
+   * @param {string} countryCode - Mã quốc gia 2 ký tự (FR, VN, US, DE, BE, ...)
    * @param {string} lang - Ngôn ngữ ('vi', 'en', 'fr')
    * @returns {Object} Chính sách gồm toggleText, tagText, rule1, rule2, rule3
    */
@@ -476,19 +476,53 @@ window.TaxOptimizer = (function() {
     const cCode = String(countryCode || '').trim().toUpperCase();
     const l = (lang === 'en' || lang === 'fr') ? lang : 'vi';
 
-    let targetKey = 'OTHER';
+    // 1. Nếu đã có dữ liệu chuyên sâu (FR, VN, US, DE): dùng trực tiếp
     if (COUNTRY_REAL_ESTATE_POLICIES[cCode]) {
-      targetKey = cCode;
-    } else if (['BE', 'CH', 'UK', 'CA', 'AU'].includes(cCode)) {
-      targetKey = 'US';
-    } else if (['PT', 'ES', 'IT'].includes(cCode)) {
-      targetKey = 'FR';
-    } else if (['TH', 'MY', 'SG', 'CN', 'JP', 'KR', 'TW'].includes(cCode)) {
-      targetKey = 'VN';
+      const group = COUNTRY_REAL_ESTATE_POLICIES[cCode];
+      return group[l] || group['vi'];
     }
 
-    const group = COUNTRY_REAL_ESTATE_POLICIES[targetKey] || COUNTRY_REAL_ESTATE_POLICIES['OTHER'];
-    return group[l] || group['vi'];
+    // 2. Tìm tên quốc gia từ COUNTRY_PPP_PROFILES
+    let cName = cCode;
+    const countryNamesVi = {
+      'BE': 'Bỉ', 'CH': 'Thụy Sĩ', 'UK': 'Anh', 'CA': 'Canada', 'AU': 'Úc',
+      'PT': 'Bồ Đào Nha', 'ES': 'Tây Ban Nha', 'IT': 'Ý', 'GR': 'Hy Lạp',
+      'SG': 'Singapore', 'TH': 'Thái Lan', 'MY': 'Malaysia', 'CN': 'Trung Quốc',
+      'JP': 'Nhật Bản', 'KR': 'Hàn Quốc', 'TW': 'Đài Loan'
+    };
+    if (countryNamesVi[cCode]) {
+      cName = countryNamesVi[cCode];
+    } else if (typeof COUNTRY_PPP_PROFILES === 'object') {
+      const match = Object.values(COUNTRY_PPP_PROFILES).find(p => p.countryCode === cCode);
+      if (match && match.countryLabel) cName = match.countryLabel;
+    }
+
+    // 3. Nếu chưa có dữ liệu biểu thuế/khấu hao chuyên sâu: thông báo minh bạch, không map sai lệch sang Mỹ
+    if (l === 'en') {
+      return {
+        toggleText: `No detailed depreciation data for ${cName}`,
+        tagText: `Rental Property Tax Mechanism (${cName})`,
+        rule1: `• pyRetrait currently does not have a dedicated tax & depreciation model for ${cName}.`,
+        rule2: `• Net cashflow is calculated as gross rental income minus actual operating costs, management fees, and mortgage interest.`,
+        rule3: `• Rental cashflows feed directly into FIRE passive income, mortgages automatically sync into Expenses & Debt.`
+      };
+    } else if (l === 'fr') {
+      return {
+        toggleText: `Pas de données détaillées d'amortissement (${cName})`,
+        tagText: `Mécanisme Fiscal Immobilier Locatif (${cName})`,
+        rule1: `• pyRetrait n'intègre pas encore de modèle fiscal et d'amortissement spécifique pour ${cName}.`,
+        rule2: `• Le cashflow net est calculé à partir des loyers bruts diminués des charges d'exploitation, frais de gestion et intérêts d'emprunt.`,
+        rule3: `• Les flux locatifs alimentent la rente FIRE, les emprunts sont synchronisés dans Dépenses & Dettes.`
+      };
+    }
+
+    return {
+      toggleText: `Chưa có dữ liệu khấu hao chi tiết (${cName})`,
+      tagText: `Cơ Chế Thuế Cho Thuê Bất Động Sản (${cName})`,
+      rule1: `• pyRetrait hiện chưa có mô hình tính thuế và khấu hao chi tiết theo luật riêng của ${cName}.`,
+      rule2: `• Dòng tiền ròng được tính bằng doanh thu cho thuê trừ chi phí vận hành, quản lý và lãi vay thực tế.`,
+      rule3: `• Dòng tiền cho thuê tự động tích hợp vào thu nhập nghỉ hưu, các khoản nợ vay tự động đồng bộ vào cột Chi Tiêu & Nợ Vay.`
+    };
   }
 
   // International / Vietnam progressive or flat rates

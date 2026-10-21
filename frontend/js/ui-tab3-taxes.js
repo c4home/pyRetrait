@@ -245,6 +245,7 @@
       chkBhxhVn.addEventListener("change", () => {
         const plan = getActivePlan();
         plan.bhxhVnEnabled = chkBhxhVn.checked;
+        plan.enableBhxhVn = chkBhxhVn.checked;
         syncBhxhVnStreams(plan);
         savePlansToStorage();
         updateBhxhVnUI(plan);
@@ -343,6 +344,7 @@
             confirmText: "Xóa nguồn thu",
             onConfirm: () => {
               plan.bhxhVnEnabled = false;
+              plan.enableBhxhVn = false;
               const chk = document.getElementById("chk-enable-bhxh-vn");
               if (chk) chk.checked = false;
               syncBhxhVnStreams(plan);
@@ -356,6 +358,7 @@
           });
         } else {
           plan.bhxhVnEnabled = true;
+          plan.enableBhxhVn = true;
           const chk = document.getElementById("chk-enable-bhxh-vn");
           if (chk) chk.checked = true;
           syncBhxhVnStreams(plan);
@@ -2396,54 +2399,82 @@
     if (!Array.isArray(p.incomes)) p.incomes = [];
 
     // Dọn các luồng thu nhập BĐS cũ để tránh trùng lặp
-    p.incomes = (p.incomes || []).filter(inc => !/lmnp|doanh thu bđs|doanh thu bds/i.test(inc.name || ''));
+    p.incomes = (p.incomes || []).filter(inc => !/lmnp|doanh thu bđs|doanh thu bds|doanh thu bất động sản|dòng tiền bđs|dòng tiền bds|dòng tiền bất động sản/i.test(inc.name || ''));
+
+    // Quản lý trọn gói BĐS: Tự động dọn sạch các khoản nợ vay & chi phí BĐS khỏi danh mục Chi tiêu chung
+    if (Array.isArray(p.expenses)) {
+      p.expenses = p.expenses.filter(e => {
+        if (!e || typeof e !== 'object') return false;
+        const name = e.name || '';
+        if (e.source === 'patrimoine') return false;
+        if (name.startsWith('Chi phí BĐS & Crédit:')) return false;
+        if (name.startsWith('Trả nợ Crédit: BĐS')) return false;
+        if (name.startsWith('Crédit BĐS:')) return false;
+        if (name.includes('BĐS Cho thuê LMNP')) return false;
+        return true;
+      });
+    }
 
     const apts = Array.isArray(data.apartments) ? data.apartments : [];
     if (apts.length > 0 && p.lmnpEnabled !== false) {
       const curYear = new Date().getFullYear();
       const bYear = Number(p.birthYear) || (curYear - curAge);
 
-      if (apts.length === 1) {
-        // Chỉ 1 căn: Tạo luồng Doanh thu BDS với đúng năm bắt đầu thu tiền và tuổi kết thúc của căn đó
-        const a = apts[0];
+      apts.forEach((a, idx) => {
         const effRent = Number(a.effective_monthly_rent) || (Number(a.monthly_rent) * (1 - (Number(a.vacancy_pct !== undefined ? a.vacancy_pct : 5.0) / 100.0))) || 0;
-        const annualRent = effRent * 12;
+        const loanPmt = Number(a.monthly_loan_payment) || 0;
+        const monthlyCharges = Number(a.monthly_charges) || Number(a.monthly_expenses) || 0;
+        const dur = Number(a.loan_duration) || 20;
+
         const startYr = Number(a.start_year) || curYear;
         const rentStartYr = Number(a.rent_start_year) || Number(a.raw?.rent_start_year) || startYr;
         const aptStartAge = Math.max(18, rentStartYr - bYear);
         const aptEndAge = Number(a.end_age) || Number(a.raw?.end_age) || 85;
+        const payoffYr = startYr + dur;
+        const payoffAge = payoffYr - bYear;
+        const aptName = a.name || (apts.length === 1 ? 'Bất động sản' : `BĐS ${idx + 1}`);
 
-        p.incomes.push({
-          name: 'Doanh thu BDS',
-          amount: round(annualRent),
-          startAge: aptStartAge,
-          endAge: aptEndAge,
-          growth: 1.5,
-          taxable: false,
-          isRealEstate: true
-        });
-      } else {
-        // Nhiều căn: Mỗi căn hộ có Giai đoạn thu tiền BĐS hoàn toàn riêng biệt!
-        apts.forEach((a, idx) => {
-          const effRent = Number(a.effective_monthly_rent) || (Number(a.monthly_rent) * (1 - (Number(a.vacancy_pct !== undefined ? a.vacancy_pct : 5.0) / 100.0))) || 0;
-          const annualRent = effRent * 12;
-          const startYr = Number(a.start_year) || curYear;
-          const rentStartYr = Number(a.rent_start_year) || Number(a.raw?.rent_start_year) || startYr;
-          const aptStartAge = Math.max(18, rentStartYr - bYear);
-          const aptEndAge = Number(a.end_age) || Number(a.raw?.end_age) || 85;
-          const aptName = a.name || `BĐS ${idx + 1}`;
+        const netDuringLoanMonthly = a.monthly_cashflow !== undefined ? Number(a.monthly_cashflow) : (effRent - loanPmt - monthlyCharges);
+        const netPostLoanMonthly = a.monthly_post_loan_cashflow !== undefined ? Number(a.monthly_post_loan_cashflow) : (effRent - monthlyCharges);
 
+        if (loanPmt > 0 && dur > 0 && payoffAge > aptStartAge) {
+          // Giai đoạn 1: Đang trả nợ ngân hàng (dòng tiền ròng sau khi trừ nợ và chi phí vận hành)
+          const duringEndAge = Math.min(aptEndAge, payoffAge);
           p.incomes.push({
-            name: `Doanh thu BDS: ${aptName}`,
-            amount: round(annualRent),
+            name: apts.length === 1 ? 'Dòng tiền BĐS (Đang trả nợ)' : `Dòng tiền BĐS: ${aptName} (Đang trả nợ)`,
+            amount: round(netDuringLoanMonthly * 12),
+            startAge: aptStartAge,
+            endAge: duringEndAge,
+            growth: 1.5,
+            taxable: false,
+            isRealEstate: true
+          });
+
+          // Giai đoạn 2: Sau khi trả hết nợ (dòng tiền ròng tăng vọt do không còn nợ vay)
+          if (aptEndAge > payoffAge) {
+            p.incomes.push({
+              name: apts.length === 1 ? 'Dòng tiền BĐS (Sau khi hết nợ)' : `Dòng tiền BĐS: ${aptName} (Hết nợ)`,
+              amount: round(netPostLoanMonthly * 12),
+              startAge: payoffAge,
+              endAge: aptEndAge,
+              growth: 1.5,
+              taxable: false,
+              isRealEstate: true
+            });
+          }
+        } else {
+          // Căn hộ mua đứt hoặc đã hết nợ: Dòng tiền ròng trọn vẹn suốt giai đoạn
+          p.incomes.push({
+            name: apts.length === 1 ? 'Dòng tiền Bất động sản' : `Dòng tiền BĐS: ${aptName}`,
+            amount: round(netPostLoanMonthly * 12),
             startAge: aptStartAge,
             endAge: aptEndAge,
             growth: 1.5,
             taxable: false,
             isRealEstate: true
           });
-        });
-      }
+        }
+      });
     }
 
     // Turo đã được quản lý trực tiếp như một nguồn thu nhập thông thường (không cần đồng bộ riêng)
@@ -2582,14 +2613,15 @@
       }
 
       // Amounts calculation (tính toán cho cả trường hợp 1 căn hay nhiều căn)
-      const lmnpStreams = (p.incomes || []).filter(inc => /lmnp|doanh thu bđs|doanh thu bds/i.test(inc.name || ''));
+      const lmnpStreams = (p.incomes || []).filter(inc => /lmnp|doanh thu bđs|doanh thu bds|doanh thu bất động sản|dòng tiền bđs|dòng tiền bds|dòng tiền bất động sản/i.test(inc.name || ''));
       const totalEffectiveRentEur = apts.reduce((acc, a) => {
         const eff = Number(a.effective_monthly_rent) || (Number(a.monthly_rent) * (1 - (Number(a.vacancy_pct !== undefined ? a.vacancy_pct : 5.0) / 100.0))) || 0;
         return acc + eff;
       }, 0);
-      const totalAnnualRentEur = totalEffectiveRentEur * 12;
-      const annualRent = apts.length === 0 ? 0 : (lmnpStreams.length > 0 ? lmnpStreams.reduce((acc, s) => acc + (Number(s.amount) || 0), 0) : Math.round(totalAnnualRentEur * f));
-      const monthlyRent = Math.round(annualRent / 12);
+      const totalNetMonthlyEur = apts.reduce((acc, a) => acc + (Number(a.monthly_cashflow) || 0), 0);
+      const totalNetAnnualEur = totalNetMonthlyEur * 12;
+      const netMonthly = Math.round(totalNetMonthlyEur * f);
+      const netAnnual = Math.round(totalNetAnnualEur * f);
 
       const lblMonthly = document.getElementById("lbl-lmnp-card-monthly");
       const lblAnnual = document.getElementById("lbl-lmnp-card-annual");
@@ -2598,13 +2630,23 @@
 
       if (lblMonthly) {
         if (isEnabled && apts.length > 0) {
-          lblMonthly.innerHTML = `${fmt(monthlyRent)}<small>/tháng</small>`;
+          const sign = netMonthly >= 0 ? "+" : "";
+          lblMonthly.innerHTML = `${sign}${fmt(netMonthly)}<small>/tháng (ròng)</small>`;
+          lblMonthly.style.color = netMonthly >= 0 ? "#10b981" : "#f59e0b";
         } else {
           lblMonthly.innerHTML = `<span style="color: var(--text-faint);">0<small>/tháng</small></span>`;
+          lblMonthly.style.color = "#10b981";
         }
       }
       if (lblAnnual) {
-        lblAnnual.innerText = isEnabled ? (apts.length > 0 ? `≈ ${fmt(annualRent)}/năm` : "Chưa có căn hộ cho thuê nào") : "Đã tạm tắt nguồn thu BĐS";
+        if (!isEnabled) {
+          lblAnnual.innerText = "Đã tạm tắt nguồn thu Bất động sản";
+        } else if (apts.length === 0) {
+          lblAnnual.innerText = "Chưa có căn hộ cho thuê nào";
+        } else {
+          const sign = netAnnual >= 0 ? "+" : "";
+          lblAnnual.innerText = `≈ ${sign}${fmt(netAnnual)}/năm (sau nợ & phí)`;
+        }
       }
 
       // Tính dải tuổi bao quát (nếu nhiều căn thì lấy min startAge và max endAge)
@@ -2625,7 +2667,6 @@
     // Mini KPIs inside drawer
     const totalPropValEur = apts.reduce((acc, a) => acc + (Number(a.property_price) || 0), 0);
     const totalLoanValEur = apts.reduce((acc, a) => acc + (Number(a.loan_amount) || 0), 0);
-    const totalNetMonthlyEur = apts.reduce((acc, a) => acc + (Number(a.monthly_cashflow) || 0), 0);
 
     const lblPropVal = document.getElementById("lbl-lmnp-total-prop-val");
     const lblLoanVal = document.getElementById("lbl-lmnp-total-loan-val");
@@ -2644,7 +2685,7 @@
     const listContainer = document.getElementById("lmnp-apartments-container");
     if (listContainer) {
       if (apts.length === 0) {
-        listContainer.innerHTML = `<div style="font-size:0.76rem; color:var(--text-faint); padding:0.6rem; text-align:center; background:var(--bg-card); border:1px dashed var(--border-subtle); border-radius:6px;">Chưa có căn hộ nào được lưu. Bấm <strong>"+ Thêm Căn Hộ Cho Thuê Mới"</strong> để bắt đầu quản lý BĐS!</div>`;
+        listContainer.innerHTML = `<div style="font-size:0.76rem; color:var(--text-faint); padding:0.6rem; text-align:center; background:var(--bg-card); border:1px dashed var(--border-subtle); border-radius:6px;">Chưa có căn hộ nào được lưu. Bấm <strong>"+ Thêm Căn Hộ Cho Thuê Mới"</strong> để bắt đầu quản lý bất động sản!</div>`;
       } else {
         listContainer.innerHTML = apts.map(apt => {
           const effRentEur = Number(apt.effective_monthly_rent) || (Number(apt.monthly_rent) * (1 - (Number(apt.vacancy_pct !== undefined ? apt.vacancy_pct : 5.0) / 100.0))) || 0;
@@ -2854,87 +2895,27 @@
   function syncMortgageToExpenseStreams(plan, showToastMsg = true) {
     if (!plan) plan = getActivePlan();
     if (!Array.isArray(plan.expenses)) plan.expenses = [];
-    const patLoans = buildPatrimoineLoans(plan) || [];
 
-    // Danh sách tên chuẩn và tên gốc của các căn hộ/khoản vay BĐS còn hiệu lực
-    const validCleanNames = new Set(patLoans.map(loan => `Chi phí BĐS & Crédit: ${loan.name || 'BĐS'}`));
-    const validApartmentNames = new Set(patLoans.map(loan => (loan.name || '').trim()).filter(Boolean));
-
-    // Tự động xóa các khoản Chi phí BĐS & Crédit không còn tồn tại trong Quản Lý BĐS
+    // Quản lý trọn gói BĐS: Tự động dọn sạch các khoản Chi phí & Nợ vay BĐS khỏi danh mục Chi tiêu chung
+    const prevCount = plan.expenses.length;
     plan.expenses = plan.expenses.filter(e => {
+      if (!e || typeof e !== 'object') return false;
       const expName = e.name || '';
-      const isPatrimoineExpense = (e.source === 'patrimoine') || expName.startsWith('Chi phí BĐS & Crédit:');
-
-      // Nếu không phải khoản chi BĐS, giữ nguyên tuyệt đối
-      if (!isPatrimoineExpense) return true;
-
-      // Nếu không còn khoản vay BĐS nào (đã xóa hết căn hộ), xóa sạch
-      if (patLoans.length === 0) return false;
-
-      // Nếu còn BĐS, kiểm tra xem khoản chi này có thuộc căn hộ còn tồn tại không
-      if (validCleanNames.has(expName)) return true;
-      for (const aptName of validApartmentNames) {
-        if (expName.includes(aptName)) return true;
-      }
-      return false; // Căn hộ này đã bị xóa => tự động xóa khoản chi tương ứng
-    });
-
-    if (patLoans.length === 0) {
-      savePlansToStorage();
-      renderExpenseStreamsList();
-      updateCashflowBalanceUI(plan);
-      updateAll();
-      if (showToastMsg) {
-        alert("Đã tự động dọn dẹp các khoản Chi phí BĐS & Crédit do không còn căn hộ nào trong Quản Lý BĐS.");
-      }
-      return;
-    }
-
-    const curAge = Number(plan.currentAge) || 29;
-    const sched = window.RetirementEngine.calculateMortgageSchedule({ source: 'patrimoine', loans: patLoans }, curAge, plan.lifeExpectancy || 85);
-
-    let addedCount = 0;
-    patLoans.forEach((loan, idx) => {
-      const part = sched?.parts ? sched.parts[idx] : null;
-      const row = part ? part.schedule[curAge] : null;
-      const monthlyPmt = (loan.monthlyPaymentEur && loan.monthlyPaymentEur > 0)
-        ? loan.monthlyPaymentEur
-        : (row && row.active ? row.monthlyPayment : Math.round(loan.loanAmount * 0.055 / 12));
-      const endAge = (Number(loan.startAge) || curAge) + (Number(loan.loanTermYears) || 20);
-      const cleanName = `Chi phí BĐS & Crédit: ${loan.name || 'BĐS'}`;
-
-      const existingIdx = plan.expenses.findIndex(e => e.name === cleanName || (loan.name && e.name.includes(loan.name)));
-      const loanOnly = loan.monthlyLoanPaymentEur || loan.monthlyPaymentEur || 0;
-      const chargesOnly = loan.monthlyChargesEur || 0;
-      const noteText = chargesOnly > 0 ? `Crédit ${loanOnly} € + Phí ${chargesOnly} €` : undefined;
-
-      const expItem = {
-        name: cleanName,
-        amount: monthlyPmt * 12,
-        startAge: Number(loan.startAge) || curAge,
-        endAge: endAge,
-        growth: 0.0,
-        isDebt: true,
-        source: 'patrimoine',
-        note: noteText,
-        enabled: true
-      };
-
-      if (existingIdx >= 0) {
-        plan.expenses[existingIdx] = expItem;
-      } else {
-        plan.expenses.push(expItem);
-        addedCount++;
-      }
+      const isPatrimoineExpense = (e.source === 'patrimoine') ||
+        expName.startsWith('Chi phí BĐS & Crédit:') ||
+        expName.startsWith('Trả nợ Crédit: BĐS') ||
+        expName.startsWith('Crédit BĐS:') ||
+        expName.includes('BĐS Cho thuê LMNP');
+      return !isPatrimoineExpense;
     });
 
     savePlansToStorage();
-    renderExpenseStreamsList();
-    updateCashflowBalanceUI(plan);
+    if (typeof renderExpenseStreamsList === 'function') renderExpenseStreamsList();
+    if (typeof updateCashflowBalanceUI === 'function') updateCashflowBalanceUI(plan);
     updateAll();
 
     if (showToastMsg) {
-      alert(`Đã đồng bộ thành công ${patLoans.length} khoản nợ vay BĐS vào danh mục Các Luồng Chi Tiêu!`);
+      alert("Dòng tiền, nợ vay và chi phí BĐS đã được tự động quản lý trọn gói trong Thẻ Doanh thu Bất động sản! Các khoản chi phí trùng lặp trong danh mục Chi tiêu đã được dọn sạch.");
     }
   }
 

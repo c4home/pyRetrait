@@ -302,7 +302,7 @@
 
     if (!apts || apts.length === 0) {
       container.innerHTML = `<div class="card" style="text-align: center; padding: 2rem; color: var(--text-muted); grid-column: 1 / -1;">
-        Chưa có căn hộ nào được lưu. Bấm <strong>"+ Thêm Căn hộ Mới"</strong> để bắt đầu quản lý BĐS!
+        Chưa có căn hộ nào được lưu. Bấm <strong>"+ Thêm Căn hộ Mới"</strong> để bắt đầu quản lý bất động sản!
       </div>`;
       return;
     }
@@ -1036,7 +1036,7 @@
       `;
       document.body.appendChild(toast);
     }
-    toast.innerHTML = `Đã tự động cập nhật dòng tiền BĐS vào Kế hoạch Hưu trí FIRE!`;
+    toast.innerHTML = `Đã tự động cập nhật dòng tiền Bất động sản vào Kế hoạch Hưu trí FIRE!`;
     toast.style.opacity = "1";
     toast.style.transform = "translateY(0)";
     setTimeout(() => {
@@ -1203,7 +1203,7 @@
     const originalName = origNameInp ? origNameInp.value.trim() : "";
 
     if (!name) {
-      alert("Vui lòng nhập tên BĐS!");
+      alert("Vui lòng nhập tên Bất động sản!");
       return;
     }
 
@@ -1344,7 +1344,7 @@
     if (typeof window.showConfirmDialog === "function") {
       window.showConfirmDialog({
         title: "Xác nhận xóa căn hộ",
-        message: `Bạn có chắc chắn muốn xóa căn hộ <strong>"${name}"</strong> khỏi danh mục BĐS LMNP?`,
+        message: `Bạn có chắc chắn muốn xóa căn hộ <strong>"${name}"</strong> khỏi danh mục Bất động sản?`,
         confirmText: "Xóa Căn Hộ",
         confirmColor: "danger",
         icon: "🗑️",

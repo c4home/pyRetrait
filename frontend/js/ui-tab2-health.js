@@ -990,10 +990,15 @@
     const chkEnableLegacy = document.getElementById("chk-enable-estate-legacy");
     if (chkEnableLegacy) {
       chkEnableLegacy.addEventListener("change", (e) => {
+        const plan = getActivePlan();
+        plan.enableEstateLegacy = chkEnableLegacy.checked;
+        savePlansToStorage();
         const card = document.getElementById("card-estate-legacy-combined");
         if (card) {
-          card.style.opacity = e.target.checked ? "1" : "0.65";
+          card.style.opacity = e.target.checked ? "1" : "0.55";
         }
+        updateEstateMilestones(plan);
+        updateAll();
       });
     }
 
