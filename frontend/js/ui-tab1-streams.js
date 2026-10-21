@@ -315,17 +315,35 @@
         const plan = getActivePlan();
         const proj = window.RetirementEngine.runProjection(plan);
         const optAge = proj.optimalFireAge;
+        const inp = document.getElementById("inp-retire-age");
         if (optAge) {
           plan.retirementAge = optAge;
           syncSalaryStreamsWithRetireAge(plan);
-          const inp = document.getElementById("inp-retire-age");
-          if (inp) inp.value = optAge;
+          if (inp) {
+            inp.value = optAge;
+            inp.classList.add("input-highlight-pulse");
+            inp.style.transition = "box-shadow 0.3s ease, border-color 0.3s ease";
+            inp.style.borderColor = "#10b981";
+            inp.style.boxShadow = "0 0 0 3px rgba(16, 185, 129, 0.25)";
+            setTimeout(() => {
+              inp.style.borderColor = "";
+              inp.style.boxShadow = "";
+            }, 1200);
+          }
           renderIncomeStreamsList();
           savePlansToStorage();
           updateAll();
           if (window.GeminiAdvisor) {
             window.GeminiAdvisor.updateChartBox("chart-projections", "Kế hoạch Tài chính & Dòng tiền Hưu trí", {}, false);
           }
+        } else if (inp) {
+          inp.style.transition = "box-shadow 0.3s ease, border-color 0.3s ease";
+          inp.style.borderColor = "#f59e0b";
+          inp.style.boxShadow = "0 0 0 3px rgba(245, 158, 11, 0.25)";
+          setTimeout(() => {
+            inp.style.borderColor = "";
+            inp.style.boxShadow = "";
+          }, 1200);
         }
       });
     }
@@ -1634,6 +1652,18 @@
   }
 
 
+  /**
+   * Nhận diện luồng thu nhập thuộc BĐS / LMNP (dùng chung cho nhiều hàm).
+   * @param {Object} s - luồng thu nhập
+   * @returns {boolean}
+   */
+  function isRealEstateStream(s) {
+    if (!s) return false;
+    return Boolean(s.isRealEstate) ||
+      Boolean(s.isLmnp) ||
+      (/lmnp|doanh thu bđs|doanh thu bds|doanh thu bất động sản|dòng tiền bđs|dòng tiền bds|dòng tiền bất động sản|bất động sản|bat dong san/i).test(s.name || '');
+  }
+
   function renderIncomeStreamsList() {
     ensureAssetAllocationCardPosition();
     const container = document.getElementById("income-streams-container");
@@ -1648,12 +1678,6 @@
     }
 
     renderIncomePeriodsSummary(p);
-
-    const isRealEstateStream = (s) => !s ? false : (
-      Boolean(s.isRealEstate) ||
-      Boolean(s.isLmnp) ||
-      (/lmnp|doanh thu bđs|doanh thu bds|doanh thu bất động sản|dòng tiền bđs|dòng tiền bds|dòng tiền bất động sản|bất động sản|bat dong san/i).test(s.name || '')
-    );
 
     const otherIncomes = p.incomes.filter(s => !s.isBhxhVn && !isRealEstateStream(s));
     if (otherIncomes.length === 0) {
@@ -1808,16 +1832,87 @@
   }
 
   function getActiveIncomeAtAge(plan, age) {
-    if (!plan || !Array.isArray(plan.incomes)) return 0;
+    if (!plan) return 0;
     let total = 0;
-    plan.incomes.forEach(s => {
-      if (s.enabled === false) return;
-      if (age >= s.startAge && age <= s.endAge) {
-        const streamGrowth = (Number(s.growth) || 4.0) / 100.0;
-        const years = age - s.startAge;
-        total += (Number(s.amount) || 0) * Math.pow(1.0 + streamGrowth, years);
+    if (Array.isArray(plan.incomes)) {
+      plan.incomes.forEach(s => {
+        if (s.enabled === false) return;
+        if (isRealEstateStream(s) && plan.lmnpEnabled === false) return;
+        if (age >= s.startAge && age <= s.endAge) {
+          const streamGrowth = (Number(s.growth) || 4.0) / 100.0;
+          const years = age - s.startAge;
+          const val = (Number(s.amount) || 0) * Math.pow(1.0 + streamGrowth, years);
+          if (val > 0) {
+            total += val;
+          }
+        }
+      });
+    }
+
+    // Các khoản chi tiêu âm (hoàn tiền, giảm trừ...) tự động chuyển sang Thu nhập
+    if (Array.isArray(plan.expenses)) {
+      plan.expenses.forEach(e => {
+        if (e.enabled === false) return;
+        if (age >= e.startAge && age <= e.endAge) {
+          const val = Number(e.amount) || 0;
+          if (val < 0) total += Math.abs(val);
+        }
+      });
+    }
+
+    // Trợ cấp gia đình (CAF / Kindergeld / Allocations) chuyển vào Thu nhập
+    if (plan.familyPlan && plan.familyPlan.enabled !== false && Number(plan.familyPlan.kidsCount) > 0) {
+      const kCount = Number(plan.familyPlan.kidsCount) || 0;
+      const curYear = new Date().getFullYear();
+      const parentBirth = Number(plan.birthYear) || (curYear - (plan.currentAge || 29));
+      const simYr = parentBirth + age;
+      const birthYears = [
+        Number(plan.familyPlan.kid1Birth) || 2022,
+        Number(plan.familyPlan.kid2Birth) || 2025,
+        Number(plan.familyPlan.kid3Birth) || 2027,
+        Number(plan.familyPlan.kid4Birth) || 2029
+      ];
+      let depCount = 0;
+      for (let k = 0; k < Math.min(kCount, 4); k++) {
+        const a = simYr - birthYears[k];
+        if (a >= 0 && a < 20) depCount++;
       }
-    });
+      let cafMonthly = 0;
+      if (plan.workCountry === 'FR') {
+        if (depCount === 2) cafMonthly = 148;
+        else if (depCount === 3) cafMonthly = 338;
+        else if (depCount >= 4) cafMonthly = 529;
+      } else if (plan.workCountry === 'DE') {
+        cafMonthly = depCount * 250;
+      } else if (plan.workCountry === 'BE') {
+        cafMonthly = depCount * 190;
+      }
+      total += (cafMonthly * 12);
+    }
+
+    // Lương hưu BHXH Việt Nam khi đạt tuổi hưởng
+    const isBhxhEnabled = (plan.enableBhxhVn !== false && plan.bhxhVnEnabled !== false);
+    if (isBhxhEnabled && plan.bhxhVnDetails && window.TaxOptimizer && window.TaxOptimizer.calculateVietnamBhxhPension) {
+      const b1 = plan.bhxhVnDetails.spouse1 || {};
+      const userGender = plan.gender || b1.gender || 'male';
+      const b1Claim = Number(b1.claimAge) || (userGender === 'female' ? 60 : 62);
+      const eurRate = Number(plan.exchangeRateEurVnd) || 27500;
+      const conv = (plan.currency === 'VND') ? 1 : eurRate;
+      if (age >= b1Claim) {
+        const res1 = window.TaxOptimizer.calculateVietnamBhxhPension(b1.monthlySalaryVnd || 0, b1.yearsContributed || 0, userGender, b1Claim);
+        total += (res1.annualPensionVnd / conv);
+      }
+      if (plan.maritalStatus === 'married') {
+        const b2 = plan.bhxhVnDetails.spouse2 || {};
+        const spouseGender = b2.gender || (userGender === 'female' ? 'male' : 'female');
+        const b2Claim = Number(b2.claimAge) || (spouseGender === 'female' ? 60 : 62);
+        if (age >= b2Claim) {
+          const res2 = window.TaxOptimizer.calculateVietnamBhxhPension(b2.monthlySalaryVnd || 0, b2.yearsContributed || 0, spouseGender, b2Claim);
+          total += (res2.annualPensionVnd / conv);
+        }
+      }
+    }
+
     return total;
   }
 
@@ -1828,7 +1923,7 @@
     if (!plan) return;
 
     // Quản lý trọn gói BĐS: Luôn dọn sạch các khoản chi phí nợ vay BĐS khỏi danh mục Chi tiêu
-    if (Array.isArray(plan.expenses) && plan.expenses.length > 0) {
+    if (Array.isArray(plan.expenses)) {
       plan.expenses = plan.expenses.filter(e => {
         if (!e || typeof e !== 'object') return false;
         const name = e.name || '';
@@ -1837,12 +1932,19 @@
         if (name.startsWith('Trả nợ Crédit: BĐS')) return false;
         if (name.startsWith('Crédit BĐS:')) return false;
         if (name.includes('BĐS Cho thuê LMNP')) return false;
+        if (name.includes('Chi tiêu sinh hoạt & Tiện ích')) return false;
         return true;
       });
       return;
     }
 
+    if (plan.expensesInitialized) {
+      plan.expenses = [];
+      return;
+    }
+
     plan.expenses = [];
+    plan.expensesInitialized = true;
     const curAge = Number(plan.currentAge) || 29;
     const cur = state.currency || plan.currency || 'EUR';
 
@@ -1857,37 +1959,73 @@
       isDebt: true,
       enabled: true
     });
-
-    // 2. Thêm chi tiêu sinh hoạt cơ bản
-    const defaultLiving = cur === 'EUR' ? 1200 : (cur === 'USD' ? 1350 : 25000000);
-    plan.expenses.unshift({
-      name: 'Chi tiêu sinh hoạt & Tiện ích',
-      amount: defaultLiving * 12,
-      startAge: curAge,
-      endAge: Number(plan.lifeExpectancy) || 85,
-      growth: 2.0,
-      isDebt: false,
-      enabled: true
-    });
   }
 
   function getActiveExpensesAtAge(plan, age) {
     if (!plan) return 0;
     ensureDefaultExpenseStreams(plan);
-    if (!Array.isArray(plan.expenses)) return Number(plan.annualExpenses) || 0;
     let total = 0;
-    plan.expenses.forEach(e => {
-      if (e.enabled === false) return;
-      const start = (e.startAge !== undefined && e.startAge !== null && !isNaN(Number(e.startAge))) ? Number(e.startAge) : (plan.currentAge || 29);
-      const end = (e.endAge !== undefined && e.endAge !== null && !isNaN(Number(e.endAge))) ? Number(e.endAge) : 85;
-      if (age >= start && age <= end) {
-        const growth = (Number(e.growth) || 0) / 100.0;
-        const years = age - start;
-        total += (Number(e.amount) || 0) * Math.pow(1.0 + growth, years);
-      }
-    });
+    if (Array.isArray(plan.expenses)) {
+      plan.expenses.forEach(e => {
+        if (e.enabled === false) return;
+        const start = (e.startAge !== undefined && e.startAge !== null && !isNaN(Number(e.startAge))) ? Number(e.startAge) : (plan.currentAge || 29);
+        const end = (e.endAge !== undefined && e.endAge !== null && !isNaN(Number(e.endAge))) ? Number(e.endAge) : 85;
+        if (age >= start && age <= end) {
+          const growth = (Number(e.growth) || 0) / 100.0;
+          const years = age - start;
+          const val = (Number(e.amount) || 0) * Math.pow(1.0 + growth, years);
+          if (val > 0) {
+            total += val;
+          }
+        }
+      });
+    } else {
+      total += Number(plan.annualExpenses) || 0;
+    }
 
-    // Child lifecycle expense at age
+    // Dòng tiền BĐS âm: đưa vào mục chi tiêu
+    if (Array.isArray(plan.incomes)) {
+      plan.incomes.forEach(s => {
+        if (s.enabled === false) return;
+        if (isRealEstateStream(s) && plan.lmnpEnabled === false) return;
+        if (age >= s.startAge && age <= s.endAge) {
+          const streamGrowth = (Number(s.growth) || 0) / 100.0;
+          const years = age - s.startAge;
+          const val = (Number(s.amount) || 0) * Math.pow(1.0 + streamGrowth, years);
+          if (val < 0) {
+            total += Math.abs(val);
+          }
+        }
+      });
+    }
+
+    // Đóng phí BHXH Việt Nam: đưa vào mục chi tiêu trong giai đoạn đóng
+    const isBhxhEnabled = (plan.enableBhxhVn !== false && plan.bhxhVnEnabled !== false);
+    if (isBhxhEnabled && plan.bhxhVnDetails) {
+      const b1 = plan.bhxhVnDetails.spouse1 || {};
+      const userGender = plan.gender || b1.gender || 'male';
+      const b1Claim = Number(b1.claimAge) || (userGender === 'female' ? 60 : 62);
+      const b1Years = Math.max(0, Number(b1.yearsContributed) || 20);
+      const curAge = Number(plan.currentAge) || 29;
+      const eurRate = Number(plan.exchangeRateEurVnd) || 27500;
+      const conv = (plan.currency === 'VND') ? 1 : eurRate;
+      if (age >= curAge && age < (curAge + b1Years) && age < b1Claim) {
+        const s1PayVnd = Math.round((Number(b1.monthlySalaryVnd) || 10000000) * 0.22);
+        total += ((s1PayVnd * 12) / conv);
+      }
+      if (plan.maritalStatus === 'married') {
+        const b2 = plan.bhxhVnDetails.spouse2 || {};
+        const spouseGender = b2.gender || (userGender === 'female' ? 'male' : 'female');
+        const b2Claim = Number(b2.claimAge) || (spouseGender === 'female' ? 60 : 62);
+        const b2Years = Math.max(0, Number(b2.yearsContributed) || 20);
+        if (age >= curAge && age < (curAge + b2Years) && age < b2Claim) {
+          const s2PayVnd = Math.round((Number(b2.monthlySalaryVnd) || 10000000) * 0.22);
+          total += ((s2PayVnd * 12) / conv);
+        }
+      }
+    }
+
+    // Child lifecycle expense at age (Chi phí nuôi con thực tế)
     if (plan.familyPlan && plan.familyPlan.enabled !== false && Number(plan.familyPlan.kidsCount) > 0) {
       const kCount = Number(plan.familyPlan.kidsCount) || 0;
       const curYear = new Date().getFullYear();
@@ -1903,18 +2041,12 @@
       const kidUniMonthly = Number(plan.familyPlan.kidUniMonthly) || 900;
 
       let childGross = 0;
-      let depCount = 0;
       for (let k = 0; k < Math.min(kCount, 4); k++) {
         const a = simYr - birthYears[k];
         if (a >= 0 && a < 18) childGross += kidCostMonthly * 12;
         else if (a >= 18 && a <= 23) childGross += kidUniMonthly * 12;
-        if (a >= 0 && a < 20) depCount++;
       }
-      let caf = 0;
-      if (depCount === 2) caf = 148 * 12;
-      else if (depCount === 3) caf = 338 * 12;
-      else if (depCount >= 4) caf = 529 * 12;
-      total += Math.max(0, childGross - caf);
+      total += childGross;
     }
 
     return total;
@@ -2470,9 +2602,9 @@
             <span>Phụ phí Y tế tuổi già (${householdSize} ng):</span>
             <strong>+ ${fmt(calc.seniorHealthAddon)}/th</strong>
           </div>
-          <div class="retire-callout-total" style="margin-top: 0.4rem;">
+          <div class="retire-callout-total clickable" style="margin-top: 0.4rem; cursor: pointer;" title="Nhấp để áp dụng số tiền này vào ngân sách hưu trí" data-apply-retire-budget="${calc.monthlyRetireTotal}">
             <span>Gợi ý ngân sách hưu:</span>
-            <strong class="text-success" style="font-size: 0.88rem;">${fmt(calc.monthlyRetireTotal)}/tháng</strong>
+            <strong class="text-success" style="font-size: 0.88rem; text-decoration: underline dotted;">${fmt(calc.monthlyRetireTotal)}/tháng ↵</strong>
           </div>
         `;
       } else {
@@ -2507,9 +2639,9 @@
             <span>Phụ phí Y tế tuổi già (${householdSize} ng):</span>
             <strong>+ ${fmt(calc.seniorHealthAddon)}/th</strong>
           </div>
-          <div class="retire-callout-total">
+          <div class="retire-callout-total clickable" style="cursor: pointer;" title="Nhấp để áp dụng số tiền này vào ngân sách hưu trí" data-apply-retire-budget="${calc.monthlyRetireTotal}">
             <span>Gợi ý ngân sách hưu:</span>
-            <strong class="text-success" style="font-size: 0.88rem;">${fmt(calc.monthlyRetireTotal)}/tháng</strong>
+            <strong class="text-success" style="font-size: 0.88rem; text-decoration: underline dotted;">${fmt(calc.monthlyRetireTotal)}/tháng ↵</strong>
           </div>
         `;
       }
@@ -2523,17 +2655,17 @@
 
         <!-- Cột Phải: Đối Chiếu 3 Mốc & Tỷ Lệ 7 Nhóm -->
         <div class="retire-callout-col retire-callout-col-divider">
-          <div class="retire-callout-step">
+          <div class="retire-callout-step clickable" style="cursor: pointer;" title="Nhấp để áp dụng mức Cơ bản vào ngân sách hưu" data-apply-retire-budget="${calc.referenceBenchmarks?.lean || 0}">
             <span>1. Cơ bản:</span>
-            <strong class="font-mono">~${fmt(calc.referenceBenchmarks?.lean || 0)}</strong>
+            <strong class="font-mono" style="text-decoration: underline dotted;">~${fmt(calc.referenceBenchmarks?.lean || 0)} ↵</strong>
           </div>
-          <div class="retire-callout-step" style="background: rgba(16, 185, 129, 0.08); padding: 0.15rem 0.35rem; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.25);">
+          <div class="retire-callout-step clickable" style="background: rgba(16, 185, 129, 0.08); padding: 0.15rem 0.35rem; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.25); cursor: pointer;" title="Nhấp để áp dụng mức Thoải mái vào ngân sách hưu" data-apply-retire-budget="${calc.referenceBenchmarks?.standard || 0}">
             <span style="font-weight: 600; color: #10b981;">2. Thoải mái:</span>
-            <strong class="font-mono text-success">~${fmt(calc.referenceBenchmarks?.standard || 0)}</strong>
+            <strong class="font-mono text-success" style="text-decoration: underline dotted;">~${fmt(calc.referenceBenchmarks?.standard || 0)} ↵</strong>
           </div>
-          <div class="retire-callout-step">
+          <div class="retire-callout-step clickable" style="cursor: pointer;" title="Nhấp để áp dụng mức Thịnh vượng vào ngân sách hưu" data-apply-retire-budget="${calc.referenceBenchmarks?.fat || 0}">
             <span>3. Thịnh vượng:</span>
-            <strong class="font-mono text-warning">~${fmt(calc.referenceBenchmarks?.fat || 0)}</strong>
+            <strong class="font-mono text-warning" style="text-decoration: underline dotted;">~${fmt(calc.referenceBenchmarks?.fat || 0)} ↵</strong>
           </div>
           <div style="font-size: 0.68rem; font-weight: 700; color: var(--text-muted); margin-top: 0.25rem; border-top: 1px dashed var(--border-subtle); padding-top: 0.2rem;">
             Tỷ lệ 7 nhóm chi tiêu gia đình:
@@ -2570,6 +2702,30 @@
           </div>
         </div>
       `;
+
+      // Gắn sự kiện click để áp dụng số tiền gợi ý ngay lập tức
+      derivedBox.querySelectorAll("[data-apply-retire-budget]").forEach(el => {
+        el.addEventListener("click", () => {
+          const val = Number(el.getAttribute("data-apply-retire-budget"));
+          if (!val || isNaN(val) || val <= 0) return;
+          const p = getActivePlan();
+          p.baseRetireMonthly = Math.round(val);
+          const inp = document.getElementById("inp-monthly-retire-expenses");
+          if (inp) {
+            inp.value = p.baseRetireMonthly;
+            inp.style.transition = "box-shadow 0.3s ease, border-color 0.3s ease";
+            inp.style.borderColor = "#10b981";
+            inp.style.boxShadow = "0 0 0 3px rgba(16, 185, 129, 0.25)";
+            setTimeout(() => {
+              inp.style.borderColor = "";
+              inp.style.boxShadow = "";
+            }, 1200);
+          }
+          updateRetirementLocationUI(p);
+          savePlansToStorage();
+          updateAll();
+        });
+      });
 
       // Cập nhật công thức đối chiếu PPP nằm ở dưới section 3 Giai đoạn
       const pppFormulaContent = document.getElementById("content-retire-ppp-formula");
@@ -2826,18 +2982,10 @@
     const allExpenses = [];
     plan.expenses.forEach(e => {
       if (e.enabled === false) return;
-      const isDebtStream = e.isDebt === true || (/crédit|credit|vay|nợ|loan|prêt|pret|ngân hàng/i).test(e.name || '');
-      if (isDebtStream) {
-        allExpenses.push(e);
-        return;
-      }
-      const sAge = Number(e.startAge) || curAge;
-      if (sAge >= retireAgeExp) return;
-      const eAge = Number(e.endAge) || maxAge;
-      allExpenses.push({ ...e, endAge: Math.min(eAge, retireAgeExp - 1) });
+      allExpenses.push(e);
     });
 
-    const retireBase = Number(plan.retirementExpenses) || 0;
+    const retireBase = (plan.enableRetirementExpense !== false) ? (Number(plan.retirementExpenses) || 0) : 0;
     const isSmile = plan.spendingPhases && plan.spendingPhases.enabled !== false;
     const gAge = Number(plan.spendingPhases?.gogoAge) || 60;
     const gFactor = Number(plan.spendingPhases?.gogoFactor) || 1.15;
@@ -3215,6 +3363,7 @@
               updateBhxhVnUI(plan);
             } else {
               plan.expenses.splice(idx, 1);
+              plan.expensesInitialized = true;
             }
             savePlansToStorage();
             renderExpenseStreamsList();

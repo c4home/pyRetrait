@@ -187,7 +187,7 @@ window.MonteCarloSimulator = (function() {
           const savingsThisYear = annualSavings * Math.pow(1.0 + inflation, y - 1);
           portfolio = (portfolio + savingsThisYear) * (1.0 + r);
         } else {
-          const grossSpend = effectiveRetireExpenses * cumInflation;
+          let grossSpend = effectiveRetireExpenses * cumInflation;
           let passiveIncomeThisYear = 0;
           if (age >= ssAge) {
             passiveIncomeThisYear += ssAnnual * cumInflation;
@@ -198,7 +198,13 @@ window.MonteCarloSimulator = (function() {
             const name = (inc.name || "").toLowerCase();
             const isWorkingSalary = !inc.isBhxhVn && (inc.isSalary || (/lương|salary|impôt|impot/i).test(name) || (sAge < retireAge && eAge <= retireAge));
             if (!isWorkingSalary && age >= sAge && age <= eAge) {
-              passiveIncomeThisYear += (Number(inc.amount) || 0) * (inc.growth ? Math.pow(1.0 + (inc.growth / 100.0), age - sAge) : cumInflation);
+              const streamGrowth = inc.growth ? Math.pow(1.0 + (inc.growth / 100.0), age - sAge) : cumInflation;
+              const streamAmt = (Number(inc.amount) || 0) * streamGrowth;
+              if (streamAmt >= 0) {
+                passiveIncomeThisYear += streamAmt;
+              } else {
+                grossSpend += Math.abs(streamAmt);
+              }
             }
           });
 

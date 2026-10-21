@@ -239,14 +239,35 @@
     }
 
     // Add / Edit Income Stream
-    document.getElementById("btn-add-income").addEventListener("click", () => openIncomeModal(-1));
-    document.getElementById("btn-close-income-modal").addEventListener("click", closeIncomeModal);
-    document.getElementById("btn-cancel-income-modal").addEventListener("click", closeIncomeModal);
-    document.getElementById("btn-save-income-modal").addEventListener("click", saveIncomeFromModal);
+    const btnAddInc = document.getElementById("btn-add-income");
+    if (btnAddInc) {
+      btnAddInc.addEventListener("click", (e) => {
+        e.preventDefault();
+        openIncomeModal(-1);
+      });
+    }
+    const btnCloseInc = document.getElementById("btn-close-income-modal");
+    if (btnCloseInc) btnCloseInc.addEventListener("click", closeIncomeModal);
+    const btnCancelInc = document.getElementById("btn-cancel-income-modal");
+    if (btnCancelInc) btnCancelInc.addEventListener("click", closeIncomeModal);
+    const btnSaveInc = document.getElementById("btn-save-income-modal");
+    if (btnSaveInc) btnSaveInc.addEventListener("click", saveIncomeFromModal);
+
+    const incModalEl = document.getElementById("income-modal");
+    if (incModalEl) {
+      incModalEl.addEventListener("click", (e) => {
+        if (e.target === incModalEl) closeIncomeModal();
+      });
+    }
 
     // Add / Edit Expense Stream & Crédits
     const btnAddExp = document.getElementById("btn-add-expense");
-    if (btnAddExp) btnAddExp.addEventListener("click", () => openExpenseModal(-1));
+    if (btnAddExp) {
+      btnAddExp.addEventListener("click", (e) => {
+        e.preventDefault();
+        openExpenseModal(-1);
+      });
+    }
     const btnSyncMortExp = document.getElementById("btn-sync-mortgage-expenses");
     if (btnSyncMortExp) btnSyncMortExp.addEventListener("click", () => {
       const plan = getActivePlan();
@@ -258,6 +279,29 @@
     if (btnCancelExpModal) btnCancelExpModal.addEventListener("click", closeExpenseModal);
     const btnSaveExpModal = document.getElementById("btn-save-expense-modal");
     if (btnSaveExpModal) btnSaveExpModal.addEventListener("click", saveExpenseFromModal);
+
+    const expModalEl = document.getElementById("expense-modal");
+    if (expModalEl) {
+      expModalEl.addEventListener("click", (e) => {
+        if (e.target === expModalEl) closeExpenseModal();
+      });
+    }
+
+    // Global Event Delegation phòng thủ: đảm bảo click luôn mở dù DOM có re-render
+    document.addEventListener("click", (e) => {
+      const targetInc = e.target.closest("#btn-add-income, .btn-add-income-stream");
+      if (targetInc) {
+        e.preventDefault();
+        openIncomeModal(-1);
+        return;
+      }
+      const targetExp = e.target.closest("#btn-add-expense, .btn-add-expense-stream");
+      if (targetExp) {
+        e.preventDefault();
+        openExpenseModal(-1);
+        return;
+      }
+    });
 
     // 2-Way Sync between Monthly and Yearly Expense in modal
     const inpModalExpMonthly = document.getElementById("inp-expense-amount-monthly");
@@ -272,22 +316,6 @@
         inpModalExpMonthly.value = Math.round(a / 12);
       });
     }
-
-    // Quick preset buttons in expense modal
-    document.querySelectorAll(".btn-preset-expense").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const name = btn.getAttribute("data-name");
-        const growth = btn.getAttribute("data-growth");
-        const isDebt = btn.getAttribute("data-debt") === "true";
-        if (name) document.getElementById("inp-expense-name").value = name;
-        if (growth !== null) document.getElementById("inp-expense-growth").value = growth;
-        const chkDebt = document.getElementById("inp-expense-is-debt");
-        if (chkDebt) chkDebt.checked = isDebt;
-        syncExpenseGrowthVisibility();
-      });
-    });
-    const chkExpDebt = document.getElementById("inp-expense-is-debt");
-    if (chkExpDebt) chkExpDebt.addEventListener("change", syncExpenseGrowthVisibility);
 
     // Plan Modal Events
     document.getElementById("btn-plan-gender-male")?.addEventListener("click", () => setPlanGender('male'));
@@ -489,8 +517,6 @@
       document.getElementById("inp-expense-start").value = exp.startAge;
       document.getElementById("inp-expense-end").value = exp.endAge;
       document.getElementById("inp-expense-growth").value = exp.growth !== undefined ? exp.growth : 0;
-      const chkDebt = document.getElementById("inp-expense-is-debt");
-      if (chkDebt) chkDebt.checked = exp.isDebt !== false;
     } else {
       title.innerHTML = `Thêm Khoản Chi / Nợ Vay Mới`;
       document.getElementById("inp-expense-name").value = "";
@@ -500,19 +526,13 @@
       document.getElementById("inp-expense-start").value = plan.currentAge || 29;
       document.getElementById("inp-expense-end").value = (plan.currentAge || 29) + 20;
       document.getElementById("inp-expense-growth").value = 0.0;
-      const chkDebt = document.getElementById("inp-expense-is-debt");
-      if (chkDebt) chkDebt.checked = true;
     }
 
-    syncExpenseGrowthVisibility();
     modal.style.display = "flex";
   }
 
-  // Khoản nợ vay lãi cố định (số tiền mỗi tháng đã rõ) không cần tốc độ tăng trưởng -> ẩn ô nhập
   function syncExpenseGrowthVisibility() {
-    const isDebt = document.getElementById("inp-expense-is-debt")?.checked ?? false;
-    const group = document.getElementById("group-expense-growth");
-    if (group) group.style.display = isDebt ? "none" : "";
+    // Không ẩn ô tăng trưởng, để người dùng tự do cấu hình
   }
 
   function closeExpenseModal() {
@@ -535,8 +555,8 @@
     const rawStart = document.getElementById("inp-expense-start").value;
     const startAge = (rawStart !== "" && !isNaN(Number(rawStart))) ? Number(rawStart) : (plan.currentAge || 29);
     const endAge = Number(document.getElementById("inp-expense-end").value) || 85;
-    const isDebt = document.getElementById("inp-expense-is-debt")?.checked ?? false;
-    const growth = isDebt ? 0 : (Number(document.getElementById("inp-expense-growth").value) || 0);
+    const isDebt = (/crédit|credit|vay|nợ|loan|prêt|pret|ngân hàng|trả góp|tra gop|leasing/i).test(name);
+    const growth = Number(document.getElementById("inp-expense-growth")?.value) || 0;
 
     if (!Array.isArray(plan.expenses)) plan.expenses = [];
 
@@ -564,42 +584,50 @@
   }
 
   function openIncomeModal(idx = -1) {
-    const plan = getActivePlan();
-    const modal = document.getElementById("income-modal");
-    const title = document.getElementById("income-modal-title");
-    const curSymbol = state.currency === 'VND' ? '₫' : state.currency === 'EUR' ? '€' : '$';
-    const unit = document.getElementById("modal-income-unit");
-    const unitMonthly = document.getElementById("modal-income-unit-monthly");
-    if (unit) unit.innerText = curSymbol;
-    if (unitMonthly) unitMonthly.innerText = curSymbol;
+    try {
+      const plan = getActivePlan() || {};
+      const modal = document.getElementById("income-modal");
+      if (!modal) return;
+      const title = document.getElementById("income-modal-title");
+      const cur = (window.AppState && window.AppState.getCurrency ? window.AppState.getCurrency() : null) || state?.currency || plan.currency || 'EUR';
+      const curSymbol = window.RetirementEngine?.getCurrencySymbol ? window.RetirementEngine.getCurrencySymbol(cur) : (cur === 'VND' ? '₫' : cur === 'USD' ? '$' : '€');
+      const unit = document.getElementById("modal-income-unit");
+      const unitMonthly = document.getElementById("modal-income-unit-monthly");
+      if (unit) unit.innerText = curSymbol;
+      if (unitMonthly) unitMonthly.innerText = curSymbol;
 
-    document.getElementById("inp-income-idx").value = idx;
+      const inpIdx = document.getElementById("inp-income-idx");
+      if (inpIdx) inpIdx.value = idx;
 
-    if (idx >= 0 && plan.incomes && plan.incomes[idx]) {
-      const stream = plan.incomes[idx];
-      title.innerText = `Chỉnh Sửa: ${stream.name}`;
-      document.getElementById("inp-income-name").value = stream.name;
-      document.getElementById("inp-income-amount").value = stream.amount;
-      document.getElementById("inp-income-amount-monthly").value = Math.round(Number(stream.amount) / 12);
-      document.getElementById("inp-income-start").value = stream.startAge;
-      document.getElementById("inp-income-end").value = stream.endAge;
-      document.getElementById("inp-income-growth").value = stream.growth !== undefined ? stream.growth : 3.5;
-    } else {
-      title.innerText = "Thêm Nguồn Thu Nhập Mới";
-      document.getElementById("inp-income-name").value = "";
-      const defaultAnnual = state.currency === 'EUR' ? 12000 : state.currency === 'USD' ? 12000 : 120000000;
-      document.getElementById("inp-income-amount").value = defaultAnnual;
-      document.getElementById("inp-income-amount-monthly").value = Math.round(defaultAnnual / 12);
-      document.getElementById("inp-income-start").value = plan.currentAge || 29;
-      document.getElementById("inp-income-end").value = plan.retirementAge || 42;
-      document.getElementById("inp-income-growth").value = 3.5;
+      if (idx >= 0 && Array.isArray(plan.incomes) && plan.incomes[idx]) {
+        const stream = plan.incomes[idx];
+        if (title) title.innerText = `Chỉnh Sửa: ${stream.name || ''}`;
+        setVal("inp-income-name", stream.name || "");
+        setVal("inp-income-amount", stream.amount || 0);
+        setVal("inp-income-amount-monthly", Math.round(Number(stream.amount || 0) / 12));
+        setVal("inp-income-start", stream.startAge ?? (plan.currentAge || 29));
+        setVal("inp-income-end", stream.endAge ?? (plan.retirementAge || 42));
+        setVal("inp-income-growth", stream.growth !== undefined ? stream.growth : 3.5);
+      } else {
+        if (title) title.innerText = "Thêm Nguồn Thu Nhập Mới";
+        setVal("inp-income-name", "");
+        const defaultAnnual = cur === 'VND' ? 120000000 : 12000;
+        setVal("inp-income-amount", defaultAnnual);
+        setVal("inp-income-amount-monthly", Math.round(defaultAnnual / 12));
+        setVal("inp-income-start", plan.currentAge || 29);
+        setVal("inp-income-end", plan.retirementAge || 42);
+        setVal("inp-income-growth", 3.5);
+      }
+
+      modal.style.display = "flex";
+    } catch (err) {
+      console.error("openIncomeModal error:", err);
     }
-
-    modal.style.display = "flex";
   }
 
   function closeIncomeModal() {
-    document.getElementById("income-modal").style.display = "none";
+    const modal = document.getElementById("income-modal");
+    if (modal) modal.style.display = "none";
   }
 
   function saveIncomeFromModal() {

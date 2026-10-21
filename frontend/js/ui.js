@@ -750,7 +750,10 @@
     const statusEl = document.getElementById("summary-fire-status");
 
     const userRetireAge = Number(plan.retirementAge) || 42;
-    const isOptimalReached = optAge ? (userRetireAge >= optAge) : false;
+    const allCriteriaOk = (typeof updateFireCriteriaStatus === "function")
+      ? updateFireCriteriaStatus(plan, proj, mcSuccessRate)
+      : false;
+    const isOptimalReached = allCriteriaOk || (optAge ? (userRetireAge >= optAge) : false);
 
     if (mcSuccessRate !== null) {
       if (probEl) {

@@ -82,30 +82,6 @@
   // Sự kiện tương tác của các Biểu đồ & Bảng dự phóng trên Tab 1
   // -------------------------------------------------------------
   function bindTab1ChartEvents() {
-    // Compare 4 Withdrawal Strategies Toggle on Net Worth Chart
-    const btnToggleCompare = document.getElementById("btn-toggle-compare-withdrawals");
-    if (btnToggleCompare) {
-      btnToggleCompare.addEventListener("click", () => {
-        state.compareWithdrawals = !state.compareWithdrawals;
-        btnToggleCompare.classList.toggle("active", state.compareWithdrawals);
-        if (state.compareWithdrawals) {
-          if (state.compareStressScenarios) {
-            state.compareStressScenarios = false;
-            const btnStress = document.getElementById("btn-toggle-compare-stress");
-            if (btnStress) btnStress.classList.remove("active");
-          }
-          if (state.showMonteCarloFan) {
-            state.showMonteCarloFan = false;
-            const btnMcFan = document.getElementById("btn-toggle-mc-fan");
-            if (btnMcFan) btnMcFan.classList.remove("active");
-          }
-        }
-        const plan = getActivePlan();
-        const proj = window.RetirementEngine.runProjection(plan);
-        renderNetWorthChart(proj);
-      });
-    }
-
     // Compare 3 Worst Stress Scenarios Toggle on Net Worth Chart
     const btnToggleStress = document.getElementById("btn-toggle-compare-stress");
     if (btnToggleStress) {
@@ -113,11 +89,6 @@
         state.compareStressScenarios = !state.compareStressScenarios;
         btnToggleStress.classList.toggle("active", state.compareStressScenarios);
         if (state.compareStressScenarios) {
-          if (state.compareWithdrawals) {
-            state.compareWithdrawals = false;
-            const btnWithdrawals = document.getElementById("btn-toggle-compare-withdrawals");
-            if (btnWithdrawals) btnWithdrawals.classList.remove("active");
-          }
           if (state.showMonteCarloFan) {
             state.showMonteCarloFan = false;
             const btnMcFan = document.getElementById("btn-toggle-mc-fan");
@@ -137,11 +108,6 @@
         state.showMonteCarloFan = !state.showMonteCarloFan;
         btnToggleMcFan.classList.toggle("active", state.showMonteCarloFan);
         if (state.showMonteCarloFan) {
-          if (state.compareWithdrawals) {
-            state.compareWithdrawals = false;
-            const btnWithdrawals = document.getElementById("btn-toggle-compare-withdrawals");
-            if (btnWithdrawals) btnWithdrawals.classList.remove("active");
-          }
           if (state.compareStressScenarios) {
             state.compareStressScenarios = false;
             const btnStress = document.getElementById("btn-toggle-compare-stress");
@@ -236,24 +202,6 @@
       actualTracking: actualTrackingStr
     };
 
-    if (state.compareWithdrawals) {
-      chartSummary.compareWithdrawalsActive = true;
-      const stratKeys = [
-        { key: "bengen", name: "Bengen 4% Rule" },
-        { key: "guyton_klinger", name: "Guyton-Klinger" },
-        { key: "vpw", name: "VPW" },
-        { key: "fixed", name: "Fixed %" }
-      ];
-      chartSummary.strategiesComparison = stratKeys.map(s => {
-        const p = { ...plan, withdrawalStrategy: s.key };
-        const r = window.RetirementEngine.runProjection(p);
-        return {
-          name: s.name,
-          finalPortfolio: window.RetirementEngine.formatCurrency(r.finalPortfolio, state.currency),
-          survived: r.survived ? "100% Đạt mục tiêu" : "Có rủi ro cạn vốn"
-        };
-      });
-    }
 
     const periods = (typeof computeIncomePeriods === 'function') ? computeIncomePeriods(plan) : [];
     if (periods && periods.length > 0) {
@@ -348,6 +296,82 @@
   // -------------------------------------------------------------
   // Lưới An Toàn 3 Biến Cố & FIRE Bền Bỉ (Stress Resilience)
   // -------------------------------------------------------------
+  // -------------------------------------------------------------
+  // Trạng thái đạt/chưa đạt của 3 trụ cột Tiêu chuẩn Tự do Tài chính (Sidebar)
+  // -------------------------------------------------------------
+  /**
+   * Cập nhật màu + dòng giải thích cho từng trụ cột trên thẻ "Mục tiêu Độc lập".
+   * @param {Object} plan - Kế hoạch hiện tại
+   * @param {Object} proj - Kết quả runProjection(plan)
+   * @param {number|string|null} mcRate - Tỷ lệ thành công Monte Carlo (%), null nếu chưa có
+   */
+  function updateFireCriteriaStatus(plan, proj, mcRate) {
+    if (!plan || !proj) return false;
+    const t = (k, fb) => (window.I18n ? window.I18n.t(k, fb) : fb);
+    const fmt = (v) => window.RetirementEngine.formatCurrency(v, state.currency);
+    const fill = (s, map) => s.replace(/\{(\w+)\}/g, (_, k) => (map[k] !== undefined ? map[k] : ''));
+
+    const setPillar = (n, ok, text) => {
+      const title = document.getElementById(`fire-pillar${n}-title`);
+      const status = document.getElementById(`fire-pillar${n}-status`);
+      if (title) {
+        title.classList.toggle('fire-criteria-title', ok !== null);
+        title.classList.toggle('is-ok', ok === true);
+        title.classList.toggle('is-fail', ok === false);
+      }
+      if (status) {
+        status.textContent = text || '';
+        status.classList.toggle('is-ok', ok === true);
+        status.classList.toggle('is-fail', ok === false);
+      }
+    };
+
+    // Trụ cột 1: Vốn tại thời điểm nghỉ hưu so với tài sản mục tiêu
+    const retireAge = Number(plan.retirementAge) || 42;
+    const timeline = proj.timeline || [];
+    const prevRow = timeline.find(r => r.age === retireAge - 1);
+    const currRow = timeline.find(r => r.age === retireAge);
+    const portAtRetire = prevRow ? prevRow.portfolioEnd : (currRow ? (currRow.portfolioEnd + (currRow.withdrawal || 0)) : 0);
+    const target = Number(proj.fireTargetNestEgg) || 0;
+    if (portAtRetire >= target) {
+      setPillar(1, true, fill(t('fire_p1_ok', '✓ Đạt: có {have} / cần {need}'), { have: fmt(portAtRetire), need: fmt(target) }));
+    } else {
+      setPillar(1, false, fill(t('fire_p1_fail', '✗ Chưa đạt: lúc nghỉ hưu có {have}, cần {need} (thiếu {gap}). Hãy lùi tuổi nghỉ hưu hoặc tăng tiết kiệm.'),
+        { have: fmt(portAtRetire), need: fmt(target), gap: fmt(target - portAtRetire) }));
+    }
+
+    // Trụ cột 2: Monte Carlo
+    const rate = mcRate === null || mcRate === undefined ? null : parseFloat(mcRate);
+    if (rate === null || isNaN(rate)) {
+      setPillar(2, null, '');
+    } else if (rate >= 80) {
+      setPillar(2, true, fill(t('fire_p2_ok', '✓ Đạt: tỷ lệ thành công {rate}%'), { rate }));
+    } else {
+      setPillar(2, false, fill(t('fire_p2_fail', '✗ Chưa đạt: tỷ lệ thành công {rate}% (cần ≥ 80%)'), { rate }));
+    }
+
+    // Trụ cột 3: Biến cố bệnh tật, khủng hoảng
+    const stress = proj.stressResilience;
+    if (stress && Array.isArray(stress.scenarios)) {
+      const vals = { n: stress.passedCount, m: stress.totalCount };
+      if (stress.isBulletproof) {
+        setPillar(3, true, fill(t('fire_p3_ok', '✓ Đạt: vượt qua {n}/{m} biến cố'), vals));
+      } else {
+        const failed = stress.scenarios.filter(s => !s.passed).map(s => {
+          const lang = (window.I18n && window.I18n.getLanguage) ? window.I18n.getLanguage() : 'vi';
+          return lang === 'en' ? (s.nameEn || s.nameVi) : (lang === 'fr' ? (s.nameFr || s.nameVi) : s.nameVi);
+        });
+        vals.list = failed.join('; ');
+        setPillar(3, false, fill(t('fire_p3_fail', '✗ Chưa đạt: vượt {n}/{m} biến cố. Chưa qua: {list}'), vals));
+      }
+    } else {
+      setPillar(3, null, '');
+    }
+
+    const stressOk = !!(stress && stress.isBulletproof);
+    return portAtRetire >= target && rate !== null && !isNaN(rate) && rate >= 80 && stressOk;
+  }
+
   function renderStressResilienceCard(proj) {
     const container = document.getElementById("stress-resilience-container");
     if (!container) return;
@@ -478,11 +502,8 @@
     // Sự kiện kích hoạt xem kịch bản trên biểu đồ
     const triggerChart = () => {
       state.compareStressScenarios = true;
-      state.compareWithdrawals = false;
       const btnStress = document.getElementById("btn-toggle-compare-stress");
       if (btnStress) btnStress.classList.add("active");
-      const btnWithdrawals = document.getElementById("btn-toggle-compare-withdrawals");
-      if (btnWithdrawals) btnWithdrawals.classList.remove("active");
 
       const p = window.RetirementEngine.runProjection(plan);
       renderNetWorthChart(p);
@@ -698,16 +719,8 @@
       return rec ? Number(rec.amount) : null;
     });
 
-    const chosenStrat = activePlan.withdrawalStrategy || 'guyton_klinger';
     const hasRealEstate = proj.timeline.some(p => (p.homeEquity || 0) > 0);
     const sym = window.RetirementEngine.getCurrencySymbol(state.currency);
-
-    const strategies = [
-      { key: "guyton_klinger", name: "Lan can Guyton-Klinger", color: isLight ? "#047857" : "#10b981", borderDash: [] },
-      { key: "bengen_4pct", name: "Quy tắc 4% Cố định (Bengen)", color: isLight ? "#0284c7" : "#38bdf8", borderDash: [6, 4] },
-      { key: "vpw", name: "Tỷ lệ Thay đổi (VPW)", color: isLight ? "#7c3aed" : "#c084fc", borderDash: [6, 3] },
-      { key: "fixed_pct", name: "Tỷ lệ Cố định (Fixed %)", color: isLight ? "#ea580c" : "#fb923c", borderDash: [4, 4] }
-    ];
 
     const datasets = [];
 
@@ -761,7 +774,7 @@
         pointHitRadius: 15,
         order: 1
       });
-    } else if (!state.compareWithdrawals && !state.showMonteCarloFan) {
+    } else if (!state.showMonteCarloFan) {
       // Chế độ mặc định: Tiền Mặt & Quỹ Đầu Tư (Tài sản thanh khoản rút sinh hoạt)
       const dataLiquid = proj.timeline.map(p => state.viewMode === "nominal" ? p.portfolioEnd : p.realPortfolioEnd);
       const liquidLabel = hasRealEstate
@@ -789,7 +802,7 @@
     // 3. Đường Tổng Tài sản Ròng (gồm BĐS) - Luôn là NÉT LIỀN, Tím Hoàng Gia sắc nét 100% không bị mờ
     if (hasRealEstate) {
       const dataNetWorth = proj.timeline.map(p => state.viewMode === "nominal" ? p.totalNetWorth : p.realTotalNetWorth);
-      const isComparing = (state.compareWithdrawals || state.compareStressScenarios || state.showMonteCarloFan);
+      const isComparing = (state.compareStressScenarios || state.showMonteCarloFan);
       const netWorthLabel = isComparing
         ? (window.I18n ? window.I18n.t('legend_networth_realestate', 'Tổng Tài sản Ròng (gồm BĐS)') : 'Tổng Tài sản Ròng (gồm BĐS)')
         : (window.I18n ? window.I18n.t('legend_total_networth', 'Tổng Tài sản Ròng') : 'Tổng Tài sản Ròng');
@@ -870,40 +883,6 @@
           pointBorderWidth: 2,
           pointHitRadius: 15,
           order: idx + 3
-        });
-      });
-    } else if (state.compareWithdrawals) {
-      // 4 Nhánh Chiến Lược Rút Tiền (So sánh thuần túy để thấy sự khác biệt giữa 4 trường phái):
-      strategies.forEach(strat => {
-        const isChosen = (strat.key === chosenStrat);
-        const tempPlan = { ...activePlan, withdrawalStrategy: strat.key, enableWithdrawalStrategy: true, smartWithdrawalCap: false };
-        const res = window.RetirementEngine.runProjection(tempPlan);
-
-        const stratData = proj.timeline.map(p => {
-          if (p.age < proj.retireAge) {
-            return state.viewMode === "nominal" ? p.portfolioEnd : p.realPortfolioEnd;
-          }
-          const matchRow = res.timeline.find(r => r.age === p.age);
-          if (!matchRow) return null;
-          return state.viewMode === "nominal" ? matchRow.portfolioEnd : matchRow.realPortfolioEnd;
-        });
-
-        datasets.push({
-          label: isChosen ? `${strat.name} (Đang chọn)` : strat.name,
-          data: stratData,
-          borderColor: strat.color,
-          borderWidth: isChosen ? 3.2 : 2.0,
-          borderDash: strat.borderDash || [],
-          backgroundColor: isChosen ? (isLight ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.12)') : 'transparent',
-          fill: false,
-          tension: 0.35,
-          pointRadius: proj.timeline.map(p => (p.age === proj.retireAge && isChosen) ? 4.5 : 0),
-          pointHoverRadius: isChosen ? 6 : 5,
-          pointBackgroundColor: strat.color,
-          pointBorderColor: '#ffffff',
-          pointBorderWidth: 2,
-          pointHitRadius: 15,
-          order: isChosen ? 1 : 3
         });
       });
     } else if (state.showMonteCarloFan && window.MonteCarloSimulator && typeof window.MonteCarloSimulator.runSimulation === "function") {
@@ -1033,7 +1012,7 @@
         },
         plugins: {
           legend: {
-            display: state.compareWithdrawals || state.compareStressScenarios || state.showMonteCarloFan || hasRealEstate || hasActualData,
+            display: state.compareStressScenarios || state.showMonteCarloFan || hasRealEstate || hasActualData,
             position: 'top',
             align: 'end',
             labels: {
@@ -1530,8 +1509,9 @@
       const proj = window.RetirementEngine.runProjection(plan);
       const optAge = proj.optimalFireAge;
       const userRetireAge = Number(plan.retirementAge) || 42;
-      const isOptimalReached = optAge ? (userRetireAge >= optAge) : false;
       const sRate = parseFloat(res.successRate);
+      const allCriteriaOk = updateFireCriteriaStatus(plan, proj, sRate);
+      const isOptimalReached = allCriteriaOk || (optAge ? (userRetireAge >= optAge) : false);
       const t = (k, fb) => (window.I18n ? window.I18n.t(k, fb) : fb);
 
       if (sRate >= 80) {
@@ -1926,6 +1906,7 @@
     triggerPlanProjectionsInsight,
     renderMilestonesRibbon,
     renderStressResilienceCard,
+    updateFireCriteriaStatus,
     drawMilestoneMarkers,
     renderNetWorthChart,
     renderCashFlowChart,

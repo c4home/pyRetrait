@@ -382,6 +382,7 @@
         if (name.startsWith('Trả nợ Crédit: BĐS')) return false;
         if (name.startsWith('Crédit BĐS:')) return false;
         if (name.includes('BĐS Cho thuê LMNP')) return false;
+        if (name.includes('Chi tiêu sinh hoạt & Tiện ích')) return false;
         return true;
       });
     }

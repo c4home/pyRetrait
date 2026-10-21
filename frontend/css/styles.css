@@ -877,6 +877,38 @@ samp {
   color: var(--primary);
 }
 
+/* Trạng thái từng trụ cột Tiêu chuẩn Tự do Tài chính */
+.fire-criteria-status {
+  display: block;
+  margin-top: 0.2rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.fire-criteria-status:empty { display: none; }
+.fire-criteria-status.is-ok {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+.fire-criteria-status.is-fail {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fb7185;
+}
+[data-theme="light"] .fire-criteria-status.is-ok {
+  background: #ecfdf5;
+  color: #047857;
+}
+[data-theme="light"] .fire-criteria-status.is-fail {
+  background: #fef2f2;
+  color: #be123c;
+}
+.fire-criteria-title.is-fail { color: #fb7185 !important; }
+.fire-criteria-title.is-ok { color: #34d399 !important; }
+[data-theme="light"] .fire-criteria-title.is-fail { color: #be123c !important; }
+[data-theme="light"] .fire-criteria-title.is-ok { color: #047857 !important; }
+
 .summary-metric {
   display: flex;
   justify-content: space-between;

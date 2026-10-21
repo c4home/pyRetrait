@@ -504,9 +504,9 @@ window.RetirementEngine = (function() {
     let maxMcRate = 0;
 
     for (let candAge = minSearchAge; candAge <= maxSearchAge; candAge++) {
-      // Khi thử nghiệm tuổi nghỉ hưu tối ưu, đo lường năng lực trang trải 100% chi tiêu sinh hoạt hưu trí thực tế
-      // (enableWithdrawalStrategy: false để không ép rút tỷ lệ % danh mục quá mức khi tài sản lớn, tránh nghịch lý người giàu hơn lại bị đánh giá rủi ro hơn)
-      const candPlan = { ...plan, retirementAge: candAge, enableWithdrawalStrategy: false };
+      // Đánh giá ứng viên bằng ĐÚNG cấu hình của kế hoạch người dùng (kể cả chiến lược rút tiền),
+      // để kết quả tuổi tối ưu nhất quán với 3 trụ cột đang hiển thị ở thanh bên cho kế hoạch thật.
+      const candPlan = { ...plan, retirementAge: candAge };
 
       // Nấc 1: Chạy projection cơ sở cho tuổi thử nghiệm (bỏ qua đệ quy optimal và stress)
       const candProj = runProjection(candPlan, null, true, true);
@@ -533,7 +533,10 @@ window.RetirementEngine = (function() {
           const name = (inc.name || "").toLowerCase();
           const isSalary = !inc.isBhxhVn && (inc.isSalary || (/lương|salary|impôt|impot/i).test(inc.name || "") || (sAge < candAge && eAge <= candAge));
           if (!isSalary && candAge >= sAge && candAge <= eAge) {
-            passiveAtRetire += Number(inc.amount) || 0;
+            const incAmt = Number(inc.amount) || 0;
+            if (incAmt > 0) {
+              passiveAtRetire += incAmt;
+            }
           }
         });
       }
@@ -553,8 +556,8 @@ window.RetirementEngine = (function() {
       let successRate = 0;
       if (mcSim && typeof mcSim.runSimulation === 'function') {
         try {
-          // Chạy 200 lượt giả lập nhanh để vừa đảm bảo độ tin cậy vừa tối ưu thời gian phản hồi
-          const mcRes = mcSim.runSimulation(candPlan, 200, 15.0);
+          // Chạy 400 lượt (seed cố định) — trùng với số lượt dùng cho thanh bên để hai nơi cho cùng kết quả
+          const mcRes = mcSim.runSimulation(candPlan, 400, 15.0);
           successRate = parseFloat(mcRes.successRate) || 0;
         } catch (e) {
           console.warn("Lỗi tính Monte Carlo khi tìm tuổi tối ưu:", e);
@@ -667,7 +670,9 @@ window.RetirementEngine = (function() {
         const pastYear = birthYear + age;
 
         let pastIncome = 0;
+        let pastRealEstateDeficit = 0;
         const pastIncomeBreakdown = [];
+        const pastRealEstateExpenseItems = [];
         if (Array.isArray(plan.incomes)) {
           plan.incomes.forEach(stream => {
             if (stream.enabled === false) return;
@@ -679,8 +684,17 @@ window.RetirementEngine = (function() {
               const streamGrowth = (Number(stream.growth) || 0) / 100.0;
               const streamYearsActive = age - sAge;
               const streamVal = (Number(stream.amount) || 0) * Math.pow(1.0 + streamGrowth, streamYearsActive);
-              pastIncome += streamVal;
-              if (streamVal !== 0) {
+              if (streamVal < 0) {
+                // Dòng tiền BĐS âm: đưa vào mục CHI TIÊU
+                const posVal = Math.abs(streamVal);
+                pastRealEstateDeficit += posVal;
+                pastRealEstateExpenseItems.push({
+                  name: stream.name || 'Dòng tiền BĐS âm',
+                  amount: posVal,
+                  monthly: posVal / 12
+                });
+              } else if (streamVal > 0) {
+                pastIncome += streamVal;
                 pastIncomeBreakdown.push({
                   name: stream.name || 'Thu nhập',
                   amount: streamVal,
@@ -691,17 +705,24 @@ window.RetirementEngine = (function() {
           });
         }
         pastIncome = Math.round(pastIncome);
+        pastRealEstateDeficit = Math.round(pastRealEstateDeficit);
 
         // Chi tiêu sinh hoạt quá khứ: chỉ phát sinh tương ứng nếu có thu nhập thực tế, nếu không có thu nhập thì mặc định = 0
-        const pastExpenses = pastIncome > 0 ? Math.min(pastIncome, Math.round(Number(plan.annualExpenses || 15000))) : 0;
-        const pastExpenseBreakdown = pastExpenses > 0 ? [{
-          name: 'Chi tiêu sinh hoạt',
-          amount: pastExpenses,
-          monthly: pastExpenses / 12
-        }] : [];
+        const basePastLiving = pastIncome > 0 ? Math.min(pastIncome, Math.round(Number(plan.annualExpenses || 15000))) : 0;
+        const pastExpenseBreakdown = [];
+        if (basePastLiving > 0) {
+          pastExpenseBreakdown.push({
+            name: 'Chi tiêu sinh hoạt',
+            amount: basePastLiving,
+            monthly: basePastLiving / 12
+          });
+        }
+        pastRealEstateExpenseItems.forEach(item => pastExpenseBreakdown.push(item));
+        const pastExpenses = basePastLiving + pastRealEstateDeficit;
 
-        // Tài sản quá khứ: chỉ có nếu có tích lũy từ thu nhập thực tế, không tự động sinh số dương giả lập
-        const pastPortfolio = pastIncome > 0 ? Math.max(0, pastIncome - pastExpenses) : 0;
+        // Tài sản quá khứ: chỉ có nếu có tích lũy từ thu nhập thực tế trừ chi phí, không tự động sinh số dương giả lập
+        const pastNetCash = pastIncome - pastExpenses;
+        const pastPortfolio = Math.max(0, pastNetCash);
 
         timeline.push({
           age,
@@ -715,7 +736,7 @@ window.RetirementEngine = (function() {
           withdrawal: 0,
           totalAvailableCash: pastIncome,
           mortgagePayment: 0,
-          netCashFlow: pastIncome - pastExpenses,
+          netCashFlow: pastNetCash,
           tax: 0,
           portfolioEnd: pastPortfolio,
           realPortfolioEnd: pastPortfolio,
@@ -768,6 +789,10 @@ window.RetirementEngine = (function() {
       let annualIncome = 0;
       let taxableIncome = 0;
       const incomeBreakdown = [];
+      let realEstateDeficitThisYear = 0;
+      const realEstateExpenseItems = [];
+      let bhxhContributionThisYear = 0;
+      const bhxhExpenseItems = [];
       if (Array.isArray(plan.incomes)) {
         plan.incomes.forEach(stream => {
           if (stream.enabled === false) return;
@@ -782,11 +807,21 @@ window.RetirementEngine = (function() {
               : 0.04;
             const streamYearsActive = age - stream.startAge;
             const streamVal = (Number(stream.amount) || 0) * Math.pow(1.0 + streamGrowth, streamYearsActive);
-            annualIncome += streamVal;
-            if (stream.taxable !== false) {
-              taxableIncome += streamVal;
-            }
-            if (streamVal !== 0) {
+            
+            if (streamVal < 0) {
+              // Dòng tiền BĐS âm: đưa vào mục CHI TIÊU
+              const posVal = Math.abs(streamVal);
+              realEstateDeficitThisYear += posVal;
+              realEstateExpenseItems.push({
+                name: stream.name || 'Dòng tiền BĐS âm',
+                amount: posVal,
+                monthly: posVal / 12
+              });
+            } else if (streamVal > 0) {
+              annualIncome += streamVal;
+              if (stream.taxable !== false) {
+                taxableIncome += streamVal;
+              }
               incomeBreakdown.push({
                 name: stream.name || 'Thu nhập ngoài',
                 amount: streamVal,
@@ -878,30 +913,64 @@ window.RetirementEngine = (function() {
         }
       }
 
-      // 1.2 Lương hưu BHXH Việt Nam
-      if (isRetired && hasBhxhPension && isBhxhEnabled && plan.bhxhVnDetails) {
+      // 1.2 Lương hưu & Đóng phí BHXH Việt Nam
+      if (hasBhxhPension && isBhxhEnabled && plan.bhxhVnDetails) {
         const b1 = plan.bhxhVnDetails.spouse1 || {};
         const b2 = plan.bhxhVnDetails.spouse2 || {};
         const userGender = plan.gender || b1.gender || 'male';
         const b1Claim = Number(b1.claimAge) || (userGender === 'female' ? 60 : 62);
-        let b1Amt = 0;
-        let b2Amt = 0;
+        const conv = (plan.currency === 'VND') ? 1 : (currentEurVndRate || 27500);
 
+        const b1Years = Math.max(0, Number(b1.yearsContributed) || 20);
+        const b1Salary = Number(b1.monthlySalaryVnd) || 10000000;
+        const b1PayMonthlyVnd = Math.round(b1Salary * 0.22); // 22% theo Luật BHXH tự nguyện
+
+        // Giai đoạn đóng phí BHXH (Bạn): Chi tiêu trong số năm đóng tính từ currentAge và trước khi nhận hưu
+        if (age >= currentAge && age < (currentAge + b1Years) && age < b1Claim && b1PayMonthlyVnd > 0) {
+          const b1PayAnnualVnd = b1PayMonthlyVnd * 12;
+          const b1PayVal = (b1PayAnnualVnd * cumInflation) / conv;
+          bhxhContributionThisYear += b1PayVal;
+          bhxhExpenseItems.push({
+            name: plan.maritalStatus === 'married' ? 'Đóng BHXH VN (Bạn)' : 'Đóng BHXH VN',
+            amount: b1PayVal,
+            monthly: b1PayVal / 12
+          });
+        }
+
+        // Giai đoạn hưởng lương hưu BHXH (Bạn): Thu nhập khi đạt tuổi b1Claim
+        let b1Amt = 0;
         if (age >= b1Claim && window.TaxOptimizer && window.TaxOptimizer.calculateVietnamBhxhPension) {
-          const resB1 = window.TaxOptimizer.calculateVietnamBhxhPension(b1.monthlySalaryVnd || 0, b1.yearsContributed || 0, userGender, b1Claim);
+          const resB1 = window.TaxOptimizer.calculateVietnamBhxhPension(b1Salary, b1Years, userGender, b1Claim);
           b1Amt = resB1.annualPensionVnd;
         }
 
+        let b2Amt = 0;
         if (plan.maritalStatus === 'married') {
           const spouseGender = b2.gender || (userGender === 'female' ? 'male' : 'female');
           const b2Claim = Number(b2.claimAge) || (spouseGender === 'female' ? 60 : 62);
+          const b2Years = Math.max(0, Number(b2.yearsContributed) || 20);
+          const b2Salary = Number(b2.monthlySalaryVnd) || 10000000;
+          const b2PayMonthlyVnd = Math.round(b2Salary * 0.22);
+
+          // Giai đoạn đóng phí BHXH (Bạn đời)
+          if (age >= currentAge && age < (currentAge + b2Years) && age < b2Claim && b2PayMonthlyVnd > 0) {
+            const b2PayAnnualVnd = b2PayMonthlyVnd * 12;
+            const b2PayVal = (b2PayAnnualVnd * cumInflation) / conv;
+            bhxhContributionThisYear += b2PayVal;
+            bhxhExpenseItems.push({
+              name: 'Đóng BHXH VN (Bạn đời)',
+              amount: b2PayVal,
+              monthly: b2PayVal / 12
+            });
+          }
+
+          // Giai đoạn hưởng lương hưu BHXH (Bạn đời)
           if (age >= b2Claim && window.TaxOptimizer && window.TaxOptimizer.calculateVietnamBhxhPension) {
-            const resB2 = window.TaxOptimizer.calculateVietnamBhxhPension(b2.monthlySalaryVnd || 0, b2.yearsContributed || 0, spouseGender, b2Claim);
+            const resB2 = window.TaxOptimizer.calculateVietnamBhxhPension(b2Salary, b2Years, spouseGender, b2Claim);
             b2Amt = resB2.annualPensionVnd;
           }
         }
 
-        const conv = (plan.currency === 'VND') ? 1 : (currentEurVndRate || 27500);
         if (b1Amt > 0) {
           const b1Val = (b1Amt * cumInflation) / conv;
           incomeBreakdown.push({
@@ -1250,6 +1319,24 @@ window.RetirementEngine = (function() {
         }
       }
 
+      // 1.10 Tax Estimation using precise Progressive Tax Engine
+      let estimatedTax = 0;
+      const kidsCount = (plan.familyPlan && plan.familyPlan.enabled !== false) ? (Number(plan.familyPlan.kidsCount) || 0) : 0;
+      if (window.TaxOptimizer && window.TaxOptimizer.calculateProgressiveTax) {
+        estimatedTax = window.TaxOptimizer.calculateProgressiveTax(taxableIncome, plan.taxRegime || 'france_vietnam', {
+          customTaxRate: plan.taxRate,
+          currency: plan.currency || 'EUR',
+          exchangeRateEurVnd: currentEurVndRate,
+          maritalStatus: plan.maritalStatus || (isSingle ? 'single' : 'married'),
+          kidsCount: kidsCount,
+          taxParts: (plan.taxParts !== undefined && plan.taxParts !== null && Number(plan.taxParts) > 0) ? Number(plan.taxParts) : 0
+        });
+      } else {
+        const effectiveTaxRate = (Number(plan.taxRate) || 12.0) / 100.0;
+        estimatedTax = taxableIncome * effectiveTaxRate * 0.7;
+      }
+      totalTaxesPaid += estimatedTax;
+
       // 2. Calculate Base Expense with Spending Smile Adjustment
       let spendingFactor = 1.0;
       if (isRetired && plan.spendingPhases && plan.spendingPhases.enabled) {
@@ -1312,7 +1399,7 @@ window.RetirementEngine = (function() {
           if (kAge >= 0 && kAge < 20) depCount++;
         }
 
-        // Trợ cấp gia đình trực tiếp (Family Allowance / Kindergeld) theo quốc gia
+        // Trợ cấp gia đình trực tiếp (Family Allowance / Kindergeld) theo quốc gia: Chuyển vào mục THU NHẬP
         let familyAllowanceMonthly = 0;
         if (plan.workCountry === 'FR') {
           if (depCount === 2) familyAllowanceMonthly = 148;
@@ -1325,16 +1412,18 @@ window.RetirementEngine = (function() {
         }
 
         if (familyAllowanceMonthly > 0 && depCount > 0) {
-          childCostItems.push({
-            name: 'Trợ cấp gia đình (CAF / Kindergeld)',
-            amount: -(familyAllowanceMonthly * 12 * cumInflation),
-            monthly: -(familyAllowanceMonthly * cumInflation),
-            isAllowance: true
+          const familyAllowanceAnnual = familyAllowanceMonthly * 12 * cumInflation;
+          annualIncome += familyAllowanceAnnual;
+          // Trợ cấp gia đình được miễn thuế TNCN nên không cộng vào taxableIncome
+          incomeBreakdown.push({
+            name: plan.workCountry === 'DE' ? 'Trợ cấp gia đình (Kindergeld)' : (plan.workCountry === 'BE' ? 'Trợ cấp gia đình (Allocations)' : 'Trợ cấp gia đình (CAF)'),
+            amount: familyAllowanceAnnual,
+            monthly: familyAllowanceMonthly * cumInflation
           });
         }
 
-        const netAnnualChildCost = Math.max(0, grossChildCost - (familyAllowanceMonthly * 12));
-        childLifecycleCostThisYear = netAnnualChildCost * cumInflation;
+        // Chi phí nuôi con sinh hoạt thực tế (Chi tiêu)
+        childLifecycleCostThisYear = grossChildCost * cumInflation;
       }
 
       // Calculate Active Expense Streams for this year (if configured)
@@ -1356,7 +1445,7 @@ window.RetirementEngine = (function() {
             const yearsActive = age - start;
             const expVal = (Number(exp.amount) || 0) * Math.pow(1.0 + expGrowth, yearsActive);
             activeExpenseStreamsSum += expVal;
-            const isDebt = exp.isDebt === true || (/crédit|credit|vay|nợ|loan|prêt|pret|ngân hàng/i).test(exp.name || '');
+            const isDebt = exp.isDebt === true || (/crédit|credit|vay|nợ|loan|prêt|pret|ngân hàng|trả góp|tra gop|leasing/i).test(exp.name || '');
             if (isDebt) {
               activeDebtsSum += expVal;
             }
@@ -1372,7 +1461,7 @@ window.RetirementEngine = (function() {
         const baseRetireLiving = enableRetireExp ? ((baseRetireExpenses * spendingFactor) * cumInflation) : 0;
         if (enableRetireExp && baseRetireLiving > 0) {
           expenseBreakdown.push({
-            name: 'Sinh hoạt cơ bản (Hưu trí)',
+            name: 'Chi tiêu/tháng khi về hưu',
             amount: baseRetireLiving,
             monthly: baseRetireLiving / 12
           });
@@ -1385,11 +1474,10 @@ window.RetirementEngine = (function() {
             monthly: careVal / 12
           });
         }
-        if (hasExpenseStreams && activeDebtsSum > 0) {
+        let activeCustomExpensesSum = 0;
+        if (hasExpenseStreams) {
           plan.expenses.forEach(exp => {
             if (exp.enabled === false) return;
-            const isDebt = exp.isDebt === true || (/crédit|credit|vay|nợ|loan|prêt|pret|ngân hàng/i).test(exp.name || '');
-            if (!isDebt) return;
             const start = (exp.startAge !== undefined && exp.startAge !== null && !isNaN(Number(exp.startAge)))
               ? Number(exp.startAge) : currentAge;
             const end = (exp.endAge !== undefined && exp.endAge !== null && !isNaN(Number(exp.endAge)))
@@ -1401,22 +1489,51 @@ window.RetirementEngine = (function() {
               const yearsActive = age - start;
               const expVal = (Number(exp.amount) || 0) * Math.pow(1.0 + expGrowth, yearsActive);
               if (expVal > 0) {
+                activeCustomExpensesSum += expVal;
                 expenseBreakdown.push({
-                  name: exp.name || 'Trả nợ vay',
+                  name: exp.name || 'Chi tiêu',
                   amount: expVal,
                   monthly: expVal / 12
+                });
+              } else if (expVal < 0) {
+                const posVal = Math.abs(expVal);
+                annualIncome += posVal;
+                incomeBreakdown.push({
+                  name: exp.name || 'Khoản thu hoàn lại',
+                  amount: posVal,
+                  monthly: posVal / 12
                 });
               }
             }
           });
         }
         childCostItems.forEach(ci => expenseBreakdown.push(ci));
+        realEstateExpenseItems.forEach(ri => expenseBreakdown.push(ri));
+        bhxhExpenseItems.forEach(bi => expenseBreakdown.push(bi));
 
-        const baseRetire = ((baseRetireExpenses * spendingFactor) + seniorCareCost) * cumInflation;
-        currentExpenses = baseRetire + activeDebtsSum + childLifecycleCostThisYear;
+        const baseRetire = baseRetireLiving + (seniorCareCost * cumInflation);
+        currentExpenses = baseRetire + activeCustomExpensesSum + childLifecycleCostThisYear + realEstateDeficitThisYear + bhxhContributionThisYear;
       } else {
-        // Accumulation phase: realistic sum of active expense streams or fallback to base
-        if (hasExpenseStreams && activeExpenseStreamsSum > 0) {
+        // Accumulation phase: Base living expenses (from savings rate or annualExpenses) + Active custom expenses & debts
+        let baseAccum = 0;
+        if (annualIncome > 0 && plan.savingsRate !== undefined && plan.savingsRate !== null && Number(plan.savingsRate) > 0) {
+          const rate = Number(plan.savingsRate) / 100.0;
+          const incomeAfterTax = Math.max(0, annualIncome - estimatedTax);
+          baseAccum = incomeAfterTax * (1.0 - rate);
+        } else {
+          baseAccum = (Number(plan.annualExpenses) || 0) * cumInflation;
+        }
+
+        if (baseAccum > 0) {
+          expenseBreakdown.push({
+            name: 'Chi tiêu sinh hoạt cơ bản',
+            amount: baseAccum,
+            monthly: baseAccum / 12
+          });
+        }
+
+        let customAccumExpensesSum = 0;
+        if (hasExpenseStreams) {
           plan.expenses.forEach(exp => {
             if (exp.enabled === false) return;
             const start = (exp.startAge !== undefined && exp.startAge !== null && !isNaN(Number(exp.startAge)))
@@ -1430,33 +1547,29 @@ window.RetirementEngine = (function() {
               const yearsActive = age - start;
               const expVal = (Number(exp.amount) || 0) * Math.pow(1.0 + expGrowth, yearsActive);
               if (expVal > 0) {
+                customAccumExpensesSum += expVal;
                 expenseBreakdown.push({
-                  name: exp.name || 'Chi tiêu sinh hoạt',
+                  name: exp.name || 'Chi tiêu',
                   amount: expVal,
                   monthly: expVal / 12
+                });
+              } else if (expVal < 0) {
+                const posVal = Math.abs(expVal);
+                annualIncome += posVal;
+                incomeBreakdown.push({
+                  name: exp.name || 'Khoản thu hoàn lại',
+                  amount: posVal,
+                  monthly: posVal / 12
                 });
               }
             }
           });
-          childCostItems.forEach(ci => expenseBreakdown.push(ci));
-          currentExpenses = activeExpenseStreamsSum + childLifecycleCostThisYear;
-        } else {
-          let baseAccum = 0;
-          if (annualIncome > 0 && plan.savingsRate !== undefined && plan.savingsRate !== null && Number(plan.savingsRate) > 0) {
-            const rate = Number(plan.savingsRate) / 100.0;
-            const incomeAfterTax = Math.max(0, annualIncome - estimatedTax);
-            baseAccum = incomeAfterTax * (1.0 - rate);
-          } else {
-            baseAccum = (Number(plan.annualExpenses) || 240_000_000) * cumInflation;
-          }
-          expenseBreakdown.push({
-            name: 'Chi tiêu sinh hoạt',
-            amount: baseAccum,
-            monthly: baseAccum / 12
-          });
-          childCostItems.forEach(ci => expenseBreakdown.push(ci));
-          currentExpenses = baseAccum + childLifecycleCostThisYear;
         }
+
+        childCostItems.forEach(ci => expenseBreakdown.push(ci));
+        realEstateExpenseItems.forEach(ri => expenseBreakdown.push(ri));
+        bhxhExpenseItems.forEach(bi => expenseBreakdown.push(bi));
+        currentExpenses = baseAccum + customAccumExpensesSum + childLifecycleCostThisYear + realEstateDeficitThisYear + bhxhContributionThisYear;
       }
 
       // Apply Scenario Overrides (Market crash, High inflation, Medical Shock, Downsizing)
@@ -1505,23 +1618,7 @@ window.RetirementEngine = (function() {
         });
       }
 
-      // 3. Tax Estimation using precise Progressive Tax Engine
-      let estimatedTax = 0;
-      const kidsCount = (plan.familyPlan && plan.familyPlan.enabled !== false) ? (Number(plan.familyPlan.kidsCount) || 0) : 0;
-      if (window.TaxOptimizer && window.TaxOptimizer.calculateProgressiveTax) {
-        estimatedTax = window.TaxOptimizer.calculateProgressiveTax(taxableIncome, plan.taxRegime || 'france_vietnam', {
-          customTaxRate: plan.taxRate,
-          currency: plan.currency || 'EUR',
-          exchangeRateEurVnd: currentEurVndRate,
-          maritalStatus: plan.maritalStatus || (isSingle ? 'single' : 'married'),
-          kidsCount: kidsCount,
-          taxParts: (plan.taxParts !== undefined && plan.taxParts !== null && Number(plan.taxParts) > 0) ? Number(plan.taxParts) : 0
-        });
-      } else {
-        const effectiveTaxRate = (Number(plan.taxRate) || 12.0) / 100.0;
-        estimatedTax = taxableIncome * effectiveTaxRate * 0.7;
-      }
-      totalTaxesPaid += estimatedTax;
+
 
       // 4. Withdrawal / Savings Cash Flow
       let netSavingsOrWithdrawal = 0;
@@ -1536,19 +1633,21 @@ window.RetirementEngine = (function() {
         // Accumulation phase: Net Savings and Expenses
         const incomeAfterTax = Math.max(0, annualIncome - estimatedTax);
         if (hasExpenseStreams && activeExpenseStreamsSum > 0) {
-          // Realistic cashflow: Income After Tax minus Actual Expense Streams & Debts
+          // Realistic cashflow: Income After Tax minus Actual Expense Streams, Debts, Real Estate Deficits & BHXH Contributions
           netSavingsOrWithdrawal = incomeAfterTax - currentExpenses;
         } else if (annualIncome > 0) {
           if (plan.savingsRate !== undefined && plan.savingsRate !== null && Number(plan.savingsRate) > 0) {
             const rate = Number(plan.savingsRate) / 100.0;
-            currentExpenses = (incomeAfterTax * (1.0 - rate)) + childLifecycleCostThisYear;
+            currentExpenses = (incomeAfterTax * (1.0 - rate)) + childLifecycleCostThisYear + realEstateDeficitThisYear + bhxhContributionThisYear;
             netSavingsOrWithdrawal = incomeAfterTax - currentExpenses;
           } else {
             const cashflowSavings = incomeAfterTax - currentExpenses;
-            netSavingsOrWithdrawal = Math.max(cashflowSavings, annualSavings * cumInflation);
+            netSavingsOrWithdrawal = (plan.annualSavings !== undefined && plan.annualSavings !== null && !isNaN(Number(plan.annualSavings)) && Number(plan.annualSavings) > 0)
+              ? Math.max(cashflowSavings, (annualSavings * cumInflation) - realEstateDeficitThisYear - bhxhContributionThisYear)
+              : cashflowSavings;
           }
         } else {
-          netSavingsOrWithdrawal = annualSavings * cumInflation;
+          netSavingsOrWithdrawal = (annualSavings > 0 ? (annualSavings * cumInflation) : 0) - currentExpenses;
         }
         portfolio = (portfolio + netSavingsOrWithdrawal) * (1.0 + returnRate);
       } else {
@@ -1719,7 +1818,10 @@ window.RetirementEngine = (function() {
         const name = (inc.name || "").toLowerCase();
         const isSalary = !inc.isBhxhVn && (inc.isSalary || (/lương|salary|impôt|impot/i).test(inc.name || "") || (sAge < retireAge && eAge <= retireAge));
         if (!isSalary && retireAge >= sAge && retireAge <= eAge) {
-          passiveAtRetireNow += Number(inc.amount) || 0;
+          const incAmt = Number(inc.amount) || 0;
+          if (incAmt > 0) {
+            passiveAtRetireNow += incAmt;
+          }
         }
       });
     }

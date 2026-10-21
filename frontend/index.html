@@ -28,7 +28,7 @@
   <script src="js/icons-bundle.js?v=20261018_v1"></script>
 
   <!-- CSS Stylesheet: Core Design System + Sub-modules -->
-  <link rel="stylesheet" href="css/styles.css?v=20261021_v204">
+  <link rel="stylesheet" href="css/styles.css?v=20261021_v205">
   <link rel="stylesheet" href="css/modules/tab1-streams.css?v=20261021_v204">
   <link rel="stylesheet" href="css/modules/tab2-health.css?v=20261021_v204">
   <link rel="stylesheet" href="css/modules/tab3-taxes.css?v=20261021_v204">
@@ -181,7 +181,8 @@
           <div style="display: flex; flex-direction: column; gap: 0.35rem; line-height: 1.45;">
             <!-- Trụ Cột 1 -->
             <div>
-              <span style="color: var(--text-main); font-weight: 600;">1. Vốn trước khi về hưu:</span>
+              <span id="fire-pillar1-title" style="color: var(--text-main); font-weight: 600;">1. Vốn trước khi về hưu:</span>
+              <span class="fire-criteria-status" id="fire-pillar1-status"></span>
               <div style="color: var(--text-muted); font-size: 0.68rem; margin-top: 0.08rem; line-height: 1.4;">
                 • Tài sản thanh khoản (trừ BĐS) ≥ 25–30 lần khoản thiếu.<br>
                 • <em>Khoản thiếu = Chi tiêu hưu − Thu nhập hưu</em>
@@ -196,7 +197,8 @@
 
             <!-- Trụ Cột 2 -->
             <div>
-              <span style="color: var(--text-main); font-weight: 600;">2. Chịu được biến động thị trường:</span>
+              <span id="fire-pillar2-title" style="color: var(--text-main); font-weight: 600;">2. Chịu được biến động thị trường:</span>
+              <span class="fire-criteria-status" id="fire-pillar2-status"></span>
               <div style="color: var(--text-muted); font-size: 0.68rem; margin-top: 0.08rem;">
                 • Mô phỏng 1,000 kịch bản ngẫu nhiên đạt tỷ lệ thành công ≥ 80%.
               </div>
@@ -204,7 +206,8 @@
 
             <!-- Trụ Cột 3 -->
             <div>
-              <span style="color: var(--text-main); font-weight: 600;">3. Chịu được biến cố bệnh tật, khủng hoảng:</span>
+              <span id="fire-pillar3-title" style="color: var(--text-main); font-weight: 600;">3. Chịu được biến cố bệnh tật, khủng hoảng:</span>
+              <span class="fire-criteria-status" id="fire-pillar3-status"></span>
               <div id="sidebar-stress-status"
                 style="color: var(--text-muted); font-size: 0.67rem; margin-top: 0.08rem; line-height: 1.45;">
                 • Tài sản thanh khoản tại mọi thời điểm luôn <strong>≥ 5 năm khoản tiền thiếu</strong><br>
@@ -375,7 +378,7 @@
                   <div class="income-streams-header">
                     <h4 class="card-subtitle" style="margin: 0;" data-i18n="col1_income_header"> Các Luồng Thu nhập</h4>
                     <button type="button" id="btn-add-income" class="btn btn-xs btn-outline"
-                      data-i18n="btn_add_income">+ Thêm nguồn thu</button>
+                      data-i18n="btn_add_income" onclick="if(window.openIncomeModal) window.openIncomeModal(-1);">+ Thêm nguồn thu</button>
                   </div>
 
                   <!-- Danh sách các nguồn thu nhập hiện tại (Lương hiện tại của bạn, Lương bạn đời, Cổ tức...) đặt trên Lương hưu -->
@@ -1788,7 +1791,7 @@
                     </h4>
                     <div style="display: flex; gap: 0.4rem;">
                       <button type="button" id="btn-add-expense" class="btn btn-xs btn-outline"
-                        data-i18n="btn_add_expense">+ Thêm khoản chi</button>
+                        data-i18n="btn_add_expense" onclick="if(window.openExpenseModal) window.openExpenseModal(-1);">+ Thêm khoản chi</button>
                     </div>
                   </div>
 
@@ -2442,9 +2445,6 @@
                     data-i18n="btn_view_real" title="Xem theo sức mua hiện tại đã chiết khấu lạm phát">Sức mua Hiện tại (Real)</button>
                 </div>
                 <div class="chart-toolbar-right">
-                  <button type="button" class="btn btn-xs btn-outline" id="btn-toggle-compare-withdrawals"
-                    data-i18n="btn_toggle_compare_withdrawals" data-i18n-title="btn_toggle_compare_withdrawals_title"
-                    title="Bật/Tắt so sánh 4 chiến lược rút tiền từ tuổi nghỉ hưu">So sánh 4 chiến lược rút tiền</button>
                   <button type="button" class="btn btn-xs btn-outline" id="btn-toggle-compare-stress"
                     data-i18n="btn_toggle_compare_stress" data-i18n-title="btn_toggle_compare_stress_title"
                     title="Bật/Tắt so sánh 3 kịch bản biến cố rủi ro lớn nhất: Khủng hoảng sớm (-35%), Lạm phát phi mã, Cú sốc y tế">Ba biến cố tồi tệ nhất</button>
@@ -4979,29 +4979,6 @@
           <label for="inp-expense-name">Tên khoản chi hoặc nợ vay</label>
           <input type="text" id="inp-expense-name"
             placeholder="Ví dụ: Trả góp Crédit BĐS, Chi tiêu sinh hoạt, Trả nợ xe hơi..." class="form-input">
-          <!-- Gợi ý nhanh -->
-          <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem;">
-            <button type="button" class="btn btn-xs btn-ghost btn-preset-expense" data-name=" Trả góp Crédit Ngân Hàng"
-              data-growth="0" data-debt="true"
-              style="font-size: 0.72rem; padding: 0.15rem 0.45rem; border: 1px solid rgba(244, 63, 94, 0.3); color: #fb7185;">
-              Trả nợ Crédit</button>
-            <button type="button" class="btn btn-xs btn-ghost btn-preset-expense"
-              data-name=" Chi tiêu sinh hoạt & Tiện ích" data-growth="2.0" data-debt="false"
-              style="font-size: 0.72rem; padding: 0.15rem 0.45rem; border: 1px solid rgba(255, 255, 255, 0.15);"> Sinh
-              hoạt cơ bản</button>
-            <button type="button" class="btn btn-xs btn-ghost btn-preset-expense" data-name=" Trả góp Xe cộ & Bảo hiểm"
-              data-growth="0" data-debt="true"
-              style="font-size: 0.72rem; padding: 0.15rem 0.45rem; border: 1px solid rgba(244, 63, 94, 0.3); color: #fb7185;">
-              Xe cộ / Xăng xe</button>
-            <button type="button" class="btn btn-xs btn-ghost btn-preset-expense"
-              data-name=" Nợ tiêu dùng / Thẻ tín dụng" data-growth="0" data-debt="true"
-              style="font-size: 0.72rem; padding: 0.15rem 0.45rem; border: 1px solid rgba(244, 63, 94, 0.3); color: #fb7185;">
-              Nợ tiêu dùng</button>
-            <button type="button" class="btn btn-xs btn-ghost btn-preset-expense" data-name=" Nuôi con & Học phí"
-              data-growth="2.5" data-debt="false"
-              style="font-size: 0.72rem; padding: 0.15rem 0.45rem; border: 1px solid rgba(255, 255, 255, 0.15);"> Nuôi
-              con / Học phí</button>
-          </div>
         </div>
 
         <div class="form-row">
@@ -5029,24 +5006,18 @@
             <input type="number" id="inp-expense-start" class="form-input" min="18" max="100" value="29">
           </div>
           <div class="form-group col-6">
-            <label for="inp-expense-end">Kết thúc ở tuổi (Tất toán nợ)</label>
+            <label for="inp-expense-end">Kết thúc ở tuổi</label>
             <input type="number" id="inp-expense-end" class="form-input" min="18" max="100" value="46">
           </div>
         </div>
 
-        <div class="form-group" id="group-expense-growth">
+        <div class="form-group" id="group-expense-growth" style="margin-bottom: 0;">
           <label for="inp-expense-growth">Tốc độ tăng trưởng (%/năm)</label>
           <input type="number" id="inp-expense-growth" class="form-input" step="0.5" value="0.0">
-          <span class="input-hint">Để <strong>0%</strong> nếu là khoản nợ vay lãi suất cố định ngân hàng (Crédit/Prêt).
-            Để <strong>2.0% - 2.5%</strong> nếu là chi phí sinh hoạt trượt giá theo lạm phát.</span>
-        </div>
-
-        <div class="form-group" style="margin-bottom: 0;">
-          <label
-            style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.82rem; font-weight: 500;">
-            <input type="checkbox" id="inp-expense-is-debt" checked style="width: 16px; height: 16px;">
-            <span>Đây là khoản nợ vay / Crédit (Tự động chấm dứt chi trả sau khi tất toán)</span>
-          </label>
+          <span class="input-hint" style="line-height: 1.5; display: block; margin-top: 0.35rem;">
+            Để <strong>0%</strong> nếu là khoản chi phí/trả góp cố định.<br>
+            Để <strong>2.0% - 2.5%</strong> nếu là chi phí sinh hoạt trượt giá theo lạm phát.
+          </span>
         </div>
       </div>
       <div class="modal-footer">
@@ -6124,23 +6095,23 @@
   </div>
 
   <!-- Application Logic Modules -->
-  <script src="js/i18n.js?v=20261021_v206"></script>
-  <script src="js/state.js?v=20261021_v207"></script>
-  <script src="js/engine.js?v=20261021_v195"></script>
-  <script src="js/taxOptimizer.js?v=20261021_v203"></script>
-  <script src="js/monteCarlo.js?v=20261021_v167"></script>
-  <script src="js/scenarios.js?v=20261016_v103"></script>
-  <script src="js/geminiAdvisor.js?v=20261016_v107"></script>
-  <script src="js/patrimoine.js?v=20261021_v203"></script>
-  <script src="js/export.js?v=20261013_v2"></script>
-  <script src="js/auth.js?v=20261018_v157"></script>
+  <script src="js/i18n.js?v=20261021_v227"></script>
+  <script src="js/state.js?v=20261021_v227"></script>
+  <script src="js/engine.js?v=20261021_v228"></script>
+  <script src="js/taxOptimizer.js?v=20261021_v227"></script>
+  <script src="js/monteCarlo.js?v=20261021_v227"></script>
+  <script src="js/scenarios.js?v=20261021_v227"></script>
+  <script src="js/geminiAdvisor.js?v=20261021_v227"></script>
+  <script src="js/patrimoine.js?v=20261021_v227"></script>
+  <script src="js/export.js?v=20261021_v227"></script>
+  <script src="js/auth.js?v=20261021_v227"></script>
   <!-- Tầng 3: Giao diện tách theo từng Tab độc lập + Modals + Nhạc trưởng điều phối -->
-  <script src="js/ui-modals.js?v=20261019_v178"></script>
-  <script src="js/ui-tab1-charts.js?v=20261021_v183"></script>
-  <script src="js/ui-tab1-streams.js?v=20261021_v214"></script>
-  <script src="js/ui-tab2-health.js?v=20261021_v196"></script>
-  <script src="js/ui-tab3-taxes.js?v=20261021_v206"></script>
-  <script src="js/ui.js?v=20261021_v209"></script>
+  <script src="js/ui-modals.js?v=20261021_v227"></script>
+  <script src="js/ui-tab1-charts.js?v=20261021_v228"></script>
+  <script src="js/ui-tab1-streams.js?v=20261021_v227"></script>
+  <script src="js/ui-tab2-health.js?v=20261021_v227"></script>
+  <script src="js/ui-tab3-taxes.js?v=20261021_v227"></script>
+  <script src="js/ui.js?v=20261021_v228"></script>
 </body>
 
 </html>
