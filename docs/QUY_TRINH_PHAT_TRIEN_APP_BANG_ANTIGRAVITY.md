@@ -1,5 +1,7 @@
 # Cẩm Nang Toàn Diện: Quy Trình Phát Triển App Bằng Antigravity (Tối Ưu Token, Kiến Trúc, Bảo Mật & Pháp Lý)
 
+> **Đo hiệu suất tự động (1 lệnh):** `./benchmark.sh "ghi chú"` — tự đo số dòng, dung lượng, test và ghi vào `docs/BENCHMARK_LOG.md` (xem Phần VI).
+
 Tài liệu này là **cẩm nang hợp nhất duy nhất** của dự án `pyRetrait`, được sắp xếp **theo đúng trình tự thời gian từ lúc khởi tạo dự án (Giai đoạn 0), vận hành thực tế (Giai đoạn 6), đến chiến lược bảo trì dài hạn (Phần V)**. Mọi kiến thức có liên kết với nhau (Kiến trúc & Schema Migration, Quy chuẩn UI & Tương thích Mobile, Thi công & Gỡ lỗi 2-Strike, Bảo mật OWASP, Pháp lý GDPR và Cẩm nang Bảo trì bền vững) đều được đặt cạnh nhau tại đúng vị trí, giúp bạn tra cứu tức thì, **tiết kiệm 65% – 85% lượng token tiêu thụ** và **ngăn ngừa 95% lỗi hồi quy, ảo giác cũng như rủi ro kỹ thuật dài hạn**.
 
 ---
@@ -1143,5 +1145,118 @@ Trước khi đóng máy hoặc bàn giao dự án, hãy dành 1 phút đối ch
 | **8. Không có Biến Ma** | 100% ô input trên UI đều có kết nối 2 chiều với State và trực tiếp làm thay đổi kết quả ở Core Engine (vượt qua Delta Sensitivity Test). | Có ô nhập trên UI hoặc thuộc tính trong State nhưng không có bất kỳ dòng code nào trong Core Engine đọc tới. |
 
 Tuân thủ nghiêm ngặt cẩm nang này, ứng dụng của bạn sẽ luôn là một **công trình kiến trúc sạch sẽ, trường tồn, dễ mở rộng và vận hành tin cậy** cho hàng trăm ngàn người dùng suốt nhiều năm tháng!
+
+---
+
+## Phần VI. Đo Lường Hiệu Suất App (Performance Benchmark): Làm Sao Biết Bản Mới "Tốt Hơn" Bản Cũ?
+
+**Nguyên tắc:** Không đánh giá bằng cảm giác. Mỗi lần sửa lớn (refactor, thêm tính năng, tối ưu), hãy đo **trước** và **sau** bằng cùng một cách, ghi vào bảng so sánh, rồi mới kết luận.
+
+### 1. Năm Nhóm Chỉ Số Đo Hiệu Suất & Xu Hướng Tốt (Benchmark Matrix)
+
+| Nhóm | Chỉ số | Ý nghĩa thực tế | Xu hướng TỐT | Ngưỡng chuẩn mục tiêu |
+| :--- | :--- | :--- | :--- | :--- |
+| **A. Tốc độ trang & Web Vitals** | **FCP** *(First Contentful Paint)* | Thời gian từ lúc mở web đến khi thấy chữ/nội dung đầu tiên | 📉 **GIẢM** | < 1,5 giây (trên 4G) |
+| | **LCP** *(Largest Contentful Paint)* | Thời gian để bảng số liệu và biểu đồ chính hiển thị rõ | 📉 **GIẢM** | < 2,5 giây |
+| | **INP / TBT** *(Độ trễ phản hồi)* | Bấm vào nút, đổi số liệu thì màn hình phản hồi ngay hay đơ | 📉 **GIẢM** | < 150 – 200 ms |
+| | **CLS** *(Độ giật bố cục)* | Giao diện tải xong có bị giật khung làm bấm nhầm không | 📉 **GIẢM** | < 0,1 (ổn định, không giật) |
+| | **Điểm Lighthouse Mobile** | Điểm số tổng hợp hiệu năng trang web | 📈 **TĂNG** | 85 – 100 điểm |
+| **B. Tốc độ tính toán (Engine)** | **Thời gian `runProjection`** | Thời gian tính dòng tiền cả đời hưu trí | 📉 **GIẢM** | < 20 – 30 ms |
+| | **Thời gian Monte Carlo (1.000 lần)** | Chạy 1.000 kịch bản ngẫu nhiên | 📉 **GIẢM** | < 200 – 400 ms |
+| | **Bộ nhớ RAM (JS Heap Size)** | Lượng RAM trình duyệt ngốn sau 30 phút dùng app | 🔄 **ỔN ĐỊNH** | < 60 – 100 MB (chống rò rỉ bộ nhớ) |
+| | **Số lần tính toán thừa** | Gõ số liên tục có bị tính lại 10 lần làm nóng máy không | 📉 **GIẢM** | Hoãn tính (debounce ~250ms) |
+| **C. Quy mô & Độ gọn mã nguồn** | **Số file phình to (> 2.000 dòng)** | File quá dài khiến AI đọc tốn token và dễ sinh lỗi | 📉 **GIẢM** | **0 file** (tách theo Tab độc lập) |
+| | **Dung lượng Gzip (Bundle size)** | Số KB người dùng phải tải về máy khi mở web | 📉 **GIẢM / TĂNG CHẬM** | < 450 KB gzip |
+| | **Số lượng Biến Ma (Orphan input)** | Ô nhập trên UI nhưng không ảnh hưởng kết quả tính toán | 📉 **BẰNG 0** | **0 biến ma** |
+| | **Thời gian chạy `./verify_js.sh`** | Tốc độ quét cú pháp và cập nhật `CODEBASE_MAP.md` | 📉 **GIỮ SIÊU NHANH** | < 0,5 giây |
+| | **Tỷ lệ Test PASS** | Số test tự động vượt qua | 📈 **ĐẠT 100%** | 100% PASS (0 FAIL) |
+| **D. Hiệu quả làm việc với AI** | **Số lượt chat / tính năng** | Số câu đối thoại cần thiết để hoàn thành 1 task | 📉 **GIẢM** | 3 – 5 lượt chat |
+| | **Tỷ lệ sửa sai (2-Strike Rate)** | Số lần AI làm sai phải sửa lại | 📉 **GIẢM VỀ 0** | < 1 lần |
+| | **Token tiêu thụ / tính năng** | Lượng token tiêu thụ trong phiên làm việc | 📉 **GIẢM 70% – 85%** | < 30.000 – 50.000 token |
+| | **Lỗi hồi quy (Regression bugs)** | Sửa cái mới có làm hỏng tính năng cũ không | 📉 **BẰNG 0** | 0 lỗi hồi quy |
+
+### 2. Đo Tự Động Toàn Diện Bằng `./benchmark.sh` (Mã Nguồn, Tốc Độ Engine & Test)
+
+Chỉ cần gõ duy nhất 1 lệnh trong terminal (chạy trong 0.25 giây, **tốn 0 token**):
+
+```bash
+./benchmark.sh "Mô tả tính năng hoặc refactor vừa làm"
+```
+
+Script sẽ tự động:
+1. **Đo quy mô code:** Tổng số dòng, file lớn nhất, số file >2.000 dòng.
+2. **Đo dung lượng:** Số KB gzip nén thực tế người dùng phải tải.
+3. **Đo tốc độ tính toán Core Engine:** Chạy trực tiếp 5 lần `RetirementEngine.runProjection` và 1.000 lần `MonteCarloSimulator.runSimulation` trong Node.js để đo thời gian mili-giây (`ms`).
+4. **Kiểm thử logic:** Chạy `./verify_js.sh` để đếm số test `[PASS]` và `[FAIL]`.
+5. **So sánh với lần trước & Đánh giá xu hướng:** Tự động tính độ chênh lệch (Delta), hiển thị icon xu hướng (📉 Giảm = 🟢 TỐT, 📈 Tăng = 🟡 Cần theo dõi, 🔴 Cảnh báo), và ghi kết quả vào `docs/BENCHMARK_LOG.md`.
+
+### 3. Đo Tốc Độ Tính Toán Ngay Trong Console Trình Duyệt (Copy & Paste)
+
+Mở app ➔ `Cmd + Option + J` (Console) ➔ dán đoạn dưới đây. Mỗi phép đo chạy 5 lần và lấy **trung vị** để loại nhiễu:
+
+```javascript
+// Đo thời gian trung vị (ms) của một hàm sau 5 lần chạy
+const benchmark = (label, fn, runs = 5) => {
+  const times = [];
+  for (let i = 0; i < runs; i++) {
+    const t0 = performance.now();
+    fn();
+    times.push(performance.now() - t0);
+  }
+  times.sort((a, b) => a - b);
+  console.log(`${label}: ${times[Math.floor(runs / 2)].toFixed(1)} ms (nhanh nhất ${times[0].toFixed(1)} / chậm nhất ${times[runs - 1].toFixed(1)})`);
+};
+
+const plan = getActivePlan();
+benchmark('runProjection', () => runProjection(plan));
+benchmark('updateAll (vẽ lại toàn bộ UI)', () => updateAll());
+// Nếu hàm Monte Carlo của dự án có tên khác, đổi lại cho đúng (xem docs/CODEBASE_MAP.md)
+// benchmark('Monte Carlo 1000 runs', () => runMonteCarlo(plan), 3);
+```
+
+> [!TIP]
+> Đo với **cùng một kế hoạch mẫu** (cùng tuổi, tài sản, số con...) ở cả bản cũ và bản mới. Nếu đổi dữ liệu đầu vào thì so sánh không còn công bằng.
+
+### 4. Đo Tốc Độ Tải Trang Bằng Lighthouse (Không Tốn Token)
+
+1. Mở app ở cửa sổ ẩn danh (tránh extension làm nhiễu) ➔ `Cmd + Option + I` ➔ tab **Lighthouse**.
+2. Chọn **Mobile** + chỉ tick **Performance** ➔ bấm *Analyze page load*.
+3. Chạy 3 lần, ghi lại điểm **Performance**, **FCP**, **Total Blocking Time (TBT)**, **Largest Contentful Paint (LCP)**.
+4. Mục tiêu tham khảo: Performance từ 85 điểm trở lên, FCP dưới 1,8 giây, TBT dưới 200 ms.
+
+### 5. Bảng Ghi Nhận Trước / Sau (Dán Vào `CHANGELOG.md` Hoặc `docs/BENCHMARK_LOG.md`)
+
+Mỗi khi hoàn thành 1 tính năng lớn hoặc refactor, thêm 1 dòng vào bảng:
+
+| Ngày | Phiên bản / Commit | Tổng dòng code | File lớn nhất (dòng) | Dung lượng gzip (KB) | `runProjection` (ms) | `updateAll` (ms) | Lighthouse | Test PASS | Nhận xét |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 2026-10-22 | `v1.x.x` (mốc gốc) | ... | ... | ... | ... | ... | ... | .../... | Mốc so sánh đầu tiên |
+
+- **Mốc gốc (Baseline):** Đo ngay hôm nay và ghi lại làm dòng đầu tiên. Từ đó mọi bản sau đều so với mốc này.
+- **Quy tắc kết luận "tốt hơn":** Một thay đổi chỉ được coi là cải thiện khi **ít nhất 1 chỉ số tốt lên mà không chỉ số nào xấu đi quá 10%**. Nếu thêm tính năng làm tổng dòng code tăng là bình thường, nhưng tốc độ và dung lượng gzip không được tụt đáng kể.
+
+### 6. Đo Hiệu Quả Làm Việc Với AI (Token & Số Lượt Chat)
+
+- Với mỗi tính năng, ghi lại: **số lượt chat đã dùng**, **số lần phải sửa lại (2-Strike)**, **số lỗi hồi quy phát hiện sau khi hoàn thành**.
+- Tính tỷ lệ: `Lượt chat trung bình / tính năng` — con số này giảm dần chứng tỏ bộ quy trình, `CODEBASE_MAP.md` và `verify_js.sh` đang phát huy tác dụng.
+- Số lượt chat trên mỗi tính năng nhỏ mục tiêu: **dưới 5 lượt**; tính năng lớn: dưới 15 lượt (chia thành nhiều Task, mỗi Task 1 phiên chat mới).
+
+### 7. Câu Lệnh Prompt Nhờ AI Đo Hiệu Suất (Copy & Paste)
+
+```text
+Hãy đo hiệu suất hiện tại của app và ghi vào docs/BENCHMARK_LOG.md thêm 1 dòng mới.
+Chỉ dùng lệnh terminal (wc -l, du, gzip) và ./verify_js.sh, KHÔNG mở browser_subagent.
+Báo cáo: tổng dòng code, file lớn nhất, dung lượng gzip, số test PASS, và so sánh với dòng liền trước (tăng/giảm bao nhiêu %).
+```
+
+### 8. Checklist Đo Hiệu Suất Nhanh (1 Phút)
+
+| Việc cần làm | Khi nào | Xong |
+| :--- | :--- | :--- |
+| Đo mốc gốc (baseline) trước khi sửa lớn | Trước khi bắt đầu Task | [ ] |
+| Chạy `wc -l` + gzip + `./verify_js.sh` | Sau khi xong Task | [ ] |
+| Chạy `benchmark(...)` trong Console với kế hoạch mẫu | Sau khi sửa Engine / `updateAll` | [ ] |
+| Chạy Lighthouse (3 lần) | Trước mỗi bản phát hành (`./deploy.sh`) | [ ] |
+| Ghi 1 dòng vào bảng Trước / Sau và kết luận | Mỗi khi đóng Git Checkpoint | [ ] |
 
 
