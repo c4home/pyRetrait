@@ -53,15 +53,42 @@ window.RetirementEngine = (function() {
     }
   }
 
-  // Calculate weighted return across asset classes with optional rebalancing bonus
-  // Quy chuẩn: Tổng 4 cột không được vượt quá 100%, nhưng không cần đầy đủ 100%.
+  // Calculate weighted return across asset classes or dynamic investments with optional rebalancing bonus
+  // Quy chuẩn: Tổng các danh mục không được vượt quá 100%, nhưng không cần đầy đủ 100%.
   // Mẫu số luôn luôn là 100% của danh mục. Phần chưa phân bổ (100% - total) có tỷ suất sinh lời 0% (nhàn rỗi/bảo toàn vốn).
-  function calculateWeightedReturn(alloc, returns, rebalanceBonus = 0.3) {
-    if (!alloc) return 8.0;
-    const stocks = (alloc.stocks !== undefined && !isNaN(Number(alloc.stocks))) ? Math.max(0, Number(alloc.stocks)) : 60;
-    const bonds = (alloc.bonds !== undefined && !isNaN(Number(alloc.bonds))) ? Math.max(0, Number(alloc.bonds)) : 20;
-    const realEstate = (alloc.realEstate !== undefined && !isNaN(Number(alloc.realEstate))) ? Math.max(0, Number(alloc.realEstate)) : 20;
-    const cash = (alloc.cash !== undefined && !isNaN(Number(alloc.cash))) ? Math.max(0, Number(alloc.cash)) : 0;
+  function calculateWeightedReturn(allocOrInvestments, returns, rebalanceBonus = 0.3) {
+    if (!allocOrInvestments) return 8.0;
+
+    let items = [];
+    if (Array.isArray(allocOrInvestments)) {
+      items = allocOrInvestments;
+    } else if (Array.isArray(allocOrInvestments.investments)) {
+      items = allocOrInvestments.investments;
+    }
+
+    // Nếu là mảng danh mục đầu tư tùy biến do người dùng tự thêm
+    if (items.length > 0) {
+      let total = 0;
+      let weightedSum = 0;
+      let activeCount = 0;
+      items.forEach(it => {
+        const ratio = Math.max(0, Number(it.ratio) || 0);
+        const ret = Number(it.annualReturn) || 0;
+        total += ratio;
+        weightedSum += ratio * ret;
+        if (ratio > 0) activeCount++;
+      });
+      const clampedTotal = Math.min(100, Math.max(0, total));
+      const baseWeighted = weightedSum / 100.0;
+      const bonus = (activeCount >= 2) ? (rebalanceBonus || 0.3) * (clampedTotal / 100.0) : 0.0;
+      return Math.round((baseWeighted + bonus) * 100) / 100;
+    }
+
+    // Fallback đối tượng truyền thống { stocks, bonds, realEstate, cash }
+    const stocks = (allocOrInvestments.stocks !== undefined && !isNaN(Number(allocOrInvestments.stocks))) ? Math.max(0, Number(allocOrInvestments.stocks)) : 60;
+    const bonds = (allocOrInvestments.bonds !== undefined && !isNaN(Number(allocOrInvestments.bonds))) ? Math.max(0, Number(allocOrInvestments.bonds)) : 20;
+    const realEstate = (allocOrInvestments.realEstate !== undefined && !isNaN(Number(allocOrInvestments.realEstate))) ? Math.max(0, Number(allocOrInvestments.realEstate)) : 0;
+    const cash = (allocOrInvestments.cash !== undefined && !isNaN(Number(allocOrInvestments.cash))) ? Math.max(0, Number(allocOrInvestments.cash)) : 0;
     const total = stocks + bonds + realEstate + cash;
     const clampedTotal = Math.min(100, Math.max(0, total));
 
@@ -620,8 +647,8 @@ window.RetirementEngine = (function() {
     let weightedReturnPre = 8.0;
     let weightedReturnPost = 7.5;
     const isAssetAllocEnabled = (plan.enableAssetAllocation !== false);
-    if (isAssetAllocEnabled && plan.assetAllocation) {
-      weightedReturnPre = calculateWeightedReturn(plan.assetAllocation, plan.assetReturns, 0.3);
+    if (isAssetAllocEnabled && (plan.investments || plan.assetAllocation)) {
+      weightedReturnPre = calculateWeightedReturn(plan.investments || plan.assetAllocation, plan.assetReturns, 0.3);
       weightedReturnPost = weightedReturnPre;
       returnPre = weightedReturnPre / 100.0;
       returnPost = weightedReturnPost / 100.0;
@@ -1583,13 +1610,12 @@ window.RetirementEngine = (function() {
             eb.amount *= 1.30;
             eb.monthly *= 1.30;
           });
-        } else if (overrideScenario === 'medical_shock' && age === 65) {
+        } else if (overrideScenario === 'medical_shock' && (age === 65 || (age === retireAge && retireAge > 65))) {
           const fx = currentEurVndRate || 27500;
           const medicalShockAmt = 500_000_000 / fx; // 500tr VND (~18k EUR)
           currentExpenses += medicalShockAmt;
-          portfolio = Math.max(0, portfolio - medicalShockAmt);
           expenseBreakdown.push({
-            name: 'Biến cố y tế đột xuất',
+            name: 'Cú sốc chi phí y tế đột xuất (Tuổi 65)',
             amount: medicalShockAmt,
             monthly: medicalShockAmt / 12
           });

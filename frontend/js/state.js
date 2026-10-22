@@ -18,7 +18,7 @@
     currency: "EUR", // 'EUR', 'VND', 'USD'
     viewMode: "nominal", // 'nominal' | 'real'
     cashflowViewMode: "real", // 'real' | 'nominal' (mặc định: sức mua hiện tại)
-    mainChartTab: "networth", // 'networth' | 'cashflow' (chuyển đổi biểu đồ tài sản ròng và dòng tiền)
+    mainChartTab: "cashflow", // 'cashflow' | 'networth' (chuyển đổi biểu đồ dòng tiền và tài sản ròng)
     compareWithdrawals: false,
     compareStressScenarios: false,
     showMonteCarloFan: false,
@@ -124,7 +124,7 @@
   }
 
   function getMainChartTab() {
-    return state.mainChartTab || 'networth';
+    return state.mainChartTab || 'cashflow';
   }
 
   function setMainChartTab(tab) {
@@ -271,6 +271,27 @@
     }
     if (plan.enableAssetAllocation === undefined) {
       plan.enableAssetAllocation = true;
+    }
+    if (!Array.isArray(plan.investments) || plan.investments.length === 0) {
+      if (plan.assetAllocation) {
+        const s = plan.assetAllocation.stocks !== undefined ? Number(plan.assetAllocation.stocks) : 60;
+        const b = plan.assetAllocation.bonds !== undefined ? Number(plan.assetAllocation.bonds) : 20;
+        const c = plan.assetAllocation.cash !== undefined ? Number(plan.assetAllocation.cash) : 0;
+        const rs = plan.assetReturns?.stocks !== undefined ? Number(plan.assetReturns.stocks) : 9.5;
+        const rb = plan.assetReturns?.bonds !== undefined ? Number(plan.assetReturns.bonds) : 3.5;
+        const rc = plan.assetReturns?.cash !== undefined ? Number(plan.assetReturns.cash) : 1.5;
+        plan.investments = [
+          { id: 'inv_stocks', name: 'Cổ phiếu & Quỹ ETF', ratio: s, annualReturn: rs },
+          { id: 'inv_bonds', name: 'Trái phiếu & Tiết kiệm', ratio: b, annualReturn: rb },
+          { id: 'inv_cash', name: 'Tiền mặt & Thanh khoản', ratio: c, annualReturn: rc }
+        ];
+      } else {
+        plan.investments = [
+          { id: 'inv_stocks', name: 'Cổ phiếu & Quỹ ETF', ratio: 60, annualReturn: 9.5 },
+          { id: 'inv_bonds', name: 'Trái phiếu & Tiết kiệm', ratio: 20, annualReturn: 3.5 },
+          { id: 'inv_cash', name: 'Tiền mặt & Thanh khoản', ratio: 0, annualReturn: 1.5 }
+        ];
+      }
     }
     if (plan.smartWithdrawalCap === undefined) {
       plan.smartWithdrawalCap = true;
@@ -448,7 +469,7 @@
     if (pref.mainChartTab) {
       state.mainChartTab = pref.mainChartTab;
     } else {
-      state.mainChartTab = 'networth';
+      state.mainChartTab = 'cashflow';
     }
   }
 
@@ -462,7 +483,7 @@
         currency: state.currency || 'EUR',
         viewMode: state.viewMode || 'nominal',
         cashflowViewMode: state.cashflowViewMode || 'real',
-        mainChartTab: state.mainChartTab || 'networth'
+        mainChartTab: state.mainChartTab || 'cashflow'
       };
     }
     try {
@@ -606,7 +627,12 @@
           ],
           spendingPhases: { enabled: true, gogoAge: 55, gogoFactor: 1.15, slowgoAge: 70, slowgoFactor: 0.90, nogoFactor: 0.80 },
           healthcare: { enabled: true },
-          assetAllocation: { stocks: 80, bonds: 20, realEstate: 0, cash: 0 },
+          assetAllocation: { stocks: 60, bonds: 20, realEstate: 0, cash: 0 },
+          investments: [
+            { id: 'inv_stocks', name: 'Cổ phiếu & Quỹ ETF', ratio: 60, annualReturn: 9.5 },
+            { id: 'inv_bonds', name: 'Trái phiếu & Tiết kiệm', ratio: 20, annualReturn: 3.5 },
+            { id: 'inv_cash', name: 'Tiền mặt & Thanh khoản', ratio: 0, annualReturn: 1.5 }
+          ],
           dualInflation: {
             enabled: true,
             inflationPre: 2.2,

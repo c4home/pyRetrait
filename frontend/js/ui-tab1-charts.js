@@ -82,7 +82,7 @@
   // Sự kiện tương tác của các Biểu đồ & Bảng dự phóng trên Tab 1
   // -------------------------------------------------------------
   function bindTab1ChartEvents() {
-    // Compare 3 Worst Stress Scenarios Toggle on Net Worth Chart
+    // Compare 3 Worst Stress Scenarios Toggle (Dùng chung cho cả Net Worth Chart & Cash Flow Chart)
     const btnToggleStress = document.getElementById("btn-toggle-compare-stress");
     if (btnToggleStress) {
       btnToggleStress.addEventListener("click", () => {
@@ -94,12 +94,49 @@
             const btnMcFan = document.getElementById("btn-toggle-mc-fan");
             if (btnMcFan) btnMcFan.classList.remove("active");
           }
+          // Khi bật Ba biến cố tồi tệ nhất, xóa chip đơn lẻ nếu có
+          state.cashflowStressScenario = null;
+          document.querySelectorAll(".cashflow-stress-chip").forEach(c => c.classList.remove("active"));
         }
         const plan = getActivePlan();
+        if (!plan || !window.RetirementEngine) return;
         const proj = window.RetirementEngine.runProjection(plan);
-        renderNetWorthChart(proj);
+        if (state.mainChartTab === 'cashflow') {
+          renderCashFlowChart(proj, true);
+        } else {
+          renderNetWorthChart(proj, true);
+        }
       });
     }
+
+    // Sự kiện bấm chọn trực tiếp 3 chip biến cố trên biểu đồ dòng tiền (bấm bật / bấm lại để tắt)
+    document.querySelectorAll(".cashflow-stress-chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        const scKey = chip.getAttribute("data-scenario");
+        const wasActive = chip.classList.contains("active");
+
+        // Bỏ active của tất cả chip
+        document.querySelectorAll(".cashflow-stress-chip").forEach(c => c.classList.remove("active"));
+
+        if (wasActive) {
+          state.cashflowStressScenario = null;
+        } else {
+          chip.classList.add("active");
+          state.cashflowStressScenario = scKey;
+          // Tắt chế độ so sánh gộp Ba biến cố tồi tệ nhất nếu đang bật
+          if (state.compareStressScenarios) {
+            state.compareStressScenarios = false;
+            const btnStress = document.getElementById("btn-toggle-compare-stress");
+            if (btnStress) btnStress.classList.remove("active");
+          }
+        }
+
+        const plan = getActivePlan();
+        if (!plan || !window.RetirementEngine) return;
+        const proj = window.RetirementEngine.runProjection(plan);
+        renderCashFlowChart(proj, true);
+      });
+    });
 
     // Toggle Monte Carlo Fan Chart on Net Worth Chart
     const btnToggleMcFan = document.getElementById("btn-toggle-mc-fan");
@@ -176,10 +213,10 @@
       btnTabCashFlow.addEventListener("click", () => switchMainChartTab("cashflow"));
     }
 
-    // Khởi tạo hiển thị ban đầu dựa trên trạng thái đã lưu
+    // Khởi tạo hiển thị ban đầu dựa trên trạng thái đã lưu (mặc định: cashflow - Dòng tiền Hàng năm)
     const initialChartTab = (window.AppState && typeof window.AppState.getMainChartTab === 'function')
       ? window.AppState.getMainChartTab()
-      : (state.mainChartTab || 'networth');
+      : (state.mainChartTab || 'cashflow');
     switchMainChartTab(initialChartTab, false);
 
 
@@ -282,7 +319,9 @@
       const p = proj.timeline.find(item => item.age === m.age);
       const yearStr = p ? ` (${p.year})` : '';
       const chip = document.createElement("div");
-      chip.className = "milestone-chip";
+      // Chỉ đổi màu duy nhất sự kiện Nghỉ Hưu, không nhận vơ sự kiện khác cùng tuổi
+      const isRetire = (m.id === 'ms_retire' || m.name === 'Nghỉ hưu');
+      chip.className = isRetire ? "milestone-chip milestone-chip-retire" : "milestone-chip";
       chip.title = m.desc || `${m.name} (Tuổi ${m.age}${yearStr})`;
       
       let amtHtml = "";
@@ -291,6 +330,7 @@
         amtHtml = `<span class="milestone-chip-amount">${sign}${window.RetirementEngine.formatCurrency(m.amount, state.currency, true)}</span>`;
       }
 
+      // Tuyệt đối không để icon ở phía trước text
       chip.innerHTML = `
         <span class="milestone-chip-age">${m.age}t${yearStr}</span>
         <span class="milestone-chip-label">${m.name}</span>
@@ -583,24 +623,53 @@
     const unifiedMilestoneLine = isLight ? "rgba(2, 132, 199, 0.35)" : "rgba(56, 189, 248, 0.35)";
     const unifiedMilestoneText = isLight ? "#0284c7" : "#38bdf8";
 
-    // 1. Nhóm các mốc theo độ tuổi để triệt tiêu việc vẽ đè các mốc trùng tuổi (như 3 căn hộ tất toán cùng tuổi 46)
-    const milestonesByAge = new Map();
+    // Phân tách danh sách thẻ ghim (Marker Items):
+    // Tách riêng sự kiện Nghỉ Hưu và các sự kiện khác để trong trường hợp trùng hoặc gần trùng tuổi,
+    // CHỈ CÓ duy nhất sự kiện nghỉ hưu đổi màu vàng cam hổ phách, các sự kiện khác giữ nguyên màu xanh chuẩn.
+    const markerItems = [];
+    const regularAgesSeen = new Set();
+
     proj.milestones.forEach(m => {
-      if (!milestonesByAge.has(m.age)) {
-        milestonesByAge.set(m.age, []);
+      // Chỉ duy nhất mốc Nghỉ Hưu mới nhận isRetire = true
+      const isRetire = (m.id === 'ms_retire' || m.name === 'Nghỉ hưu');
+      if (isRetire) {
+        markerItems.push({
+          age: m.age,
+          isRetire: true,
+          id: m.id,
+          name: m.name
+        });
+      } else {
+        // Với các sự kiện thông thường, mỗi độ tuổi tạo 1 thẻ ghim chuẩn (tránh trùng lặp nếu có nhiều mốc cùng tuổi)
+        if (!regularAgesSeen.has(m.age)) {
+          regularAgesSeen.add(m.age);
+          markerItems.push({
+            age: m.age,
+            isRetire: false,
+            id: m.id,
+            name: m.name
+          });
+        }
       }
-      milestonesByAge.get(m.age).push(m);
     });
 
-    const uniqueAges = Array.from(milestonesByAge.keys()).sort((a, b) => a - b);
+    // Sắp xếp theo tuổi, nếu cùng tuổi thì mốc nghỉ hưu ưu tiên xếp trước để hiển thị tầng trên
+    markerItems.sort((a, b) => {
+      if (a.age !== b.age) return a.age - b.age;
+      return a.isRetire ? -1 : 1;
+    });
+
     const pillH = 18;
     const tierGapY = 21;
     // Hỗ trợ 3 tầng hàng thẻ ghim (Tier 0, 1, 2) so le để các mốc ở các năm liền kề không bao giờ bị đè ngang
     const tierLastRight = [-Infinity, -Infinity, -Infinity];
+    const drawnGuidelines = new Set();
 
     ctx.save();
 
-    uniqueAges.forEach((age) => {
+    markerItems.forEach((item) => {
+      const age = item.age;
+      const isRetire = item.isRetire;
       const idx = proj.timeline.findIndex(p => p.age === age);
       if (idx === -1) return;
       const xPos = x.getPixelForValue(idx);
@@ -608,11 +677,12 @@
 
       const p = proj.timeline[idx];
       const yearBadge = p ? ` (${p.year})` : '';
+      // Tuyệt đối không để icon ở phía trước text
       const labelText = `${age}t${yearBadge}`;
 
-      ctx.font = '600 10px Inter, sans-serif';
+      ctx.font = isRetire ? '700 10.5px Inter, sans-serif' : '600 10px Inter, sans-serif';
       const textMetrics = ctx.measureText(labelText);
-      const pillW = Math.max(62, Math.ceil(textMetrics.width + 14));
+      const pillW = Math.max(isRetire ? 66 : 62, Math.ceil(textMetrics.width + 14));
 
       // Tính tọa độ X căn giữa xPos, không tràn ra ngoài chartArea
       let pillX = Math.max(chartArea.left + 2, Math.min(chartArea.right - pillW - 2, xPos - pillW / 2));
@@ -647,31 +717,52 @@
       tierLastRight[chosenTier] = pillX + pillW;
       const pillY = chartArea.top + (chosenTier * tierGapY) + 2;
 
-      // 1. Đường gióng nét đứt thẳng đứng từ chân thẻ ghim xuống đáy biểu đồ
-      ctx.beginPath();
-      ctx.setLineDash([4, 4]);
-      ctx.strokeStyle = unifiedMilestoneLine;
-      ctx.lineWidth = 1.3;
-      ctx.globalAlpha = 1.0;
-      ctx.moveTo(xPos, pillY + pillH);
-      ctx.lineTo(xPos, chartArea.bottom);
-      ctx.stroke();
+      // Màu sắc: CHỈ CÓ sự kiện Nghỉ Hưu mang màu Vàng Hổ Phách (Amber Gold), sự kiện khác mang màu chuẩn
+      const lineStroke = isRetire
+        ? (isLight ? "rgba(217, 119, 6, 0.85)" : "rgba(245, 158, 11, 0.9)")
+        : unifiedMilestoneLine;
+      const lineDash = isRetire ? [5, 3] : [4, 4];
+      const lineWidth = isRetire ? 2.0 : 1.3;
+
+      const badgeBg = isRetire
+        ? (isLight ? "#fef3c7" : "rgba(120, 53, 15, 0.95)")
+        : unifiedMilestoneBg;
+      const badgeBorder = isRetire
+        ? (isLight ? "#d97706" : "#f59e0b")
+        : unifiedMilestoneBorder;
+      const badgeBorderWidth = isRetire ? 1.6 : 1.2;
+      const badgeTextColor = isRetire
+        ? (isLight ? "#9a3412" : "#fef08a")
+        : unifiedMilestoneText;
+
+      // 1. Đường gióng nét đứt thẳng đứng từ chân thẻ ghim xuống đáy biểu đồ (mốc nghỉ hưu luôn có đường gióng nổi bật riêng)
+      if (!drawnGuidelines.has(age) || isRetire) {
+        drawnGuidelines.add(age);
+        ctx.beginPath();
+        ctx.setLineDash(lineDash);
+        ctx.strokeStyle = lineStroke;
+        ctx.lineWidth = lineWidth;
+        ctx.globalAlpha = 1.0;
+        ctx.moveTo(xPos, pillY + pillH);
+        ctx.lineTo(xPos, chartArea.bottom);
+        ctx.stroke();
+      }
 
       // Nếu thẻ ghim bị dịch chuyển ngang nhẹ để né đè chữ, vẽ nét nối nhỏ từ tâm thẻ đến trục xPos
       if (Math.abs((pillX + pillW / 2) - xPos) > 2) {
         ctx.beginPath();
         ctx.setLineDash([]);
-        ctx.strokeStyle = unifiedMilestoneLine;
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = lineStroke;
+        ctx.lineWidth = isRetire ? 1.4 : 1;
         ctx.moveTo(pillX + pillW / 2, pillY + pillH);
         ctx.lineTo(xPos, pillY + pillH + 4);
         ctx.stroke();
       }
 
       // 2. Vẽ hình thẻ ghim (Badge pill)
-      ctx.fillStyle = unifiedMilestoneBg;
-      ctx.strokeStyle = unifiedMilestoneBorder;
-      ctx.lineWidth = 1.2;
+      ctx.fillStyle = badgeBg;
+      ctx.strokeStyle = badgeBorder;
+      ctx.lineWidth = badgeBorderWidth;
       ctx.setLineDash([]);
       ctx.beginPath();
       if (ctx.roundRect) {
@@ -682,11 +773,65 @@
       ctx.fill();
       ctx.stroke();
 
-      // 3. Viết chữ vào trong thẻ ghim
-      ctx.fillStyle = unifiedMilestoneText;
+      // 3. Viết chữ vào trong thẻ ghim (hoàn toàn không có icon ở phía trước text)
+      ctx.fillStyle = badgeTextColor;
+      ctx.font = isRetire ? '700 10.5px Inter, sans-serif' : '600 10px Inter, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(labelText, pillX + pillW / 2, pillY + pillH / 2);
+    });
+
+    ctx.restore();
+  }
+
+  // Vẽ vùng nền đỏ nhạt cho các khoảng tuổi không cân đối được chi tiêu
+  function drawDeficitIntervalsBackground(chart, intervals, isLight) {
+    if (!intervals || intervals.length === 0) return;
+    const { ctx, chartArea, scales: { x } } = chart;
+    if (!chartArea || !x) return;
+
+    ctx.save();
+    const colStep = (x.getPixelForValue(1) - x.getPixelForValue(0)) || 18;
+
+    intervals.forEach(interval => {
+      const xStart = x.getPixelForValue(interval.startIdx);
+      const xEnd = x.getPixelForValue(interval.endIdx);
+      const zoneLeft = Math.max(chartArea.left, xStart - colStep / 2);
+      const zoneRight = Math.min(chartArea.right, xEnd + colStep / 2);
+      const zoneWidth = Math.max(8, zoneRight - zoneLeft);
+
+      // Phủ vùng đỏ nhạt cảnh báo không cân đối chi tiêu
+      ctx.fillStyle = isLight ? "rgba(239, 68, 68, 0.08)" : "rgba(239, 68, 68, 0.16)";
+      ctx.fillRect(zoneLeft, chartArea.top, zoneWidth, chartArea.bottom - chartArea.top);
+    });
+    ctx.restore();
+  }
+
+  // Vẽ đường biên gióng nét đứt cho khoảng tuổi không cân đối ngay trên graph (không viết text pill che đồ thị)
+  function drawDeficitIntervalsLines(chart, intervals, isLight) {
+    if (!intervals || intervals.length === 0) return;
+    const { ctx, chartArea, scales: { x } } = chart;
+    if (!chartArea || !x) return;
+
+    ctx.save();
+    const colStep = (x.getPixelForValue(1) - x.getPixelForValue(0)) || 18;
+
+    intervals.forEach((interval) => {
+      const xStart = x.getPixelForValue(interval.startIdx);
+      const xEnd = x.getPixelForValue(interval.endIdx);
+      const zoneLeft = Math.max(chartArea.left, xStart - colStep / 2);
+      const zoneRight = Math.min(chartArea.right, xEnd + colStep / 2);
+
+      // Hai đường biên nét đứt đỏ mỏng định vị khoảng thâm hụt
+      ctx.beginPath();
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = isLight ? "rgba(220, 38, 38, 0.65)" : "rgba(248, 113, 113, 0.75)";
+      ctx.lineWidth = 1.3;
+      ctx.moveTo(zoneLeft, chartArea.top);
+      ctx.lineTo(zoneLeft, chartArea.bottom);
+      ctx.moveTo(zoneRight, chartArea.top);
+      ctx.lineTo(zoneRight, chartArea.bottom);
+      ctx.stroke();
     });
 
     ctx.restore();
@@ -726,13 +871,33 @@
     if (wrapNw) wrapNw.style.display = (validTab === 'networth') ? 'block' : 'none';
     if (wrapCf) wrapCf.style.display = (validTab === 'cashflow') ? 'block' : 'none';
 
+    // Điều khiển hiển thị thanh điều khiển biến cố của Biểu đồ Tài sản Ròng (Net Worth):
+    // Ẩn hoàn toàn nút "Ba biến cố tồi tệ nhất" và các điều khiển tài sản khi ở biểu đồ Dòng tiền hằng năm
     const extraControls = document.getElementById("chart-networth-extra-controls");
     if (extraControls) extraControls.style.display = (validTab === 'networth') ? 'block' : 'none';
+
+    const btnCompareStress = document.getElementById("btn-toggle-compare-stress");
+    if (btnCompareStress) btnCompareStress.style.display = (validTab === 'networth') ? 'inline-block' : 'none';
+
+    const btnMcFan = document.getElementById("btn-toggle-mc-fan");
+    if (btnMcFan) btnMcFan.style.display = (validTab === 'networth') ? 'inline-block' : 'none';
+
+    const liquidCard = document.getElementById("liquid-explainer-card");
+    if (liquidCard) liquidCard.style.display = (validTab === 'networth') ? 'flex' : 'none';
+
+    // Hiển thị cụm 3 chip biến cố trực tiếp khi ở biểu đồ Dòng tiền
+    const cfStressBar = document.getElementById("cashflow-stress-chips-bar");
+    if (cfStressBar) cfStressBar.style.display = (validTab === 'cashflow') ? 'flex' : 'none';
 
     const noticeEl = document.getElementById("cashflow-inflation-notice");
     if (noticeEl) {
       const isNominal = (state.viewMode === 'nominal' || state.cashflowViewMode === 'nominal');
       noticeEl.style.display = (validTab === 'cashflow' && isNominal) ? 'flex' : 'none';
+    }
+
+    const deficitStrip = document.getElementById("cashflow-deficit-alert-strip");
+    if (deficitStrip && validTab !== 'cashflow') {
+      deficitStrip.style.display = 'none';
     }
 
     if (doSave) {
@@ -792,15 +957,29 @@
     const coolLiquidColor = isLight ? '#0284c7' : '#38bdf8';       // Xanh biển sâu / Sky Blue tươi
     const coolNetWorthColor = isLight ? '#7c3aed' : '#c084fc';     // Tím hoàng gia / Tím hoa cà sáng rực (Pure Violet)
 
-    const pointRadii = proj.timeline.map(p => milestoneMap.has(p.age) ? 5.5 : 0);
-    const pointHoverRadii = proj.timeline.map(p => milestoneMap.has(p.age) ? 8.5 : 5);
+    const isRetireAge = (age) => age === proj.retireAge;
+    const retireColor = isLight ? '#d97706' : '#fbbf24';
+
+    const pointRadii = proj.timeline.map(p => {
+      if (isRetireAge(p.age)) return 8.0;
+      return milestoneMap.has(p.age) ? 5.5 : 0;
+    });
+    const pointHoverRadii = proj.timeline.map(p => {
+      if (isRetireAge(p.age)) return 11.0;
+      return milestoneMap.has(p.age) ? 8.5 : 5;
+    });
     const pointBgColors = proj.timeline.map(p => {
+      if (isRetireAge(p.age)) return retireColor;
       return milestoneMap.has(p.age) ? unifiedMilestoneColor : coolNetWorthColor;
     });
     const pointBorderColors = proj.timeline.map(p => {
+      if (isRetireAge(p.age)) return '#ffffff';
       return milestoneMap.has(p.age) ? '#ffffff' : coolNetWorthColor;
     });
-    const pointBorderWidths = proj.timeline.map(p => milestoneMap.has(p.age) ? 2 : 0);
+    const pointBorderWidths = proj.timeline.map(p => {
+      if (isRetireAge(p.age)) return 3.0;
+      return milestoneMap.has(p.age) ? 2 : 0;
+    });
 
     const gradientPortfolio = ctx.createLinearGradient(0, 0, 0, 350);
     gradientPortfolio.addColorStop(0, isLight ? 'rgba(2, 132, 199, 0.25)' : 'rgba(56, 189, 248, 0.30)');
@@ -1259,27 +1438,37 @@
 
     const activeChartTab = (window.AppState && typeof window.AppState.getMainChartTab === 'function')
       ? window.AppState.getMainChartTab()
-      : (state.mainChartTab || 'networth');
+      : (state.mainChartTab || 'cashflow');
 
     const noticeEl = document.getElementById("cashflow-inflation-notice");
     if (noticeEl) {
       noticeEl.style.display = (isNominal && activeChartTab === 'cashflow') ? "flex" : "none";
     }
 
-    // Cập nhật Cột mốc cuộc đời dùng chung
-    renderMilestonesRibbon(proj);
+    // Kiểm tra xem người dùng có đang chọn kích hoạt mô phỏng biến cố nào không
+    const isStressActive = Boolean(state.cashflowStressScenario);
+    const scKey = state.cashflowStressScenario;
+    const scProj = (isStressActive && window.RetirementEngine && typeof window.RetirementEngine.runProjection === 'function')
+      ? window.RetirementEngine.runProjection(activePlan, scKey)
+      : null;
+    const activeProj = (isStressActive && scProj) ? scProj : proj;
 
-    const labels = proj.timeline.map(p => [`${p.age}t`, `${p.year}`]);
-    const incomes = proj.timeline.map(p => {
+    // Cập nhật Cột mốc cuộc đời dùng chung
+    renderMilestonesRibbon(activeProj);
+
+    // Dữ liệu đường cơ sở (Baseline Projection) - Luôn dùng từ proj chuẩn
+    const baseTimeline = proj.timeline || [];
+    const labels = baseTimeline.map(p => [`${p.age}t`, `${p.year}`]);
+
+    const baseIncomes = baseTimeline.map(p => {
       const val = isNominal ? (p.income || 0) : ((p.cumInflation > 0) ? ((p.income || 0) / p.cumInflation) : (p.income || 0));
       return Math.round(val);
     });
-    const expenses = proj.timeline.map(p => {
+    const baseExpenses = baseTimeline.map(p => {
       const val = isNominal ? (p.expenses || 0) : ((p.cumInflation > 0) ? ((p.expenses || 0) / p.cumInflation) : (p.expenses || 0));
       return Math.round(val);
     });
-    // Chỉ hiển thị giá trị dòng tiền rút vốn ở những năm thực sự CẦN rút vốn (isRetired và withdrawal > 0)
-    const withdrawals = proj.timeline.map(p => {
+    const baseWithdrawals = baseTimeline.map(p => {
       if (!p.isRetired || !(p.withdrawal > 0)) return null;
       const val = isNominal ? p.withdrawal : ((p.cumInflation > 0) ? (p.withdrawal / p.cumInflation) : p.withdrawal);
       return Math.round(val);
@@ -1290,7 +1479,7 @@
     }
 
     const milestoneMap = new Map();
-    (proj.milestones || []).forEach(m => {
+    (activeProj.milestones || []).forEach(m => {
       if (!milestoneMap.has(m.age)) {
         milestoneMap.set(m.age, m);
       }
@@ -1299,13 +1488,42 @@
     const isLight = document.documentElement.getAttribute("data-theme") === "light";
     const sym = window.RetirementEngine.getCurrencySymbol(state.currency);
 
-    const incomeColor = isLight ? '#059669' : '#10b981';
-    const expenseColor = isLight ? '#e11d48' : '#f43f5e';
-    const withdrawalColor = isLight ? '#7c3aed' : '#a855f7';
+    // 3 MÀU CƠ SỞ BẤT BIẾN: Thu nhập XANH LÁ CÂY, Chi tiêu MÀU ĐỎ, Rút vốn MÀU TÍM
+    const incomeColor = isLight ? '#059669' : '#10b981';     // Xanh lá cây chuẩn
+    const expenseColor = isLight ? '#e11d48' : '#f43f5e';    // Màu đỏ chuẩn
+    const withdrawalColor = isLight ? '#7c3aed' : '#a855f7'; // Màu tím chuẩn
 
-    const pointRadii = proj.timeline.map(p => milestoneMap.has(p.age) ? 4.5 : 0);
-    const pointHoverRadii = proj.timeline.map(p => milestoneMap.has(p.age) ? 7.5 : 6);
-    const withdrawalRadii = proj.timeline.map(p => milestoneMap.has(p.age) ? 4.5 : ((p.isRetired && (p.withdrawal || 0) > 0) ? 2.5 : 0));
+    // Điểm mốc trên đường cơ sở (không vẽ chấm cam)
+    const pointRadii = baseTimeline.map(p => {
+      return milestoneMap.has(p.age) ? 4.5 : 0;
+    });
+    const pointHoverRadii = baseTimeline.map(p => {
+      return milestoneMap.has(p.age) ? 7.5 : 5;
+    });
+
+    const incomePointBgs = baseTimeline.map(() => incomeColor);
+    const expensePointBgs = baseTimeline.map(() => expenseColor);
+
+    // Điểm đầu và cuối đoạn rút vốn cơ sở
+    const withdrawalRadii = baseTimeline.map((p, idx) => {
+      const val = baseWithdrawals[idx];
+      if (val === null || val === undefined) return 0;
+      const isStart = (idx === 0 || baseWithdrawals[idx - 1] === null || baseWithdrawals[idx - 1] === undefined);
+      const isEnd = (idx === baseWithdrawals.length - 1 || baseWithdrawals[idx + 1] === null || baseWithdrawals[idx + 1] === undefined);
+      if (isStart || isEnd) {
+        return 6.0;
+      }
+      if (milestoneMap.has(p.age)) {
+        return 4.5;
+      }
+      return 0;
+    });
+
+    const withdrawalHoverRadii = baseTimeline.map((p, idx) => {
+      return (baseWithdrawals[idx] !== null && baseWithdrawals[idx] !== undefined) ? 8.0 : 0;
+    });
+
+    const withdrawalPointBgs = baseTimeline.map(() => withdrawalColor);
 
     const gradientIncome = ctx.createLinearGradient(0, 0, 0, 320);
     gradientIncome.addColorStop(0, isLight ? 'rgba(5, 150, 105, 0.32)' : 'rgba(16, 185, 129, 0.35)');
@@ -1319,70 +1537,198 @@
     gradientWithdrawal.addColorStop(0, isLight ? 'rgba(124, 58, 237, 0.22)' : 'rgba(168, 85, 247, 0.25)');
     gradientWithdrawal.addColorStop(1, isLight ? 'rgba(124, 58, 237, 0.02)' : 'rgba(168, 85, 247, 0.02)');
 
-    // Custom Plugin to Draw Milestone Vertical Guidelines & Floating Pins on Cash Flow Chart
+    // Tự động xác định các khoảng tuổi không cân đối được chi tiêu trong kịch bản đang xem
+    const deficitIntervals = [];
+    let curDeficitInterval = null;
+
+    activeProj.timeline.forEach((p, idx) => {
+      const inc = isNominal ? (p.income || 0) : ((p.cumInflation > 0) ? ((p.income || 0) / p.cumInflation) : (p.income || 0));
+      const exp = isNominal ? (p.expenses || 0) : ((p.cumInflation > 0) ? ((p.expenses || 0) / p.cumInflation) : (p.expenses || 0));
+      const wd = (p.isRetired && p.withdrawal > 0)
+        ? (isNominal ? p.withdrawal : ((p.cumInflation > 0) ? (p.withdrawal / p.cumInflation) : p.withdrawal))
+        : 0;
+
+      const hasDeficit = p.isRetired && (exp - (inc + wd) > 50);
+
+      if (hasDeficit) {
+        const gap = exp - (inc + wd);
+        if (!curDeficitInterval) {
+          curDeficitInterval = {
+            startIdx: idx,
+            endIdx: idx,
+            startAge: p.age,
+            endAge: p.age,
+            startYear: p.year,
+            endYear: p.year,
+            maxDeficit: gap
+          };
+        } else {
+          curDeficitInterval.endIdx = idx;
+          curDeficitInterval.endAge = p.age;
+          curDeficitInterval.endYear = p.year;
+          curDeficitInterval.maxDeficit = Math.max(curDeficitInterval.maxDeficit, gap);
+        }
+      } else {
+        if (curDeficitInterval) {
+          deficitIntervals.push(curDeficitInterval);
+          curDeficitInterval = null;
+        }
+      }
+    });
+    if (curDeficitInterval) {
+      deficitIntervals.push(curDeficitInterval);
+    }
+
+    // Cập nhật dải cảnh báo (alert strip) phía trên đồ thị
+    const alertStrip = document.getElementById("cashflow-deficit-alert-strip");
+    const alertText = document.getElementById("cashflow-deficit-alert-text");
+    if (alertStrip && alertText) {
+      if (deficitIntervals.length > 0 && activeChartTab === 'cashflow') {
+        const intervalStrs = deficitIntervals.map(it => {
+          if (it.startAge === it.endAge) {
+            return `từ <strong>${it.startAge} tuổi</strong> (năm ${it.startYear})`;
+          }
+          return `từ <strong>${it.startAge} đến ${it.endAge} tuổi</strong> (năm ${it.startYear} – ${it.endYear})`;
+        });
+        alertText.innerHTML = `Cảnh báo: Dòng tiền không đủ bù đắp chi tiêu ở các khoảng tuổi: ${intervalStrs.join(', ')}. Hãy cân nhắc tăng vốn tích lũy, giảm chi tiêu hoặc điều chỉnh tỷ lệ rút vốn.`;
+        alertStrip.style.display = "flex";
+      } else {
+        alertStrip.style.display = "none";
+      }
+    }
+
+    // Plugin vẽ interval (vùng nền đỏ nhạt + đường gióng biên nét đứt, không viết text pill) và mốc cuộc đời
     const milestoneMarkersCashFlowPlugin = {
       id: 'milestoneMarkersCashFlowPlugin',
+      beforeDatasetsDraw(chart) {
+        drawDeficitIntervalsBackground(chart, deficitIntervals, isLight);
+      },
       afterDatasetsDraw(chart) {
-        drawMilestoneMarkers(chart, proj, isLight);
+        drawDeficitIntervalsLines(chart, deficitIntervals, isLight);
+        drawMilestoneMarkers(chart, activeProj, isLight);
       }
     };
 
     const incomeLabel = (window.I18n && window.I18n.t) ? window.I18n.t('chart_income_label', 'Thu nhập') : 'Thu nhập';
     const expenseLabel = (window.I18n && window.I18n.t) ? window.I18n.t('chart_expense_label', 'Chi tiêu') : 'Chi tiêu';
     const withdrawalLabel = (window.I18n && window.I18n.t) ? window.I18n.t('chart_withdrawal_flow', 'Dòng tiền Rút vốn') : 'Dòng tiền Rút vốn';
-    const modeTag = isNominal
-      ? ((window.I18n && window.I18n.t) ? window.I18n.t('lbl_mode_nominal_tag', 'Giá trị tương lai') : 'Giá trị tương lai')
-      : ((window.I18n && window.I18n.t) ? window.I18n.t('lbl_mode_real_tag', 'Sức mua hiện tại') : 'Sức mua hiện tại');
 
+    // 1. CÁC ĐƯỜNG CƠ SỞ (BASELINE): LUÔN LÀ NÉT LIỀN (borderDash: []) VỚI 3 MÀU CHUẨN XANH LÁ, ĐỎ, TÍM
     const datasets = [
       {
-        label: `${incomeLabel} (${sym} • ${modeTag})`,
-        data: incomes,
+        label: `${incomeLabel} (${sym})`,
+        data: baseIncomes,
         borderColor: incomeColor,
         backgroundColor: gradientIncome,
         borderWidth: 2.8,
+        borderDash: [], // LUÔN LÀ NÉT LIỀN
         fill: true,
         tension: 0.35,
         pointRadius: pointRadii,
         pointHoverRadius: pointHoverRadii,
         pointHitRadius: 15,
-        pointBackgroundColor: incomeColor,
+        pointBackgroundColor: incomePointBgs,
         pointBorderColor: '#ffffff',
-        pointBorderWidth: 2
+        pointBorderWidth: 2,
+        order: 3
       },
       {
-        label: `${expenseLabel} (${sym} • ${modeTag})`,
-        data: expenses,
+        label: `${expenseLabel} (${sym})`,
+        data: baseExpenses,
         borderColor: expenseColor,
         backgroundColor: gradientExpense,
         borderWidth: 2.8,
+        borderDash: [], // LUÔN LÀ NÉT LIỀN
         fill: true,
         tension: 0.35,
         pointRadius: pointRadii,
         pointHoverRadius: pointHoverRadii,
         pointHitRadius: 15,
-        pointBackgroundColor: expenseColor,
+        pointBackgroundColor: expensePointBgs,
         pointBorderColor: '#ffffff',
-        pointBorderWidth: 2
+        pointBorderWidth: 2,
+        order: 2
       },
       {
-        label: `${withdrawalLabel} (${sym} • ${modeTag})`,
-        data: withdrawals,
+        label: `${withdrawalLabel} (${sym})`,
+        data: baseWithdrawals,
         borderColor: withdrawalColor,
         backgroundColor: gradientWithdrawal,
-        borderWidth: 2.8,
-        borderDash: [5, 4],
+        borderWidth: 3.0,
+        borderDash: [], // LUÔN LÀ NÉT LIỀN
         fill: false,
         tension: 0.35,
         spanGaps: false,
         pointRadius: withdrawalRadii,
-        pointHoverRadius: pointHoverRadii,
+        pointHoverRadius: withdrawalHoverRadii,
         pointHitRadius: 15,
-        pointBackgroundColor: withdrawalColor,
+        pointBackgroundColor: withdrawalPointBgs,
         pointBorderColor: '#ffffff',
-        pointBorderWidth: 2
+        pointBorderWidth: 2.5,
+        order: 1
       }
     ];
+
+    // 2. CÁC ĐƯỜNG KỊCH BẢN BIẾN CỐ: LUÔN LÀ NÉT ĐỨT (borderDash) VỚI MÀU TƯƠNG PHẢN RÕ NÉT
+    if (isStressActive && scProj) {
+      if (scKey === 'market_crash') {
+        // Biến cố 1: Khủng hoảng thị trường sớm (-35%) -> Tác động rút vốn, màu CAM RỰC RỠ nét đứt
+        const crashWithdrawals = scProj.timeline.map(p => {
+          if (!p.isRetired || !(p.withdrawal > 0)) return null;
+          const val = isNominal ? p.withdrawal : ((p.cumInflation > 0) ? (p.withdrawal / p.cumInflation) : p.withdrawal);
+          return Math.round(val);
+        });
+        datasets.push({
+          label: `Rút vốn khi Khủng hoảng (-35% • Nét đứt) (${sym})`,
+          data: crashWithdrawals,
+          borderColor: isLight ? '#ea580c' : '#fb923c', // Cam rực rỡ (tương phản mạnh với Tím, Đỏ, Xanh)
+          borderWidth: 2.8,
+          borderDash: [7, 4], // NÉT ĐỨT
+          fill: false,
+          tension: 0.35,
+          spanGaps: false,
+          pointRadius: 0,
+          pointHoverRadius: 6,
+          order: 0
+        });
+      } else if (scKey === 'high_inflation') {
+        // Biến cố 2: Lạm phát phi mã (+4.5%/năm) -> Tác động chi tiêu, màu VÀNG HỔ PHÁCH nét đứt
+        const inflExpenses = scProj.timeline.map(p => {
+          const val = isNominal ? (p.expenses || 0) : ((p.cumInflation > 0) ? ((p.expenses || 0) / p.cumInflation) : (p.expenses || 0));
+          return Math.round(val);
+        });
+        datasets.push({
+          label: `Chi tiêu khi Bão giá (+4.5%/năm • Nét đứt) (${sym})`,
+          data: inflExpenses,
+          borderColor: isLight ? '#d97706' : '#f59e0b', // Vàng hổ phách (tương phản rõ rệt với Đỏ cơ bản)
+          borderWidth: 2.8,
+          borderDash: [6, 4], // NÉT ĐỨT
+          fill: false,
+          tension: 0.35,
+          pointRadius: 0,
+          pointHoverRadius: 6,
+          order: 0
+        });
+      } else if (scKey === 'medical_shock') {
+        // Biến cố 3: Sốc chi phí y tế tuổi 65 (+500Tr) -> Tác động chi tiêu, màu XANH LAM BIỂN TƯƠI nét đứt
+        const medExpenses = scProj.timeline.map(p => {
+          const val = isNominal ? (p.expenses || 0) : ((p.cumInflation > 0) ? ((p.expenses || 0) / p.cumInflation) : (p.expenses || 0));
+          return Math.round(val);
+        });
+        datasets.push({
+          label: `Chi tiêu khi Sốc y tế Tuổi 65 (Nét đứt) (${sym})`,
+          data: medExpenses,
+          borderColor: isLight ? '#0284c7' : '#38bdf8', // Xanh lam biển tươi (tương phản hoàn toàn với Đỏ)
+          borderWidth: 2.8,
+          borderDash: [5, 4], // NÉT ĐỨT
+          fill: false,
+          tension: 0.35,
+          pointRadius: 0,
+          pointHoverRadius: 6,
+          order: 0
+        });
+      }
+    }
 
     state.charts.cashflow = new Chart(ctx, {
       type: 'line',
@@ -1434,7 +1780,7 @@
             callbacks: {
               title: (items) => {
                 const idx = items[0].dataIndex;
-                const p = proj.timeline[idx];
+                const p = activeProj.timeline[idx];
                 const phaseStr = p ? (p.isRetired ? ' • Hưu trí' : ' • Tích lũy') : '';
                 const m = p ? milestoneMap.get(p.age) : null;
                 if (m) {
@@ -1450,7 +1796,7 @@
                 const formattedAnnual = window.RetirementEngine.formatCurrency(valAnnual, currSym, false);
                 const formattedMonthly = window.RetirementEngine.formatCurrency(valMonthly, currSym, false);
                 const idx = item.dataIndex;
-                const p = proj.timeline[idx];
+                const p = activeProj.timeline[idx];
                 const factor = isNominal ? 1 : ((p && p.cumInflation > 0) ? p.cumInflation : 1);
 
                 if (item.datasetIndex === 0) {
@@ -1499,7 +1845,7 @@
               },
               afterBody: (items) => {
                 const idx = items[0].dataIndex;
-                const p = proj.timeline[idx];
+                const p = activeProj.timeline[idx];
                 if (!p) return [];
                 const currSym = state.currency;
                 const factor = isNominal ? 1 : ((p.cumInflation > 0) ? p.cumInflation : 1);
@@ -1600,11 +1946,17 @@
       }
     });
 
+    const planRetireAge = proj.retireAge || Number(getActivePlan().retireAge) || 60;
+    const isLight = document.documentElement.getAttribute("data-theme") === "light";
+
     proj.timeline.forEach(row => {
       const tr = document.createElement("tr");
       let statusTag = '';
       if (row.isPast) {
         statusTag = '<span style="font-size:0.68rem; padding:1px 5px; border-radius:4px; background:var(--bg-input); color:var(--text-muted); border:1px solid var(--border-subtle);">Quá khứ</span>';
+      } else if (row.age === planRetireAge) {
+        statusTag = `<span class="badge" style="font-size:0.68rem; padding:2px 7px; border-radius:4px; background:${isLight ? 'rgba(254, 243, 199, 0.9)' : 'rgba(245, 158, 11, 0.25)'}; color:${isLight ? '#b45309' : '#fef08a'}; border:1px solid ${isLight ? '#d97706' : '#f59e0b'}; font-weight:700;">Bắt đầu Hưu</span>`;
+        tr.style.background = isLight ? "rgba(254, 243, 199, 0.35)" : "rgba(245, 158, 11, 0.12)";
       } else if (row.isRetired) {
         statusTag = '<span class="summary-status">Hưu</span>';
       } else if (row.age === (Number(getActivePlan().currentAge) || 29)) {

@@ -593,77 +593,22 @@
     }
 
 
-    // Asset Allocation Sliders (Tự động cân đối tỷ lệ mượt mà, tổng không vượt quá 100%)
-    const allocSliderIds = ['inp-alloc-stocks', 'inp-alloc-bonds', 'inp-alloc-cash'];
-    allocSliderIds.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        ['input', 'change'].forEach(evt => {
-          el.addEventListener(evt, () => {
-            let newVal = Math.min(100, Math.max(0, Number(el.value) || 0));
-            el.value = newVal;
+    // Dynamic Investment Allocation Actions
+    const btnAddInv = document.getElementById("btn-add-investment");
+    if (btnAddInv) {
+      btnAddInv.addEventListener("click", (e) => {
+        e.preventDefault();
+        handleInvestmentAdd();
+      });
+    }
 
-            const plan = getActivePlan();
-            if (!plan.assetAllocation) {
-              plan.assetAllocation = { stocks: 80, bonds: 20, realEstate: 0, cash: 0 };
-            }
-
-            // Tính tổng các slider khác
-            let otherSum = 0;
-            allocSliderIds.forEach(otherId => {
-              if (otherId !== id) {
-                const otherEl = document.getElementById(otherId);
-                otherSum += otherEl ? (Number(otherEl.value) || 0) : 0;
-              }
-            });
-
-            // Nếu tổng vượt quá 100%, tự động giảm các slider khác một cách thông minh
-            if (newVal + otherSum > 100) {
-              let excess = (newVal + otherSum) - 100;
-              // Thứ tự ưu tiên giảm: Stocks -> Cash -> Bonds
-              const otherSliders = allocSliderIds
-                .filter(oId => oId !== id)
-                .map(oId => document.getElementById(oId))
-                .filter(oEl => oEl && Number(oEl.value) > 0);
-
-              for (const oEl of otherSliders) {
-                if (excess <= 0) break;
-                const curOther = Number(oEl.value) || 0;
-                const deduct = Math.min(curOther, excess);
-                oEl.value = curOther - deduct;
-                excess -= deduct;
-              }
-
-              // Nếu vẫn còn thừa (trường hợp hiếm), giới hạn newVal
-              if (excess > 0) {
-                newVal = Math.max(0, newVal - excess);
-                el.value = newVal;
-              }
-            }
-
-            // Cập nhật trực tiếp vào data model plan.assetAllocation (BĐS quản lý riêng ở thẻ Doanh thu BDS)
-            const stocksEl = document.getElementById("inp-alloc-stocks");
-            const bondsEl = document.getElementById("inp-alloc-bonds");
-            const cashEl = document.getElementById("inp-alloc-cash");
-
-            plan.assetAllocation = {
-              stocks: stocksEl ? Number(stocksEl.value) : 80,
-              bonds: bondsEl ? Number(bondsEl.value) : 20,
-              realEstate: 0,
-              cash: cashEl ? Number(cashEl.value) : 0
-            };
-
-            updateAssetAllocationUI(plan, false);
-            if (evt === 'input') {
-              debouncedSavePlansToStorage();
-            } else {
-              savePlansToStorage(true);
-            }
-            updateAll();
-          });
-        });
-      }
-    });
+    const btnResetInv = document.getElementById("btn-reset-investments");
+    if (btnResetInv) {
+      btnResetInv.addEventListener("click", (e) => {
+        e.preventDefault();
+        handleInvestmentReset();
+      });
+    }
 
     // Toggle / Edit Asset Allocation Stream Card
     const btnEditAlloc = document.getElementById("btn-edit-asset-allocation");
@@ -689,23 +634,7 @@
       btnDelAlloc.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        const plan = getActivePlan();
-        showConfirmDialog({
-          icon: "",
-          title: "Xác nhận đặt lại Danh mục đầu tư",
-          message: `Bạn có muốn đặt lại tỷ lệ danh mục đầu tư về chuẩn <strong>80% Cổ phiếu, 20% Trái phiếu, 0% Tiền mặt</strong>?`,
-          confirmText: "Đặt lại tỷ lệ",
-          onConfirm: () => {
-            plan.assetAllocation = { stocks: 80, bonds: 20, realEstate: 0, cash: 0 };
-            setVal("inp-alloc-stocks", 80);
-            setVal("inp-alloc-bonds", 20);
-            if (document.getElementById("inp-alloc-re")) setVal("inp-alloc-re", 0);
-            setVal("inp-alloc-cash", 0);
-            savePlansToStorage();
-            updateAssetAllocationUI(plan);
-            updateAll();
-          }
-        });
+        handleInvestmentReset();
       });
     }
 
@@ -888,72 +817,331 @@
     }
   }
 
-  function updateAssetAllocationUI(p, fromInputs = false) {
-    if (!p) p = getActivePlan();
-    const stocksEl = document.getElementById("inp-alloc-stocks");
-    const bondsEl = document.getElementById("inp-alloc-bonds");
-    const cashEl = document.getElementById("inp-alloc-cash");
+  const ALLOC_SEGMENT_COLORS = [
+    '#10b981', '#0284c7', '#d97706', '#7c3aed', '#e11d48', '#0d9488', '#4f46e5', '#ea580c', '#06b6d4', '#84cc16'
+  ];
 
-    let stocks, bonds, cash;
-    if (fromInputs) {
-      stocks = (stocksEl && stocksEl.value !== "") ? Number(stocksEl.value) : (p.assetAllocation?.stocks ?? 80);
-      bonds = (bondsEl && bondsEl.value !== "") ? Number(bondsEl.value) : (p.assetAllocation?.bonds ?? 20);
-      cash = (cashEl && cashEl.value !== "") ? Number(cashEl.value) : (p.assetAllocation?.cash ?? 0);
-      p.assetAllocation = { stocks, bonds, realEstate: 0, cash };
-    } else {
-      if (!p.assetAllocation) {
-        p.assetAllocation = { stocks: 80, bonds: 20, realEstate: 0, cash: 0 };
+  function ensurePlanInvestments(p) {
+    if (!p) return [];
+    if (!Array.isArray(p.investments) || p.investments.length === 0) {
+      if (p.assetAllocation) {
+        const s = p.assetAllocation.stocks !== undefined ? Number(p.assetAllocation.stocks) : 60;
+        const b = p.assetAllocation.bonds !== undefined ? Number(p.assetAllocation.bonds) : 20;
+        const c = p.assetAllocation.cash !== undefined ? Number(p.assetAllocation.cash) : 0;
+        const rs = p.assetReturns?.stocks !== undefined ? Number(p.assetReturns.stocks) : 9.5;
+        const rb = p.assetReturns?.bonds !== undefined ? Number(p.assetReturns.bonds) : 3.5;
+        const rc = p.assetReturns?.cash !== undefined ? Number(p.assetReturns.cash) : 1.5;
+        p.investments = [
+          { id: 'inv_stocks', name: window.I18n.t('lbl_alloc_stocks', 'Cổ phiếu & Quỹ ETF'), ratio: s, annualReturn: rs },
+          { id: 'inv_bonds', name: window.I18n.t('lbl_alloc_bonds', 'Trái phiếu & Tiết kiệm'), ratio: b, annualReturn: rb },
+          { id: 'inv_cash', name: window.I18n.t('lbl_alloc_cash', 'Tiền mặt & Thanh khoản'), ratio: c, annualReturn: rc }
+        ];
+      } else {
+        p.investments = [
+          { id: 'inv_stocks', name: window.I18n.t('lbl_alloc_stocks', 'Cổ phiếu & Quỹ ETF'), ratio: 60, annualReturn: 9.5 },
+          { id: 'inv_bonds', name: window.I18n.t('lbl_alloc_bonds', 'Trái phiếu & Tiết kiệm'), ratio: 20, annualReturn: 3.5 },
+          { id: 'inv_cash', name: window.I18n.t('lbl_alloc_cash', 'Tiền mặt & Thanh khoản'), ratio: 0, annualReturn: 1.5 }
+        ];
       }
-      stocks = p.assetAllocation.stocks !== undefined ? Number(p.assetAllocation.stocks) : 80;
-      bonds = p.assetAllocation.bonds !== undefined ? Number(p.assetAllocation.bonds) : 20;
-      cash = p.assetAllocation.cash !== undefined ? Number(p.assetAllocation.cash) : 0;
+    }
+    return p.investments;
+  }
 
-      if (stocksEl && Number(stocksEl.value) !== stocks) stocksEl.value = stocks;
-      if (bondsEl && Number(bondsEl.value) !== bonds) bondsEl.value = bonds;
-      if (cashEl && Number(cashEl.value) !== cash) cashEl.value = cash;
+  function handleInvestmentRatioChange(itemId, requestedVal, source = 'slider') {
+    const plan = getActivePlan();
+    if (!plan || !Array.isArray(plan.investments)) return;
+    const item = plan.investments.find(x => x.id === itemId);
+    if (!item) return;
+
+    // Tính tổng % của tất cả các khoản khác
+    const otherSum = plan.investments
+      .filter(x => x.id !== itemId)
+      .reduce((sum, x) => sum + (Math.max(0, Number(x.ratio) || 0)), 0);
+
+    const maxAllowed = Math.max(0, 100 - otherSum);
+    let parsed = parseFloat(requestedVal);
+    if (isNaN(parsed) || parsed < 0) parsed = 0;
+
+    let wasClamped = false;
+    if (parsed > maxAllowed) {
+      parsed = maxAllowed;
+      wasClamped = true;
+    }
+    parsed = Math.min(100, Math.max(0, Math.round(parsed)));
+    item.ratio = parsed;
+
+    // Đồng bộ DOM cục bộ của khoản đó mà không re-render toàn bộ danh sách để giữ focus
+    const rowEl = document.querySelector(`.investment-row-card[data-id="${itemId}"]`);
+    if (rowEl) {
+      const inputRatio = rowEl.querySelector('.inv-ratio-input');
+      if (inputRatio && Number(inputRatio.value) !== parsed) inputRatio.value = parsed;
     }
 
-    const lblStocks = document.getElementById("lbl-alloc-stocks");
-    const lblBonds = document.getElementById("lbl-alloc-bonds");
-    const lblCash = document.getElementById("lbl-alloc-cash");
-    const badgeWeighted = document.getElementById("badge-weighted-return");
-    const lblWeightedCalc = document.getElementById("lbl-weighted-calc");
+    updateAssetAllocationUI(plan, false, true, wasClamped);
+    debouncedSavePlansToStorage();
+    updateAll();
+  }
 
-    // Tính toán số tiền thực tế theo phần trăm tài sản hiện tại (chỉ tính vốn dương >= 0)
+  function handleInvestmentReturnChange(itemId, requestedReturn) {
+    const plan = getActivePlan();
+    if (!plan || !Array.isArray(plan.investments)) return;
+    const item = plan.investments.find(x => x.id === itemId);
+    if (!item) return;
+
+    let parsed = parseFloat(requestedReturn);
+    if (isNaN(parsed) || parsed < 0) parsed = 0;
+    parsed = Math.min(100, Math.max(0, Math.round(parsed * 10) / 10));
+    item.annualReturn = parsed;
+
+    const rowEl = document.querySelector(`.investment-row-card[data-id="${itemId}"]`);
+    if (rowEl) {
+      const inputReturn = rowEl.querySelector('.inv-return-input');
+      if (inputReturn && Number(inputReturn.value) !== parsed) inputReturn.value = parsed;
+    }
+
+    updateAssetAllocationUI(plan, false, true);
+    debouncedSavePlansToStorage();
+    updateAll();
+  }
+
+  function handleInvestmentNameChange(itemId, requestedName) {
+    const plan = getActivePlan();
+    if (!plan || !Array.isArray(plan.investments)) return;
+    const item = plan.investments.find(x => x.id === itemId);
+    if (!item) return;
+
+    item.name = requestedName.trim() || window.I18n.t('lbl_new_investment_default', 'Khoản đầu tư');
+    updateAssetAllocationUI(plan, false, true);
+    debouncedSavePlansToStorage();
+  }
+
+  function handleInvestmentAdd() {
+    const plan = getActivePlan();
+    if (!plan) return;
+    if (!Array.isArray(plan.investments)) plan.investments = [];
+
+    const newId = 'inv_' + Date.now();
+    const count = plan.investments.length + 1;
+    const newName = `${window.I18n.t('lbl_new_investment_default', 'Khoản đầu tư')} #${count}`;
+    const newRatio = 0;
+    const newReturn = 7.0;
+
+    plan.investments.push({
+      id: newId,
+      name: newName,
+      ratio: newRatio,
+      annualReturn: newReturn
+    });
+
+    savePlansToStorage();
+    renderInvestmentsList(plan);
+    updateAssetAllocationUI(plan, false, true);
+    updateAll();
+
+    setTimeout(() => {
+      const newRow = document.querySelector(`.investment-row-card[data-id="${newId}"]`);
+      if (newRow) {
+        const nameInput = newRow.querySelector('.inv-name-input');
+        if (nameInput) {
+          nameInput.focus();
+          nameInput.select();
+        }
+      }
+    }, 60);
+  }
+
+  function handleInvestmentDelete(itemId) {
+    const plan = getActivePlan();
+    if (!plan || !Array.isArray(plan.investments)) return;
+    const idx = plan.investments.findIndex(x => x.id === itemId);
+    if (idx === -1) return;
+
+    if (plan.investments.length <= 1) {
+      plan.investments[0].ratio = 0;
+    } else {
+      plan.investments.splice(idx, 1);
+    }
+
+    savePlansToStorage();
+    renderInvestmentsList(plan);
+    updateAssetAllocationUI(plan, false, true);
+    updateAll();
+  }
+
+  function handleInvestmentReset() {
+    const plan = getActivePlan();
+    if (!plan) return;
+    showConfirmDialog({
+      icon: "💼",
+      title: window.I18n.t('title_reset_investments', 'Đặt lại Danh mục đầu tư'),
+      message: window.I18n.t('msg_confirm_reset_alloc', 'Bạn có muốn đặt lại danh mục đầu tư về chuẩn mặc định 3 lớp tài sản: Cổ phiếu & Quỹ ETF (60%), Trái phiếu & Tiết kiệm (20%), Tiền mặt (0%)?'),
+      confirmText: window.I18n.t('btn_reset_investments', 'Khôi phục mặc định'),
+      onConfirm: () => {
+        plan.investments = [
+          { id: 'inv_stocks', name: window.I18n.t('lbl_alloc_stocks', 'Cổ phiếu & Quỹ ETF'), ratio: 60, annualReturn: 9.5 },
+          { id: 'inv_bonds', name: window.I18n.t('lbl_alloc_bonds', 'Trái phiếu & Tiết kiệm'), ratio: 20, annualReturn: 3.5 },
+          { id: 'inv_cash', name: window.I18n.t('lbl_alloc_cash', 'Tiền mặt & Thanh khoản'), ratio: 0, annualReturn: 1.5 }
+        ];
+        plan.assetAllocation = { stocks: 60, bonds: 20, realEstate: 0, cash: 0 };
+        savePlansToStorage();
+        renderInvestmentsList(plan);
+        updateAssetAllocationUI(plan, false, true);
+        updateAll();
+      }
+    });
+  }
+
+  function renderInvestmentsList(p) {
+    if (!p) p = getActivePlan();
+    const container = document.getElementById("investments-list-container");
+    if (!container) return;
+
+    const items = ensurePlanInvestments(p);
     const rawSavings = Number(p.currentSavings) || 0;
     const totalSavings = Math.max(0, rawSavings);
     const cur = p.currency || state.currency || 'EUR';
 
-    const stocksAmt = Math.round(totalSavings * (stocks / 100));
-    const bondsAmt = Math.round(totalSavings * (bonds / 100));
-    const cashAmt = Math.round(totalSavings * (cash / 100));
+    let html = "";
+    items.forEach((inv, idx) => {
+      const color = ALLOC_SEGMENT_COLORS[idx % ALLOC_SEGMENT_COLORS.length];
+      const ratio = Math.max(0, Number(inv.ratio) || 0);
+      const ret = Number(inv.annualReturn) || 0;
+      const amt = Math.round(totalSavings * (ratio / 100));
+      const amtFormatted = window.RetirementEngine.formatCurrency(amt, cur);
+      const safeName = (inv.name || '').replace(/"/g, '&quot;');
 
-    const stocksAmtFormatted = window.RetirementEngine.formatCurrency(stocksAmt, cur);
-    const bondsAmtFormatted = window.RetirementEngine.formatCurrency(bondsAmt, cur);
-    const cashAmtFormatted = window.RetirementEngine.formatCurrency(cashAmt, cur);
+      html += `
+        <div class="investment-row-card" data-id="${inv.id}">
+          <div class="inv-row-header">
+            <div class="inv-name-group">
+              <span style="font-size: 0.95rem; color: ${color}; line-height: 1;">●</span>
+              <input type="text" class="form-input inv-name-input" value="${safeName}"
+                placeholder="${window.I18n.t('placeholder_investment_name', 'Tên khoản đầu tư (VD: Cổ phiếu, Vàng, BĐS...)')}"
+                data-id="${inv.id}">
+            </div>
+            <button type="button" class="income-item-btn income-item-del inv-delete-btn"
+              title="Xóa khoản đầu tư này" data-id="${inv.id}">✕</button>
+          </div>
+          <div class="inv-inputs-grid">
+            <div class="inv-param-col">
+              <label class="inv-param-label" data-i18n="lbl_investment_ratio">Tỷ lệ:</label>
+              <div class="input-with-unit inv-unit-compact-ratio">
+                <input type="number" class="form-input inv-ratio-input" min="0" max="100" step="1"
+                  value="${ratio}" data-id="${inv.id}">
+                <span class="unit-badge font-mono">%</span>
+              </div>
+            </div>
+            <div class="inv-param-col">
+              <label class="inv-param-label" data-i18n="lbl_investment_return">Lãi suất:</label>
+              <div class="input-with-unit inv-unit-compact-return">
+                <input type="number" class="form-input inv-return-input" min="0" max="100" step="0.1"
+                  value="${ret}" data-id="${inv.id}">
+                <span class="unit-badge font-mono">%/năm</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
 
-    if (lblStocks) lblStocks.innerText = `${stocks}% • ${stocksAmtFormatted} (9.5%/năm)`;
-    if (lblBonds) lblBonds.innerText = `${bonds}% • ${bondsAmtFormatted} (3.5%/năm)`;
-    if (lblCash) lblCash.innerText = `${cash}% • ${cashAmtFormatted} (1.5%/năm)`;
+    container.innerHTML = html;
 
-    const totalPct = Math.min(100, Math.max(0, stocks + bonds + cash));
-    const unallocatedPct = Math.max(0, 100 - totalPct);
-    const unallocatedAmt = Math.round(totalSavings * (unallocatedPct / 100));
-    const unallocatedAmtFormatted = window.RetirementEngine.formatCurrency(unallocatedAmt, cur);
+    // Gán sự kiện cho từng phần tử vừa render
+    container.querySelectorAll('.inv-ratio-input').forEach(input => {
+      const id = input.getAttribute('data-id');
+      ['input', 'change'].forEach(evtName => {
+        input.addEventListener(evtName, () => {
+          handleInvestmentRatioChange(id, input.value, 'input');
+        });
+      });
+    });
 
-    const returns = p.assetReturns || { stocks: 9.5, bonds: 3.5, realEstate: 6.5, cash: 1.5 };
-    const weighted = window.RetirementEngine.calculateWeightedReturn({ stocks, bonds, realEstate: 0, cash }, returns, 0.3);
+    container.querySelectorAll('.inv-return-input').forEach(input => {
+      const id = input.getAttribute('data-id');
+      ['input', 'change'].forEach(evtName => {
+        input.addEventListener(evtName, () => {
+          handleInvestmentReturnChange(id, input.value);
+        });
+      });
+    });
 
-    const activeClassesCount = [stocks, bonds, cash].filter(v => v > 0).length;
-    const bonusRate = activeClassesCount >= 2 ? (0.3 * (totalPct / 100)) : 0;
+    container.querySelectorAll('.inv-name-input').forEach(input => {
+      const id = input.getAttribute('data-id');
+      input.addEventListener('change', () => {
+        handleInvestmentNameChange(id, input.value);
+      });
+      input.addEventListener('input', () => {
+        const item = p.investments.find(x => x.id === id);
+        if (item) {
+          item.name = input.value;
+          debouncedSavePlansToStorage();
+        }
+      });
+    });
 
-    let allocStatusNotice = "";
-    if (unallocatedPct > 0) {
-      allocStatusNotice = ` <span style="color:var(--text-muted); font-weight:600;">(Đã phân bổ: ${totalPct}% • Còn ${unallocatedPct}% vốn nhàn rỗi ${unallocatedAmtFormatted} chưa đầu tư)</span>`;
-    } else {
-      allocStatusNotice = ` <span style="color:var(--success); font-weight:600;">(Đã phân bổ trọn vẹn 100% vốn)</span>`;
+    container.querySelectorAll('.inv-delete-btn').forEach(btn => {
+      const id = btn.getAttribute('data-id');
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handleInvestmentDelete(id);
+      });
+    });
+  }
+
+  function renderAllocationSummaryBar(plan, totalPct, unallocatedPct, cur, totalSavings, wasClamped = false) {
+    const wrapper = document.getElementById("allocation-summary-bar-wrapper");
+    if (!wrapper) return;
+
+    const items = plan.investments || [];
+    let segmentsHtml = "";
+    items.forEach((inv, idx) => {
+      const ratio = Math.max(0, Number(inv.ratio) || 0);
+      if (ratio > 0) {
+        const color = ALLOC_SEGMENT_COLORS[idx % ALLOC_SEGMENT_COLORS.length];
+        const safeName = (inv.name || '').replace(/"/g, '&quot;');
+        segmentsHtml += `<div class="inv-progress-segment" style="width: ${ratio}%; background: ${color};" title="${safeName}: ${ratio}%"></div>`;
+      }
+    });
+
+    wrapper.innerHTML = `
+      <div class="inv-progress-bar-container" style="margin: 0.15rem 0 0.15rem 0;">
+        ${segmentsHtml}
+      </div>
+    `;
+  }
+
+  function updateAssetAllocationUI(p, fromInputs = false, skipReRenderList = false, wasClamped = false) {
+    if (!p) p = getActivePlan();
+    const items = ensurePlanInvestments(p);
+
+    if (!skipReRenderList) {
+      renderInvestmentsList(p);
     }
 
+    const rawSavings = Number(p.currentSavings) || 0;
+    const totalSavings = Math.max(0, rawSavings);
+    const cur = p.currency || state.currency || 'EUR';
+
+    let totalPct = 0;
+    let activeClassesCount = 0;
+
+    items.forEach(it => {
+      const ratio = Math.max(0, Number(it.ratio) || 0);
+      totalPct += ratio;
+      if (ratio > 0) {
+        activeClassesCount++;
+      }
+    });
+
+    totalPct = Math.min(100, totalPct);
+    const unallocatedPct = Math.max(0, 100 - totalPct);
+
+    const weighted = window.RetirementEngine.calculateWeightedReturn(items, p.assetReturns, 0.3);
+
+    renderAllocationSummaryBar(p, totalPct, unallocatedPct, cur, totalSavings, wasClamped);
+
+    const badgeWeighted = document.getElementById("badge-weighted-return");
     const isAllocEnabled = (p.enableAssetAllocation !== false);
 
     if (badgeWeighted) {
@@ -970,26 +1158,10 @@
       }
     }
 
-    if (lblWeightedCalc) {
-      if (isAllocEnabled) {
-        let formulaParts = [];
-        if (stocks > 0) formulaParts.push(`(${stocks}% × 9.5%)`);
-        if (bonds > 0) formulaParts.push(`(${bonds}% × 3.5%)`);
-        if (cash > 0) formulaParts.push(`(${cash}% × 1.5%)`);
-        if (unallocatedPct > 0) formulaParts.push(`(${unallocatedPct}% chưa đầu tư × 0%)`);
-        if (formulaParts.length === 0) formulaParts.push(`(100% chưa đầu tư × 0%)`);
-
-        const formulaStr = formulaParts.join(" + ") + (bonusRate > 0 ? ` + ${bonusRate.toFixed(2)}% tái cân bằng` : "");
-        lblWeightedCalc.innerHTML = `<strong>${weighted}%/năm</strong>${allocStatusNotice}<div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem; font-family: var(--font-sans);">Công thức: ${formulaStr} = ${weighted}%</div>`;
-      } else {
-        lblWeightedCalc.innerHTML = `<strong style="color: var(--text-muted);">0.0%/năm</strong><div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem; font-family: var(--font-sans);">Đã tắt danh mục đầu tư: Tiền nhàn rỗi không sinh lãi kép (0%/năm)</div>`;
-      }
-    }
-
-    // Đảm bảo thẻ Danh mục đầu tư (#card-asset-allocation-stream) luôn nằm trên thẻ Doanh thu BDS (#card-lmnp-income-stream)
+    // Đảm bảo vị trí thẻ
     ensureAssetAllocationCardPosition();
 
-    // Cập nhật thẻ Danh mục đầu tư trong Cột Thu nhập
+    // Cập nhật thẻ tóm tắt trong Cột Thu nhập
     const lblCardRatio = document.getElementById("lbl-alloc-card-ratio");
     const lblCardBonus = document.getElementById("lbl-alloc-card-bonus");
     const cardEl = document.getElementById("card-asset-allocation-stream");
@@ -998,32 +1170,47 @@
     if (lblCardRatio) {
       if (isAllocEnabled) {
         let ratioItems = [];
-        if (stocks > 0) ratioItems.push(`${stocks}% CP`);
-        if (bonds > 0) ratioItems.push(`${bonds}% TP`);
-        if (cash > 0) ratioItems.push(`${cash}% TM`);
-        if (unallocatedPct > 0) ratioItems.push(`${unallocatedPct}% Nhàn rỗi`);
-        if (ratioItems.length === 0) ratioItems.push(`100% Chưa đầu tư`);
+        items.forEach(it => {
+          const r = Math.max(0, Number(it.ratio) || 0);
+          if (r > 0) {
+            const shortName = (it.name || '').split(' ')[0] || 'Đầu tư';
+            ratioItems.push(`${r}% ${shortName}`);
+          }
+        });
+        if (unallocatedPct > 0) {
+          ratioItems.push(`${unallocatedPct}% Nhàn rỗi`);
+        }
+        if (ratioItems.length === 0) {
+          ratioItems.push(`100% Chưa đầu tư`);
+        }
         lblCardRatio.innerText = ratioItems.join(" • ");
       } else {
         lblCardRatio.innerText = `Tắt đầu tư (0% sinh lời • Giữ tiền mặt)`;
       }
     }
+
     if (lblCardBonus) {
       if (isAllocEnabled) {
-        lblCardBonus.innerText = bonusRate > 0 ? `+${bonusRate.toFixed(2)}% Tái cân bằng` : `0% Tái cân bằng`;
+        lblCardBonus.innerText = `Lãi suất chung: ${weighted}%/năm`;
       } else {
-        lblCardBonus.innerText = `0% Tái cân bằng`;
+        lblCardBonus.innerText = `Lãi suất chung: 0.0%/năm`;
       }
     }
 
-    if (chkEnable) {
-      chkEnable.checked = isAllocEnabled;
-    }
-    if (cardEl) {
-      cardEl.style.opacity = isAllocEnabled ? "1" : "0.55";
-    }
+    if (chkEnable) chkEnable.checked = isAllocEnabled;
+    if (cardEl) cardEl.style.opacity = isAllocEnabled ? "1" : "0.55";
 
-    p.assetAllocation = { stocks, bonds, realEstate: 0, cash };
+    // Đồng bộ ngược vào assetAllocation để tương thích
+    const sItem = items.find(x => x.id === 'inv_stocks' || /cổ phiếu|stock/i.test(x.name));
+    const bItem = items.find(x => x.id === 'inv_bonds' || /trái phiếu|bond/i.test(x.name));
+    const cItem = items.find(x => x.id === 'inv_cash' || /tiền mặt|cash/i.test(x.name));
+    p.assetAllocation = {
+      stocks: sItem ? Number(sItem.ratio) : 0,
+      bonds: bItem ? Number(bItem.ratio) : 0,
+      realEstate: 0,
+      cash: cItem ? Number(cItem.ratio) : 0
+    };
+
     if (isAllocEnabled) {
       p.investmentReturnPre = weighted;
       p.investmentReturnPost = weighted;

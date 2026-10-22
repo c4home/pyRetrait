@@ -545,16 +545,9 @@
     // 1. Asset Allocation Sync
     const chkAlloc = document.getElementById("chk-enable-asset-allocation");
     if (chkAlloc) chkAlloc.checked = p.enableAssetAllocation !== false;
-    if (!p.assetAllocation) {
-      p.assetAllocation = { stocks: 80, bonds: 20, realEstate: 0, cash: 0 };
+    if (typeof updateAssetAllocationUI === 'function') {
+      updateAssetAllocationUI(p, false);
     }
-    setVal("inp-alloc-stocks", p.assetAllocation.stocks !== undefined ? p.assetAllocation.stocks : 80);
-    setVal("inp-alloc-bonds", p.assetAllocation.bonds !== undefined ? p.assetAllocation.bonds : 20);
-    if (document.getElementById("inp-alloc-re")) {
-      setVal("inp-alloc-re", p.assetAllocation.realEstate !== undefined ? p.assetAllocation.realEstate : 0);
-    }
-    setVal("inp-alloc-cash", p.assetAllocation.cash !== undefined ? p.assetAllocation.cash : 0);
-    updateAssetAllocationUI(p, false);
 
     // LMNP Stream Sync
     const chkLmnp = document.getElementById("chk-enable-lmnp-stream");
@@ -889,7 +882,7 @@
     if (noticeEl) {
       const activeChartTab = (window.AppState && typeof window.AppState.getMainChartTab === 'function')
         ? window.AppState.getMainChartTab()
-        : (state.mainChartTab || 'networth');
+        : (state.mainChartTab || 'cashflow');
       noticeEl.style.display = (mode === "nominal" && activeChartTab === "cashflow") ? "flex" : "none";
     }
 
