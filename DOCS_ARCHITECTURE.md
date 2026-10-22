@@ -87,8 +87,8 @@ graph TD
   - Khởi tạo ứng dụng (`initApp`), gắn sự kiện toàn cục (`bindEvents`), điều hướng chuyển Tab (`switchTab`, `renderActiveTab`), đồng bộ thanh nhập liệu bên trái (`renderActivePlanInputs`), cập nhật toàn diện (`updateAll`), chuyển đổi tiền tệ (`EUR <-> VND <-> USD`) và chế độ Sáng/Tối.
 - **`ui-tab1-charts.js` (Tab 1A — Biểu đồ & Dự báo ~1,871 dòng)**:
   - Render biểu đồ Tài sản ròng (`renderNetWorthChart`), ghim sự kiện (`drawMilestoneMarkers`), dải băng cột mốc (`renderMilestonesRibbon`), thẻ sức chống chịu biến cố (`renderStressResilienceCard`), biểu đồ Dòng tiền (`renderCashFlowChart`), Monte Carlo Fan Chart (`renderMonteCarloTab`), Kịch bản What-If (`renderScenarioTab`) và Bảng dự phóng từng năm (`renderProjectionsTable`).
-- **`ui-tab1-streams.js` (Tab 1B — Luồng Thu/Chi, Phân bổ & Chiến lược ~2,224 dòng)**:
-  - Quản lý danh sách và bảng tóm tắt giai đoạn Thu nhập / Chi tiêu (`renderIncomePeriodsSummary`, `renderExpensePeriodsSummary`), cân đối thu chi (`updateCashflowBalanceUI`), phân bổ danh mục tài sản (`updateAssetAllocationUI`), lạm phát kép 2 chặng (`updateDualInflationUI`), địa điểm nghỉ hưu và so sánh 4 chiến lược rút vốn (`renderWithdrawalComparison`).
+- **`ui-tab1-streams.js` (Tab 1B — Luồng Thu/Chi, Phân bổ & Dòng tiền ~2,224 dòng)**:
+  - Quản lý danh sách và bảng tóm tắt giai đoạn Thu nhập / Chi tiêu (`renderIncomePeriodsSummary`, `renderExpensePeriodsSummary`), cân đối thu chi (`updateCashflowBalanceUI`), phân bổ danh mục tài sản (`updateAssetAllocationUI`), lạm phát kép 2 chặng (`updateDualInflationUI`), địa điểm nghỉ hưu và cơ chế rút vốn tự nhiên bù đắp chi tiêu sinh hoạt.
 - **`ui-tab2-health.js` (Tab 2 — Sức khỏe, Gia đình & Di sản ~1,361 dòng)**:
   - Tính toán Tuổi sinh học (`updateBioAge`), Điểm sức khỏe & Thanh 3 giai đoạn (`updateHealthspanScore`), Quỹ chăm sóc tuổi già 78t+ (`updateSeniorCareUI`), Mô phỏng con cái & Trợ cấp CAF Pháp (`updateFamilyChildrenSimulation`, `renderFamilyCashFlowChart`), Tiến độ Di sản (`updateEstateMilestones`) và Danh mục Y tế Pháp – Việt (`updateCrossBorderChecklist`).
 - **`ui-tab3-taxes.js` (Tab 3 — Tối ưu Thuế, Lương hưu & BĐS LMNP ~1,476 dòng)**:
@@ -144,8 +144,6 @@ Cấu trúc đối tượng kế hoạch bao gồm đầy đủ các luồng thu
   "inflationRate": 2.5,
   "investmentReturnPre": 8.0,
   "investmentReturnPost": 7.5,
-  "withdrawalStrategy": "vpw",
-  "initialWithdrawalRate": 4.0,
   "targetLegacy": 100000,
   "taxRegime": "france_vietnam",
   "incomes": [

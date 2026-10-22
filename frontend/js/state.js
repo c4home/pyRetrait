@@ -19,7 +19,6 @@
     viewMode: "nominal", // 'nominal' | 'real'
     cashflowViewMode: "real", // 'real' | 'nominal' (mặc định: sức mua hiện tại)
     mainChartTab: "cashflow", // 'cashflow' | 'networth' (chuyển đổi biểu đồ dòng tiền và tài sản ròng)
-    compareWithdrawals: false,
     compareStressScenarios: false,
     showMonteCarloFan: false,
     activeTab: "tab-projections",
@@ -292,9 +291,6 @@
           { id: 'inv_cash', name: 'Tiền mặt & Thanh khoản', ratio: 0, annualReturn: 1.5 }
         ];
       }
-    }
-    if (plan.smartWithdrawalCap === undefined) {
-      plan.smartWithdrawalCap = true;
     }
     if (!plan.familyPlan) {
       plan.familyPlan = {
@@ -611,8 +607,6 @@
           inflationRate: 2.5,
           investmentReturnPre: 5.8,
           investmentReturnPost: 7.5,
-          withdrawalStrategy: "fixed_pct",
-          initialWithdrawalRate: 4.0,
           targetLegacy: 100000,
           taxRegime: "france_vietnam",
           taxRate: 12.0,

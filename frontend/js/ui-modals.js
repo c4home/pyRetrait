@@ -1900,7 +1900,6 @@
     plan.investmentReturnPre = invReturn;
     plan.investmentReturnPost = Math.max(3.0, +(invReturn - 1.5).toFixed(1));
     plan.inflation = inflation;
-    plan.withdrawalStrategy = "guyton_klinger";
 
     // Save and re-render
     savePlansToStorage();

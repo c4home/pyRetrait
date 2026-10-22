@@ -109,7 +109,7 @@
       });
     }
 
-    // Sự kiện bấm chọn trực tiếp 3 chip biến cố trên biểu đồ dòng tiền (bấm bật / bấm lại để tắt)
+    // Sự kiện bấm chọn trực tiếp 3 chip biến cố (dùng chung cho cả biểu đồ Dòng tiền & Tài sản ròng; bấm bật / bấm lại để tắt)
     document.querySelectorAll(".cashflow-stress-chip").forEach(chip => {
       chip.addEventListener("click", () => {
         const scKey = chip.getAttribute("data-scenario");
@@ -134,7 +134,11 @@
         const plan = getActivePlan();
         if (!plan || !window.RetirementEngine) return;
         const proj = window.RetirementEngine.runProjection(plan);
-        renderCashFlowChart(proj, true);
+        if (state.mainChartTab === 'networth') {
+          renderNetWorthChart(proj, true);
+        } else {
+          renderCashFlowChart(proj, true);
+        }
       });
     });
 
@@ -150,6 +154,8 @@
             const btnStress = document.getElementById("btn-toggle-compare-stress");
             if (btnStress) btnStress.classList.remove("active");
           }
+          state.cashflowStressScenario = null;
+          document.querySelectorAll(".cashflow-stress-chip").forEach(c => c.classList.remove("active"));
         }
         const plan = getActivePlan();
         const proj = window.RetirementEngine.runProjection(plan);
@@ -282,8 +288,7 @@
       finalPortfolio: window.RetirementEngine.formatCurrency(proj.finalPortfolio, state.currency),
       fireTarget: window.RetirementEngine.formatCurrency(proj.fireTargetNestEgg, state.currency),
       survived: proj.survived ? "100% An toàn vốn" : "Có nguy cơ cạn vốn",
-      withdrawalStrategy: plan.withdrawalStrategy,
-      initialWithdrawalRate: `${plan.initialWithdrawalRate || 3.5}%`,
+      withdrawalMechanism: "Chỉ rút vốn khi chi tiêu vượt thu nhập",
       totalLifetimeIncome: window.RetirementEngine.formatCurrency(proj.totalLifetimeIncome, state.currency),
       totalLifetimeExpenses: window.RetirementEngine.formatCurrency(proj.totalLifetimeExpenses, state.currency),
       actualTracking: actualTrackingStr
@@ -402,17 +407,25 @@
     const fill = (s, map) => s.replace(/\{(\w+)\}/g, (_, k) => (map[k] !== undefined ? map[k] : ''));
 
     const setPillar = (n, ok, text) => {
-      const title = document.getElementById(`fire-pillar${n}-title`);
       const status = document.getElementById(`fire-pillar${n}-status`);
-      if (title) {
-        title.classList.toggle('fire-criteria-title', ok !== null);
-        title.classList.toggle('is-ok', ok === true);
-        title.classList.toggle('is-fail', ok === false);
-      }
+      const detail = document.getElementById(`fire-pillar${n}-detail`);
       if (status) {
-        status.textContent = text || '';
         status.classList.toggle('is-ok', ok === true);
         status.classList.toggle('is-fail', ok === false);
+        status.textContent = ok === true ? t('fire_verdict_ok', '✓ Đạt')
+          : (ok === false ? t('fire_verdict_fail', '✗ Chưa đạt') : '—');
+      }
+      if (detail) {
+        if (text) {
+          // Bỏ tiền tố "✓ Đạt:" / "✗ Chưa đạt:" và chỉ giữ câu đầu; câu đầy đủ nằm trong tooltip
+          const body = text.replace(/^[^:]*:\s*/, '');
+          detail.textContent = body.split('. ')[0].replace(/\.$/, '');
+          detail.title = body;
+        } else {
+          detail.title = '';
+          const hintKey = detail.getAttribute('data-i18n');
+          if (hintKey) detail.textContent = t(hintKey, detail.textContent);
+        }
       }
     };
 
@@ -524,6 +537,7 @@
       const badgeInlineText = isPassed ? t('stress_pass_tag', 'Vượt qua') : t('stress_fail_tag', 'Nguy cơ');
       
       const scName = (lang === 'en' ? sc.nameEn : (lang === 'fr' ? sc.nameFr : sc.nameVi)) || sc.nameVi;
+      const scDesc = (lang === 'en' ? sc.descEn : (lang === 'fr' ? sc.descFr : sc.descVi)) || sc.descVi;
 
       let valueText = '';
       let descText = '';
@@ -561,11 +575,11 @@
       }
 
       return `
-        <div class="stress-stat-box ${statusBoxClass}" data-stress-key="${sc.key}">
+        <div class="stress-stat-box ${statusBoxClass}" data-stress-key="${sc.key}" title="${scDesc}">
           <div class="stat-header">
             <div class="stat-title-group">
               <span class="stat-dot ${dotClass}"></span>
-              <span class="stat-label" title="${scName}">${scName}</span>
+              <span class="stat-label" title="${scDesc}">${scName}</span>
             </div>
           </div>
 
@@ -576,6 +590,10 @@
           <div class="stat-desc-row">
             <span class="stat-desc">${descText}</span>
             <span class="stress-badge-inline ${badgeInlineClass}">${badgeInlineText}</span>
+          </div>
+
+          <div class="stress-mechanism-note" style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.45; border-top: 1px dashed var(--border-subtle); padding-top: 0.45rem; margin-top: 0.25rem;">
+            ${scDesc}
           </div>
 
           ${gapDetailsHtml}
@@ -885,9 +903,9 @@
     const liquidCard = document.getElementById("liquid-explainer-card");
     if (liquidCard) liquidCard.style.display = (validTab === 'networth') ? 'flex' : 'none';
 
-    // Hiển thị cụm 3 chip biến cố trực tiếp khi ở biểu đồ Dòng tiền
+    // Cụm 3 chip biến cố dùng chung: hiển thị ở cả biểu đồ Dòng tiền và Tài sản ròng
     const cfStressBar = document.getElementById("cashflow-stress-chips-bar");
-    if (cfStressBar) cfStressBar.style.display = (validTab === 'cashflow') ? 'flex' : 'none';
+    if (cfStressBar) cfStressBar.style.display = 'flex';
 
     const noticeEl = document.getElementById("cashflow-inflation-notice");
     if (noticeEl) {
@@ -1189,6 +1207,45 @@
           order: idx + 3
         });
       });
+    } else if (state.cashflowStressScenario && window.RetirementEngine) {
+      // Chip biến cố đơn lẻ (dùng chung với biểu đồ Dòng tiền): chỉ vẽ nét đứt ở các năm khác đường cơ sở
+      const chipKey = state.cashflowStressScenario;
+      const chipMeta = {
+        market_crash: { key: 'scenario_crash_label', fb: 'Khủng hoảng Sớm (-35%)', color: coolLiquidColor, dash: [6, 4] },
+        high_inflation: { key: 'scenario_inflation_label', fb: 'Lạm phát Phi mã (7%/năm)', color: coolLiquidColor, dash: [6, 4] },
+        medical_shock: { key: 'scenario_medical_label', fb: 'Cú sốc Y tế (Tuổi 65)', color: coolLiquidColor, dash: [6, 4] }
+      }[chipKey];
+      if (chipMeta) {
+        const scProjNw = window.RetirementEngine.runProjection(activePlan, chipKey);
+        const pick = (r) => state.viewMode === "nominal" ? r.portfolioEnd : r.realPortfolioEnd;
+        const baseVals = proj.timeline.map(p => pick(p));
+        const scVals = proj.timeline.map(p => {
+          const r = scProjNw.timeline.find(x => x.age === p.age);
+          return r ? pick(r) : null;
+        });
+        const differs = scVals.map((v, i) => v !== null && Math.abs(v - baseVals[i]) > 1);
+        const diffData = scVals.map((v, i) => {
+          const keep = differs[i] || (i > 0 && differs[i - 1]) || (i < differs.length - 1 && differs[i + 1]);
+          return keep ? v : null;
+        });
+        if (diffData.some(v => v !== null)) {
+          datasets.push({
+            label: `${window.I18n ? window.I18n.t(chipMeta.key, chipMeta.fb) : chipMeta.fb} (${sym})`,
+            data: diffData,
+            borderColor: chipMeta.color,
+            borderWidth: 2.8,
+            borderDash: chipMeta.dash,
+            backgroundColor: 'transparent',
+            fill: false,
+            tension: 0.35,
+            spanGaps: false,
+            pointRadius: 0,
+            pointHoverRadius: 6,
+            pointHitRadius: 15,
+            order: 3
+          });
+        }
+      }
     } else if (state.showMonteCarloFan && window.MonteCarloSimulator && typeof window.MonteCarloSimulator.runSimulation === "function") {
       // Quạt Phân vị Monte Carlo (Fan Chart P10 - P90)
       const vol = parseVal("inp-mc-volatility", 15.0);
@@ -1422,15 +1479,6 @@
 
     const ctx = canvas.getContext("2d");
     const activePlan = getActivePlan();
-    const isStrategyActive = activePlan.enableWithdrawalStrategy !== false;
-    const stratKey = activePlan.withdrawalStrategy || 'guyton_klinger';
-    const stratMap = {
-      'guyton_klinger': 'Guyton-Klinger',
-      'bengen_4pct': 'Bengen 4%',
-      'vpw': 'VPW',
-      'fixed_pct': 'Fixed %'
-    };
-    const stratName = stratMap[stratKey] || 'Guyton-Klinger';
 
     // Chế độ hiển thị: Dùng chung chế độ Nominal/Real với biểu đồ Tài sản Ròng
     const viewMode = state.viewMode || (window.AppState && typeof window.AppState.getViewMode === 'function' ? window.AppState.getViewMode() : 'nominal') || 'nominal';
@@ -1669,21 +1717,31 @@
       }
     ];
 
-    // 2. CÁC ĐƯỜNG KỊCH BẢN BIẾN CỐ: LUÔN LÀ NÉT ĐỨT (borderDash) VỚI MÀU TƯƠNG PHẢN RÕ NÉT
+    // 2. CÁC ĐƯỜNG KỊCH BẢN BIẾN CỐ (NÉT ĐỨT): chỉ vẽ ở những năm KHÁC đường cơ sở
     if (isStressActive && scProj) {
-      if (scKey === 'market_crash') {
-        // Biến cố 1: Khủng hoảng thị trường sớm (-35%) -> Tác động rút vốn, màu CAM RỰC RỠ nét đứt
-        const crashWithdrawals = scProj.timeline.map(p => {
-          if (!p.isRetired || !(p.withdrawal > 0)) return null;
-          const val = isNominal ? p.withdrawal : ((p.cumInflation > 0) ? (p.withdrawal / p.cumInflation) : p.withdrawal);
-          return Math.round(val);
+      const toDisplay = (p, raw) => isNominal ? raw : ((p.cumInflation > 0) ? (raw / p.cumInflation) : raw);
+
+      // Chỉ giữ giá trị ở các năm khác đường cơ sở; giữ thêm 1 điểm kề bên để nét đứt nối liền với nét liền
+      const buildDiffSeries = (scenarioVals, baseVals) => {
+        const differs = scenarioVals.map((v, i) => {
+          if (v === null || v === undefined) return false;
+          const b = baseVals[i];
+          return (b === null || b === undefined) ? v > 0 : Math.abs(v - b) > 1;
         });
+        return scenarioVals.map((v, i) => {
+          const keep = differs[i] || (i > 0 && differs[i - 1]) || (i < differs.length - 1 && differs[i + 1]);
+          return (keep && v !== null && v !== undefined) ? v : null;
+        });
+      };
+
+      const pushScenarioLine = (label, data, color, dash) => {
+        if (!data.some(v => v !== null)) return;
         datasets.push({
-          label: `Rút vốn khi Khủng hoảng (-35% • Nét đứt) (${sym})`,
-          data: crashWithdrawals,
-          borderColor: isLight ? '#ea580c' : '#fb923c', // Cam rực rỡ (tương phản mạnh với Tím, Đỏ, Xanh)
+          label: `${label} (${sym})`,
+          data,
+          borderColor: color,
           borderWidth: 2.8,
-          borderDash: [7, 4], // NÉT ĐỨT
+          borderDash: dash,
           fill: false,
           tension: 0.35,
           spanGaps: false,
@@ -1691,42 +1749,36 @@
           pointHoverRadius: 6,
           order: 0
         });
-      } else if (scKey === 'high_inflation') {
-        // Biến cố 2: Lạm phát phi mã (+4.5%/năm) -> Tác động chi tiêu, màu VÀNG HỔ PHÁCH nét đứt
-        const inflExpenses = scProj.timeline.map(p => {
-          const val = isNominal ? (p.expenses || 0) : ((p.cumInflation > 0) ? ((p.expenses || 0) / p.cumInflation) : (p.expenses || 0));
-          return Math.round(val);
-        });
-        datasets.push({
-          label: `Chi tiêu khi Bão giá (+4.5%/năm • Nét đứt) (${sym})`,
-          data: inflExpenses,
-          borderColor: isLight ? '#d97706' : '#f59e0b', // Vàng hổ phách (tương phản rõ rệt với Đỏ cơ bản)
-          borderWidth: 2.8,
-          borderDash: [6, 4], // NÉT ĐỨT
-          fill: false,
-          tension: 0.35,
-          pointRadius: 0,
-          pointHoverRadius: 6,
-          order: 0
-        });
-      } else if (scKey === 'medical_shock') {
-        // Biến cố 3: Sốc chi phí y tế tuổi 65 (+500Tr) -> Tác động chi tiêu, màu XANH LAM BIỂN TƯƠI nét đứt
-        const medExpenses = scProj.timeline.map(p => {
-          const val = isNominal ? (p.expenses || 0) : ((p.cumInflation > 0) ? ((p.expenses || 0) / p.cumInflation) : (p.expenses || 0));
-          return Math.round(val);
-        });
-        datasets.push({
-          label: `Chi tiêu khi Sốc y tế Tuổi 65 (Nét đứt) (${sym})`,
-          data: medExpenses,
-          borderColor: isLight ? '#0284c7' : '#38bdf8', // Xanh lam biển tươi (tương phản hoàn toàn với Đỏ)
-          borderWidth: 2.8,
-          borderDash: [5, 4], // NÉT ĐỨT
-          fill: false,
-          tension: 0.35,
-          pointRadius: 0,
-          pointHoverRadius: 6,
-          order: 0
-        });
+      };
+
+      const scWithdrawalVals = scProj.timeline.map(p => {
+        // Giai đoạn hưu trí: giữ cả giá trị 0 (khi đã cạn vốn, không còn gì để rút) để đường nét đứt rơi xuống 0
+        if (!p.isRetired) return null;
+        return Math.round(toDisplay(p, p.withdrawal || 0));
+      });
+      const scExpenseVals = scProj.timeline.map(p => Math.round(toDisplay(p, p.expenses || 0)));
+      const t = (key, fb) => (window.I18n ? window.I18n.t(key, fb) : fb);
+
+      // Cùng màu với đường cơ sở (Chi tiêu = đỏ, Rút vốn = tím), chỉ khác là nét đứt
+      const scenarioNames = {
+        market_crash: {
+          expense: t('scenario_crash_expense_label', 'Chi tiêu khi Khủng hoảng (-35%)'),
+          withdrawal: t('scenario_crash_withdrawal_label', 'Rút vốn khi Khủng hoảng (-35%)')
+        },
+        high_inflation: {
+          expense: t('scenario_inflation_expense_label', 'Chi tiêu khi Bão giá (+4.5%/năm)'),
+          withdrawal: t('scenario_inflation_withdrawal_label', 'Rút vốn khi Bão giá')
+        },
+        medical_shock: {
+          expense: t('scenario_medical_expense_label', 'Chi tiêu khi Sốc y tế Tuổi 65'),
+          withdrawal: t('scenario_medical_withdrawal_label', 'Rút vốn khi Sốc y tế')
+        }
+      }[scKey];
+
+      if (scenarioNames) {
+        // Khủng hoảng chỉ làm đổi dòng chi tiêu nếu có; đường nào không khác cơ sở sẽ tự không được vẽ
+        pushScenarioLine(scenarioNames.expense, buildDiffSeries(scExpenseVals, baseExpenses), expenseColor, [6, 4]);
+        pushScenarioLine(scenarioNames.withdrawal, buildDiffSeries(scWithdrawalVals, baseWithdrawals), withdrawalColor, [6, 4]);
       }
     }
 
@@ -1881,8 +1933,8 @@
                     lines.push(` Cân đối chi tiêu: Thiếu hụt -${diffFormatted}/năm`);
                   }
 
-                  if (isStrategyActive && withdrawal === 0 && (p.portfolioEnd || 0) <= 0) {
-                    lines.push(` ⚠️ Quỹ đầu tư cạn kiệt (0€) do nghỉ hưu sớm thiếu thanh khoản`);
+                  if (withdrawal === 0 && (p.portfolioEnd || 0) <= 0 && expenses > ((p.income || 0) / factor)) {
+                    lines.push(` ⚠️ Quỹ đầu tư cạn kiệt (0€) do thiếu thanh khoản`);
                   }
                 }
 
@@ -2019,19 +2071,11 @@
       const isMed = sRate >= 50;
       const lvlText = isHigh ? "Rất cao" : (isMed ? "Trung bình" : "Thấp (Cần điều chỉnh)");
       const lvlClass = isHigh ? "text-success" : (isMed ? "text-warning" : "text-danger");
-      const isExcessWithdrawal = (plan.enableWithdrawalStrategy !== false && plan.smartWithdrawalCap === false);
-      const excessTipHtml = isExcessWithdrawal
-        ? `<div style="margin-top: 0.35rem; font-size: 0.72rem; color: #d97706; line-height: 1.4;">
-             ⚠️ <strong>Gợi ý:</strong> Tỷ lệ thành công đang bị kéo giảm do bạn đang rút cố định theo tỷ lệ SWR vượt nhu cầu thực tế sau lương hưu. Khuyến nghị chỉ rút bù đắp phần thiếu hụt để bảo toàn danh mục.
-           </div>`
-        : "";
-
       srrBox.innerHTML = `
         <div class="srr-level">Mức độ an toàn: <strong class="${lvlClass}">${lvlText} (${res.successRate}%)</strong></div>
         <p>${isHigh 
           ? "Danh mục có sức chống chịu tuyệt vời trước các đợt suy thoái nhờ đệm tài sản vững và dòng tiền hưu trí trợ lực." 
           : "Khuyến nghị tăng thêm mức tiết kiệm hàng tháng hoặc lùi tuổi nghỉ hưu 1–2 năm để tăng tỷ lệ sống sót qua các đợt suy thoái."}</p>
-        ${excessTipHtml}
       `;
     }
 

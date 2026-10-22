@@ -516,30 +516,6 @@
       updateAll();
     });
 
-    // Withdrawal Strategy Radio Buttons
-    document.querySelectorAll("input[name='withdrawal-strategy']").forEach(radio => {
-      radio.addEventListener("change", (e) => {
-        const newStrat = e.target.value;
-        const p = getActivePlan();
-        p.withdrawalStrategy = newStrat;
-        savePlansToStorage();
-        updateAll();
-        renderWithdrawalComparison();
-      });
-    });
-
-    // Initial SWR Range Slider
-    const swrSlider = document.getElementById("inp-initial-swr");
-    if (swrSlider) {
-      swrSlider.addEventListener("input", (e) => {
-        document.getElementById("val-initial-swr").innerText = e.target.value;
-        const p = getActivePlan();
-        p.initialWithdrawalRate = Number(e.target.value);
-        savePlansToStorage();
-        updateAll();
-        renderWithdrawalComparison();
-      });
-    }
 
 
     // Expandable Panel Toggles
@@ -680,47 +656,6 @@
       });
     }
 
-    const chkWithdrawal = document.getElementById("chk-enable-withdrawal-strategy");
-    if (chkWithdrawal) {
-      chkWithdrawal.addEventListener("change", () => {
-        const plan = getActivePlan();
-        plan.enableWithdrawalStrategy = chkWithdrawal.checked;
-        savePlansToStorage();
-        updateWithdrawalStrategyCards(plan);
-        updateAll();
-        renderWithdrawalComparison();
-      });
-    }
-
-    const chkSmartCap = document.getElementById("chk-smart-withdrawal-cap");
-    if (chkSmartCap) {
-      chkSmartCap.addEventListener("change", () => {
-        const plan = getActivePlan();
-        plan.smartWithdrawalCap = chkSmartCap.checked;
-        savePlansToStorage();
-        updateWithdrawalStrategyCards(plan);
-        updateAll();
-        renderWithdrawalComparison();
-      });
-    }
-
-    const btnEditStrat = document.getElementById("btn-edit-withdrawal-strategy");
-    if (btnEditStrat) {
-      btnEditStrat.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const body = document.getElementById("strategy-inputs-body");
-        if (body) {
-          if (body.style.display === "none") {
-            body.style.display = "block";
-            btnEditStrat.innerText = "Sửa";
-          } else {
-            body.style.display = "none";
-            btnEditStrat.innerText = "Mở rộng";
-          }
-        }
-      });
-    }
 
     const btnToggleMatrix = document.getElementById("btn-toggle-strat-matrix");
     if (btnToggleMatrix) {
@@ -1169,32 +1104,27 @@
 
     if (lblCardRatio) {
       if (isAllocEnabled) {
-        let ratioItems = [];
-        items.forEach(it => {
-          const r = Math.max(0, Number(it.ratio) || 0);
-          if (r > 0) {
-            const shortName = (it.name || '').split(' ')[0] || 'Đầu tư';
-            ratioItems.push(`${r}% ${shortName}`);
-          }
-        });
         if (unallocatedPct > 0) {
-          ratioItems.push(`${unallocatedPct}% Nhàn rỗi`);
+          lblCardRatio.innerHTML = window.I18n.t(
+            'lbl_alloc_idle_explanation',
+            'Vẫn còn <strong style="color: var(--text-main);">{pct}%</strong> tiền nhàn rỗi. Mỗi tháng số tiền tiết kiệm của bạn sẽ được tự động đưa vào các % danh mục đầu tư như trên để mô phỏng.'
+          ).replace('{pct}', unallocatedPct);
+        } else {
+          lblCardRatio.innerHTML = window.I18n.t(
+            'lbl_alloc_fully_explanation',
+            'Đã phân bổ trọn vẹn <strong style="color: #10b981;">100%</strong> danh mục. Mỗi tháng số tiền tiết kiệm của bạn sẽ được tự động đưa vào các % danh mục đầu tư như trên để mô phỏng.'
+          );
         }
-        if (ratioItems.length === 0) {
-          ratioItems.push(`100% Chưa đầu tư`);
-        }
-        lblCardRatio.innerText = ratioItems.join(" • ");
       } else {
-        lblCardRatio.innerText = `Tắt đầu tư (0% sinh lời • Giữ tiền mặt)`;
+        lblCardRatio.innerText = window.I18n.t(
+          'lbl_alloc_disabled_explanation',
+          'Đã tắt danh mục đầu tư: Tiền nhàn rỗi và tiền tiết kiệm hàng tháng được giữ bằng tiền mặt (0% sinh lời).'
+        );
       }
     }
 
     if (lblCardBonus) {
-      if (isAllocEnabled) {
-        lblCardBonus.innerText = `Lãi suất chung: ${weighted}%/năm`;
-      } else {
-        lblCardBonus.innerText = `Lãi suất chung: 0.0%/năm`;
-      }
+      lblCardBonus.style.display = 'none';
     }
 
     if (chkEnable) chkEnable.checked = isAllocEnabled;
@@ -1710,16 +1640,6 @@
     const cur = state.currency;
     const fmt = (v) => window.RetirementEngine.formatCurrency(v, cur);
 
-    const chosenStrat = plan.withdrawalStrategy || 'guyton_klinger';
-    const swrVal = (plan.initialWithdrawalRate || plan.swr || 4.0).toFixed(1);
-    const stratNames = {
-      bengen_4pct: { full: "Quy tắc 4% Cố định (Bengen)", short: "Bengen 4%" },
-      guyton_klinger: { full: "Lan can Guyton-Klinger", short: "Guyton-Klinger" },
-      vpw: { full: "Tỷ lệ Thay đổi VPW", short: "VPW" },
-      fixed_pct: { full: "Tỷ lệ Cố định (Fixed %)", short: "Fixed %" }
-    };
-    const curStratInfo = stratNames[chosenStrat] || { full: "Lan can Guyton-Klinger", short: "Guyton-Klinger" };
-
     let proj = null;
     try {
       if (window.RetirementEngine && typeof window.RetirementEngine.runProjection === "function") {
@@ -1729,19 +1649,17 @@
       console.warn("Lỗi tính projection trong income periods summary:", err);
     }
 
-    const isStrategyActive = plan.enableWithdrawalStrategy !== false;
-
     container.innerHTML = periods.map(p => {
       let withMoStart = 0, withMoEnd = 0, withAnnStart = 0, withAnnEnd = 0;
       let withdrawalChipHtml = "";
 
-      if (isStrategyActive && p.isRetirePeriod && proj && Array.isArray(proj.timeline)) {
+      if (p.isRetirePeriod && proj && Array.isArray(proj.timeline)) {
         const pRows = proj.timeline.filter(r => r.age >= p.startAge && r.age <= p.endAge && r.isRetired);
         if (pRows.length > 0) {
           const firstR = pRows[0];
           const lastR = pRows[pRows.length - 1];
-          withAnnStart = (firstR.netCashFlow < 0) ? Math.round(-firstR.netCashFlow) : 0;
-          withAnnEnd = (lastR.netCashFlow < 0) ? Math.round(-lastR.netCashFlow) : 0;
+          withAnnStart = (firstR.withdrawal > 0) ? Math.round(firstR.withdrawal) : 0;
+          withAnnEnd = (lastR.withdrawal > 0) ? Math.round(lastR.withdrawal) : 0;
           withMoStart = Math.round(withAnnStart / 12);
           withMoEnd = Math.round(withAnnEnd / 12);
 
@@ -1755,19 +1673,19 @@
               : `≈ ${fmt(withAnnStart)}/năm`;
 
             withdrawalChipHtml = `
-              <span class="period-chip chip-withdrawal-period" title="Số tiền dự kiến rút từ danh mục đầu tư theo quy tắc ${escapeHtml(curStratInfo.full)} (SWR ${swrVal}%) • Quy đổi năm: ${withAnnualStr}">
-                Rút vốn (${escapeHtml(curStratInfo.short)}): <strong>${withMonthlyStr}</strong>
+              <span class="period-chip chip-withdrawal-period" title="Số tiền rút từ danh mục bù đắp phần chi tiêu vượt thu nhập • Quy đổi năm: ${withAnnualStr}">
+                Rút vốn: <strong>${withMonthlyStr}</strong>
               </span>
             `;
           }
         }
       }
 
-      // Trong kỳ hưu trí: tổng dòng tiền chi tiêu khả dụng về tài khoản = Thu nhập định kỳ + Tiền rút vốn (chỉ cộng nếu bật chiến lược)
-      const effMoStart = (isStrategyActive && p.isRetirePeriod) ? (p.totalMonthly + withMoStart) : p.totalMonthly;
-      const effMoEnd = (isStrategyActive && p.isRetirePeriod) ? (p.totalMonthlyEnd + withMoEnd) : p.totalMonthlyEnd;
-      const effAnnStart = (isStrategyActive && p.isRetirePeriod) ? (p.totalAnnual + withAnnStart) : p.totalAnnual;
-      const effAnnEnd = (isStrategyActive && p.isRetirePeriod) ? (p.totalAnnualEnd + withAnnEnd) : p.totalAnnualEnd;
+      // Trong kỳ hưu trí: tổng dòng tiền chi tiêu khả dụng về tài khoản = Thu nhập định kỳ + Tiền rút vốn bù đắp chi tiêu
+      const effMoStart = p.isRetirePeriod ? (p.totalMonthly + withMoStart) : p.totalMonthly;
+      const effMoEnd = p.isRetirePeriod ? (p.totalMonthlyEnd + withMoEnd) : p.totalMonthlyEnd;
+      const effAnnStart = p.isRetirePeriod ? (p.totalAnnual + withAnnStart) : p.totalAnnual;
+      const effAnnEnd = p.isRetirePeriod ? (p.totalAnnualEnd + withAnnEnd) : p.totalAnnualEnd;
 
       const isZero = effMoStart === 0 && effMoEnd === 0;
       const borderColor = p.isRetirePeriod ? '#34d399' : '#10b981';
@@ -3565,183 +3483,15 @@
 
 
   // -------------------------------------------------------------
-  // TAB 1 / Global: Update Withdrawal Strategy Cards & SWR
+  // TAB 1 / Global: Update Withdrawal Strategy Cards (Safe No-Op)
   // -------------------------------------------------------------
   function updateWithdrawalStrategyCards(plan) {
-    const cardWithdrawal = document.getElementById("card-withdrawal-strategy-controls");
-    if (!cardWithdrawal) return;
-    try {
-      if (!plan) plan = getActivePlan();
-      const chosenStrat = plan.withdrawalStrategy || 'guyton_klinger';
-
-      const strategies = [
-        { key: "guyton_klinger", name: "Lan can Guyton-Klinger (Khuyên dùng)", color: "#10b981" },
-        { key: "bengen_4pct", name: "Quy tắc 4% Cố định (Bengen)", color: "#3b82f6" },
-        { key: "vpw", name: "Tỷ lệ Thay đổi (VPW)", color: "#8b5cf6" },
-        { key: "fixed_pct", name: "Tỷ lệ Cố định (Fixed %)", color: "#f59e0b" }
-      ];
-
-      function hexToRgba(hex, alpha) {
-        const h = hex.replace('#', '');
-        const r = parseInt(h.substring(0, 2), 16);
-        const g = parseInt(h.substring(2, 4), 16);
-        const b = parseInt(h.substring(4, 6), 16);
-        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-      }
-
-      // Update embedded KPIs in each Strategy Card directly
-      const lifeExp = plan.lifeExpectancy || 85;
-      document.querySelectorAll(".lbl-life-exp-target").forEach(el => el.innerText = lifeExp);
-
-      strategies.forEach(s => {
-        // Khi so sánh các trường phái rút tiền, tính theo công thức thuần túy của từng chiến lược để thấy rõ sự khác biệt
-        const p = { ...plan, withdrawalStrategy: s.key, smartWithdrawalCap: false };
-        const r = window.RetirementEngine.runProjection(p);
-        const isChosen = (s.key === chosenStrat);
-
-        // Update KPIs
-        const balEl = document.getElementById(`stat-bal-${s.key}`);
-        const survEl = document.getElementById(`stat-surv-${s.key}`);
-        const stabEl = document.getElementById(`stat-stab-${s.key}`);
-        if (balEl) balEl.innerText = window.RetirementEngine.formatCurrency(r.finalPortfolio, state.currency);
-        if (survEl) {
-          survEl.innerText = r.survived ? "100% Sống sót" : "Có rủi ro cạn vốn";
-          survEl.className = r.survived ? "text-success font-semibold" : "text-danger font-semibold";
-        }
-        if (stabEl) {
-          stabEl.innerText = s.key === 'bengen_4pct' ? 'Cao' : s.key === 'guyton_klinger' ? 'Rất Cao' : s.key === 'vpw' ? 'Linh hoạt' : 'Biến động';
-        }
-
-        // Active state on card
-        const cardEl = document.getElementById(`card-strat-${s.key}`);
-        if (cardEl) {
-          cardEl.classList.toggle('selected', isChosen);
-        }
-        const badgeEl = document.getElementById(`status-strat-${s.key}`);
-        if (badgeEl) {
-          if (isChosen) {
-            badgeEl.innerText = "Đang chọn";
-            badgeEl.style.background = "rgba(16, 185, 129, 0.15)";
-            badgeEl.style.color = "#10b981";
-            badgeEl.style.borderColor = "rgba(16, 185, 129, 0.3)";
-          } else {
-            badgeEl.innerText = s.key === "guyton_klinger" ? "Khuyên dùng" : s.key === "bengen_4pct" ? "Cố định" : s.key === "vpw" ? "Linh hoạt" : "Bảo toàn";
-            badgeEl.style.background = "";
-            badgeEl.style.color = "";
-            badgeEl.style.borderColor = "";
-          }
-        }
-      });
-
-      // Update Radio Checked state
-      const targetRadio = document.querySelector(`input[name='withdrawal-strategy'][value='${chosenStrat}']`);
-      if (targetRadio) targetRadio.checked = true;
-
-      // Update Top Badge & Active Status
-      const isEnabled = plan.enableWithdrawalStrategy !== false;
-      const isSmartCap = plan.smartWithdrawalCap !== false;
-      const chkWithdrawal = document.getElementById("chk-enable-withdrawal-strategy");
-      if (chkWithdrawal) chkWithdrawal.checked = isEnabled;
-      const chkSmartCap = document.getElementById("chk-smart-withdrawal-cap");
-      if (chkSmartCap) chkSmartCap.checked = isSmartCap;
-
-      const topBadge = document.getElementById("badge-chosen-strategy");
-      const chosenObj = strategies.find(s => s.key === chosenStrat) || strategies[0];
-      if (topBadge) {
-        if (isEnabled) {
-          topBadge.innerText = isSmartCap ? `${chosenObj.name} • Smart Cap` : chosenObj.name;
-          topBadge.style.color = chosenObj.color;
-          topBadge.style.borderColor = hexToRgba(chosenObj.color, 0.4);
-          topBadge.style.background = hexToRgba(chosenObj.color, 0.15);
-        } else {
-          topBadge.innerText = "Rút theo thực tế";
-          topBadge.style.color = "var(--text-faint)";
-          topBadge.style.borderColor = "var(--border-subtle)";
-          topBadge.style.background = "rgba(148, 163, 184, 0.1)";
-        }
-      }
-
-      // Update SWR slider
-      const swrVal = (plan.initialWithdrawalRate || 4.0).toFixed(1);
-      const swrSlider = document.getElementById("inp-initial-swr");
-      if (swrSlider) swrSlider.value = swrVal;
-      const swrDisp = document.getElementById("val-initial-swr");
-      if (swrDisp) swrDisp.innerText = swrVal;
-
-      // Update Card Header & Summary indicators
-      const lblSwr = document.getElementById("lbl-strategy-card-swr");
-      if (lblSwr) {
-        if (isEnabled) {
-          lblSwr.innerHTML = `${swrVal}% SWR<small id="lbl-strategy-card-annual"> • ≈ ${window.RetirementEngine.formatCurrency(plan.retirementExpenses || 0, state.currency)}/năm</small>`;
-          lblSwr.style.color = chosenObj.color;
-        } else {
-          lblSwr.innerHTML = `<span style="color: var(--text-faint);">Tắt chiến lược</span><small id="lbl-strategy-card-annual"> • Rút theo chi tiêu</small>`;
-          lblSwr.style.color = "var(--text-faint)";
-        }
-      }
-      const lblName = document.getElementById("lbl-strategy-card-name");
-      if (lblName) {
-        if (isEnabled) {
-          const capText = isSmartCap ? ' • Có Smart Cap bảo vệ' : ' • Cố định';
-          lblName.innerText = `${chosenObj.name}${capText}`;
-        } else {
-          lblName.innerText = `Chưa kích hoạt chiến lược rút tiền • Danh mục chỉ bù đắp chi tiêu sinh hoạt`;
-        }
-      }
-      const lblAge = document.getElementById("lbl-strategy-card-age");
-      if (lblAge) {
-        lblAge.innerText = `Từ ${plan.retirementAge || 43} tuổi trở đi`;
-      }
-      const lblSurv = document.getElementById("lbl-strategy-card-survival");
-      if (lblSurv) {
-        const pChosen = { ...plan, withdrawalStrategy: chosenStrat };
-        const rChosen = window.RetirementEngine.runProjection(pChosen);
-        lblSurv.innerText = rChosen.survived ? "100% Sống sót" : "Có rủi ro cạn vốn";
-        lblSurv.style.background = rChosen.survived ? "rgba(16, 185, 129, 0.12)" : "rgba(244, 63, 94, 0.12)";
-        lblSurv.style.color = rChosen.survived ? "#34d399" : "#fb7185";
-      }
-
-      // Kiểm tra và hiển thị Cảnh báo Rút dư thừa (Smart Warning Callout)
-      const calloutExcess = document.getElementById("callout-excess-withdrawal-warning");
-      const lblExcessText = document.getElementById("lbl-excess-warning-text");
-      if (calloutExcess && lblExcessText) {
-        if (isEnabled && !isSmartCap) {
-          try {
-            const pNoCap = { ...plan, enableWithdrawalStrategy: true, smartWithdrawalCap: false };
-            const rNoCap = window.RetirementEngine.runProjection(pNoCap);
-            const retAge = Number(plan.retirementAge) || 43;
-            const firstRetYear = rNoCap.timeline ? rNoCap.timeline.find(row => row.age === retAge && row.isRetired) : null;
-            if (firstRetYear) {
-              const actualWith = firstRetYear.withdrawal || 0;
-              const curExp = firstRetYear.expenses || 0;
-              const incTax = Math.max(0, (firstRetYear.income || 0) - (firstRetYear.tax || 0));
-              const deficit = Math.max(0, curExp - incTax);
-              const excess = actualWith - deficit;
-              if (excess > 500) {
-                calloutExcess.style.display = "block";
-                const fmt = window.RetirementEngine.formatCurrency;
-                const cur = state.currency;
-                lblExcessText.innerHTML = `Chiến lược SWR đang rút <strong>${fmt(actualWith, cur)}/năm</strong>, trong khi nhờ có lương hưu và thu nhập khác, bạn thực tế chỉ cần bù đắp <strong>${fmt(deficit, cur)}/năm</strong>. Khoản rút thừa <strong>${fmt(excess, cur)}/năm</strong> làm danh mục vơi đi nhanh chóng và khiến <strong>Tỷ lệ thành công Monte Carlo sụt giảm</strong>. Hãy bật lại <em>"Rút Thông Minh (Smart Cap)"</em> bên dưới để tối ưu.`;
-              } else {
-                calloutExcess.style.display = "none";
-              }
-            } else {
-              calloutExcess.style.display = "none";
-            }
-          } catch (e) {
-            calloutExcess.style.display = "none";
-          }
-        } else {
-          calloutExcess.style.display = "none";
-        }
-      }
-    } catch (err) {
-      console.error("Lỗi cập nhật thẻ chiến lược rút tiền:", err);
-    }
+    // 4 chiến lược rút vốn đã được xóa bỏ hoàn toàn
+    // Dòng rút vốn trong pyRetrait tự động bù đắp thiếu hụt khi chi tiêu vượt thu nhập
   }
 
   function renderWithdrawalComparison() {
-    updateWithdrawalStrategyCards(getActivePlan());
+    // No-op
   }
 
 

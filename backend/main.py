@@ -379,25 +379,98 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
     chart_title = payload.get("chart_title", "")
     chart_summary = payload.get("chart_summary", {})
     plan = payload.get("plan", {})
+    if not isinstance(plan, dict):
+        plan = {}
     api_key = payload.get("api_key") or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
 
-    # Thông tin kế hoạch để xây dựng prompt
+    # Thông tin kế hoạch để xây dựng prompt toàn diện
     cur = plan.get("currency", "EUR")
     cur_sym = "€" if cur == "EUR" else ("₫" if cur == "VND" else "$")
     cur_age = int(plan.get("currentAge") or 29)
     retire_age = int(plan.get("retirementAge") or 42)
     life_exp = int(plan.get("lifeExpectancy") or 85)
+    gender_str = "Nam" if plan.get("gender") == "male" else "Nữ"
+    marital_status = plan.get("maritalStatus", "single")
+    is_married = marital_status == "married"
+    spouse_birth_year = plan.get("spouseBirthYear")
+    current_year = 2026
+    spouse_age_str = f", bạn đời sinh năm {spouse_birth_year} (~{current_year - int(spouse_birth_year)} tuổi)" if (is_married and spouse_birth_year) else ""
+    family_profile_str = f"Cặp đôi / Vợ chồng (2 người){spouse_age_str}" if is_married else f"Cá nhân ({gender_str})"
+    tax_parts = float(plan.get("taxParts") or (2.0 if is_married else 1.0))
 
+    # Địa bàn hoạt động & Đa quốc gia
+    work_country = plan.get("workCountry", "FR")
+    retire_country = plan.get("retireCountry", "VN")
+    retire_city = plan.get("retireCity", "vn_hcm_hn")
+    retire_mode = plan.get("retireMode", "relocate")
+    geo_str = f"Nơi làm việc tích lũy: {work_country} ➔ Nơi nghỉ hưu: {retire_country} ({retire_city}) - Chế độ: {retire_mode}"
+
+    # Thu nhập, Tiết kiệm, Tài sản
     incomes = plan.get("incomes", [])
     total_annual_income = sum(float(inc.get("amount", 0)) for inc in incomes if inc.get("enabled", True))
     if total_annual_income <= 0:
         total_annual_income = float(plan.get("annualSavings", 0)) / max(0.01, float(plan.get("savingsRate", 33.3)) / 100)
 
     ann_sav = float(plan.get("annualSavings", 0))
+    ann_exp = float(plan.get("annualExpenses", 0))
     ret_exp = float(plan.get("retirementExpenses", 0))
     forex = float(plan.get("exchangeRateEurVnd", 27500))
     monthly_exp_vnd = round((ret_exp * forex) / 12 / 1_000_000)
     cur_savings = float(plan.get("currentSavings") or 0)
+    mortgage_paid_off = float(plan.get("monthlyMortgagePaidOff") or 0)
+
+    # Phân bổ tài sản & Lợi suất kỳ vọng
+    alloc = plan.get("assetAllocation", {})
+    returns = plan.get("assetReturns", {})
+    alloc_str = f"Cổ phiếu {alloc.get('stocks', 60)}% (LS: {returns.get('stocks', 9.5)}%/năm), Trái phiếu {alloc.get('bonds', 20)}% (LS: {returns.get('bonds', 3.5)}%/năm), BĐS {alloc.get('realEstate', 20)}% (LS: {returns.get('realEstate', 6.5)}%/năm), Tiền mặt {alloc.get('cash', 0)}% (LS: {returns.get('cash', 1.5)}%/năm)"
+
+    # Lạm phát
+    dual_inf = plan.get("dualInflation", {})
+    if dual_inf.get("enabled"):
+        inf_str = f"Lạm phát kép 2 chặng: Trước hưu ({work_country}) {dual_inf.get('inflationPre', 2.2)}%/năm, Sau hưu ({retire_country}) {dual_inf.get('inflationPost', 4.0)}%/năm, Tỷ giá EUR/VND: {dual_inf.get('eurVndInitialRate', 27500)} (Trôi dạt: {dual_inf.get('eurVndAnnualDrift', 1.2)}%/năm)"
+    else:
+        inf_str = f"Lạm phát đơn: {plan.get('inflationRate', 4.0)}%/năm"
+
+    # Cơ chế rút vốn & Di sản
+    target_legacy = float(plan.get("targetLegacy") or 0)
+
+    # Chặng chi tiêu & Con cái & Chăm sóc tuổi già
+    spending_phases = plan.get("spendingPhases", {})
+    phases_str = "Chưa kích hoạt"
+    if spending_phases.get("enabled"):
+        phases_str = f"Go-Go (<{spending_phases.get('gogoAge', 60)}t: x{spending_phases.get('gogoFactor', 1.15)} chi tiêu), Slow-Go ({spending_phases.get('gogoAge', 60)}-{spending_phases.get('slowgoAge', 75)}t: x{spending_phases.get('slowgoFactor', 0.90)}), No-Go (>{spending_phases.get('slowgoAge', 75)}t: x{spending_phases.get('nogoFactor', 0.80)})"
+
+    family_plan = plan.get("familyPlan", {})
+    family_plan_str = "Không có con hoặc chưa cấu hình"
+    if family_plan.get("enabled") and int(family_plan.get("kidsCount", 0)) > 0:
+        family_plan_str = f"{family_plan.get('kidsCount')} con (Chi phí nuôi: {family_plan.get('kidCostMonthly', 350)} {cur_sym}/tháng/bé, Đại học: {family_plan.get('kidUniMonthly', 900)} {cur_sym}/tháng/bé)"
+
+    senior_care_str = "Không cấu hình"
+    if plan.get("enableSeniorCare"):
+        senior_care_str = f"Bắt đầu từ tuổi {plan.get('seniorCareAge', 78)}, mức chi: {plan.get('seniorCareMonthly', 1000)} {cur_sym}/tháng"
+
+    # Lương hưu & An sinh xã hội
+    pensions_list = []
+    if plan.get("enableFrenchPension"):
+        fp1 = plan.get("frenchPensionDetails", {}).get("spouse1", {})
+        pensions_list.append(f"Lương hưu Pháp CNAV (Bạn: nhận từ {fp1.get('claimAge', 64)}t, mức chuẩn {fp1.get('targetAnnualPension', 18000):,.0f} {cur_sym}/năm)")
+        if is_married:
+            fp2 = plan.get("frenchPensionDetails", {}).get("spouse2", {})
+            pensions_list.append(f"Lương hưu Pháp CNAV (Bạn đời: nhận từ {fp2.get('claimAge', 64)}t, mức chuẩn {fp2.get('targetAnnualPension', 16000):,.0f} {cur_sym}/năm)")
+    if plan.get("bhxhVnEnabled"):
+        bh1 = plan.get("bhxhVnDetails", {}).get("spouse1", {})
+        pensions_list.append(f"BHXH Việt Nam (Bạn: đóng {bh1.get('yearsContributed', 15)} năm, nhận từ {bh1.get('claimAge', 62)}t)")
+        if is_married:
+            bh2 = plan.get("bhxhVnDetails", {}).get("spouse2", {})
+            pensions_list.append(f"BHXH Việt Nam (Bạn đời: đóng {bh2.get('yearsContributed', 15)} năm, nhận từ {bh2.get('claimAge', 60)}t)")
+    for c_code, c_name in [("German", "Đức DRV"), ("Us", "Mỹ SSA"), ("Japan", "Nhật Nenkin"), ("Canada", "Canada CPP/OAS"), ("Australia", "Úc Super"), ("Korea", "Hàn NPS"), ("Taiwan", "Đài Loan")]:
+        if plan.get(f"enable{c_code}Pension"):
+            pensions_list.append(f"Lương hưu {c_name} (Đã kích hoạt)")
+    pensions_str = "; ".join(pensions_list) if pensions_list else "Chưa kích hoạt nguồn lương hưu nhà nước"
+
+    # Tài khoản ưu đãi Pháp (nếu có)
+    fa = plan.get("frenchAccounts", {})
+    fa_str = f"PEA: {fa.get('peaBalance', 0):,.0f} {cur_sym}, Assurance-Vie: {fa.get('assuranceVieBalance', 0):,.0f} {cur_sym}, Livret A: {fa.get('livretABalance', 0):,.0f} {cur_sym}"
 
     actual_records = plan.get("actualRecords") or []
     actual_records_text = (
@@ -440,42 +513,44 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
         import httpx
 
         system_instruction = (
-            "Bạn là chuyên gia tư vấn tài chính cá nhân độc lập, thân thiện, thông thái và thực tế của phần mềm pyRetrait.\n"
-            "NHIỆM VỤ: Phân tích biểu đồ tài chính người dùng, đưa ra nhận xét sâu sắc và khuyến nghị khả thi.\n\n"
+            "Bạn là chuyên gia tư vấn tài chính cá nhân độc lập, thân thiện, sắc sảo và thực tế của phần mềm pyRetrait (phục vụ 100,000+ người dùng phổ thông).\n"
+            "NHIỆM VỤ: Đọc toàn bộ các biến số tài chính, gia đình, đa quốc gia và kết quả mô phỏng của người dùng; đưa ra nhận xét sâu sắc, phát hiện điểm nghẽn rủi ro tiềm ẩn và đề xuất hành động tối ưu khả thi.\n\n"
             "NGUYÊN TẮC BẮT BUỘC:\n"
-            "1. NGẮN GỌN: Trả lời khoảng 220–320 từ, đi thẳng vào trọng tâm.\n"
-            "2. TÓM TẮT ĐẦU TIÊN: Bắt đầu bằng `> **Tóm tắt cốt lõi**: [1–2 câu kết luận quan trọng nhất]`.\n"
-            "3. NGÔN NGỮ ĐỜI THƯỜNG: Giọng ấm áp, dễ hiểu, tránh thuật ngữ phức tạp.\n"
-            "4. FORMAT: Chỉ dùng H3 (###), danh sách (-), số (1.) và in đậm (**). KHÔNG dùng bảng hay code block.\n"
-            "5. BÁM SÁT DỮ LIỆU: Không bịa số liệu mâu thuẫn với thông số người dùng.\n"
-            "6. ĐÚNG BIỂU ĐỒ: Tập trung 100% vào biểu đồ được yêu cầu."
+            "1. TÓM TẮT ĐẦU TIÊN (KẾT LUẬN NHANH): Luôn bắt đầu ngay bằng ô trích dẫn: `> **Tóm tắt cốt lõi**: [1–2 câu nhận định quan trọng nhất về tính an toàn và khả thi của kế hoạch]`.\n"
+            "2. NGÔN NGỮ ĐỜI THƯỜNG & KHÔNG DÙNG LATEX: Tuyệt đối KHÔNG dùng LaTeX (cấm $$, $, \\text). Dùng văn bản thuần Việt trong sáng, dễ hiểu, tránh thuật ngữ hàn lâm đao to búa lớn.\n"
+            "3. BÁM SÁT TOÀN DIỆN MỌI BIẾN SỐ: Khai thác sâu sắc bối cảnh đa quốc gia (Pháp/Việt/Mỹ...), cơ cấu gia đình (Cá nhân vs Vợ chồng), các quỹ lương hưu (CNAV/Décote, BHXH VN), phân bổ tài sản, lạm phát kép 2 chặng và các giai đoạn chi tiêu.\n"
+            "4. ĐỊNH LƯỢNG RÕ RÀNG: Đưa ra con số thực tế, ví dụ số tiền cần tích lũy thêm, độ tuổi nghỉ hưu tối ưu, tỷ lệ rút an toàn.\n"
+            "5. ĐỘ DÀI & FORMAT: Trả lời cô đọng khoảng 250–350 từ. Chỉ dùng tiêu đề H3 (###), danh sách gạch đầu dòng (-), số thứ tự (1.) và in đậm (**). Tuyệt đối không dùng bảng HTML hoặc code block."
         )
 
-        extra_strat_context = ""
-        if chart_summary.get("compareWithdrawalsActive") and chart_summary.get("strategiesComparison"):
-            strat_items = chart_summary.get("strategiesComparison", [])
-            lines = [f"  * {s.get('name')}: Số dư tuổi thọ ({life_exp}t) = {s.get('finalPortfolio')} — Trạng thái: {s.get('survived')}" for s in strat_items]
-            extra_strat_context = (
-                "\nĐẶC BIỆT - NGƯỜI DÙNG ĐANG BẬT SO SÁNH 4 CHIẾN LƯỢC RÚT TIỀN TRÊN CÙNG BIỂU ĐỒ:\n"
-                + "\n".join(lines) + "\n"
-                "- Yêu cầu bổ sung: Hãy phân tích, so sánh số dư tuổi thọ cuối đời giữa 4 chiến lược, chỉ ra chiến lược nào bảo toàn vốn an toàn nhất, chiến lược nào tạo dòng tiền dồi dào nhất, và đưa ra khuyến nghị phù hợp với hoàn cảnh người dùng.\n\n"
-            )
 
         prompt = (
-            f"Phân tích biểu đồ '{chart_title}' (ID: {chart_id}) với dữ liệu:\n"
-            f"- Kế hoạch: {plan.get('name', 'Franco-Viet FIRE')} | Tiền tệ: {cur} ({cur_sym})\n"
-            f"- Tuổi: {cur_age} → nghỉ hưu {retire_age} → tuổi thọ {life_exp}\n"
-            f"- Tài sản hiện có: {cur_savings:,.0f} {cur_sym}\n"
-            f"- Thu nhập: {incomes_summary_text}\n"
-            f"- Chi tiêu & nợ: {expenses_summary_text}\n"
-            f"- Tiết kiệm/năm: {ann_sav:,.0f} {cur_sym} | Chi tiêu hưu trí: {ret_exp:,.0f} {cur_sym}/năm (~{monthly_exp_vnd}M₫/tháng)\n"
-            f"- Số dư thực tế: {actual_records_text}\n"
-            f"- Dữ liệu mô phỏng: {json.dumps(chart_summary, ensure_ascii=False)}\n"
-            f"{extra_strat_context}\n"
-            f"CẤU TRÚC PHẢN HỒI (sau TL;DR):\n"
-            f"### 1. Nhận xét chính về {chart_title}\n"
-            f"### 2. Điểm cần lưu ý\n"
-            f"### 3. Hành động đề xuất cụ thể (kèm ví dụ số thực tế)"
+            f"Phân tích biểu đồ: '{chart_title}' (Mã biểu đồ: {chart_id})\n\n"
+            f"--- BỐI CẢNH TOÀN DIỆN KẾ HOẠCH TÀI CHÍNH CỦA NGƯỜI DÙNG ---\n"
+            f"1. Nhân khẩu & Gia đình: {family_profile_str} | Tuổi: {cur_age}t ➔ Dự kiến nghỉ hưu: {retire_age}t ➔ Tuổi thọ: {life_exp}t | Suất thuế gia cảnh: {tax_parts}\n"
+            f"2. Địa bàn & Đa quốc gia: {geo_str}\n"
+            f"3. Tài sản hiện có: {cur_savings:,.0f} {cur_sym} | Tiết kiệm tích lũy: {ann_sav:,.0f} {cur_sym}/năm\n"
+            f"4. Danh mục đầu tư & Lợi suất kỳ vọng: {alloc_str}\n"
+            f"5. Tài khoản ưu đãi thuế Pháp: {fa_str}\n"
+            f"6. Dòng tiền & Chi tiêu:\n"
+            f"   - Thu nhập chủ động: {incomes_summary_text} (Tổng ~{total_annual_income:,.0f} {cur_sym}/năm)\n"
+            f"   - Chi tiêu sinh hoạt & Nợ vay hiện tại: {expenses_summary_text} (Tổng ~{ann_exp:,.0f} {cur_sym}/năm)\n"
+            f"   - Nợ mua nhà dự kiến tất toán trước hưu: {mortgage_paid_off:,.0f} {cur_sym}/tháng\n"
+            f"   - Chi tiêu hưu trí dự kiến: {ret_exp:,.0f} {cur_sym}/năm (~{monthly_exp_vnd} triệu VNĐ/tháng)\n"
+            f"   - Kế hoạch con cái: {family_plan_str}\n"
+            f"   - Mô hình 3 chặng chi tiêu tuổi già: {phases_str}\n"
+            f"   - Chăm sóc y tế tuổi già: {senior_care_str}\n"
+            f"7. Chế độ lạm phát & Tỷ giá: {inf_str}\n"
+            f"8. Hệ thống lương hưu & An sinh xã hội: {pensions_str}\n"
+            f"9. Cơ chế rút vốn & Di sản: Rút bù đắp chi tiêu (chỉ rút khi chi tiêu vượt thu nhập) | Mục tiêu di sản: {target_legacy:,.0f} {cur_sym}\n"
+            f"10. Số liệu theo dõi thực tế: {actual_records_text}\n\n"
+            f"--- KẾT QUẢ ĐẦU RA MÔ PHỎNG BIỂU ĐỒ NÀY (ENGINE PROJECTIONS) ---\n"
+            f"{json.dumps(chart_summary, ensure_ascii=False, indent=2)}\n\n"
+            f"YÊU CẦU CẤU TRÚC PHẢN HỒI (bắt buộc theo thứ tự sau phần Tóm tắt cốt lõi):\n"
+            f"> **Tóm tắt cốt lõi**: [1–2 câu kết luận chuẩn xác, rõ ràng]\n\n"
+            f"### 1. Đánh giá tính khả thi & Sức mạnh tài chính\n"
+            f"### 2. Các điểm nghẽn rủi ro cần đặc biệt lưu ý\n"
+            f"### 3. Đề xuất hành động chiến lược cụ thể (kèm số liệu thực tế)"
         )
 
         user_model = payload.get("model") or os.environ.get("GEMINI_MODEL")
@@ -490,41 +565,45 @@ async def analyze_chart(payload: Dict[str, Any] = Body(...)):
         candidate_models = []
         if user_model and user_model.strip():
             candidate_models.append(user_model.strip())
-        for m in ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]:
+        for m in ["gemini-2.5-flash", "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash"]:
             if m not in candidate_models:
                 candidate_models.append(m)
 
         for model_name in candidate_models:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key.strip()}"
-            gen_config: Dict[str, Any] = {"temperature": 0.4, "maxOutputTokens": 4096}
-            if "2.5" in model_name or "thinking" in model_name:
-                gen_config["thinkingConfig"] = {"thinkingBudget": 0}
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key.strip()}"
+                gen_config: Dict[str, Any] = {"temperature": 0.4, "maxOutputTokens": 4096}
+                if "2.5" in model_name or "thinking" in model_name:
+                    gen_config["thinkingConfig"] = {"thinkingBudget": 0}
 
-            req_body = {
-                "system_instruction": {"parts": [{"text": system_instruction}]},
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": gen_config
-            }
-            async with httpx.AsyncClient(timeout=20.0) as client:
-                resp = await client.post(url, json=req_body)
-                if resp.status_code == 400 and "system_instruction" in resp.text:
-                    fallback_body = {
-                        "contents": [{"parts": [{"text": f"CHỈ THỊ HỆ THỐNG:\n{system_instruction}\n\n---\n\n{prompt}"}]}],
-                        "generationConfig": gen_config
-                    }
-                    resp = await client.post(url, json=fallback_body)
+                req_body = {
+                    "system_instruction": {"parts": [{"text": system_instruction}]},
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": gen_config
+                }
+                async with httpx.AsyncClient(timeout=12.0) as client:
+                    resp = await client.post(url, json=req_body)
+                    if resp.status_code == 400 and "system_instruction" in resp.text:
+                        fallback_body = {
+                            "contents": [{"parts": [{"text": f"CHỈ THỊ HỆ THỐNG:\n{system_instruction}\n\n---\n\n{prompt}"}]}],
+                            "generationConfig": gen_config
+                        }
+                        resp = await client.post(url, json=fallback_body)
 
-                if resp.status_code == 200:
-                    data = resp.json()
-                    candidates = data.get("candidates", [])
-                    if candidates and "content" in candidates[0]:
-                        parts = candidates[0]["content"].get("parts", [])
-                        text = "".join(p.get("text", "") for p in parts if "text" in p and not p.get("thought", False))
-                        if text:
-                            resolved_model = (data.get("modelVersion") or model_name).replace("models/", "").strip()
-                            return {"success": True, "source": "gemini_api", "model": resolved_model, "analysis": text}
-                else:
-                    logger.warning(f"[Gemini API] Model {model_name} HTTP {resp.status_code}: {resp.text[:150]}")
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        candidates = data.get("candidates", [])
+                        if candidates and "content" in candidates[0]:
+                            parts = candidates[0]["content"].get("parts", [])
+                            text = "".join(p.get("text", "") for p in parts if "text" in p and not p.get("thought", False))
+                            if text:
+                                resolved_model = (data.get("modelVersion") or model_name).replace("models/", "").strip()
+                                return {"success": True, "source": "gemini_api", "model": resolved_model, "analysis": text}
+                    else:
+                        logger.warning(f"[Gemini API] Model {model_name} HTTP {resp.status_code}: {resp.text[:150]}")
+            except Exception as model_err:
+                logger.warning(f"[Gemini API] Model {model_name} error: {model_err}. Đang tự động chuyển sang model dự phòng tiếp theo...")
+                continue
 
     except Exception as e:
         logger.error(f"[Gemini API Error]: {e}")

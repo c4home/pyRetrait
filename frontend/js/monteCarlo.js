@@ -75,11 +75,7 @@ window.MonteCarloSimulator = (function() {
 
           if (isRet) {
             if (netFlow < 0) {
-              let withdrawal = -netFlow;
-              // Quy tắc phòng vệ Guyton-Klinger: Cắt giảm 10% rút vốn khi thị trường giảm mạnh (r < -0.05)
-              if (plan.enableWithdrawalStrategy !== false && plan.withdrawalStrategy === 'guyton_klinger' && r < -0.05) {
-                withdrawal *= 0.90;
-              }
+              const withdrawal = -netFlow;
               portfolio = Math.max(0, (portfolio - withdrawal) * (1.0 + r));
             } else {
               portfolio = (portfolio + netFlow) * (1.0 + r);
@@ -209,11 +205,7 @@ window.MonteCarloSimulator = (function() {
           });
 
           const netDeficit = Math.max(0, grossSpend - passiveIncomeThisYear);
-          let actualSpend = netDeficit;
-          if (plan.enableWithdrawalStrategy !== false && plan.withdrawalStrategy === 'guyton_klinger' && r < -0.05) {
-            actualSpend = netDeficit * 0.90;
-          }
-          portfolio = Math.max(0, (portfolio - actualSpend) * (1.0 + r));
+          portfolio = Math.max(0, (portfolio - netDeficit) * (1.0 + r));
         }
 
         if (portfolio <= 0 && survived) {

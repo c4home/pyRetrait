@@ -13,8 +13,8 @@ window.ScenarioManager = (function() {
     },
     market_crash: {
       title: "Khủng hoảng Thị trường Sớm (-35% Năm 1 & 2)",
-      desc: "Mô phỏng rủi ro trình tự lợi nhuận (Sequence of Returns Risk): thị trường chứng khoán sụt giảm mạnh ngay sau khi bạn vừa thôi việc.",
-      assessment: "Nếu sử dụng chiến lược Guyton-Klinger với quỹ dự phòng tiền mặt 2 năm, bạn sẽ không phải bán tháo tài sản khi thị trường chạm đáy và kế hoạch vẫn an toàn."
+      desc: "Danh mục đầu tư bị tổn thất (-35% trong 2 năm đầu nghỉ hưu) nhưng mức chi tiêu sinh hoạt không bị ảnh hưởng. Tuy nhiên nếu danh mục thanh khoản cạn kiệt, bạn sẽ không còn tiền mặt để rút bù đắp chi tiêu.",
+      assessment: "Với cơ chế chỉ rút vốn bù đắp phần thiếu hụt chi tiêu thực tế, bạn chỉ rút đúng số tiền cần dùng. Nếu duy trì thêm đệm tiền mặt dự phòng 2–3 năm, bạn sẽ không bao giờ rơi vào thế bị động khi thị trường sụt giảm."
     },
     high_inflation: {
       title: "Lạm phát Phi mã (Bão giá trong 5 năm đầu)",

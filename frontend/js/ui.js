@@ -16,7 +16,6 @@
     currency: "EUR", // Default to EUR
     viewMode: "nominal", // "nominal" or "real"
     cashflowViewMode: "real", // "real" or "nominal" (mặc định: sức mua hiện tại)
-    compareWithdrawals: false,
     compareStressScenarios: false,
     showMonteCarloFan: false,
     activeTab: "tab-projections",
@@ -503,23 +502,6 @@
     p.savingsRate = savingsRate;
     updateSavingsRateUI(savingsRate);
 
-    // SWR Slider
-    setVal("inp-initial-swr", p.initialWithdrawalRate || 4.0);
-    const swrDisplay = document.getElementById("val-initial-swr");
-    if (swrDisplay) swrDisplay.innerText = p.initialWithdrawalRate || 4.0;
-
-    // Radio button
-    const radio = document.querySelector(`input[name='withdrawal-strategy'][value='${p.withdrawalStrategy || "guyton_klinger"}']`);
-    if (radio) radio.checked = true;
-
-    const chkWithdrawalInput = document.getElementById("chk-enable-withdrawal-strategy");
-    if (chkWithdrawalInput) {
-      chkWithdrawalInput.checked = p.enableWithdrawalStrategy !== false;
-    }
-    const chkSmartCapInput = document.getElementById("chk-smart-withdrawal-cap");
-    if (chkSmartCapInput) {
-      chkSmartCapInput.checked = p.smartWithdrawalCap !== false;
-    }
 
     // Spending Smile (Retirement Card)
     if (p.spendingPhases) {
@@ -632,41 +614,9 @@
     try { if (typeof renderIncomeStreamsList === 'function') renderIncomeStreamsList(); } catch (e) {}
     try { if (typeof renderExpenseStreamsList === 'function') renderExpenseStreamsList(); } catch (e) {}
 
-    // Update Top KPIs
-    document.getElementById("kpi-current-networth").innerText = window.RetirementEngine.formatCurrency(plan.currentSavings, state.currency);
+    // Top KPIs: 3 thẻ trụ cột Tiêu chuẩn Tự do Tài chính được cập nhật bởi updateFireCriteriaStatus (ui-tab1-charts.js)
 
-    // KPI 2: Tài sản tại thời điểm Nghỉ hưu & Đỉnh cao nhất cuộc đời
-    const rAge = Number(plan.retirementAge) || 42;
-    const retirePoint = proj.timeline.find(t => t.age === rAge);
-    const netWorthAtRetire = retirePoint ? (retirePoint.totalNetWorth !== undefined ? retirePoint.totalNetWorth : retirePoint.portfolioEnd) : proj.peakNetWorth;
-    const peakTitleEl = document.getElementById("kpi-peak-title");
-    if (peakTitleEl) {
-      peakTitleEl.innerText = `Tài sản lúc Nghỉ hưu (${rAge}t)`;
-    }
-    document.getElementById("kpi-peak-networth").innerText = window.RetirementEngine.formatCurrency(netWorthAtRetire, state.currency);
-    const peakSubEl = document.getElementById("kpi-peak-subtitle");
-    if (peakSubEl) {
-      if (proj.peakAge === rAge || proj.peakNetWorth <= netWorthAtRetire) {
-        peakSubEl.innerHTML = `Đạt đỉnh cao nhất cuộc đời lúc hưu <strong>${rAge} tuổi</strong>`;
-      } else {
-        peakSubEl.innerHTML = `Đỉnh toàn đời: <strong>${window.RetirementEngine.formatCurrency(proj.peakNetWorth, state.currency)}</strong> (ở ${proj.peakAge}t)`;
-      }
-    }
-
-    // KPI 3: Chi tiêu an toàn/năm (SWR) tính trên tài sản hưu trí thực tế
-    document.getElementById("kpi-safe-annual-spend").innerText = window.RetirementEngine.formatCurrency(proj.safeAnnualSpend, state.currency);
-    const swrSubEl = document.getElementById("kpi-safe-spend-subtitle");
-    if (swrSubEl) {
-      const swrRate = (Number(plan.initialWithdrawalRate) || 4.0).toFixed(1);
-      const monthlySpend = Math.round(proj.safeAnnualSpend / 12);
-      if (proj.safeAnnualSpend > 0) {
-        swrSubEl.innerHTML = `Tương đương <strong>${swrRate}%</strong> SWR (≈ <strong>${window.RetirementEngine.formatCurrency(monthlySpend, state.currency)}</strong>/tháng)`;
-      } else {
-        swrSubEl.innerHTML = `<span class="text-danger">Danh mục âm/chưa đủ vốn rút an toàn</span>`;
-      }
-    }
-
-    // KPI 4: Estate / Inheritance (85t)
+    // KPI: Estate / Inheritance (85t)
     const estateVal = proj.finalTotalNetWorth !== undefined ? proj.finalTotalNetWorth : proj.finalPortfolio;
     document.getElementById("kpi-estate-end").innerText = window.RetirementEngine.formatCurrency(estateVal, state.currency);
     const estateSubEl = document.getElementById("kpi-estate-subtitle");

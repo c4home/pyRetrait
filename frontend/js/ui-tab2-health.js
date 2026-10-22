@@ -1743,8 +1743,8 @@
       recs = [
         {
           tag: "tag-strategy",
-          title: "Áp dụng Lan can Guyton-Klinger để chống Lạm phát",
-          text: `Thay vì rút cố định 4% cứng nhắc, chiến lược Guyton-Klinger giúp bạn rút tiền nhiều hơn khi thị trường thăng hoa và tự động phòng vệ khi thị trường điều chỉnh.`,
+          title: "Chỉ rút vốn khi chi tiêu vượt thu nhập",
+          text: `Dòng rút vốn chỉ kích hoạt để bù đắp đúng phần thâm hụt khi chi tiêu vượt qua tổng thu nhập ngoài, bảo toàn tối đa số dư danh mục đầu tư tiếp tục sinh lời.`,
           action: "Xem Dòng tiền & Tài sản →",
           targetTab: "tab-projections"
         },

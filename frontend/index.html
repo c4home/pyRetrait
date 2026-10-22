@@ -28,7 +28,7 @@
   <script src="js/icons-bundle.js?v=20261018_v1"></script>
 
   <!-- CSS Stylesheet: Core Design System + Sub-modules -->
-  <link rel="stylesheet" href="css/styles.css?v=20261022_v219">
+  <link rel="stylesheet" href="css/styles.css?v=20261022_v221">
   <link rel="stylesheet" href="css/modules/tab1-streams.css?v=20261021_v204">
   <link rel="stylesheet" href="css/modules/tab2-health.css?v=20261021_v204">
   <link rel="stylesheet" href="css/modules/tab3-taxes.css?v=20261021_v204">
@@ -172,50 +172,6 @@
           <span class="metric-label">Tỷ lệ thành công:</span>
           <span class="metric-value text-success" id="summary-success-prob">94.8%</span>
         </div>
-        <!-- Tiêu Chuẩn Tự Do Tài Chính (Luôn hiển thị trực tiếp không cần nút) -->
-        <div class="formula-inline-box formula-success"
-          style="margin-top: 0.5rem; font-size: 0.72rem; padding: 0.5rem 0.6rem; border-radius: var(--radius-md);">
-          <div class="formula-tag" style="margin-bottom: 0.35rem; font-size: 0.72rem; font-weight: 700;">
-            Tiêu Chuẩn Tự Do Tài Chính
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 0.35rem; line-height: 1.45;">
-            <!-- Trụ Cột 1 -->
-            <div>
-              <span id="fire-pillar1-title" style="color: var(--text-main); font-weight: 600;">1. Vốn trước khi về hưu:</span>
-              <span class="fire-criteria-status" id="fire-pillar1-status"></span>
-              <div style="color: var(--text-muted); font-size: 0.68rem; margin-top: 0.08rem; line-height: 1.4;">
-                • Tài sản thanh khoản (trừ BĐS) ≥ 25–30 lần khoản thiếu.<br>
-                • <em>Khoản thiếu = Chi tiêu hưu − Thu nhập hưu</em>
-              </div>
-              <div
-                style="color: var(--text-muted); font-size: 0.67rem; border-top: 1px dashed var(--border-subtle); padding-top: 0.25rem; margin-top: 0.15rem; line-height: 1.4;">
-                - <strong>Hưu ≤ 30 năm:</strong> Cần gấp <strong>25 lần</strong><br>
-                - <strong>Hưu 30–35 năm:</strong> Cần gấp <strong>28 lần</strong><br>
-                - <strong>Hưu &gt; 35 năm:</strong> Cần gấp <strong>30 lần</strong>
-              </div>
-            </div>
-
-            <!-- Trụ Cột 2 -->
-            <div>
-              <span id="fire-pillar2-title" style="color: var(--text-main); font-weight: 600;">2. Chịu được biến động thị trường:</span>
-              <span class="fire-criteria-status" id="fire-pillar2-status"></span>
-              <div style="color: var(--text-muted); font-size: 0.68rem; margin-top: 0.08rem;">
-                • Mô phỏng 1,000 kịch bản ngẫu nhiên đạt tỷ lệ thành công ≥ 80%.
-              </div>
-            </div>
-
-            <!-- Trụ Cột 3 -->
-            <div>
-              <span id="fire-pillar3-title" style="color: var(--text-main); font-weight: 600;">3. Chịu được biến cố bệnh tật, khủng hoảng:</span>
-              <span class="fire-criteria-status" id="fire-pillar3-status"></span>
-              <div id="sidebar-stress-status"
-                style="color: var(--text-muted); font-size: 0.67rem; margin-top: 0.08rem; line-height: 1.45;">
-                • Tài sản thanh khoản tại mọi thời điểm luôn <strong>≥ 5 năm khoản tiền thiếu</strong><br>
-                • Chi tiêu thực tế luôn giữ vững <strong>≥ 80%</strong> kế hoạch ban đầu (không bị bóp nghẹt chi tiêu thiết yếu)
-              </div>
-            </div>
-          </div>
-        </div>
 
       </div>
     </aside>
@@ -224,28 +180,28 @@
     <main class="main-content">
       <!-- Top Key Metrics Dashboard -->
       <section class="kpi-grid">
-        <div class="kpi-card">
+        <!-- 3 Trụ cột Tiêu chuẩn Tự do Tài chính: luôn hiển thị đạt / chưa đạt ngay đầu trang -->
+        <div class="kpi-card kpi-pillar-card" data-i18n-title="fire_p1_tip" title="Tài sản thanh khoản (trừ BĐS) ≥ 25–30 lần khoản thiếu hàng năm (Khoản thiếu = Chi tiêu hưu − Thu nhập hưu). Hưu ≤ 30 năm: 25 lần; 30–35 năm: 28 lần; > 35 năm: 30 lần.">
           <div class="kpi-info">
-            <span class="kpi-title" data-i18n="kpi_current_networth">Tài sản hiện tại (Net Worth)</span>
-            <span class="kpi-value font-mono" id="kpi-current-networth">1.50 Tỷ ₫</span>
-            <span class="kpi-subtitle" id="kpi-savings-rate">Tỷ lệ tiết kiệm: <strong>60%</strong></span>
+            <span class="kpi-title" id="fire-pillar1-title" data-i18n="fire_p1_title">1. Vốn trước khi về hưu</span>
+            <span class="kpi-value fire-verdict" id="fire-pillar1-status">—</span>
+            <span class="kpi-subtitle" id="fire-pillar1-detail" data-i18n="fire_p1_hint">Tài sản thanh khoản ≥ 25–30 lần khoản thiếu hàng năm</span>
           </div>
         </div>
 
-        <div class="kpi-card">
+        <div class="kpi-card kpi-pillar-card" data-i18n-title="fire_p2_tip" title="Mô phỏng 1,000 kịch bản thị trường ngẫu nhiên, tỷ lệ thành công phải ≥ 80%.">
           <div class="kpi-info">
-            <span class="kpi-title" id="kpi-peak-title" data-i18n="kpi_peak_networth">Tài sản Đỉnh cao nhất</span>
-            <span class="kpi-value font-mono" id="kpi-peak-networth">14.82 Tỷ ₫</span>
-            <span class="kpi-subtitle" id="kpi-peak-subtitle">Tại tuổi <span id="kpi-peak-age">45</span> (đã tính lạm
-              phát)</span>
+            <span class="kpi-title" id="fire-pillar2-title" data-i18n="fire_p2_title">2. Chịu được biến động thị trường</span>
+            <span class="kpi-value fire-verdict" id="fire-pillar2-status">—</span>
+            <span class="kpi-subtitle" id="fire-pillar2-detail" data-i18n="fire_p2_hint">1,000 kịch bản ngẫu nhiên, thành công ≥ 80%</span>
           </div>
         </div>
 
-        <div class="kpi-card">
+        <div class="kpi-card kpi-pillar-card" data-i18n-title="fire_p3_tip" title="Tài sản thanh khoản tại mọi thời điểm luôn ≥ 5 năm khoản tiền thiếu; chi tiêu thực tế luôn giữ vững ≥ 80% kế hoạch ban đầu (không bị bóp nghẹt chi tiêu thiết yếu).">
           <div class="kpi-info">
-            <span class="kpi-title" data-i18n="kpi_safe_spend">Chi tiêu an toàn/năm (SWR)</span>
-            <span class="kpi-value font-mono" id="kpi-safe-annual-spend">300.0 Tr ₫</span>
-            <span class="kpi-subtitle" id="kpi-safe-spend-subtitle">Tương đương <strong>4.0%</strong> danh mục</span>
+            <span class="kpi-title" id="fire-pillar3-title" data-i18n="fire_p3_title">3. Chịu được biến cố bệnh tật, khủng hoảng</span>
+            <span class="kpi-value fire-verdict" id="fire-pillar3-status">—</span>
+            <span class="kpi-subtitle" id="fire-pillar3-detail" data-i18n="fire_p3_hint">Luôn đủ tiền ≥ 5 năm thiếu hụt, chi tiêu giữ ≥ 80%</span>
           </div>
         </div>
 
@@ -2482,15 +2438,21 @@
               <div class="cashflow-stress-chips-bar" id="cashflow-stress-chips-bar" style="display: flex;">
                 <span class="cashflow-stress-label" data-i18n="cashflow_stress_title">Mô phỏng Biến cố:</span>
                 <div class="cashflow-stress-chips-group">
-                  <button type="button" class="cashflow-stress-chip" data-scenario="market_crash">
+                  <button type="button" class="cashflow-stress-chip" data-scenario="market_crash"
+                    data-i18n-title="cf_chip_crash_desc"
+                    title="Danh mục đầu tư bị tổn thất (-35% Năm 1 & 2) nhưng mức chi tiêu sinh hoạt không đổi. Khi cạn kiệt danh mục thanh khoản, bạn sẽ không còn tiền mặt để rút bù đắp chi tiêu.">
                     <span class="chip-icon">🔴</span>
                     <span data-i18n="cf_chip_crash">Khủng hoảng Thị trường Sớm (-35% Năm 1 & 2)</span>
                   </button>
-                  <button type="button" class="cashflow-stress-chip" data-scenario="high_inflation">
+                  <button type="button" class="cashflow-stress-chip" data-scenario="high_inflation"
+                    data-i18n-title="cf_chip_inflation_desc"
+                    title="Bão giá khiến chi phí sinh hoạt tăng vọt 30% liên tục 5 năm đầu, buộc phải rút thêm tiền mặt từ danh mục để bù đắp thâm hụt.">
                     <span class="chip-icon">🟠</span>
                     <span data-i18n="cf_chip_inflation">Lạm phát Phi mã (+30% Chi phí trong 5 năm)</span>
                   </button>
-                  <button type="button" class="cashflow-stress-chip" data-scenario="medical_shock">
+                  <button type="button" class="cashflow-stress-chip" data-scenario="medical_shock"
+                    data-i18n-title="cf_chip_medical_desc"
+                    title="Phát sinh viện phí đột xuất khoảng 500Tr ₫ ở tuổi 65, chi tiêu tăng đột biến và đòi hỏi rút tiền mặt cấp bách để trang trải.">
                     <span class="chip-icon">🟣</span>
                     <span data-i18n="cf_chip_medical">Cú sốc Chi phí Y tế Đột xuất (500Tr ₫ ở tuổi 65)</span>
                   </button>
@@ -2532,9 +2494,10 @@
                   </p>
                 </div>
 
-                <!-- Tích hợp 3 Kịch bản Biến cố trực tiếp vào dưới Biểu đồ Tài sản Ròng để tiết kiệm diện tích -->
-                <div id="stress-resilience-container"></div>
               </div>
+
+              <!-- 3 thẻ kết quả Kịch bản Biến cố: DÙNG CHUNG cho cả Biểu đồ Tài sản Ròng và Dòng tiền hằng năm (không nằm trong khối chỉ dành cho Tài sản ròng) -->
+              <div id="stress-resilience-container"></div>
             </div>
           </div>
         </div>
@@ -5718,66 +5681,20 @@
           </div>
         </div>
 
-        <!-- 5. Bốn Chiến lược Rút tiền hưu trí -->
+        <!-- 5. Cơ Chế Rút Vốn Bù Đắp Thiếu Hụt Dòng Tiền -->
         <div class="formula-modal-card">
           <h4
             style="color: #a855f7; margin: 0 0 0.5rem 0; font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem;">
-            <span> 5. Bốn Chiến Lược Rút Tiền Khi Nghỉ Hưu (Withdrawal Strategies)</span>
+            <span> 5. Cơ Chế Rút Vốn Bù Đắp Thiếu Hụt Dòng Tiền (Deficit-Matching Cash Flow)</span>
           </h4>
           <div style="font-size: 0.8rem; color: var(--text-main); display: flex; flex-direction: column; gap: 0.65rem;">
             <div
               style="background: var(--bg-card); padding: 0.5rem 0.65rem; border-radius: 5px; border: 1px solid var(--border-subtle);">
-              <div style="color: #10b981; font-weight: 700; margin-bottom: 0.2rem;">1. Lan can Guyton-Klinger (Khuyên
-                dùng):</div>
+              <div style="color: #10b981; font-weight: 700; margin-bottom: 0.2rem;">Nguyên tắc cốt lõi: Chỉ rút khi chi tiêu vượt thu nhập</div>
               <div style="color: var(--text-muted); font-size: 0.76rem; line-height: 1.4;">
-                • <strong>Điểm mạnh:</strong> Cho phép bắt đầu tỷ lệ rút cao hơn; tự động tăng chi tiêu khi thị trường
-                bùng nổ và cắt giảm 10% khi thị trường sụt giảm sâu để bảo vệ danh mục bền vững nhất.<br>
-                • <strong>Nhược điểm / Đánh đổi:</strong> Đòi hỏi lối sống linh hoạt; bắt buộc phải cắt giảm 10% chi
-                tiêu sinh hoạt khi thị trường rơi vào khủng hoảng.<br>
-                • <strong>Phù hợp với ai:</strong> Người có ngân sách chi tiêu linh hoạt (dễ dàng hoãn du lịch, cắt giảm
-                mua sắm xa xỉ trong những năm thị trường suy thoái).
-              </div>
-            </div>
-
-            <div
-              style="background: var(--bg-card); padding: 0.5rem 0.65rem; border-radius: 5px; border: 1px solid var(--border-subtle);">
-              <div style="color: #3b82f6; font-weight: 700; margin-bottom: 0.2rem;">2. Quy tắc 4% Cố định (Bengen Rule):
-              </div>
-              <div style="color: var(--text-muted); font-size: 0.76rem; line-height: 1.4;">
-                • <strong>Điểm mạnh:</strong> Đơn giản, chi tiêu ổn định tuyệt đối và có thể dự đoán chính xác như nhận
-                lương hưu cố định hàng tháng.<br>
-                • <strong>Nhược điểm / Đánh đổi:</strong> Cứng nhắc; dễ cạn tiền nếu gặp chuỗi năm thị trường xấu ngay
-                đầu giai đoạn nghỉ hưu (rủi ro Sequence of Returns).<br>
-                • <strong>Phù hợp với ai:</strong> Người muốn thu nhập đều đặn, không muốn thay đổi thói quen chi tiêu
-                theo biến động thị trường.
-              </div>
-            </div>
-
-            <div
-              style="background: var(--bg-card); padding: 0.5rem 0.65rem; border-radius: 5px; border: 1px solid var(--border-subtle);">
-              <div style="color: #8b5cf6; font-weight: 700; margin-bottom: 0.2rem;">3. Tỷ lệ Thay đổi theo Tuổi (VPW -
-                Variable Percentage Withdrawal):</div>
-              <div style="color: var(--text-muted); font-size: 0.76rem; line-height: 1.4;">
-                • <strong>Điểm mạnh:</strong> Tỷ lệ rút tăng dần theo tuổi thọ; giúp tận dụng tối đa tài sản để hưởng
-                thụ cuộc sống ("Die with Zero").<br>
-                • <strong>Nhược điểm / Đánh đổi:</strong> Số tiền rút dao động theo từng năm; để lại rất ít hoặc không
-                có tài sản thừa kế cho thế hệ sau.<br>
-                • <strong>Phù hợp với ai:</strong> Người theo triết lý "tiêu hết trước khi qua đời", không đặt nặng việc
-                để lại khối tài sản thừa kế lớn cho con cháu.
-              </div>
-            </div>
-
-            <div
-              style="background: var(--bg-card); padding: 0.5rem 0.65rem; border-radius: 5px; border: 1px solid var(--border-subtle);">
-              <div style="color: #f59e0b; font-weight: 700; margin-bottom: 0.2rem;">4. Tỷ lệ Cố định trên Danh mục
-                (Fixed %):</div>
-              <div style="color: var(--text-muted); font-size: 0.76rem; line-height: 1.4;">
-                • <strong>Điểm mạnh:</strong> Tuyệt đối không bao giờ cạn tiền (vì luôn chỉ rút tỷ lệ % trên số tiền
-                thực tế còn lại trong tài khoản).<br>
-                • <strong>Nhược điểm / Đánh đổi:</strong> Thu nhập dao động dữ dội theo thị trường (thị trường giảm 30%
-                thì tiền chi tiêu năm đó cũng giảm 30%).<br>
-                • <strong>Phù hợp với ai:</strong> Người ưu tiên bảo toàn số vốn gốc đến cùng, chấp nhận mức sống thắt
-                lưng buộc bụng biến động theo chu kỳ thị trường.
+                • <strong>Khi thu nhập sau thuế ≥ Chi tiêu sinh hoạt:</strong> Số tiền rút từ danh mục bằng <strong>0 €</strong>. Toàn bộ phần thặng dư thu nhập được tự động tái đầu tư bổ sung vào danh mục tài sản.<br>
+                • <strong>Khi chi tiêu sinh hoạt &gt; Thu nhập sau thuế:</strong> Dòng rút vốn chỉ kích hoạt để bù đắp đúng phần thâm hụt: <code>Cần rút = Chi tiêu - Thu nhập sau thuế</code> (tối đa tới số dư danh mục).<br>
+                • <strong>Lợi ích vượt trội:</strong> Tuyệt đối không ép rút thừa theo các tỷ lệ phần trăm cố định lý thuyết (Bengen 4%, Fixed %), bảo vệ tối đa số dư danh mục tiếp tục sinh lời và gia tăng tài sản thừa kế cho thế hệ sau.
               </div>
             </div>
           </div>
@@ -5978,9 +5895,8 @@
 
         <!-- BƯỚC 4: Khẩu vị đầu tư -->
         <div class="wizard-pane" id="wizard-step-4">
-          <h4 class="wizard-pane-title">Khẩu vị đầu tư & Chiến lược rút tiền</h4>
-          <p class="wizard-pane-desc">Chọn phong cách tăng trưởng tài sản danh mục của bạn và thuật toán rút tiền bảo
-            toàn vốn.</p>
+          <h4 class="wizard-pane-title">Khẩu vị đầu tư & Dòng tiền hưu trí</h4>
+          <p class="wizard-pane-desc">Chọn phong cách tăng trưởng tài sản danh mục của bạn và thiết lập kế hoạch an toàn vốn.</p>
 
           <div class="preset-cards-grid">
             <div class="wizard-preset-card" data-return="4.0" data-inf="2.0">
@@ -6006,12 +5922,10 @@
           <div class="wizard-strategy-box"
             style="margin-top: 1.1rem; padding: 0.85rem; border-radius: var(--radius-sm); background: var(--bg-card); border: 1px solid var(--border-subtle);">
             <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-main); margin-bottom: 0.25rem;">
-              Chiến lược rút tiền tự động: <span style="color: var(--primary);">Lan can Guyton-Klinger (Khuyên
-                dùng)</span>
+              Cơ chế rút vốn tự nhiên: <span style="color: var(--primary);">Bù đắp thiếu hụt dòng tiền</span>
             </div>
             <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.45;">
-              Tự động điều chỉnh tỷ lệ rút tiền theo thị trường (tăng khi thị trường thuận lợi, có lan can phòng vệ khi
-              thị trường giảm sút) giúp danh mục sống sót 100% đến cuối đời.
+              Danh mục đầu tư chỉ rút tiền khi chi tiêu sinh hoạt vượt qua tổng thu nhập ngoài, giúp bảo toàn tối đa số dư danh mục tiếp tục sinh lời và gia tăng tài sản di sản thừa kế.
             </div>
           </div>
         </div>
@@ -6131,23 +6045,23 @@
   </div>
 
   <!-- Application Logic Modules -->
-  <script src="js/i18n.js?v=20261022_v236"></script>
-  <script src="js/state.js?v=20261022_v232"></script>
-  <script src="js/engine.js?v=20261022_v236"></script>
+  <script src="js/i18n.js?v=20261022_v249"></script>
+  <script src="js/state.js?v=20261022_v239"></script>
+  <script src="js/engine.js?v=20261022_v249"></script>
   <script src="js/taxOptimizer.js?v=20261021_v227"></script>
-  <script src="js/monteCarlo.js?v=20261021_v227"></script>
-  <script src="js/scenarios.js?v=20261021_v227"></script>
-  <script src="js/geminiAdvisor.js?v=20261021_v227"></script>
+  <script src="js/monteCarlo.js?v=20261022_v239"></script>
+  <script src="js/scenarios.js?v=20261022_v249"></script>
+  <script src="js/geminiAdvisor.js?v=20261022_v239"></script>
   <script src="js/patrimoine.js?v=20261022_v229"></script>
   <script src="js/export.js?v=20261021_v227"></script>
   <script src="js/auth.js?v=20261021_v227"></script>
   <!-- Tầng 3: Giao diện tách theo từng Tab độc lập + Modals + Nhạc trưởng điều phối -->
-  <script src="js/ui-modals.js?v=20261021_v227"></script>
-  <script src="js/ui-tab1-charts.js?v=20261022_v241"></script>
-  <script src="js/ui-tab1-streams.js?v=20261022_v246"></script>
-  <script src="js/ui-tab2-health.js?v=20261021_v227"></script>
-  <script src="js/ui-tab3-taxes.js?v=20261021_v227"></script>
-  <script src="js/ui.js?v=20261022_v234"></script>
+  <script src="js/ui-modals.js?v=20261022_v239"></script>
+  <script src="js/ui-tab1-charts.js?v=20261022_v249"></script>
+  <script src="js/ui-tab1-streams.js?v=20261022_v249"></script>
+  <script src="js/ui-tab2-health.js?v=20261022_v239"></script>
+  <script src="js/ui-tab3-taxes.js?v=20261022_v228"></script>
+  <script src="js/ui.js?v=20261022_v240"></script>
 </body>
 
 </html>

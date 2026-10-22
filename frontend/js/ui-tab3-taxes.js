@@ -2437,6 +2437,24 @@
         const netDuringLoanMonthly = a.monthly_cashflow !== undefined ? Number(a.monthly_cashflow) : (effRent - loanPmt - monthlyCharges);
         const netPostLoanMonthly = a.monthly_post_loan_cashflow !== undefined ? Number(a.monthly_post_loan_cashflow) : (effRent - monthlyCharges);
 
+        const buyAge = Math.max(18, startYr - bYear);
+
+        // Giai đoạn 0: Đã mua nhà và đang trả nợ ngân hàng nhưng chưa bắt đầu cho thuê (rentStartYr > startYr)
+        if (loanPmt > 0 && dur > 0 && aptStartAge > buyAge) {
+          const preRentEndAge = Math.min(aptStartAge - 1, payoffAge);
+          if (preRentEndAge >= buyAge) {
+            p.incomes.push({
+              name: apts.length === 1 ? 'Trả nợ BĐS (Trước khi cho thuê)' : `Trả nợ BĐS: ${aptName} (Trước khi cho thuê)`,
+              amount: round(-(loanPmt + monthlyCharges) * 12),
+              startAge: buyAge,
+              endAge: preRentEndAge,
+              growth: 1.5,
+              taxable: false,
+              isRealEstate: true
+            });
+          }
+        }
+
         if (loanPmt > 0 && dur > 0 && payoffAge > aptStartAge) {
           // Giai đoạn 1: Đang trả nợ ngân hàng (dòng tiền ròng sau khi trừ nợ và chi phí vận hành)
           const duringEndAge = Math.min(aptEndAge, payoffAge);

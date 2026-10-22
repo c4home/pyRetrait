@@ -18,8 +18,6 @@
       "inflationRate": 2.5,
       "investmentReturnPre": 5.8,
       "investmentReturnPost": 7.5,
-      "withdrawalStrategy": "fixed_pct",
-      "initialWithdrawalRate": 4,
       "targetLegacy": 100000,
       "taxRegime": "france_vietnam",
       "taxRate": 12,

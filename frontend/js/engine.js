@@ -350,12 +350,12 @@ window.RetirementEngine = (function() {
         nameVi: 'Khủng hoảng Thị trường Sớm (-35% Năm 1 & 2)',
         nameEn: 'Early Market Crash (-35% Yr 1 & 2)',
         nameFr: 'Krach Boursier Précoce (-35% An 1 & 2)',
-        descVi: 'Mô phỏng rủi ro trình tự lợi nhuận (SORR): thị trường giảm 35% ngay khi bạn vừa bước vào hưu trí.',
-        descEn: 'Sequence of returns risk: market drops 35% right after retirement.',
-        descFr: 'Risque de séquence des rendements: chute de 35% dès le début de la retraite.',
-        adviceVi: 'Lập đệm tiền mặt dự phòng 2–3 năm chi tiêu hoặc dùng chiến lược rút tiền linh hoạt (Guyton-Klinger) để không phải bán cắt lỗ khi thị trường chạm đáy.',
-        adviceEn: 'Build a 2–3 year cash cushion or switch to Guyton-Klinger dynamic withdrawals to avoid selling at market bottom.',
-        adviceFr: 'Constituez un matelas de sécurité de 2–3 ans ou utilisez Guyton-Klinger pour éviter de vendre à perte au creux du marché.'
+        descVi: 'Danh mục đầu tư bị tổn thất (-35% trong 2 năm đầu nghỉ hưu) nhưng mức chi tiêu sinh hoạt không bị ảnh hưởng. Tuy nhiên nếu danh mục thanh khoản cạn kiệt, bạn sẽ không còn tiền mặt để rút bù đắp chi tiêu sinh hoạt.',
+        descEn: 'Investment portfolios suffer losses (-35% in early retirement) while living expenses remain unchanged. However, if liquid assets run out, no cash remains to cover living costs.',
+        descFr: 'Le portefeuille subit de lourdes pertes (-35% au début de la retraite) sans impacter les dépenses. En cas d\'épuisement des liquidités, il ne reste plus d\'argent à retirer pour couvrir les dépenses.',
+        adviceVi: 'Lập đệm tiền mặt dự phòng 2–3 năm chi tiêu hoặc duy trì quỹ an toàn thanh khoản để không phải bán cắt lỗ khi thị trường chạm đáy.',
+        adviceEn: 'Build a 2–3 year cash cushion or liquid reserve to avoid selling assets at market bottom.',
+        adviceFr: 'Constituez un matelas de sécurité de 2–3 ans de liquidités pour éviter de vendre à perte au creux du marché.'
       },
       {
         id: 'high_inflation',
@@ -363,9 +363,9 @@ window.RetirementEngine = (function() {
         nameVi: 'Lạm phát Phi mã (+30% Chi phí trong 5 năm)',
         nameEn: 'High Inflation Spike (+30% Expenses for 5 Yrs)',
         nameFr: 'Flambée Inflationniste (+30% Dépenses pdt 5 Ans)',
-        descVi: 'Chi phí sinh hoạt tăng vọt 30% liên tục 5 năm đầu do bất ổn kinh tế vĩ mô hoặc chuỗi cung ứng.',
-        descEn: 'Living expenses jump 30% for 5 consecutive years due to macroeconomic shocks.',
-        descFr: 'Les dépenses bondissent de 30% pendant 5 ans consécutifs en raison des chocs macroéconomiques.',
+        descVi: 'Chi phí sinh hoạt tăng vọt 30% liên tục 5 năm đầu, buộc phải rút thêm tiền mặt từ danh mục để bù đắp thâm hụt chi tiêu.',
+        descEn: 'Living expenses jump 30% for 5 consecutive years, forcing larger cash withdrawals from portfolio to cover the deficit.',
+        descFr: 'Les dépenses bondissent de 30% pendant 5 ans consécutifs, obligeant à prélever davantage de liquidités pour combler le déficit.',
         adviceVi: 'Chủ động thắt chặt chi tiêu trong các năm bão giá (chuyển sớm sang giai đoạn Slow-Go) và phân bổ tài sản phòng thủ lạm phát (BĐS, cổ phiếu).',
         adviceEn: 'Flexibly tighten spending during inflation spikes and allocate to inflation-resilient assets (Real Estate, equities).',
         adviceFr: 'Resserrez vos dépenses pendant les chocs d\'inflation et diversifiez vers des actifs résilients (immobilier, actions).'
@@ -376,9 +376,9 @@ window.RetirementEngine = (function() {
         nameVi: 'Cú sốc Chi phí Y tế Đột xuất (500Tr ₫ ở tuổi 65)',
         nameEn: 'Medical Expense Shock (€18k at Age 65)',
         nameFr: 'Choc de Dépenses de Santé (18k € à 65 ans)',
-        descVi: 'Phát sinh một khoản viện phí / y tế đặc biệt quy mô lớn ngoài bảo hiểm y tế cơ bản.',
-        descEn: 'A sudden large medical bill outside basic health coverage.',
-        descFr: 'Une dépense médicale imprévue majeure non couverte par la sécurité sociale.',
+        descVi: 'Phát sinh một khoản viện phí lớn đột xuất (khoảng 500Tr ₫), đẩy chi tiêu tăng vọt trong năm và đòi hỏi rút tiền mặt cấp bách.',
+        descEn: 'A sudden large medical bill (~€18k), spiking annual expenses and demanding immediate cash withdrawals.',
+        descFr: 'Dépense de santé imprévue majeure (~18k €), augmentant fortement les dépenses de l\'année et exigeant des retraits immédiats.',
         adviceVi: 'Tham gia hợp đồng bảo hiểm sức khỏe tư nhân có quyền lợi nội trú cao để chuyển giao rủi ro tài chính này cho đơn vị bảo hiểm.',
         adviceEn: 'Maintain private health insurance with strong inpatient coverage to transfer catastrophic medical risks.',
         adviceFr: 'Souscrivez une mutuelle santé privée avec un bon plafond d\'hospitalisation pour transférer ce risque financier.'
@@ -678,8 +678,6 @@ window.RetirementEngine = (function() {
     const initialSavings = (plan.currentSavings !== undefined && plan.currentSavings !== null && !isNaN(Number(plan.currentSavings)))
       ? Number(plan.currentSavings)
       : 0;
-    const withdrawalStrategy = plan.withdrawalStrategy || 'guyton_klinger';
-    const initialSWR = (Number(plan.initialWithdrawalRate) || 4.0) / 100.0;
 
     // Profile & Cross-border settings
     const isSingle = (plan.maritalStatus !== 'married');
@@ -784,8 +782,6 @@ window.RetirementEngine = (function() {
     let peakNetWorth = initialSavings;
     let peakAge = currentAge;
     let initialRetirePortfolio = 0;
-    let initialAnnualWithdrawal = 0;
-    let previousYearWithdrawal = 0;
     let totalTaxesPaid = 0;
     let totalLifetimeIncome = 0;
     let totalLifetimeExpenses = 0;
@@ -1648,7 +1644,6 @@ window.RetirementEngine = (function() {
 
       // 4. Withdrawal / Savings Cash Flow
       let netSavingsOrWithdrawal = 0;
-      let withdrawalAmount = 0;
       let actualWithdrawal = 0;
       let returnRate = isRetired ? returnPost : returnPre;
       returnRate += scenarioReturnModifier;
@@ -1677,99 +1672,29 @@ window.RetirementEngine = (function() {
         }
         portfolio = (portfolio + netSavingsOrWithdrawal) * (1.0 + returnRate);
       } else {
-        // Retirement Withdrawal Phase
+        // Giai đoạn Nghỉ hưu: Dòng rút vốn chỉ xuất hiện khi chi tiêu vượt qua thu nhập, không hơn
         if (age === retireAge) {
           initialRetirePortfolio = displayPortfolio;
-          initialAnnualWithdrawal = initialRetirePortfolio * initialSWR;
-          previousYearWithdrawal = initialAnnualWithdrawal;
         }
 
-        // Apply chosen withdrawal strategy (nếu bật)
-        const isStrategyActive = plan.enableWithdrawalStrategy !== false;
-        if (isStrategyActive) {
-          if (withdrawalStrategy === 'bengen_4pct') {
-            // Bengen rule: initial dollar amount adjusted for inflation
-            const yearsIntoRetirement = age - retireAge;
-            withdrawalAmount = initialAnnualWithdrawal * Math.pow(1.0 + currentInflation, yearsIntoRetirement);
-          } else if (withdrawalStrategy === 'guyton_klinger') {
-            // Guyton-Klinger Guardrails
-            const nominalExpected = previousYearWithdrawal * (1.0 + currentInflation);
-            const currentWithdrawalRate = portfolio > 0 ? (nominalExpected / portfolio) : 1;
-            
-            if (currentWithdrawalRate > initialSWR * 1.20) {
-              // Capital preservation: cut spending by 10%
-              withdrawalAmount = nominalExpected * 0.90;
-            } else if (currentWithdrawalRate < initialSWR * 0.80) {
-              // Prosperity rule: increase spending by 10%
-              withdrawalAmount = nominalExpected * 1.10;
-            } else {
-              withdrawalAmount = nominalExpected;
-            }
-            previousYearWithdrawal = withdrawalAmount;
-          } else if (withdrawalStrategy === 'vpw') {
-            // Variable Percentage Withdrawal: based on remaining life expectancy
-            const remainingYears = Math.max(1, lifeExpectancy - age + 1);
-            const vpwRate = (1.0 / remainingYears) + 0.02; // dynamic curve
-            withdrawalAmount = portfolio * Math.min(0.12, Math.max(0.03, vpwRate));
-          } else {
-            // Fixed percentage of portfolio
-            withdrawalAmount = portfolio * initialSWR;
-          }
-        } else {
-          // Khi tắt chiến lược rút tiền: danh mục chỉ rút bù đắp phần thiếu hụt sinh hoạt thực tế
-          withdrawalAmount = 0;
-        }
-
-        // Net deficit needed from portfolio after accounting for passive income
         const incomeAfterTax = Math.max(0, annualIncome - estimatedTax);
         const deficit = Math.max(0, currentExpenses - incomeAfterTax);
 
-        if (isStrategyActive) {
-          // Khi BẬT chiến lược rút tiền:
-          // Danh mục rút theo quy tắc chiến lược đã chọn (Bengen 4%, Guyton-Klinger, VPW, Fixed %)
-          // 1. Nếu BẬT Smart Cap (mặc định):
-          //    - Khi thâm hụt sinh hoạt (deficit) nhỏ hơn mức rút chiến lược: chỉ rút đúng deficit để không rút cạn danh mục ảo khi đã có lương hưu trợ lực.
-          //    - Khi thâm hụt sinh hoạt lớn hơn mức rút chiến lược: áp dụng trần an toàn của chiến lược để bảo vệ danh mục không bị lạm rút.
-          // 2. Nếu TẮT Smart Cap (chế độ rút cố định truyền thống):
-          //    - Luôn ép rút tối thiểu theo mức SWR của chiến lược bất kể có cần tiêu hết hay không.
-          const isSmartCap = plan.smartWithdrawalCap !== false;
-          // 1. Khi BẬT Smart Cap (mặc định):
-          //    Danh mục rút đúng bằng phần thiếu hụt sinh hoạt thực tế (deficit) sau khi đã trừ lương hưu/thu nhập khác.
-          //    Không bao giờ ép rút thừa theo tỷ lệ SWR, đảm bảo đủ tiền sống và bảo toàn tối đa danh mục.
-          // 2. Khi TẮT Smart Cap (chế độ truyền thống):
-          //    Luôn ép rút tối thiểu theo tỷ lệ SWR của chiến lược (Math.max(withdrawalAmount, deficit)).
-          const targetWithdrawal = isSmartCap
-            ? deficit
-            : Math.max(withdrawalAmount, deficit);
-          actualWithdrawal = Math.max(0, Math.min(portfolio, targetWithdrawal));
+        // Chỉ rút đúng phần thiếu hụt (deficit), tối đa tới số dư danh mục portfolio
+        actualWithdrawal = Math.max(0, Math.min(portfolio, deficit));
 
-          // Dòng tiền ròng tác động lên danh mục:
-          // Tiền vào: thặng dư thu nhập ngoài nếu có (Math.max(0, incomeAfterTax - currentExpenses))
-          // Tiền ra: actualWithdrawal
-          const externalSurplus = Math.max(0, incomeAfterTax - currentExpenses);
-          netSavingsOrWithdrawal = externalSurplus - actualWithdrawal;
-          portfolio = Math.max(0, (portfolio + netSavingsOrWithdrawal) * (1.0 + returnRate));
+        // Dòng tiền ròng tác động lên danh mục:
+        // - Khi thu nhập vượt chi tiêu (surplus > 0): actualWithdrawal = 0, thặng dư được bổ sung vào danh mục
+        // - Khi chi tiêu vượt thu nhập: thâm hụt được bù đắp từ danh mục rút ra
+        const externalSurplus = Math.max(0, incomeAfterTax - currentExpenses);
+        netSavingsOrWithdrawal = externalSurplus - actualWithdrawal;
+        portfolio = Math.max(0, (portfolio + netSavingsOrWithdrawal) * (1.0 + returnRate));
 
-          // Tax-Efficient French Account Withdrawal Waterfall
-          if (frenchAccs && actualWithdrawal > 0 && window.TaxOptimizer && window.TaxOptimizer.simulateWithdrawalWaterfall) {
-            const wf = window.TaxOptimizer.simulateWithdrawalWaterfall(frenchAccs, actualWithdrawal, true);
-            frenchAccs = wf.remainingBalances;
-            totalWaterfallTaxSaved += wf.taxSavedVsPFU;
-          }
-        } else {
-          // Khi TẮT chiến lược rút tiền: KHÔNG rút vốn từ danh mục đầu tư
-          // Người về hưu chỉ sống bằng nguồn thu nhập ngoài (lương hưu, cổ tức, thụ động)
-          // Danh mục đầu tư được giữ nguyên vẹn để tiếp tục sinh lời
-          actualWithdrawal = 0;
-          if (incomeAfterTax >= currentExpenses) {
-            const surplus = incomeAfterTax - currentExpenses;
-            portfolio = (portfolio + surplus) * (1.0 + returnRate);
-            netSavingsOrWithdrawal = surplus;
-          } else {
-            // Không rút tiền từ danh mục, số dư vẫn sinh lời bình thường
-            portfolio = portfolio * (1.0 + returnRate);
-            netSavingsOrWithdrawal = 0;
-          }
+        // Tax-Efficient French Account Withdrawal Waterfall
+        if (frenchAccs && actualWithdrawal > 0 && window.TaxOptimizer && window.TaxOptimizer.simulateWithdrawalWaterfall) {
+          const wf = window.TaxOptimizer.simulateWithdrawalWaterfall(frenchAccs, actualWithdrawal, true);
+          frenchAccs = wf.remainingBalances;
+          totalWaterfallTaxSaved += wf.taxSavedVsPFU;
         }
       }
 
@@ -1856,7 +1781,9 @@ window.RetirementEngine = (function() {
     const safetyMultNow = horizonNow > 35 ? 30 : (horizonNow > 30 ? 28 : 25);
     const fireTargetNestEgg = Math.round(netDeficitNow > 0 ? (netDeficitNow * safetyMultNow) : (baseRetireExpenses * 10));
 
-    const safeAnnualSpend = Math.max(0, (initialRetirePortfolio || 0) * initialSWR);
+    // Rút vốn năm đầu hưu trí: Lấy số tiền rút thực tế tại tuổi retireAge (nếu có thâm hụt sau thu nhập)
+    const firstRetireRow = timeline.find(r => r.age === retireAge && r.isRetired);
+    const safeAnnualSpend = firstRetireRow ? (firstRetireRow.withdrawal || 0) : 0;
     const yearsToFIRE = Math.max(0, retireAge - currentAge);
 
     // Detect when FIRE Nest Egg is reached (tính từ tuổi hiện tại trở đi trong kịch bản hiện tại)

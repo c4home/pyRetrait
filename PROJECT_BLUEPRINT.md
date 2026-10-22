@@ -49,6 +49,11 @@ Giúp người dùng (đặc biệt là người Việt sinh sống và làm vi�
   - Phân tách rõ ràng giữa **Tài sản thanh khoản (Liquid Networth - Cổ phiếu, Trái phiếu, Tiền mặt)** và **Bất động sản / Tài sản cố định** để phản ánh đúng khả năng chịu đựng trước các cú sốc thanh khoản thực tế.
   - Loại bỏ các chế độ so sánh trùng lặp, gây quá tải nhận thức (Cognitive Overload) như so sánh 4 chiến lược rút vốn cùng lúc để người dùng tập trung sâu vào chiến lược tối ưu đã chọn.
 - **Đa ngôn ngữ (`i18n.js`)**: Tiếng Việt (`vi` - mặc định), Tiếng Anh (`en`), Tiếng Pháp (`fr`) qua Dropdown Menu co giãn trên Header. Khi kiểm thử chỉ kiểm tra trên Tiếng Việt (`vi`), kiểm tra tĩnh cho `en`/`fr`.
+- **Trợ Lý Gemini AI Advisor & Hệ Thống Prompt Toàn Diện Biến Số (Comprehensive AI Financial Strategist)**:
+  - **Chế độ On-Demand & Cache Fingerprinting toàn diện**: Tuyệt đối không tự động gọi API khi tải trang web hoặc khi người dùng thay đổi biến. Nút bấm duy nhất đặt trang trọng trên Header chuyển đổi trạng thái mượt mà (*Tạo nhận xét AI* ➔ *Phân tích lại* ➔ *Cập nhật nhận xét AI*).
+  - **Giám sát Fingerprint đa biến (`computeCacheKey`)**: Băm (FNV-1a 32-bit) toàn bộ các biến số tài chính, gia đình, đa quốc gia, 9 quỹ hưu trí, phân bổ tài sản, lạm phát kép 2 chặng và chỉ số sức khỏe. Bất kỳ thay đổi nào cũng hiển thị nhãn cảnh báo `⚠️ Chưa cập nhật` cạnh tiêu đề và cho phép phân tích lại tức thì.
+  - **Ngữ cảnh Prompt Toàn Diện (Full-Variable Prompting)**: Đưa 100% biến số cấu hình và kết quả tính toán chi tiết từ JS Engine vào prompt Gemini, triệt tiêu ảo giác, giúp AI đưa ra nhận xét chiến lược sắc bén, bám sát từng kịch bản đời thực.
+  - **Chuẩn hóa văn phong & Cấm LaTeX**: Phản hồi bắt đầu bằng `> **Tóm tắt cốt lõi**: [1-2 câu]`, ngôn ngữ thuần Việt trong sáng, tuyệt đối không dùng cú pháp LaTeX (`$$...$$`), không lạm dụng thuật ngữ kỹ thuật, phục vụ đại chúng 100,000+ người dùng.
 - **Lưu trữ & Backend**:
   - **Local-First**: Lưu tức thì vào `localStorage` (`pyretrait_plans`, `pyRetrait_guest_patrimoine_v2`).
   - **Cloud Sync**: Python 3.10+ FastAPI + `sqlite3` thuần (`data/pyretrait.db`), xác thực JWT + mật khẩu băm `PBKDF2-HMAC-SHA256` (100,000 vòng lặp).
@@ -164,9 +169,6 @@ Dưới đây là cấu trúc JSON chuẩn của một đối tượng kế ho�
     "realEstate": 6.5,
     "cash": 1.5
   },
-  "withdrawalStrategy": "guyton_klinger",
-  "enableWithdrawalStrategy": true,
-  "initialWithdrawalRate": 4.0,
   "targetLegacy": 36000,
   "taxRegime": "france_vietnam",
   "enableFrenchPension": true,
@@ -417,20 +419,20 @@ Cấu trúc bản ghi lưu trữ trên SQLite backend và đóng gói trong [`fr
 }
 ```
 
-### 4.5. Bảng Kiểm Toán Biến Số & Input Giao Diện (Input Audit & Dead Variables Register)
+### 4.6. Kiến Trúc Prompt Toàn Diện Của Gemini AI Advisor (Comprehensive Prompt Context)
 
-Kiểm toán tĩnh định kỳ (Static Code Audit) giữa giao diện HTML (`index.html`), tầng State (`state.js`) và tầng tính toán (`engine.js`, `taxOptimizer.js`):
+Để đảm bảo Gemini AI phân tích chính xác tuyệt đối, tránh hiện tượng đưa ra nhận xét chung chung hoặc ảo giác số liệu, hệ thống triển khai kiến trúc nạp ngữ cảnh toàn diện 10 nhóm biến số từ JS Engine sang Gemini API:
 
-| Nhóm | Tên Element / Biến | Vị trí xuất hiện | Tình trạng hiện tại | Hướng xử lý kiến trúc |
-|---|---|---|---|---|
-| **Lương Hưu Pháp 2 Cột** (Đã kết nối 2 chiều hoàn chỉnh) | `inp-pension-spouse1-start`<br>`inp-pension-spouse1-age`<br>`inp-pension-spouse1-base`<br>`inp-pension-spouse2-start`<br>`inp-pension-spouse2-age`<br>`inp-pension-spouse2-base` | `frontend/index.html` dòng 595–641 (Khu vực Cấu hình chi tiết lương hưu Pháp 2 cột song song `#french-inputs-body` ở Tab 1) | **Đã kết nối 2 chiều hoàn chỉnh** trong `ui-tab3-taxes.js` (`updatePensionDecoteUI` và `bindTab3Events`). Cho phép người dùng chỉnh độc lập tuổi đi làm, tuổi nhận hưu và lương chuẩn cho cả Bạn & Bạn đời, cập nhật tức thì số quý, Décote và dòng tiền toàn đời. | Đã hoàn thành. |
-| **Checkbox Lương Hưu Quốc Tế** (Đã kích hoạt phản hồi tức thì) | `chk-enable-japan-pension`<br>`chk-enable-canada-pension`<br>`chk-enable-australia-pension`<br>`chk-enable-korea-pension`<br>`chk-enable-taiwan-pension` | `frontend/index.html` (Thẻ lương hưu quốc tế Tab 1 & Tab 3) | **Đã gắn listener `change` trực tiếp**, cập nhật `plan.enable[Country]Pension`, đồng bộ hiển thị và tính toán lại dòng tiền tức thì trong `engine.js` (không phân biệt quốc gia làm việc hiện tại). | Đã hoàn thành. |
-| **Nhận diện Tự động Nợ Vay** (Auto-detect Debt via Regex) | `inp-expense-name`<br>`inp-expense-growth` | `frontend/index.html` & `ui-modals.js` (`openExpenseModal`, `saveExpenseModal`) | **Tự động nhận diện nợ vay bằng regex** (`/crédit\|credit\|vay\|nợ\|loan\|prêt\|pret\|ngân hàng\|trả góp\|tra gop\|leasing/i`). Đã bỏ checkbox thủ công `inp-expense-is-debt` để UI tinh gọn, người dùng chỉ cần gõ tên là hệ thống tự hiểu. Ô tăng trưởng luôn mở để tùy biến (0% nợ cố định, 2–2.5% lạm phát). | Đã hoàn thành. |
-| **Biểu Đồ Dòng Tiền & BĐS Dòng Tiền** (Cash Flow Real Estate) | `#chart-cashflow`<br>`plan.expenses`<br>`plan.incomes` | `frontend/index.html`, `ui-tab1-charts.js`, `patrimoine.js`, `engine.js` | Dòng tiền ròng BĐS LMNP (sau chi phí vận hành, nợ vay ngân hàng và thuế) được tích hợp trực tiếp vào biểu đồ dòng tiền hàng năm. Phân tách rạch ròi giữa tài sản thanh khoản (Liquid Networth) và tài sản cố định. | Đã hoàn thành. |
-| **Cosmetic Checkbox** (Chỉ đổi CSS, không lưu State) | `chk-enable-estate-legacy` | `frontend/index.html`, `ui-tab2-health.js` | Chỉ đổi opacity của card `card-estate-legacy-combined`, không lưu trạng thái vào `plan` và không ảnh hưởng tới `targetLegacy`. | Giữ nguyên nếu chỉ là hiệu ứng toggle trực quan, hoặc gán vào `plan.enableEstateLegacy` nếu người dùng muốn bật/tắt di sản mục tiêu. |
-| **Static Checklists** (Checklist tĩnh không lưu trữ) | `chk-cross-vitale`<br>`chk-cross-cfe`<br>`chk-cross-ordonnance`<br>`chk-cross-espace`<br>`chk-cross-tiers` | `frontend/index.html` (Thẻ Y tế xuyên biên giới Tab 2) | Checklist tĩnh hỗ trợ ghi nhớ thủ tục hành chính, không có listener và không lưu vào `state.js`. | Giữ nguyên dưới dạng checklist hướng dẫn hoặc lưu vào `localStorage` nếu muốn nhớ trạng thái hoàn thành của người dùng. |
-| **Derived / Display Input** (Chỉ hiển thị, không lưu) | `wz-cur-age` | `frontend/index.html`, `ui-modals.js` | Hiển thị tuổi tự động tính từ Năm sinh (`curYear - bYear`). Wizard chỉ đọc `wz-birth-year` để lưu vào plan. | Chuyển thành nhãn `<span>` hoặc giữ `<input readonly>` để người dùng dễ quan sát. |
-| **Dead Schema Fields & Retired Features** (Đã chính thức loại bỏ) | `compareWithdrawals`<br>`benchmarkSpendingStandard`<br>`retireLocation`<br>`healthProfile` (số ít) | Đã từng có trong Blueprint cũ | `compareWithdrawals` đã bị loại bỏ để chống quá tải nhận thức; `benchmarkSpendingStandard` đã được thay bằng `COUNTRY_PPP_PROFILES`; `retireLocation` đã được thay bằng `retireCountry` + `retireCity` + `retireMode`; `healthProfile` đơn thể đã chuyển thành `healthProfiles` đa nhân. | Đã chính thức loại bỏ khỏi JSON Schema chuẩn tại mục 4.1 và AppState tại 4.4. |
+1. **Hồ sơ nhân khẩu & gia đình**: Tuổi hiện tại (`currentAge`), tuổi nghỉ hưu (`retirementAge`), tuổi thọ (`lifeExpectancy`), giới tính (`gender`), tình trạng hôn nhân (`maritalStatus`), tuổi bạn đời (`spouseBirthYear`), suất thuế gia cảnh (`taxParts`).
+2. **Không gian địa lý & PPP Đa quốc gia**: Quốc gia làm việc (`workCountry`), Quốc gia nghỉ hưu (`retireCountry`, `retireCity`), chế độ chuyển dịch (`retireMode`).
+3. **Tài sản khởi điểm & Tích lũy hàng năm**: Tiền mặt/tiết kiệm ban đầu (`currentSavings`), mức tiết kiệm hàng năm (`annualSavings`), tài khoản thuế Pháp (`frenchAccounts`: PEA, Assurance-Vie, Livret A).
+4. **Phân bổ danh mục đầu tư & Lợi suất kỳ vọng**: Tỷ trọng cổ phiếu, trái phiếu, BĐS, tiền mặt (`assetAllocation`) và tỷ suất sinh lời thực tế kỳ vọng của từng kênh (`assetReturns`).
+5. **Dòng tiền thu/chi chi tiết**: Thu nhập chủ động (`incomes`), chi tiêu sinh hoạt (`expenses`), khoản nợ mua nhà dự kiến tất toán trước hưu (`monthlyMortgagePaidOff`), chi tiêu hưu trí cơ sở (`retirementExpenses`), kế hoạch con cái (`familyPlan`), 3 chặng chi tiêu tuổi già (`spendingPhases`: Go-Go/Slow-Go/No-Go), chi phí y tế chăm sóc tuổi già (`seniorCareMonthly`, `seniorCareAge`).
+6. **Lạm phát & Tỷ giá tiền tệ**: Lạm phát kép 2 chặng (`dualInflation`: trước hưu tại nước làm việc, sau hưu tại nước nghỉ hưu, tỷ giá EUR/VND và độ trôi dạt tỷ giá).
+7. **Hệ thống lương hưu & an sinh xã hội toàn cầu (9 quốc gia)**: Lương hưu Pháp CNAV (chuẩn 172 quý, phạt décote, tuổi nhận hưu của 2 vợ chồng), BHXH Việt Nam (năm đóng, mức lương, tuổi nhận hưu theo Luật 2024 của 2 vợ chồng), các quỹ hưu trí quốc tế nếu bật (Đức, Mỹ, Nhật, Canada, Úc, Hàn Quốc, Đài Loan).
+8. **Cơ chế rút vốn & Di sản**: Cơ chế rút vốn tự nhiên bù đắp thiếu hụt dòng tiền (chỉ rút khi chi tiêu vượt quá thu nhập để bảo toàn vốn gốc), mục tiêu di sản thừa kế (`targetLegacy`).
+9. **Chỉ số sinh học & Sức khỏe**: Tuổi sinh học, thói quen sống và số năm sống khỏe độc lập (`Healthspan`).
+10. **Kết quả mô phỏng đầu ra của biểu đồ (`chart_summary`)**: Đỉnh tài sản, tuổi đạt đỉnh, tài sản cuối đời, trạng thái sống sót/cạn vốn, tuổi nghỉ hưu tối ưu toán học (`optimalFireAge`), đối chiếu thực tế (`actualTracking`), Monte Carlo P10/P50/P90.
 
 ---
 
@@ -471,7 +473,9 @@ Kiểm toán tĩnh định kỳ (Static Code Audit) giữa giao diện HTML (`in
   - Trực quan hóa **Biểu đồ Dòng tiền (Cash Flow Chart)**: Hiển thị mạch lạc luồng tiền vào (Lương, Hưu trí, BĐS dòng tiền, Rút vốn) và luồng tiền ra (Chi tiêu, Trả nợ, Thuế, Chăm sóc tuổi già) theo từng năm.
   - Đơn giản hóa Modal Chi phí / Nợ vay: Tự động phát hiện nợ vay bằng biểu thức chính quy, xóa bỏ các trường nhập thừa, cấu hình tốc độ tăng trưởng linh hoạt.
   - Loại bỏ tính năng so sánh chiến lược rút vốn dư thừa để người dùng tập trung tối đa vào 1 kịch bản hưu trí vững chắc nhất.
-- **Phase 7 — Tối Ưu Giao Diện Tinh Tế & Apple Human Interface Guidelines (Đang triển khai)**:
-  - Hoàn thiện trải nghiệm thẩm mỹ cao cấp với cảm hứng từ Apple Design (typography Inter sắc nét, padding/spacing hài hòa, micro-interactions, modal bóng mờ thanh thoát).
-  - Kiểm toán độ tương phản chuẩn WCAG AA trên cả Light Mode và Dark Mode, chống chữ mờ/bạc màu trên nền sáng.
-  - Tiếp tục tinh giản thuật ngữ chuyên ngành (Plain Language) hướng tới 100,000+ người dùng phổ thông.
+- **Phase 7 — Trợ Lý Gemini AI Advisor Toàn Diện Biến Số & Apple Human Interface Guidelines (Đang triển khai)**:
+  - **Nâng cấp Hệ thống Prompt Gemini AI**: Đưa toàn bộ 10 nhóm biến số tài chính, địa lý PPP, 9 hệ thống lương hưu và kết quả mô phỏng vào prompt ngữ cảnh. Triệt tiêu hiện tượng nhận xét chung chung hoặc ảo giác.
+  - **Giám sát Fingerprint đa biến (`computeCacheKey`)**: Tự động phát hiện mọi thay đổi thông số kế hoạch để hiển thị nhãn `⚠️ Chưa cập nhật` và cập nhật nút hành động mượt mà.
+  - **Hoàn thiện trải nghiệm thẩm mỹ cao cấp Apple Design**: typography Inter sắc nét, padding/spacing hài hòa, micro-interactions, modal bóng mờ thanh thoát.
+  - **Kiểm toán độ tương phản chuẩn WCAG AA**: Chống chữ mờ/bạc màu trên cả Light Mode và Dark Mode.
+  - **Ngôn ngữ thuần Việt đời thường (Plain Language)**: Tiếp tục tinh giản thuật ngữ chuyên ngành hướng tới 100,000+ người dùng phổ thông.

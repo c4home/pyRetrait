@@ -942,10 +942,26 @@ samp {
 
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
+
+/* Căn thẳng hàng 4 thẻ KPI: tiêu đề chiếm tối thiểu 2 dòng để giá trị lớn nằm cùng một hàng */
+.kpi-grid .kpi-card {
+  align-items: flex-start;
+}
+.kpi-grid .kpi-title {
+  line-height: 1.3;
+  min-height: 2.6em;
+}
+/* Kết quả Đạt / Chưa đạt dùng đúng cỡ chữ .kpi-value như thẻ Tài sản thừa kế */
+.kpi-value.fire-verdict.is-ok { color: #059669; }
+.kpi-value.fire-verdict.is-fail { color: #e11d48; }
+[data-theme="dark"] .kpi-value.fire-verdict.is-ok,
+:root:not([data-theme="light"]) .kpi-value.fire-verdict.is-ok { color: #34d399; }
+[data-theme="dark"] .kpi-value.fire-verdict.is-fail,
+:root:not([data-theme="light"]) .kpi-value.fire-verdict.is-fail { color: #fb7185; }
 
 .kpi-card {
   background: var(--bg-card);
