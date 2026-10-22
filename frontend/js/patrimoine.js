@@ -26,10 +26,30 @@
 
   const GUEST_STORAGE_KEY = "pyRetrait_guest_patrimoine_v2";
 
+  function sanitizeApartmentsMap(aptsMap) {
+    if (!aptsMap || typeof aptsMap !== 'object') return {};
+    const cleanMap = {};
+    for (const [key, val] of Object.entries(aptsMap)) {
+      if (!key || !val) continue;
+      const cleanKey = key.trim();
+      if (cleanMap[cleanKey]) {
+        cleanMap[cleanKey] = { ...cleanMap[cleanKey], ...val };
+      } else {
+        cleanMap[cleanKey] = val;
+      }
+    }
+    return cleanMap;
+  }
+
   function getGuestPatrimoine() {
     try {
       const raw = localStorage.getItem(GUEST_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.apartments) {
+        parsed.apartments = sanitizeApartmentsMap(parsed.apartments);
+      }
+      return parsed;
     } catch (e) {
       return null;
     }
@@ -138,13 +158,14 @@
 
     const surface = numOr(apt.surface, 30);
     const startYear = truthyOr(apt.start_year, 2023);
+    const rentStartYear = truthyOr(apt.rent_start_year, startYear);
     const endAge = numOr(apt.end_age, 85);
     const round2 = (x) => Math.round(x * 100) / 100;
 
     return {
       name: name, address: apt.address || name, surface: surface,
       typology: apt.typology || "T2", dpe_rating: apt.dpe_rating || "C",
-      start_year: startYear, end_age: endAge, payoff_year: startYear + dur,
+      start_year: startYear, rent_start_year: rentStartYear, end_age: endAge, payoff_year: startYear + dur,
       property_price: Math.round(price), price_per_m2: surface > 0 ? Math.round(price / surface) : 0,
       notary_fees: Math.round(notary), bank_fees: Math.round(bank),
       renovation_cost: Math.round(renov), furniture_cost: Math.round(furn),
@@ -204,7 +225,13 @@
     if (isLogged) {
       try {
         const res = await fetch("/api/patrimoine", { headers: window.Auth.getAuthHeaders() });
-        if (res.ok) return await res.json();
+        if (res.ok) {
+          const cloudData = await res.json();
+          if (cloudData && cloudData.apartments) {
+            cloudData.apartments = sanitizeApartmentsMap(cloudData.apartments);
+          }
+          return cloudData;
+        }
       } catch (e) {
         console.error("Failed to fetch cloud patrimoine data:", e);
       }
@@ -217,7 +244,7 @@
         const res = await fetch("/api/patrimoine");
         if (res.ok) {
           const seed = await res.json();
-          guestData = { apartments: seed.apartments || {}, wealth: seed.wealth || {} };
+          guestData = { apartments: sanitizeApartmentsMap(seed.apartments || {}), wealth: seed.wealth || {} };
           saveGuestPatrimoine(guestData);
         }
       } catch (e) {
@@ -1050,21 +1077,24 @@
   const syncToFire = autoSyncToFire;
 
   /**
-   * Xóa căn hộ khỏi object an toàn, đối chiếu cả key chính xác lẫn chuẩn hóa trim/case-insensitive
+   * Xóa căn hộ khỏi object an toàn, đối chiếu cả key chính xác lẫn chuẩn hóa trim/case-insensitive.
+   * Xóa tất cả các key trùng khớp để dọn sạch triệt để các bản ghi nhân đôi nếu có.
    */
   function removeApartmentFromObject(aptsObj, targetName) {
-    if (!aptsObj || typeof aptsObj !== 'object') return false;
+    if (!aptsObj || typeof aptsObj !== 'object' || !targetName) return false;
+    let deleted = false;
     if (aptsObj[targetName]) {
       delete aptsObj[targetName];
-      return true;
+      deleted = true;
     }
-    const cleanTarget = (targetName || '').trim().toLowerCase();
-    const foundKey = Object.keys(aptsObj).find(k => (k || '').trim().toLowerCase() === cleanTarget);
-    if (foundKey) {
-      delete aptsObj[foundKey];
-      return true;
-    }
-    return false;
+    const cleanTarget = String(targetName).trim().toLowerCase();
+    Object.keys(aptsObj).forEach(k => {
+      if ((k || '').trim().toLowerCase() === cleanTarget) {
+        delete aptsObj[k];
+        deleted = true;
+      }
+    });
+    return deleted;
   }
 
   // Apartment Modal Handling
@@ -1078,20 +1108,39 @@
     const btnDelInModal = document.getElementById("btn-delete-apt-modal");
 
     let aptData = null;
-    if (aptName && patrimoineData?.apartments) {
+    if (aptName) {
       const cleanSearch = (aptName || '').trim().toLowerCase();
-      const found = patrimoineData.apartments.find(a => a.name === aptName || (a.name || '').trim().toLowerCase() === cleanSearch);
-      if (found) aptData = found;
+      // 1. Tìm trong patrimoineData nội bộ nếu có
+      if (patrimoineData?.apartments && Array.isArray(patrimoineData.apartments)) {
+        const found = patrimoineData.apartments.find(a => (a.name || '').trim().toLowerCase() === cleanSearch);
+        if (found) aptData = found;
+      }
+      // 2. Dự phòng: tìm trong state.patrimoineData nếu có
+      if (!aptData && window.state?.patrimoineData?.apartments && Array.isArray(window.state.patrimoineData.apartments)) {
+        const found = window.state.patrimoineData.apartments.find(a => (a.name || '').trim().toLowerCase() === cleanSearch);
+        if (found) aptData = found;
+      }
+      // 3. Dự phòng tiếp: tìm trực tiếp trong localStorage guest data
+      if (!aptData) {
+        const guest = getGuestPatrimoine();
+        if (guest && guest.apartments && typeof guest.apartments === 'object') {
+          const rawKey = Object.keys(guest.apartments).find(k => (k || '').trim().toLowerCase() === cleanSearch);
+          if (rawKey) {
+            aptData = computeApartmentMetrics(rawKey, guest.apartments[rawKey]);
+          }
+        }
+      }
     }
 
     if (aptData) {
       const r = aptData.raw || {};
-      if (titleEl) titleEl.innerText = `Chỉnh sửa Căn hộ: ${aptData.name}`;
-      if (nameInp) nameInp.value = aptData.name;
+      const cleanName = (aptData.name || '').trim();
+      if (titleEl) titleEl.innerText = `Chỉnh sửa Căn hộ: ${cleanName}`;
+      if (nameInp) nameInp.value = cleanName;
       if (origNameInp) origNameInp.value = aptData.name;
       if (btnDelInModal) {
         btnDelInModal.style.display = "inline-flex";
-        btnDelInModal.setAttribute("data-name", aptData.name);
+        btnDelInModal.setAttribute("data-name", cleanName);
       }
 
       const price = aptData.property_price || r.property_price || 90000;
@@ -1263,9 +1312,10 @@
       try {
         const raw = await loadRawData();
         raw.apartments = raw.apartments || {};
-        if (originalName && originalName !== name) {
+        if (originalName) {
           removeApartmentFromObject(raw.apartments, originalName);
         }
+        removeApartmentFromObject(raw.apartments, name);
         raw.apartments[name] = aptParams;
         await saveRawToCloud(raw);
 
@@ -1285,9 +1335,10 @@
     }
     guestData = guestData || { apartments: {}, turo: {}, wealth: {} };
     if (!guestData.apartments) guestData.apartments = {};
-    if (originalName && originalName !== name) {
+    if (originalName) {
       removeApartmentFromObject(guestData.apartments, originalName);
     }
+    removeApartmentFromObject(guestData.apartments, name);
     guestData.apartments[name] = aptParams;
     saveGuestPatrimoine(guestData);
 

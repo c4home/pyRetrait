@@ -132,6 +132,56 @@
       });
     }
 
+    // Toggle Sức mua Hiện tại (Real) vs Giá trị Tương lai (Nominal) cho Biểu đồ Dòng tiền
+    const btnCfReal = document.getElementById("btn-cashflow-real");
+    const btnCfNominal = document.getElementById("btn-cashflow-nominal");
+    if (btnCfReal) {
+      btnCfReal.addEventListener("click", () => {
+        if (typeof window.setCashflowViewMode === 'function') {
+          window.setCashflowViewMode("real");
+        } else {
+          state.cashflowViewMode = "real";
+          if (window.AppState && typeof window.AppState.setCashflowViewMode === 'function') {
+            window.AppState.setCashflowViewMode("real");
+          }
+          const plan = getActivePlan();
+          const proj = window.RetirementEngine.runProjection(plan);
+          renderCashFlowChart(proj);
+        }
+      });
+    }
+    if (btnCfNominal) {
+      btnCfNominal.addEventListener("click", () => {
+        if (typeof window.setCashflowViewMode === 'function') {
+          window.setCashflowViewMode("nominal");
+        } else {
+          state.cashflowViewMode = "nominal";
+          if (window.AppState && typeof window.AppState.setCashflowViewMode === 'function') {
+            window.AppState.setCashflowViewMode("nominal");
+          }
+          const plan = getActivePlan();
+          const proj = window.RetirementEngine.runProjection(plan);
+          renderCashFlowChart(proj);
+        }
+      });
+    }
+
+    // Toggle chuyển đổi giữa Biểu đồ Tăng trưởng Tài sản Ròng và Dòng tiền Hàng năm
+    const btnTabNetWorth = document.getElementById("btn-chart-tab-networth");
+    const btnTabCashFlow = document.getElementById("btn-chart-tab-cashflow");
+    if (btnTabNetWorth) {
+      btnTabNetWorth.addEventListener("click", () => switchMainChartTab("networth"));
+    }
+    if (btnTabCashFlow) {
+      btnTabCashFlow.addEventListener("click", () => switchMainChartTab("cashflow"));
+    }
+
+    // Khởi tạo hiển thị ban đầu dựa trên trạng thái đã lưu
+    const initialChartTab = (window.AppState && typeof window.AppState.getMainChartTab === 'function')
+      ? window.AppState.getMainChartTab()
+      : (state.mainChartTab || 'networth');
+    switchMainChartTab(initialChartTab, false);
+
 
 
 
@@ -642,8 +692,83 @@
     ctx.restore();
   }
 
-  function renderNetWorthChart(proj) {
-    const ctx = document.getElementById("chart-networth").getContext("2d");
+  /**
+   * Chuyển đổi linh hoạt giữa Biểu đồ Tài sản Ròng và Dòng tiền Hàng năm qua Toggle
+   * @param {'networth'|'cashflow'} tabKey - Khóa biểu đồ cần kích hoạt
+   * @param {boolean} [doSave=true] - Lưu preferences vào storage hay không
+   */
+  function switchMainChartTab(tabKey, doSave = true) {
+    const validTab = (tabKey === 'cashflow') ? 'cashflow' : 'networth';
+    state.mainChartTab = validTab;
+    if (window.AppState && typeof window.AppState.setMainChartTab === 'function') {
+      window.AppState.setMainChartTab(validTab);
+    }
+
+    const btnNetWorth = document.getElementById("btn-chart-tab-networth");
+    const btnCashFlow = document.getElementById("btn-chart-tab-cashflow");
+    if (btnNetWorth) {
+      btnNetWorth.classList.toggle("active", validTab === 'networth');
+      btnNetWorth.setAttribute("aria-selected", validTab === 'networth' ? 'true' : 'false');
+    }
+    if (btnCashFlow) {
+      btnCashFlow.classList.toggle("active", validTab === 'cashflow');
+      btnCashFlow.setAttribute("aria-selected", validTab === 'cashflow' ? 'true' : 'false');
+    }
+
+    const headerNw = document.getElementById("chart-header-networth");
+    const headerCf = document.getElementById("chart-header-cashflow");
+    if (headerNw) headerNw.style.display = (validTab === 'networth') ? 'block' : 'none';
+    if (headerCf) headerCf.style.display = (validTab === 'cashflow') ? 'block' : 'none';
+
+    // Điều khiển hiển thị trực tiếp 2 wrapper độc lập cùng chiều cao 420px
+    const wrapNw = document.getElementById("wrapper-chart-networth");
+    const wrapCf = document.getElementById("wrapper-chart-cashflow");
+    if (wrapNw) wrapNw.style.display = (validTab === 'networth') ? 'block' : 'none';
+    if (wrapCf) wrapCf.style.display = (validTab === 'cashflow') ? 'block' : 'none';
+
+    const extraControls = document.getElementById("chart-networth-extra-controls");
+    if (extraControls) extraControls.style.display = (validTab === 'networth') ? 'block' : 'none';
+
+    const noticeEl = document.getElementById("cashflow-inflation-notice");
+    if (noticeEl) {
+      const isNominal = (state.viewMode === 'nominal' || state.cashflowViewMode === 'nominal');
+      noticeEl.style.display = (validTab === 'cashflow' && isNominal) ? 'flex' : 'none';
+    }
+
+    if (doSave) {
+      debouncedSavePlansToStorage();
+    }
+
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const plan = getActivePlan();
+        if (!plan || !window.RetirementEngine) return;
+        const proj = window.RetirementEngine.runProjection(plan);
+        if (!proj) return;
+
+        // Đảm bảo Cột mốc cuộc đời dùng chung luôn được cập nhật
+        renderMilestonesRibbon(proj);
+
+        if (validTab === 'cashflow') {
+          renderCashFlowChart(proj, true);
+        } else {
+          renderNetWorthChart(proj, true);
+        }
+      }, 40);
+    });
+  }
+
+  function renderNetWorthChart(proj, force = false) {
+    const canvas = document.getElementById("chart-networth");
+    if (!canvas) return;
+
+    // Tránh render khi wrapper đang bị ẩn (để không tạo Chart instance kích thước 0x0)
+    const wrapNw = document.getElementById("wrapper-chart-networth");
+    if (!force && wrapNw && wrapNw.style.display === 'none') {
+      return;
+    }
+
+    const ctx = canvas.getContext("2d");
     const labels = proj.timeline.map(p => [`${p.age}t`, `${p.year}`]);
 
     if (state.charts.networth) {
@@ -1106,8 +1231,17 @@
     });
   }
 
-  function renderCashFlowChart(proj) {
-    const ctx = document.getElementById("chart-cashflow").getContext("2d");
+  function renderCashFlowChart(proj, force = false) {
+    const canvas = document.getElementById("chart-cashflow");
+    if (!canvas) return;
+
+    // Tránh render khi wrapper đang bị ẩn (để không tạo Chart instance kích thước 0x0)
+    const wrapCf = document.getElementById("wrapper-chart-cashflow");
+    if (!force && wrapCf && wrapCf.style.display === 'none') {
+      return;
+    }
+
+    const ctx = canvas.getContext("2d");
     const activePlan = getActivePlan();
     const isStrategyActive = activePlan.enableWithdrawalStrategy !== false;
     const stratKey = activePlan.withdrawalStrategy || 'guyton_klinger';
@@ -1119,11 +1253,37 @@
     };
     const stratName = stratMap[stratKey] || 'Guyton-Klinger';
 
+    // Chế độ hiển thị: Dùng chung chế độ Nominal/Real với biểu đồ Tài sản Ròng
+    const viewMode = state.viewMode || (window.AppState && typeof window.AppState.getViewMode === 'function' ? window.AppState.getViewMode() : 'nominal') || 'nominal';
+    const isNominal = viewMode === 'nominal';
+
+    const activeChartTab = (window.AppState && typeof window.AppState.getMainChartTab === 'function')
+      ? window.AppState.getMainChartTab()
+      : (state.mainChartTab || 'networth');
+
+    const noticeEl = document.getElementById("cashflow-inflation-notice");
+    if (noticeEl) {
+      noticeEl.style.display = (isNominal && activeChartTab === 'cashflow') ? "flex" : "none";
+    }
+
+    // Cập nhật Cột mốc cuộc đời dùng chung
+    renderMilestonesRibbon(proj);
+
     const labels = proj.timeline.map(p => [`${p.age}t`, `${p.year}`]);
-    const incomes = proj.timeline.map(p => p.income);
-    const expenses = proj.timeline.map(p => p.expenses);
+    const incomes = proj.timeline.map(p => {
+      const val = isNominal ? (p.income || 0) : ((p.cumInflation > 0) ? ((p.income || 0) / p.cumInflation) : (p.income || 0));
+      return Math.round(val);
+    });
+    const expenses = proj.timeline.map(p => {
+      const val = isNominal ? (p.expenses || 0) : ((p.cumInflation > 0) ? ((p.expenses || 0) / p.cumInflation) : (p.expenses || 0));
+      return Math.round(val);
+    });
     // Chỉ hiển thị giá trị dòng tiền rút vốn ở những năm thực sự CẦN rút vốn (isRetired và withdrawal > 0)
-    const withdrawals = proj.timeline.map(p => (p.isRetired && (p.withdrawal || 0) > 0) ? p.withdrawal : null);
+    const withdrawals = proj.timeline.map(p => {
+      if (!p.isRetired || !(p.withdrawal > 0)) return null;
+      const val = isNominal ? p.withdrawal : ((p.cumInflation > 0) ? (p.withdrawal / p.cumInflation) : p.withdrawal);
+      return Math.round(val);
+    });
 
     if (state.charts.cashflow) {
       state.charts.cashflow.destroy();
@@ -1169,10 +1329,14 @@
 
     const incomeLabel = (window.I18n && window.I18n.t) ? window.I18n.t('chart_income_label', 'Thu nhập') : 'Thu nhập';
     const expenseLabel = (window.I18n && window.I18n.t) ? window.I18n.t('chart_expense_label', 'Chi tiêu') : 'Chi tiêu';
+    const withdrawalLabel = (window.I18n && window.I18n.t) ? window.I18n.t('chart_withdrawal_flow', 'Dòng tiền Rút vốn') : 'Dòng tiền Rút vốn';
+    const modeTag = isNominal
+      ? ((window.I18n && window.I18n.t) ? window.I18n.t('lbl_mode_nominal_tag', 'Giá trị tương lai') : 'Giá trị tương lai')
+      : ((window.I18n && window.I18n.t) ? window.I18n.t('lbl_mode_real_tag', 'Sức mua hiện tại') : 'Sức mua hiện tại');
 
     const datasets = [
       {
-        label: `${incomeLabel} (${sym})`,
+        label: `${incomeLabel} (${sym} • ${modeTag})`,
         data: incomes,
         borderColor: incomeColor,
         backgroundColor: gradientIncome,
@@ -1187,7 +1351,7 @@
         pointBorderWidth: 2
       },
       {
-        label: `${expenseLabel} (${sym})`,
+        label: `${expenseLabel} (${sym} • ${modeTag})`,
         data: expenses,
         borderColor: expenseColor,
         backgroundColor: gradientExpense,
@@ -1202,7 +1366,7 @@
         pointBorderWidth: 2
       },
       {
-        label: `Dòng tiền Rút vốn (${sym})`,
+        label: `${withdrawalLabel} (${sym} • ${modeTag})`,
         data: withdrawals,
         borderColor: withdrawalColor,
         backgroundColor: gradientWithdrawal,
@@ -1287,6 +1451,7 @@
                 const formattedMonthly = window.RetirementEngine.formatCurrency(valMonthly, currSym, false);
                 const idx = item.dataIndex;
                 const p = proj.timeline[idx];
+                const factor = isNominal ? 1 : ((p && p.cumInflation > 0) ? p.cumInflation : 1);
 
                 if (item.datasetIndex === 0) {
                   const name = (window.I18n && window.I18n.t) ? window.I18n.t('chart_income_label', 'Thu nhập') : 'Thu nhập';
@@ -1296,7 +1461,8 @@
                     p.incomeBreakdown.forEach(inc => {
                       if (inc.amount !== 0 && inc.monthly !== undefined) {
                         const isNeg = inc.monthly < 0;
-                        const mFmt = window.RetirementEngine.formatCurrency(inc.monthly, currSym, false);
+                        const dispMonthly = inc.monthly / factor;
+                        const mFmt = window.RetirementEngine.formatCurrency(dispMonthly, currSym, false);
                         const prefix = isNeg ? '   - ' : '   + ';
                         const signPrefix = (!isNeg && !mFmt.startsWith('+')) ? '+' : '';
                         subLines.push(`${prefix}${inc.name}: ${signPrefix}${mFmt}/tháng`);
@@ -1312,7 +1478,8 @@
                   const subLines = [];
                   if (p && Array.isArray(p.expenseBreakdown) && p.expenseBreakdown.length > 0) {
                     p.expenseBreakdown.forEach(exp => {
-                      const mFmt = window.RetirementEngine.formatCurrency(Math.abs(exp.monthly), currSym, false);
+                      const dispMonthly = Math.abs(exp.monthly) / factor;
+                      const mFmt = window.RetirementEngine.formatCurrency(dispMonthly, currSym, false);
                       if (exp.isAllowance) {
                         subLines.push(`   + ${exp.name}: -${mFmt}/tháng`);
                       } else if (exp.amount !== 0) {
@@ -1324,7 +1491,7 @@
                 }
 
                 if (item.datasetIndex === 2) {
-                  const name = 'Dòng tiền Rút vốn';
+                  const name = withdrawalLabel;
                   return ` ${name}: ${formattedAnnual}/năm (${formattedMonthly}/tháng)`;
                 }
 
@@ -1335,12 +1502,13 @@
                 const p = proj.timeline[idx];
                 if (!p) return [];
                 const currSym = state.currency;
+                const factor = isNominal ? 1 : ((p.cumInflation > 0) ? p.cumInflation : 1);
                 const lines = [];
 
                 if (!p.isRetired) {
                   // Giai đoạn tích lũy: Tiết kiệm
-                  const income = p.income || 0;
-                  const expenses = p.expenses || 0;
+                  const income = (p.income || 0) / factor;
+                  const expenses = (p.expenses || 0) / factor;
                   const savingsAnnual = income - expenses;
                   const savingsMonthly = savingsAnnual / 12;
                   const sign = savingsAnnual > 0 ? '+' : '';
@@ -1350,10 +1518,10 @@
                   lines.push(` Tiết kiệm: ${sign}${formattedAnnual}/năm (${sign}${formattedMonthly}/tháng), Tỷ lệ: ${rate}%`);
                 } else {
                   // Giai đoạn hưu trí: Tổng khả dụng & Cân đối dòng tiền
-                  const income = p.income || 0;
-                  const withdrawal = p.withdrawal || 0;
+                  const income = (p.income || 0) / factor;
+                  const withdrawal = (p.withdrawal || 0) / factor;
                   const totalCash = income + withdrawal;
-                  const expenses = p.expenses || 0;
+                  const expenses = (p.expenses || 0) / factor;
                   const diff = totalCash - expenses;
                   const sign = diff >= 0 ? '+' : '';
                   const totalFormatted = window.RetirementEngine.formatCurrency(totalCash, currSym, false);
@@ -1376,6 +1544,23 @@
                 if (m && m.desc) {
                   lines.push(` Mốc sự kiện: ${m.desc}`);
                 }
+
+                // Ghi chú chi tiết lạm phát & trượt giá theo yêu cầu người dùng
+                if (isNominal) {
+                  const cumInfl = p.cumInflation || 1;
+                  const inflPct = Math.round((cumInfl - 1) * 100);
+                  const inflStr = inflPct >= 0 ? `+${inflPct}%` : `${inflPct}%`;
+                  const tNotice = (window.I18n && window.I18n.t)
+                    ? window.I18n.t('cashflow_tooltip_nominal_tag', 'Đã tính lạm phát & trượt giá')
+                    : 'Đã tính lạm phát & trượt giá';
+                  lines.push(` 📌 Lưu ý: Số liệu năm ${p.year} ${tNotice} (${inflStr}, hệ số x${cumInfl.toFixed(2)})`);
+                } else {
+                  const tRealNotice = (window.I18n && window.I18n.t)
+                    ? window.I18n.t('cashflow_tooltip_real_tag', 'Sức mua hiện tại (Real)')
+                    : 'Sức mua hiện tại (Real)';
+                  lines.push(` 💡 Chế độ: ${tRealNotice} • Đã chiết khấu lạm phát`);
+                }
+
                 return lines;
               }
             }
@@ -1903,6 +2088,7 @@
 
   const Tab1ChartsExports = {
     bindEvents: bindTab1ChartEvents,
+    switchMainChartTab,
     triggerPlanProjectionsInsight,
     renderMilestonesRibbon,
     renderStressResilienceCard,

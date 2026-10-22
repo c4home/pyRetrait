@@ -15,6 +15,7 @@
     },
     currency: "EUR", // Default to EUR
     viewMode: "nominal", // "nominal" or "real"
+    cashflowViewMode: "real", // "real" or "nominal" (mặc định: sức mua hiện tại)
     compareWithdrawals: false,
     compareStressScenarios: false,
     showMonteCarloFan: false,
@@ -256,6 +257,12 @@
     // Nominal vs Real View Toggle
     document.getElementById("btn-view-nominal").addEventListener("click", () => setViewMode("nominal"));
     document.getElementById("btn-view-real").addEventListener("click", () => setViewMode("real"));
+
+    // Cashflow View Mode Toggle (Sức mua hiện tại vs Giá trị tương lai)
+    const btnCfReal = document.getElementById("btn-cashflow-real");
+    const btnCfNominal = document.getElementById("btn-cashflow-nominal");
+    if (btnCfReal) btnCfReal.addEventListener("click", () => setCashflowViewMode("real"));
+    if (btnCfNominal) btnCfNominal.addEventListener("click", () => setCashflowViewMode("nominal"));
 
 
     // Refresh and Generate buttons click delegation (On-Demand only)
@@ -868,10 +875,49 @@
 
   function setViewMode(mode) {
     state.viewMode = mode;
-    document.getElementById("btn-view-nominal").classList.toggle("active", mode === "nominal");
-    document.getElementById("btn-view-real").classList.toggle("active", mode === "real");
+    state.cashflowViewMode = mode;
+    if (window.AppState) {
+      if (typeof window.AppState.setViewMode === 'function') window.AppState.setViewMode(mode);
+      if (typeof window.AppState.setCashflowViewMode === 'function') window.AppState.setCashflowViewMode(mode);
+    }
+    const btnNominal = document.getElementById("btn-view-nominal");
+    const btnReal = document.getElementById("btn-view-real");
+    if (btnNominal) btnNominal.classList.toggle("active", mode === "nominal");
+    if (btnReal) btnReal.classList.toggle("active", mode === "real");
+
+    const noticeEl = document.getElementById("cashflow-inflation-notice");
+    if (noticeEl) {
+      const activeChartTab = (window.AppState && typeof window.AppState.getMainChartTab === 'function')
+        ? window.AppState.getMainChartTab()
+        : (state.mainChartTab || 'networth');
+      noticeEl.style.display = (mode === "nominal" && activeChartTab === "cashflow") ? "flex" : "none";
+    }
+
     debouncedSavePlansToStorage();
     updateAll();
+  }
+
+  function setCashflowViewMode(mode) {
+    state.cashflowViewMode = mode;
+    if (window.AppState && typeof window.AppState.setCashflowViewMode === 'function') {
+      window.AppState.setCashflowViewMode(mode);
+    }
+    const btnReal = document.getElementById("btn-cashflow-real");
+    const btnNominal = document.getElementById("btn-cashflow-nominal");
+    if (btnReal) btnReal.classList.toggle("active", mode === "real");
+    if (btnNominal) btnNominal.classList.toggle("active", mode === "nominal");
+
+    const noticeEl = document.getElementById("cashflow-inflation-notice");
+    if (noticeEl) {
+      noticeEl.style.display = (mode === "nominal") ? "flex" : "none";
+    }
+
+    debouncedSavePlansToStorage();
+    const plan = getActivePlan();
+    const proj = window.RetirementEngine.runProjection(plan);
+    if (window.Tab1ChartsUI && typeof window.Tab1ChartsUI.renderCashFlowChart === 'function') {
+      window.Tab1ChartsUI.renderCashFlowChart(proj);
+    }
   }
 
   const SUN_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-svg-icon"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>`;
@@ -969,6 +1015,7 @@
     convertPlanCurrency,
     setCurrency,
     setViewMode,
+    setCashflowViewMode,
     updateThemeIcon,
     toggleTheme,
     loadTheme

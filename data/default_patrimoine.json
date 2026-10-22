@@ -28,7 +28,7 @@
  "annual_insurance_rate": 0.3,
  "user_tmi": 30
  },
- "Borderouge 79 000 ": {
+ "Borderouge 79 000": {
  "address": "Borderouge",
  "surface": 35.0,
  "typology": "Studio / T1",
@@ -56,7 +56,7 @@
  "annual_insurance_rate": 0.1,
  "user_tmi": 30
  },
- "Trois Cocus 124000 euros ": {
+ "Trois Cocus 124000 euros": {
  "address": "30 bis chemin des Izards",
  "surface": 56.0,
  "typology": "T3 (3 pièces)",

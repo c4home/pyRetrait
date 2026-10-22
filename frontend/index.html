@@ -28,7 +28,7 @@
   <script src="js/icons-bundle.js?v=20261018_v1"></script>
 
   <!-- CSS Stylesheet: Core Design System + Sub-modules -->
-  <link rel="stylesheet" href="css/styles.css?v=20261021_v205">
+  <link rel="stylesheet" href="css/styles.css?v=20261022_v210">
   <link rel="stylesheet" href="css/modules/tab1-streams.css?v=20261021_v204">
   <link rel="stylesheet" href="css/modules/tab2-health.css?v=20261021_v204">
   <link rel="stylesheet" href="css/modules/tab3-taxes.css?v=20261021_v204">
@@ -2426,17 +2426,37 @@
 
           <!-- Right: Interactive Charts & Timeline Breakdown -->
           <div class="panel-visualization">
-            <!-- Chart Card 1: Net Worth Trajectory -->
-            <div class="card chart-card">
+            <!-- Unified Chart Card: Net Worth Trajectory & Annual Cash Flow -->
+            <div class="card chart-card" id="main-interactive-chart-card">
+              <!-- Header: Tiêu đề động + Cụm Toggle Chuyển Đổi Giữa 2 Biểu Đồ -->
               <div class="chart-header">
-                <div>
-                  <h3 class="card-title" data-i18n="chart_networth_title">Biểu đồ Tăng trưởng Tài sản Ròng</h3>
-                  <p class="chart-desc">Phân lớp trực quan giữa Tổng Tài sản Ròng (gồm BĐS) và Tiền Mặt & Quỹ Đầu Tư rút
-                    chi tiêu hưu trí.</p>
+                <div class="chart-header-left">
+                  <div id="chart-header-networth" class="chart-header-content">
+                    <h3 class="card-title" data-i18n="chart_networth_title">Biểu đồ Tăng trưởng Tài sản Ròng</h3>
+                    <p class="chart-desc" data-i18n="chart_networth_desc">Phân lớp trực quan giữa Tổng Tài sản Ròng (gồm BĐS) và Tiền Mặt & Quỹ Đầu Tư rút chi tiêu hưu trí.</p>
+                  </div>
+                  <div id="chart-header-cashflow" class="chart-header-content" style="display: none;">
+                    <h3 class="card-title" data-i18n="chart_cashflow_title">Dòng tiền Hàng năm</h3>
+                    <p class="chart-desc" data-i18n="chart_cashflow_desc">Cân đối thu nhập chủ động, thụ động, lương hưu, số tiền rút từ danh mục và chi tiêu sinh hoạt.</p>
+                  </div>
+                </div>
+
+                <!-- Toggle chuyển đổi giữa 2 Biểu đồ: Tài sản Ròng vs Dòng tiền Hàng năm -->
+                <div class="chart-view-toggle-container">
+                  <div class="chart-view-toggle-group" role="tablist" aria-label="Chuyển đổi loại biểu đồ" data-i18n-title="chart_tab_toggle_title" title="Chuyển đổi giữa Biểu đồ Tài sản Ròng và Dòng tiền Hàng năm">
+                    <button type="button" class="btn-chart-view-toggle active" id="btn-chart-tab-networth" data-chart-tab="networth" role="tab" aria-selected="true">
+                      <span class="toggle-icon">📈</span>
+                      <span data-i18n="chart_tab_networth_label">Tài sản Ròng</span>
+                    </button>
+                    <button type="button" class="btn-chart-view-toggle" id="btn-chart-tab-cashflow" data-chart-tab="cashflow" role="tab" aria-selected="false">
+                      <span class="toggle-icon">📊</span>
+                      <span data-i18n="chart_tab_cashflow_label">Dòng tiền Hàng năm</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <!-- Thanh điều khiển hiển thị: Bên trái (Nominal/Real) - Bên phải (3 So sánh kịch bản) -->
+              <!-- PHẦN CHUNG 1: Nút Giá trị Tương lai (Nominal) / Sức mua Hiện tại (Real) dùng chung cho cả 2 bên -->
               <div class="chart-toolbar-row">
                 <div class="chart-toolbar-left">
                   <button type="button" class="btn btn-xs btn-ghost active" id="btn-view-nominal"
@@ -2444,17 +2464,9 @@
                   <button type="button" class="btn btn-xs btn-ghost" id="btn-view-real"
                     data-i18n="btn_view_real" title="Xem theo sức mua hiện tại đã chiết khấu lạm phát">Sức mua Hiện tại (Real)</button>
                 </div>
-                <div class="chart-toolbar-right">
-                  <button type="button" class="btn btn-xs btn-outline" id="btn-toggle-compare-stress"
-                    data-i18n="btn_toggle_compare_stress" data-i18n-title="btn_toggle_compare_stress_title"
-                    title="Bật/Tắt so sánh 3 kịch bản biến cố rủi ro lớn nhất: Khủng hoảng sớm (-35%), Lạm phát phi mã, Cú sốc y tế">Ba biến cố tồi tệ nhất</button>
-                  <button type="button" class="btn btn-xs btn-outline" id="btn-toggle-mc-fan"
-                    data-i18n="btn_toggle_mc_fan" data-i18n-title="btn_toggle_mc_fan_title"
-                    title="Bật/Tắt hiển thị Biến cố biến động thị trường Monte Carlo (P10 - P90) trên biểu đồ tài sản">Biến cố biến động thị trường Monte Carlo</button>
-                </div>
               </div>
 
-              <!-- Life Milestones Ribbon -->
+              <!-- PHẦN CHUNG 2: Cột Mốc Cuộc Đời (Life Milestones) dùng chung cho cả 2 bên -->
               <div class="milestones-ribbon-container">
                 <div class="milestones-ribbon-header">
                   <span class="milestones-ribbon-title"> Cột Mốc Cuộc Đời (Life Milestones)</span>
@@ -2470,34 +2482,45 @@
                 </div>
               </div>
 
-              <div class="chart-wrapper">
+              <!-- VÙNG GRAPH CANVAS: Mỗi biểu đồ nằm trong wrapper chuẩn riêng cùng class chart-wrapper (cao 420px) -->
+              <div class="chart-wrapper" id="wrapper-chart-networth">
                 <canvas id="chart-networth"></canvas>
               </div>
-
-              <!-- Dòng Ghi Chú: Vì sao Tiền Mặt & Quỹ Đầu Tư quan trọng hơn Tổng tài sản? -->
-              <div class="liquid-explainer-strip" id="liquid-explainer-card">
-                <span class="liquid-strip-icon">💡</span>
-                <p class="liquid-strip-text">
-                  <strong data-i18n="why_liquid_strip_title">Tiền mặt &amp; Quỹ đầu tư quan trọng hơn Tổng tài sản,</strong>
-                  <span data-i18n="why_liquid_strip_desc">vì đây là nguồn tạo dòng tiền sinh hoạt mỗi tháng. Căn nhà tiền tỷ không thể bẻ từng viên gạch để đi chợ hay trả viện phí. Nếu cạn tiền thanh khoản quá sớm, bạn sẽ rơi vào thế bị động và buộc phải bán tháo nhà đất lúc về hưu.</span>
-                </p>
+              <div class="chart-wrapper" id="wrapper-chart-cashflow" style="display: none;">
+                <canvas id="chart-cashflow"></canvas>
               </div>
 
-              <!-- Tích hợp 3 Kịch bản Biến cố trực tiếp vào dưới Biểu đồ Tài sản Ròng để tiết kiệm diện tích -->
-              <div id="stress-resilience-container"></div>
-            </div>
-
-            <!-- Chart Card 2: Annual Cash Flow (Income vs Expenses vs Withdrawals) -->
-            <div class="card chart-card">
-              <div class="chart-header">
-                <div>
-                  <h3 class="card-title">Dòng tiền Hàng năm</h3>
-                  <p class="chart-desc">Cân đối thu nhập chủ động, thụ động, lương hưu, số tiền rút từ danh mục và chi
-                    tiêu sinh hoạt.</p>
+              <!-- Dòng Lưu ý Lạm phát & Trượt giá khi người dùng xem Dòng tiền ở Giá trị tương lai (Nominal) - Đặt ở DƯỚI Graph -->
+              <div class="cashflow-inflation-notice" id="cashflow-inflation-notice" style="display: none;">
+                <span class="notice-icon">💡</span>
+                <div class="notice-text">
+                  <strong data-i18n="cashflow_inflation_notice_title">Lưu ý quan trọng:</strong>
+                  <span data-i18n="cashflow_inflation_notice_desc">Biểu đồ đang hiển thị theo <strong>Giá trị Tương lai (Nominal)</strong>. Hàng năm số liệu thu nhập, chi tiêu và dòng tiền rút đã được tính gộp lạm phát và trượt giá lũy kế theo thời gian (các con số danh nghĩa sẽ tăng dần tương ứng).</span>
                 </div>
               </div>
-              <div class="chart-wrapper">
-                <canvas id="chart-cashflow"></canvas>
+
+              <!-- PHẦN DƯỚI GRAPH: 2 nút Biến cố chuyển ngay sát trên ligne Tiền Mặt & Quỹ Đầu Tư -->
+              <div class="chart-networth-controls" id="chart-networth-extra-controls">
+                <div class="chart-stress-buttons-row">
+                  <button type="button" class="btn btn-xs btn-outline" id="btn-toggle-compare-stress"
+                    data-i18n="btn_toggle_compare_stress" data-i18n-title="btn_toggle_compare_stress_title"
+                    title="Bật/Tắt so sánh 3 kịch bản biến cố rủi ro lớn nhất: Khủng hoảng sớm (-35%), Lạm phát phi mã, Cú sốc y tế">Ba biến cố tồi tệ nhất</button>
+                  <button type="button" class="btn btn-xs btn-outline" id="btn-toggle-mc-fan"
+                    data-i18n="btn_toggle_mc_fan" data-i18n-title="btn_toggle_mc_fan_title"
+                    title="Bật/Tắt hiển thị Biến cố biến động thị trường Monte Carlo (P10 - P90) trên biểu đồ tài sản">Biến cố biến động thị trường Monte Carlo</button>
+                </div>
+
+                <!-- Dòng Ghi Chú: Vì sao Tiền Mặt & Quỹ Đầu Tư quan trọng hơn Tổng tài sản? -->
+                <div class="liquid-explainer-strip" id="liquid-explainer-card">
+                  <span class="liquid-strip-icon">💡</span>
+                  <p class="liquid-strip-text">
+                    <strong data-i18n="why_liquid_strip_title">Tiền mặt &amp; Quỹ đầu tư quan trọng hơn Tổng tài sản,</strong>
+                    <span data-i18n="why_liquid_strip_desc">vì đây là nguồn tạo dòng tiền sinh hoạt mỗi tháng. Căn nhà tiền tỷ không thể bẻ từng viên gạch để đi chợ hay trả viện phí. Nếu cạn tiền thanh khoản quá sớm, bạn sẽ rơi vào thế bị động và buộc phải bán tháo nhà đất lúc về hưu.</span>
+                  </p>
+                </div>
+
+                <!-- Tích hợp 3 Kịch bản Biến cố trực tiếp vào dưới Biểu đồ Tài sản Ròng để tiết kiệm diện tích -->
+                <div id="stress-resilience-container"></div>
               </div>
             </div>
           </div>
@@ -6095,23 +6118,23 @@
   </div>
 
   <!-- Application Logic Modules -->
-  <script src="js/i18n.js?v=20261021_v227"></script>
-  <script src="js/state.js?v=20261021_v227"></script>
-  <script src="js/engine.js?v=20261021_v228"></script>
+  <script src="js/i18n.js?v=20261022_v230"></script>
+  <script src="js/state.js?v=20261022_v230"></script>
+  <script src="js/engine.js?v=20261022_v229"></script>
   <script src="js/taxOptimizer.js?v=20261021_v227"></script>
   <script src="js/monteCarlo.js?v=20261021_v227"></script>
   <script src="js/scenarios.js?v=20261021_v227"></script>
   <script src="js/geminiAdvisor.js?v=20261021_v227"></script>
-  <script src="js/patrimoine.js?v=20261021_v227"></script>
+  <script src="js/patrimoine.js?v=20261022_v229"></script>
   <script src="js/export.js?v=20261021_v227"></script>
   <script src="js/auth.js?v=20261021_v227"></script>
   <!-- Tầng 3: Giao diện tách theo từng Tab độc lập + Modals + Nhạc trưởng điều phối -->
   <script src="js/ui-modals.js?v=20261021_v227"></script>
-  <script src="js/ui-tab1-charts.js?v=20261021_v228"></script>
+  <script src="js/ui-tab1-charts.js?v=20261022_v232"></script>
   <script src="js/ui-tab1-streams.js?v=20261021_v227"></script>
   <script src="js/ui-tab2-health.js?v=20261021_v227"></script>
   <script src="js/ui-tab3-taxes.js?v=20261021_v227"></script>
-  <script src="js/ui.js?v=20261021_v228"></script>
+  <script src="js/ui.js?v=20261022_v232"></script>
 </body>
 
 </html>

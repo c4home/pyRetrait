@@ -17,6 +17,8 @@
     },
     currency: "EUR", // 'EUR', 'VND', 'USD'
     viewMode: "nominal", // 'nominal' | 'real'
+    cashflowViewMode: "real", // 'real' | 'nominal' (mặc định: sức mua hiện tại)
+    mainChartTab: "networth", // 'networth' | 'cashflow' (chuyển đổi biểu đồ tài sản ròng và dòng tiền)
     compareWithdrawals: false,
     compareStressScenarios: false,
     showMonteCarloFan: false,
@@ -110,6 +112,24 @@
   function setViewMode(mode) {
     state.viewMode = mode;
     emit('viewmode-changed', mode);
+  }
+
+  function getCashflowViewMode() {
+    return state.cashflowViewMode || 'real';
+  }
+
+  function setCashflowViewMode(mode) {
+    state.cashflowViewMode = mode;
+    emit('cashflow-viewmode-changed', mode);
+  }
+
+  function getMainChartTab() {
+    return state.mainChartTab || 'networth';
+  }
+
+  function setMainChartTab(tab) {
+    state.mainChartTab = tab;
+    emit('main-chart-tab-changed', tab);
   }
 
   function getActiveTab() {
@@ -420,6 +440,16 @@
     if (pref.viewMode) {
       state.viewMode = pref.viewMode;
     }
+    if (pref.cashflowViewMode) {
+      state.cashflowViewMode = pref.cashflowViewMode;
+    } else {
+      state.cashflowViewMode = 'real';
+    }
+    if (pref.mainChartTab) {
+      state.mainChartTab = pref.mainChartTab;
+    } else {
+      state.mainChartTab = 'networth';
+    }
   }
 
   let saveCloudTimeout = null;
@@ -430,7 +460,9 @@
         lang: (typeof localStorage !== 'undefined' ? localStorage.getItem('pyretrait_lang') : null) || 'vi',
         theme: (typeof localStorage !== 'undefined' ? localStorage.getItem('pyRetrait_theme') : null) || (typeof document !== 'undefined' && document.documentElement ? document.documentElement.getAttribute('data-theme') : 'dark') || 'dark',
         currency: state.currency || 'EUR',
-        viewMode: state.viewMode || 'nominal'
+        viewMode: state.viewMode || 'nominal',
+        cashflowViewMode: state.cashflowViewMode || 'real',
+        mainChartTab: state.mainChartTab || 'networth'
       };
     }
     try {
@@ -615,6 +647,10 @@
     setCurrency,
     getViewMode,
     setViewMode,
+    getCashflowViewMode,
+    setCashflowViewMode,
+    getMainChartTab,
+    setMainChartTab,
     getActiveTab,
     setActiveTab,
     ensurePlanDefaults,
